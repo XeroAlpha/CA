@@ -140,6 +140,11 @@ var MapScript = {
 	//初始化
 	init : function(g) {
 		this.global = g;
+		if ("module" in g) { //Node.js
+			module.exports = function(name) {
+				return g[name];
+			}
+		}
 	},
 
 	initialize : function() {
@@ -711,7 +716,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.8.8 Beta",
+	version : "0.9 Beta",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	plans : '<h2>方块/物品ID计划</h2><p>命令助手中的方块/物品的ID都是从Minecraft基岩版（PE）中的<code>blocks.json</code>和<code>items_client.json</code>中提取的，相关的中文译名则是从<code>zh_CN.lang</code>中智能提取。</p><h4>补充翻译</h4><p>一个ID可能对应多个不同的物品，不同的物品又有不同的I18NID，因此有一些翻译无法从文件中提取到。<strong>补充翻译的任务就是将这些没有翻译的ID翻译出来。</strong></p><h4>纠正翻译</h4><p>因为Minecraft基岩版（PE）国际化做的并不是很好，有些地方会有翻译错误/翻译不标准/错位的情况发生。<strong>纠正翻译的任务就是纠正这些错误的翻译。</strong></p><h4>补充遗漏</h4><p>因为仍有部分ID不在两个json中。<strong>补充遗漏的任务就是将这些ID补充到ID表中。</strong></p><hr/><h2>声音表翻译计划</h2><p>命令助手包含的声音表是 Orangeboy2003 整理的，最初包括在《小阿函数表》中，后经 @阿特我自己 许可使用。这个表并不完整。所有声音ID是从<code>sound_definitions.json</code>中提取的， Orangeboy2003 的声音表没有其中许多声音ID的翻译。<strong>声音表翻译的任务就是将这些没有翻译的声音ID翻译出来。</strong></p><hr/><h2>命令查错计划</h2><p>命令助手包含了80个命令模式，全部为人工制作，难免有缺漏之处。<strong>命令查错的任务是检查命令的描述与匹配模式是否正确。</strong></p><hr/><h2>找BUG计划</h2><p>命令助手源代码接近一万行，难免存在BUG。<strong>找BUG的任务是寻找命令助手的BUG并反馈给作者。</strong></p><hr/><h2>每日提示计划</h2><p>看到每次启动的提示没？想不想让提示变得更多？<strong>每日提示的任务是写每日提示。</strong></p><hr/><p>以上就是所有的计划，如果想参与，请点击页面：<a href="http://projectxero.mikecrm.com/lPJ9dYp">命令助手-ID表计划</a></p>',
@@ -746,7 +751,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			screenName = self.l;
 		}
 		if (!this.fine) return;
-		if (!this.settings.autoHideIcon) return this.showIcon();
+		if (!this.settings.autoHideIcon || MapScript.host == "AutoJs") return this.showIcon();
 		if (screenName == "chat_screen" || screenName == "command_block_screen" || (this.cmdstr.length && screenName == "hud_screen")) {
 			this.showIcon();
 		} else {
@@ -1332,7 +1337,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							if (s in CA.fav) {
 								Common.toast("名字重复了～换一个名字吧");
 							} else {
-								if (!s.length) s = tag.cmd;
+								if (!s) s = tag.cmd;
 								CA.fav[s] = tag.cmd;
 								CA.showHistory();
 							}
@@ -1361,7 +1366,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						title : "编辑名称",
 						callback : function(s) {
 							delete CA.fav[tag.name];
-							if (!s.length) s = tag.cmd;
+							if (!s) s = tag.cmd;
 							CA.fav[s] = tag.cmd;
 							CA.showHistory();
 						},
@@ -1375,7 +1380,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					Common.showInputDialog({
 						title : "编辑内容",
 						callback : function(s) {
-							if (!s.length) {
+							if (!s) {
 								Common.toast("命令不能为空哦～");
 							} else {
 								CA.fav[tag.name] = s;
@@ -1787,6 +1792,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				type : "tag"
 			},{
 				name : "当前版本",
+				description : "基于Rhino (" + MapScript.host + ")",
 				type : "custom",
 				get : function() {
 					return CA.version;
@@ -3070,7 +3076,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						} else if (e.indexOf(ps) >= 0 || t[e].indexOf(ps) >= 0) {
 							r.length = Math.max(r.length, ps.length);
 						} else return;
-						if (t[e] && t[e].length) {
+						if (t[e]) {
 							r.output[e + " - " + t[e]] = e;
 							r.input.push(e + " - " + t[e]);
 						} else {
@@ -3125,7 +3131,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				t3 = []; t4 = [];
 				Object.keys(t).forEach(function(e, i, a) {
 					if (e.indexOf(t2) < 0 && t[e].indexOf(t2) < 0) return;
-					if (t[e] && t[e].length) {
+					if (t[e]) {
 						t5 = e + " - " + t[e];
 						r.output[t5] = e;
 						if (r.input.indexOf(t5) < 0) t3.push(t5);
@@ -3185,9 +3191,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					case "position":
 					z += ":x y z";
 					t = (/(\S*)\s*(\S*)\s*(\S*)/).exec(ms);
-					if (t[1].length) z = z.replace("x", t[1]);
-					if (t[2].length) z = z.replace("y", t[2]);
-					if (t[3].length) z = z.replace("z", t[3]);
+					if (t[1]) z = z.replace("x", t[1]);
+					if (t[2]) z = z.replace("y", t[2]);
+					if (t[3]) z = z.replace("z", t[3]);
 					break;
 					
 					case "command":
@@ -3304,7 +3310,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return t;
 				}
 				if (ms[2]) { // 输入修饰符内容
-					if (!ms[1].length) return null;
+					if (!ms[1]) return null;
 					bb += ms[1] + ms[2];
 					if (cp2 = this.library.selectors[ms[1]]) {
 						if (cp2.hasInverted) {
@@ -3312,7 +3318,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								ms[3] = ms[3].slice(1);
 								bb += "!";
 							} else {
-								if (!ms[3].length) {
+								if (!ms[3]) {
 									t.recommend["! - 反向选择"] = bb + "!";
 									t.input.push("! - 反向选择");
 								}
@@ -3335,7 +3341,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						t.input.push(", - 下一个参数", "] - 结束参数");
 					}
 				} else { //输入修饰符名称
-					if (ms[1].length) {
+					if (ms[1]) {
 						t.recommend["= - 输入参数"] = bb + ms[1] + "=";
 						t.input.push("= - 输入参数");
 					}
@@ -3360,7 +3366,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			for (i = 0; i < n; i++) {
 				if (i == 0 && l[0].startsWith("^")) uv = true;
 				if (!(t = (uv ? /^(?:(\^)((\+|-)?(\d*\.)?\d*))?$/ : /^(~)?((\+|-)?(\d*\.)?\d*)$/).exec(l[i]))) return null;
-				if ((!t[1] || t[2].length) && !(/^(\+|-)?(\d*\.)?\d+$/).test(t[2])) if (i == n - 1) {
+				if ((!t[1] || t[2]) && !(/^(\+|-)?(\d*\.)?\d+$/).test(t[2])) if (i == n - 1) {
 					f = false;
 				} else return null;
 			}
@@ -3701,7 +3707,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			var checkNotEmptyString = function(o) {
 				checkString(o);
-				if (!o.length) e("是空字符串");
+				if (!o) e("是空字符串");
 			}
 			var iterateArray = function(o, iter) {
 				var l = stack.length, i;
@@ -3961,7 +3967,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.choosePattern(true);
 				}
 				self.refresh = function() {
-					var pp, arr;
+					var pp, arr, help;
 					if (CA.Assist.command) {
 						pp = new G.SpannableStringBuilder(CA.Assist.formatPattern(CA.Assist.command, CA.Assist.pattern));
 						pp.append("\n");
@@ -3985,6 +3991,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							return true;
 						}
 					}), CA.Assist.paramAdapter, self));
+					try {
+						help = CA.Assist.command ? CA.IntelliSense.library.commands[CA.Assist.command].help : CA.IntelliSense.library.help.command;
+						new java.net.URL(help);
+						CA.showAssist.postHelp(0, help);
+					} catch(e) {
+						CA.showAssist.postHelp(1, help || "暂时没有帮助，以后会加上的啦");
+					}
 					CA.Assist.refreshCommand();
 				}
 				self.choosePattern = function(optional) {
@@ -4071,16 +4084,110 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.cmd.setText("/");
 			}
 		},
-		editParam : function(e) {
-			Common.showInputDialog({
-				title : "编辑“" + e.param.name + "”",
-				callback : function(s) {
-					e.text = s;
-					e._text.setText(s);
-					CA.Assist.refreshCommand();
-				},
-				defaultValue : e.text
-			});
+		editParam : function(e) {G.ui(function() {try {
+			var frame, layout, title, ret, exit, popup, t, onSave, onSet;
+			frame = new G.FrameLayout(ctx);
+			frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
+			frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				if (e.getAction() == e.ACTION_DOWN) {
+					popup.dismiss();
+				}
+				return true;
+			} catch(e) {erp(e)}}}));
+			layout = new G.LinearLayout(ctx);
+			layout.setBackgroundColor(Common.theme.message_bgcolor);
+			layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
+			layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+			layout.setOrientation(G.LinearLayout.VERTICAL);
+			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				return true;
+			} catch(e) {erp(e)}}}));
+			title = new G.TextView(ctx);
+			title.setTextSize(Common.theme.textsize[4]);
+			title.setTextColor(Common.theme.textcolor);
+			title.setText("编辑“" + e.param.name + "”");
+			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			title.setPadding(0, 0, 0, 10 * G.dp);
+			layout.addView(title);
+			switch (e.param.type) {
+				default:
+				var ret = new G.EditText(ctx);
+				if (e.text) ret.setText(e.text);
+				ret.setSingleLine(true);
+				ret.setTextSize(Common.theme.textsize[2]);
+				ret.setTextColor(Common.theme.textcolor);
+				ret.setPadding(0, 10 * G.dp, 0, 20 * G.dp);
+				ret.setBackgroundColor(G.Color.TRANSPARENT);
+				ret.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				layout.addView(ret);
+				onSave = function() {
+					if (ret.length() > 0) {
+						e._text.setText(e.text = String(ret.getText()));
+						CA.Assist.refreshCommand();
+						return true;
+					} else {
+						Common.toast("内容不能为空！");
+						return false;
+					}
+				}
+				onSet = function(e) {
+					ret.setText(String(e));
+				}
+			}
+			if (onSet && e.param.suggestion) {
+				t = e.param.suggestion instanceof Object ? e.param.suggestion : CA.IntelliSense.library.enums[e.param.suggestion];
+				var suggestion = {}, i;
+				if (Array.isArray(t)) {
+					for (i in t) {
+						suggestion[t[i]] = t[i];
+					}
+				} else {
+					for (i in t) {
+						if (t[i]) {
+							suggestion[i + " - " + t[i]] = i;
+						} else {
+							suggestion[i] = i;
+						}
+					}
+				}
+				var sugg = new G.ListView(ctx);
+				sugg.setBackgroundColor(G.Color.TRANSPARENT);
+				sugg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+				sugg.setAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
+				sugg.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+					onSet(suggestion[parent.getItemAtPosition(pos)]);
+				} catch(e) {erp(e)}}}));
+				layout.addView(sugg);
+			}
+			exit = new G.TextView(ctx);
+			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			exit.setText("确定");
+			exit.setTextSize(Common.theme.textsize[3]);
+			exit.setGravity(G.Gravity.CENTER);
+			exit.setTextColor(Common.theme.criticalcolor);
+			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp);
+			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (onSave()) popup.dismiss();
+				return;
+			} catch(e) {erp(e)}}}));
+			layout.addView(exit);
+			frame.addView(layout);
+			if (G.style == "Material") layout.setElevation(16 * G.dp);
+			popup = new G.PopupWindow(frame, -1, -1);
+			if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+			popup.setFocusable(true);
+			popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		} catch(e) {erp(e)}})},
+		smallVMaker : function(s) {
+			var view = new G.TextView(ctx);
+			view.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			view.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+			view.setText(s);
+			view.setTextSize(Common.theme.textsize[2]);
+			view.setTextColor(Common.theme.textcolor);
+			return view;
 		},
 		getParamType : function(cp) {
 			switch (cp.type) {
@@ -4919,7 +5026,7 @@ MapScript.loadModule("Common", {
 				var a = {
 					title : "新建文件夹",
 					callback : function(s) {
-						if (!s.length) {
+						if (!s) {
 							Common.toast("目录名不能为空哦～");
 							return;
 						} else {
@@ -6107,13 +6214,18 @@ MapScript.loadModule("Updater", {
 		conn.setConnectTimeout(5000);
 		conn.setUseCaches(false);
 		conn.setRequestMethod("GET");
-		conn.setRequestProperty("user-agent", "Mozilla/5.0 (Linux; U; Android 5.1.1; zh-cn; 2014813 Build/LMY47V) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.146 Mobile Safari/537.36 XiaoMi/MiuiBrowser/8.5.4");
 		conn.connect();
 		var rd = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
 		var s = [], ln, r;
 		while (ln = rd.readLine()) s.push(ln);
 		rd.close();
 		return s.join("\n");
+	},
+	toChineseDate : function(d) {
+		return new java.text.SimpleDateFormat("yyyy'年'MM'月'dd'日' HH:mm").format(new java.util.Date(d));
+	},
+	toAnchor : function(title, url) {
+		return '<a href="' + url + '">' + title + '</a>';
 	},
 	getUpdateInfo : function(callback) {
 		var src;
@@ -6124,11 +6236,16 @@ MapScript.loadModule("Updater", {
 				src = this.queryPage(this.url);
 				this.lastcheck = src;
 			}
-			var regex = (/[^#]##########\n([^#]*?)\n##########[^#]/).exec(src);
-			if (!regex) throw "更新服务器出错";
-			var upd = (/更新日期： ([^\n]*)/).exec(regex[1]);
-			if (!upd) throw "更新服务器出错";
-			callback(Date.parse(CA.publishDate) < Date.parse(upd[1]), upd[1], G.Html.fromHtml(regex[1].replace("mctp://", "http://").replace(/\n/g, "<br />")));
+			var r = JSON.parse(src);
+			callback(Date.parse(CA.publishDate) < Date.parse(r.version), r.version, G.Html.fromHtml([
+				"<b>最新版本：" + r.version + "</b>\t(" + r.belongs + ")",
+				"发布时间：" + this.toChineseDate(r.time),
+				"<br /><b>下载地址：</b><br />" + Object.keys(r.downloads).map(function(e) {
+					return Updater.toAnchor("★" + e, r.downloads[e]);
+				}).join("<br />"),
+				"<br />最近更新内容：",
+				r.info.replace(/\n/g, "<br />")
+			].join("<br />")));
 		} catch(e) {
 			Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
 		}
@@ -6152,7 +6269,7 @@ MapScript.loadModule("Updater", {
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			Updater.getUpdateInfo(function(flag, date, message) {
 				if (flag) {
-					Common.showTextDialog(message.insert(0, "命令助手更新啦！\n\n"));
+					Common.showTextDialog(message.insert(0, G.Html.fromHtml("<b>命令助手更新啦！</b><br /><br />")));
 				} else {
 					Common.toast("当前已经是最新版本：" + date);
 				}
@@ -6166,7 +6283,7 @@ MapScript.loadModule("Updater", {
 	latest : null,
 	lastcheck : null,
 	checking : false,
-	url : "http://mcbox.tuboshu.com/box/tieba/share/8184691.html",
+	url : "http://git.oschina.net/projectxero/ca/raw/master/update.json",
 });
 
 MapScript.loadModule("JSONEdit", {
@@ -6418,7 +6535,7 @@ MapScript.loadModule("JSONEdit", {
 							Common.showInputDialog({
 								title : "请输入键名",
 								callback : function(s) {
-									if (!s.length) {
+									if (!s) {
 										Common.toast("键名不能为空");
 									} else if (s in data) {
 										Common.toast("键名已存在");
@@ -6465,7 +6582,7 @@ MapScript.loadModule("JSONEdit", {
 			self.main.addView(JSONEdit.list);
 		}
 		JSONEdit.edit = new G.PopupWindow(self.main, -1, -1);
-		if (MapScript.host == "AutoJs") JSONEdit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (MapScript.host == "AutoJs") JSONEdit.edit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		//JSONEdit.edit.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		JSONEdit.edit.setFocusable(true);
 		JSONEdit.edit.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
