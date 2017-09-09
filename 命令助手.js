@@ -175,7 +175,7 @@ MapScript.loadModule("erp", function self(error) {
 	if (self.count > 10) return;
 	ctx.runOnUiThread(new java.lang.Runnable({run : function() {try {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
-		var tech = ["版本:2017-09-07\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
+		var tech = ["版本:{DATE}\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
 		if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
@@ -203,7 +203,7 @@ MapScript.loadModule("erp", function self(error) {
 
 var lto;
 ctx.runOnUiThread(function() {try {
-	lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n加载中……", 1);
+	lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
 	lto.setGravity(android.view.Gravity.CENTER, 0, 0);
 	lto.show();
 } catch(e) {erp(e)}});
@@ -724,7 +724,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
 	version : "0.9 Beta",
-	publishDate : "2017-09-07",
+	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
 	
@@ -749,6 +749,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	chatHook : function(s) {try {
 		var i;
 		if ((/^\//).test(s)) this.addHistory(s);
+		if (s == "cadebug") Common.showDebugDialog();
 	} catch(e) {erp(e)}},
 	screenChangeHook : function self(screenName) {try {
 		if (screenName) {
@@ -4127,7 +4128,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		},
 		editParamDialog : function self(e, callback) {G.ui(function() {try {
-			var frame, layout, title, p, ret, exit, popup, t, getText, setText, suggestion = {}, i;
+			var layout, title, p, ret, exit, popup, t, getText, setText, suggestion = {}, i;
 			if (!self.initTextBox) {
 				self.initTextBox = function(e, defVal) {
 					var ret = new G.EditText(ctx);
@@ -4148,23 +4149,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 			}
-			frame = new G.FrameLayout(ctx);
-			frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-			frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				if (e.getAction() == e.ACTION_DOWN) {
-					popup.dismiss();
-				}
-				return true;
-			} catch(e) {erp(e)}}}));
-			layout = new G.LinearLayout(ctx);
 			layout.setBackgroundColor(Common.theme.message_bgcolor);
-			layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
-			layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				return true;
-			} catch(e) {erp(e)}}}));
 			title = new G.TextView(ctx);
 			title.setTextSize(Common.theme.textsize[4]);
 			title.setTextColor(Common.theme.textcolor);
@@ -4284,13 +4271,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				popup.dismiss();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			frame.addView(layout);
-			if (G.style == "Material") layout.setElevation(16 * G.dp);
-			popup = new G.PopupWindow(frame, -1, -1);
-			if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-			popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-			popup.setFocusable(true);
-			popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+			popup = Common.showDialog(layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		editParamEnum : function(e, callback) {
 			var t = e.param.list instanceof Object ? e.param.list : CA.IntelliSense.library.enums[e.param.list];
@@ -4367,23 +4348,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		},
 		editParamPosition : function self(e, callback) {G.ui(function() {try {
-			var frame, layout, title, i, row, label, ret = [], rela = [], screla, posp = ["X", "Y", "Z"], exit, popup;
-			frame = new G.FrameLayout(ctx);
-			frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-			frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				if (e.getAction() == e.ACTION_DOWN) {
-					popup.dismiss();
-				}
-				return true;
-			} catch(e) {erp(e)}}}));
+			var layout, title, i, row, label, ret = [], rela = [], screla, posp = ["X", "Y", "Z"], exit, popup;
 			layout = new G.TableLayout(ctx);
 			layout.setBackgroundColor(Common.theme.message_bgcolor);
-			layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
-			layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				return true;
-			} catch(e) {erp(e)}}}));
 			title = new G.TextView(ctx);
 			title.setTextSize(Common.theme.textsize[4]);
 			title.setTextColor(Common.theme.textcolor);
@@ -4455,16 +4423,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				popup.dismiss();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			frame.addView(layout);
-			if (G.style == "Material") layout.setElevation(16 * G.dp);
-			popup = new G.PopupWindow(frame, -1, -1);
-			if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-			popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-			popup.setFocusable(true);
-			popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+			popup = Common.showDialog(layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		editParamSelector : function self(e, callback) {G.ui(function() {try {
-			var frame, layout, title, i, label, list, add, exit, popup;
+			var layout, title, i, label, list, add, exit, popup;
 			if (!self.selectors) {
 				self.selectors = {
 					"@a" : "选择所有玩家",
@@ -4585,23 +4547,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return view;
 				}
 			}
-			frame = new G.FrameLayout(ctx);
-			frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-			frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				if (e.getAction() == e.ACTION_DOWN) {
-					popup.dismiss();
-				}
-				return true;
-			} catch(e) {erp(e)}}}));
 			layout = new G.LinearLayout(ctx);
 			layout.setBackgroundColor(Common.theme.message_bgcolor);
-			layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
-			layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				return true;
-			} catch(e) {erp(e)}}}));
 			title = new G.TextView(ctx);
 			title.setTextSize(Common.theme.textsize[4]);
 			title.setTextColor(Common.theme.textcolor);
@@ -4668,15 +4617,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				popup.dismiss();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			frame.addView(layout);
 			self.checkPar(label, list);
 			self.refresh(e, list);
-			if (G.style == "Material") layout.setElevation(16 * G.dp);
-			popup = new G.PopupWindow(frame, -1, -1);
-			if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-			popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-			popup.setFocusable(true);
-			popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+			popup = Common.showDialog(layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		smallVMaker : function(s) {
 			var view = new G.TextView(ctx);
@@ -4923,8 +4866,8 @@ MapScript.loadModule("Common", {
 		return view;
 	},
 	
-	showTextDialog : function(s) {G.ui(function() {try {
-		var frame, layout, scr, text, exit, popup;
+	showDialog : function(layout, width, height, onDismiss) {
+		var frame, popup, trans;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
@@ -4933,15 +4876,30 @@ MapScript.loadModule("Common", {
 			}
 			return true;
 		} catch(e) {erp(e)}}}));
-		layout = new G.LinearLayout(ctx);
-		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER));
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
 		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
-		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 			return true;
 		} catch(e) {erp(e)}}}));
+		frame.addView(layout);
+		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		popup = new G.PopupWindow(frame, -1, -1);
+		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		popup.setFocusable(true);
+		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		if (onDismiss) popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			onDismiss();
+		} catch(e) {erp(e)}}}));
+		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		return popup;
+	},
+	
+	showTextDialog : function(s) {G.ui(function() {try {
+		var layout, scr, text, exit, popup;
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		scr = new G.ScrollView(ctx);
 		scr.setLayoutParams(new G.LinearLayout.LayoutParams(-2, 0, 1));
 		text = new G.TextView(ctx);
@@ -4965,17 +4923,11 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		frame.addView(layout);
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setFocusable(true);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		popup = Common.showDialog(layout, -2, -2);
 	} catch(e) {erp(e)}})},
 	
 	showOperateDialog : function self(s, tag) {G.ui(function() {try {
-		var frame, frame2, list, popup;
+		var frame, list, popup;
 		if (!self.adapter) {
 			self.adapter = function(e) {
 				if (isFinite(e.gap)) {
@@ -5010,21 +4962,8 @@ MapScript.loadModule("Common", {
 			}
 		}
 		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
-				popup.dismiss();
-			}
-			return true;
-		} catch(e) {erp(e)}}}));
-		frame2 = new G.FrameLayout(ctx);
-		frame2.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-		frame2.setBackgroundColor(Common.theme.message_bgcolor);
-		frame2.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
-		frame2.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		frame2.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {erp(e)}}}));
+		frame.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+		frame.setBackgroundColor(Common.theme.message_bgcolor);
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		list.setBackgroundColor(G.Color.TRANSPARENT);
@@ -5035,35 +4974,16 @@ MapScript.loadModule("Common", {
 			if (e.onclick) if (!e.onclick(e.button, tag)) popup.dismiss();
 			return true;
 		} catch(e) {erp(e)}}}));
-		frame2.addView(list);
-		frame.addView(frame2);
-		if (G.style == "Material") frame2.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setFocusable(true);
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		frame.addView(list);
+		popup = Common.showDialog(frame, -1, -2);
 	} catch(e) {erp(e)}})},
 	
 	showInputDialog : function(s) {G.ui(function() {try {
-		var frame, layout, title, text, ret, exit, popup;
-		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
-				popup.dismiss();
-			}
-			return true;
-		} catch(e) {erp(e)}}}));
+		var layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setBackgroundColor(Common.theme.message_bgcolor);
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {erp(e)}}}));
 		if (s.title) {
 			title = new G.TextView(ctx);
 			title.setTextSize(Common.theme.textsize[4]);
@@ -5109,24 +5029,15 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		frame.addView(layout);
-		frame.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-			ret.setMinWidth(0.5 * (r - l));
+		layout.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
+			ret.setMinWidth(0.5 * Common.getScreenWidth());
 		} catch(e) {erp(e)}}}));
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		s.text = null;
-		s.dialog = popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setFocusable(true);
-		popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			if (s.onDismiss) s.onDismiss();
-		} catch(e) {erp(e)}}}));
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		s.dialog = popup = Common.showDialog(layout, -2, -2, s.onDismiss);
 	} catch(e) {erp(e)}})},
 	
 	showListChooser : function self(l, callback, optional) {G.ui(function() {try {
-		var frame, frame2, list, popup;
+		var frame, list, popup;
 		if (!self.adapter) {
 			self.adapter = function(e) {
 				var view = new G.LinearLayout(ctx);
@@ -5162,20 +5073,7 @@ MapScript.loadModule("Common", {
 		}
 		if (optional && l.length == 1 && !callback(0)) return;
 		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
-				popup.dismiss();
-			}
-			return true;
-		} catch(e) {erp(e)}}}));
-		frame2 = new G.FrameLayout(ctx);
-		frame2.setBackgroundColor(Common.theme.message_bgcolor);
-		frame2.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.CENTER));
-		frame2.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		frame2.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {erp(e)}}}));
+		frame.setBackgroundColor(Common.theme.message_bgcolor);
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		list.setBackgroundColor(G.Color.TRANSPARENT);
@@ -5184,14 +5082,8 @@ MapScript.loadModule("Common", {
 			if (!callback(pos)) popup.dismiss();
 			return true;
 		} catch(e) {erp(e)}}}));
-		frame2.addView(list);
-		frame.addView(frame2);
-		if (G.style == "Material") frame2.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setFocusable(true);
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		frame.addView(list);
+		popup = Common.showDialog(frame, -1, -2);
 	} catch(e) {erp(e)}})},
 	
 	showSettings : function self(data, onSave) {G.ui(function() {try {
@@ -5776,24 +5668,11 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 	
 	showWebViewDialog : function(s) {G.ui(function() {try {
-		var frame, layout, wv, ws, exit, popup;
-		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
-				popup.dismiss();
-			}
-			return true;
-		} catch(e) {erp(e)}}}));
+		var layout, wv, ws, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {erp(e)}}}));
 		wv = new G.WebView(ctx);
 		wv.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 		if (s.url && s.code) {
@@ -5831,16 +5710,9 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		frame.addView(layout);
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setFocusable(true);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		popup = Common.showDialog(layout, -1, -1, function() {
 			wv.destroy();
-		} catch(e) {erp(e)}}}));
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		});
 	} catch(e) {erp(e)}})},
 	
 	fileCopy : function(src, dest) {
@@ -6248,7 +6120,7 @@ MapScript.loadModule("F3", {
 			F3.main.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
 			F3.main.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			F3.main.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (!F3.inLevell) {
+				if (!F3.inLevel) {
 					Common.toast("进入地图即可启用调试屏幕");
 					return true;
 				}
@@ -7125,24 +6997,11 @@ MapScript.loadModule("JSONEdit", {
 		JSONEdit.edit = null;
 	} catch(e) {erp(e)}})},
 	showData : function(msg, data, callback) {G.ui(function() {try {
-		var frame, layout, title, text, ret, exit, popup;
-		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
-				popup.dismiss();
-			}
-			return true;
-		} catch(e) {erp(e)}}}));
+		var layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setBackgroundColor(Common.theme.message_bgcolor);
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {erp(e)}}}));
 		title = new G.TextView(ctx);
 		title.setTextSize(Common.theme.textsize[4]);
 		title.setTextColor(Common.theme.textcolor);
@@ -7150,7 +7009,6 @@ MapScript.loadModule("JSONEdit", {
 		title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 		title.setPadding(0, 0, 0, 10 * G.dp);
 		layout.addView(title);
-		
 		if (typeof data == "boolean") {
 			ret = new G.CheckBox(ctx);
 			ret.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
@@ -7199,13 +7057,7 @@ MapScript.loadModule("JSONEdit", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		frame.addView(layout);
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setFocusable(true);
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		popup = Common.showDialog(layout, -2, -2);
 	} catch(e) {erp(e)}})},
 	showBatchEdit : function(data, callback) {G.ui(function() {try {
 		var frame, layout, title, text, ret, exit, popup;
