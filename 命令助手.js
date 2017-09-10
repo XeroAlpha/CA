@@ -175,7 +175,7 @@ MapScript.loadModule("erp", function self(error) {
 	if (self.count > 10) return;
 	ctx.runOnUiThread(new java.lang.Runnable({run : function() {try {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
-		var tech = ["版本:{DATE}\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
+		var tech = ["版本:2017-09-10\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
 		if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
@@ -724,7 +724,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
 	version : "0.9 Beta",
-	publishDate : "{DATE}",
+	publishDate : "2017-09-10",
 	help : '{HELP}',
 	tips : [],
 	
@@ -774,7 +774,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.settings = f.settings;
 			Common.alpha = f.settings.alpha;
 			Common.loadTheme(f.theme);
-			
 			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.IntelliSense.inner);
 			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
 			if (f.settings.libPath) {
@@ -2362,6 +2361,50 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}];
 			self.enabledMenu = [{
+				text : "检测更新",
+				description : "如果可行，连接服务器检测是否有更新",
+				onclick : function(v, tag) {
+					if (tag.data.mode == 0 || !tag.data.update) {
+						Common.toast("该命令库暂不支持检测更新");
+						return true;
+					}
+					self.postTask(function(cb) {new java.lang.Thread(function() {try {
+						var r, d = tag.data, u = d.update, i, f = false, dl;
+						try {
+							if (typeof u == "function") {
+								r = tag.data.update();
+							} else if (typeof u == "string") {
+								r = JSON.parse(Updater.queryPage(u));
+							}
+							if (!(r instanceof Object) || !Array.isArray(r.version)) {
+								Common.toast("该命令库没有更新数据");
+								return cb(false);
+							}
+							for (i = 0; i < d.version.length; i++) {
+								if (d.version[i] > r.version[i]) {
+									break;
+								} else if (d.version[i] < r.version[i]) {
+									f = true;
+									break;
+								}
+							}
+							if (f) {
+								Common.toast("更新中……\n" + d.version.join(".") + " -> " + r.version.join("."));
+								Updater.download(r.url, tag.data.src);
+								cb(true, function() {
+									Common.toast("更新完成：" + r.version.join("."));
+								});
+							} else {
+								Common.toast("已是最新版本：" + r.version.join("."));
+								cb(false);
+							}
+						} catch(e) {
+							Common.toast("检测更新失败\n" + e);
+							cb(false);
+						}
+					} catch(e) {erp(e)}}).start()});
+				}
+			},{
 				text : "编辑",
 				description : "用JSON编辑器编辑该命令库",
 				onclick : function(v, tag) {
@@ -3590,6 +3633,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						description : cur.description,
 						uuid : cur.uuid,
 						version : cur.version,
+						update : cur.update,
 						mode : m,
 						stat : CA.IntelliSense.statLib(cur, CA.IntelliSense.library),
 						loaded : true
@@ -5726,6 +5770,36 @@ MapScript.loadModule("Common", {
 		fo.close();
 	},
 	
+	readFile : function(path, defaultValue, gzipped) {
+		try{
+			if (!(new java.io.File(path)).isFile()) return defaultValue;
+			var rd, s = [], q;
+			if (gzipped) {
+				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(path))));
+			} else {
+				rd = new java.io.BufferedReader(new java.io.FileReader(path));
+			}
+			while (q = rd.readLine()) s.push(q);
+			rd.close();
+			return s.join("\n");
+		} catch(e) {
+			return defaultValue;
+		}
+	},
+	
+	saveFile : function(path, text, gzipped) {
+		var wr;
+		var f = new java.io.File(path).getParentFile();
+		if (f) f.mkdirs();
+		if (gzipped) {
+			wr = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(path));
+		} else {
+			wr = new java.io.FileOutputStream(path);
+		}
+		wr.write(new java.lang.String(text).getBytes());
+		wr.close();
+	},
+	
 	getFileSize : function(f, showBytes) {
 		var l = Number(f.length()), r;
 		if (l < 1000) {
@@ -6621,6 +6695,21 @@ MapScript.loadModule("Updater", {
 		while (ln = rd.readLine()) s.push(ln);
 		rd.close();
 		return s.join("\n");
+	},
+	download : function(url, path) {
+		const BUFFER_SIZE = 4096;
+		var url = new java.net.URL(url);
+		var conn = url.openConnection();
+		conn.setConnectTimeout(5000);
+		conn.setUseCaches(false);
+		conn.setRequestMethod("GET");
+		conn.connect();
+		var is, os, buf, hr;
+		is = conn.getInputStream();
+		os = new java.io.FileOutputStream(path);
+		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
+		while ((hr = is.read(buf)) > 0) os.write(buf, 0, hr);
+		os.close();
 	},
 	toChineseDate : function(d) {
 		return new java.text.SimpleDateFormat("yyyy'年'MM'月'dd'日' HH:mm").format(new java.util.Date(d));
