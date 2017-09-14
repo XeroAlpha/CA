@@ -758,7 +758,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			screenName = self.l;
 		}
 		if (!this.fine) return;
-		if (!this.settings.autoHideIcon || MapScript.host == "AutoJs") return this.showIcon();
+		if (MapScript.host != "BlockLauncher" || !this.settings.autoHideIcon || (this.settings.topIcon && PWM.getCount() > 0)) return this.showIcon();
 		if (screenName == "chat_screen" || screenName == "command_block_screen" || (this.cmdstr.length && screenName == "hud_screen")) {
 			this.showIcon();
 		} else {
@@ -822,6 +822,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				historyCount : 0,
 				splitScreenMode : false,
 				keepWhenIME : false,
+				topIcon : true,
+				iconAlpha : 0,
 				tipsRead : 0,
 				iiMode : -1,
 				enabledLibrarys : Object.keys(this.IntelliSense.inner),
@@ -860,7 +862,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 	},
 	showIcon : function self() {G.ui(function() {try {
-		if (CA.icon) return;
 		if (!self.view) {
 			self.view = new G.TextView(ctx);
 			self.view.setText("CA");
@@ -868,7 +869,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.view.setTextSize(Common.theme.textsize[4]);
 			self.view.setBackgroundColor(Common.theme.go_bgcolor);
 			self.view.setTextColor(Common.theme.go_textcolor);
-			self.view.setAlpha(0.7);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
 					Common.toast("请选择智能模式");
@@ -905,11 +905,32 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return !touch.stead;
 			} catch(e) {erp(e)}}}));
 			self.open = function() {
-				CA.showGen(CA.settings.noAnimation);
-				CA.hideIcon();
-				if (CA.paste) CA.hidePaste();
+				if (!CA.settings.topIcon) {
+					CA.showGen(CA.settings.noAnimation);
+					CA.hideIcon();
+					if (CA.paste) CA.hidePaste();
+				} else if (PWM.getCount() > 0) {
+					if (self.lastState = !self.lastState) {
+						PWM.showAll();
+					} else {
+						PWM.hideAll();
+					}
+				} else {
+					CA.showGen(CA.settings.noAnimation);
+				}
+				self.refresh();
 			}
+			self.refresh = function() {
+				if (CA.settings.iconAlpha) {
+					self.view.setAlpha(CA.settings.iconAlpha / 10);
+				} else {
+					self.view.setAlpha(self.lastState && PWM.getCount() > 0 ? 0.3 : 0.7);
+				}
+			}
+			self.lastState = true;
 		}
+		self.refresh();
+		if (CA.icon) return;
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
 			//ctx.getWindowManager().getDefaultDisplay().getRotation() == G.Surface.ROTATION_90
@@ -919,6 +940,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.icon = new G.PopupWindow(self.view, -2, -2);
 		if (MapScript.host == "AutoJs") CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
+		if (CA.settings.topIcon) PWM.addFloat(CA.icon);
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
 		if (CA.icon) CA.icon.dismiss();
@@ -1305,6 +1327,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.trySave();
 		} catch(e) {erp(e)}}}));
 		CA.gen.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(CA.gen);
 		CA.cmd.setText(CA.cmd.getText());
 		self.activate(false);
 		if (noani) return;
@@ -1800,6 +1823,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.refreshed = true;
 				CA.resetGUI();
 				CA.showGen(true);
+				if (CA.settings.topIcon) CA.showIcon();
 			}
 			self.data = [{
 				name : "版本",
@@ -1865,6 +1889,28 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				name : "悬浮窗设置",
 				type : "tag"
+			},{
+				name : "不透明度",
+				type : "seekbar",
+				refresh : self.refresh,
+				current : function(p) {
+					return p == 0 ? "自动" : p + "0%";
+				},
+				max : 10,
+				get : function() {
+					return isNaN(CA.settings.iconAlpha) ? 0 : CA.settings.iconAlpha;
+				},
+				set : function(v) {
+					CA.settings.iconAlpha = v;
+				}
+			},{
+				id : "topIcon",
+				name : "图标置于顶层",
+				description : "点击图标可以暂时隐藏所有界面，再次点击可恢复",
+				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
 			},{
 				id : "autoHideIcon",
 				name : "自动隐藏悬浮窗",
@@ -2057,6 +2103,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		Common.showFileDialog.linear = null;
 		Common.showDebugDialog.main = null;
 		Common.showSettings.linear = null;
+		PWM.reset();
 		G.ui(function() {try {
 			if (CA.showLibraryMan.popup) CA.showLibraryMan.popup.dismiss();
 			if (Common.showFileDialog.popup) Common.showFileDialog.popup.dismiss();
@@ -2726,6 +2773,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} catch(e) {erp(e)}}}));
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	showModeChooser : function self(callback) {
@@ -4771,6 +4819,77 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	}
 });
 
+MapScript.loadModule("PWM", {
+	windows : [],
+	floats : [],
+	listeners : [],
+	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
+	add : function(w) {
+		var v, wp;
+		if (this.windows.indexOf(w) >= 0) return;
+		this.windows.push(w);
+		this.floats.forEach(function(e) {
+			if (!e.isShowing()) return;
+			v = e.getContentView();
+			if (!v) return;
+			v = v.getRootView();
+			wp = v.getLayoutParams();
+			PWM.wm.removeViewImmediate(v);
+			PWM.wm.addView(v, wp);
+		});
+		this._notifyListeners("add", w);
+	},
+	hideAll : function() {
+		var v;
+		this.windows.forEach(function(e) {
+			if (!e.isShowing()) return;
+			v = e.getContentView();
+			if (!v) return;
+			v.getRootView().setVisibility(G.View.GONE);
+		});
+		this._notifyListeners("hideAll");
+	},
+	showAll : function() {
+		var v;
+		this.windows.forEach(function(e) {
+			if (!e.isShowing()) return;
+			v = e.getContentView();
+			if (!v) return;
+			v.getRootView().setVisibility(G.View.VISIBLE);
+		});
+		this._notifyListeners("showAll");
+	},
+	getCount : function() {
+		var s = 0;
+		this.windows.forEach(function(e) {
+			if (e.isShowing()) s++;
+		});
+		return s;
+	},
+	addFloat : function(w) {
+		if (this.floats.indexOf(w) >= 0) return;
+		this.floats.push(w);
+		this._notifyListeners("addFloat", w);
+	},
+	reset : function() {
+		this.windows.length = this.floats.length = this.listeners.length = 0;
+	},
+	observe : function(f) {
+		this.unobserve(f);
+		this.listeners.push(f);
+	},
+	unobserve : function(f) {
+		var t = this.listeners.indexOf(f);
+		if (t >= 0) this.listeners.splice(t, 1);
+	},
+	_notifyListeners : function() {
+		var args = arguments;
+		this.listeners.forEach(function(e) {
+			e.apply(null, args);
+		});
+	}
+});
+
 MapScript.loadModule("Common", {
 	themelist : {
 		"light" : {
@@ -4898,6 +5017,7 @@ MapScript.loadModule("Common", {
 		self.lastchecked = self.alpha.isChecked();
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	customVMaker : function(s) {
@@ -4935,6 +5055,7 @@ MapScript.loadModule("Common", {
 			onDismiss();
 		} catch(e) {erp(e)}}}));
 		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(popup);
 		return popup;
 	},
 	
@@ -5337,6 +5458,7 @@ MapScript.loadModule("Common", {
 		});
 		self.list.setAdapter(new RhinoListAdapter(data, self.adapter));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	showFileDialog : function self(o) {G.ui(function() {try {
@@ -5590,6 +5712,7 @@ MapScript.loadModule("Common", {
 			self.fname.setVisibility(G.View.GONE);
 		}
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	showDebugDialog : function self(o) {G.ui(function() {try {
@@ -5709,6 +5832,7 @@ MapScript.loadModule("Common", {
 		self.print("\n想接这坑的请联系我，联系方式在关于里面");
 		self.ready();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	showWebViewDialog : function(s) {G.ui(function() {try {
@@ -7080,6 +7204,7 @@ MapScript.loadModule("JSONEdit", {
 			if (JSONEdit.updateListener) JSONEdit.updateListener();
 		} catch(e) {erp(e)}}}));
 		JSONEdit.edit.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(JSONEdit.edit);
 	} catch(e) {erp(e)}})},
 	hideEdit : function() {G.ui(function() {try {
 		if (JSONEdit.edit) JSONEdit.edit.dismiss();
@@ -7192,6 +7317,7 @@ MapScript.loadModule("JSONEdit", {
 		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		popup.setFocusable(true);
 		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(popup);
 	} catch(e) {erp(e)}})},
 	showNewItem : function self(callback) {
 		if (!self.menu) {
