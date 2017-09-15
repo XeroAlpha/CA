@@ -160,6 +160,9 @@ MapScript.loadModule("ctx", (function(global) {
 	} else if ("activity" in global) { //以AutoJS脚本加载
 		MapScript.host = "AutoJs";
 		return activity;
+	} else if ("ScriptActivity" in global) { //以AutoJS脚本加载
+		MapScript.host = "Android";
+		return ScriptActivity;
 	} else {
 		MapScript.host = "Unknown";
 		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
@@ -175,7 +178,7 @@ MapScript.loadModule("erp", function self(error) {
 	if (self.count > 10) return;
 	ctx.runOnUiThread(new java.lang.Runnable({run : function() {try {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
-		var tech = ["版本:2017-09-10\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
+		var tech = ["版本:{DATE}\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
 		if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
@@ -724,11 +727,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
 	version : "0.9 Beta",
-	publishDate : "2017-09-10",
+	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
 	
 	initialize : function() {try {
+		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
 		this.load();
 		var a = String(getMinecraftVersion()).split(".");
 		a[0] = parseInt(a[0]); a[1] = parseInt(a[1]); a[2] = parseInt(a[2]);
@@ -744,6 +748,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		this.screenChangeHook();
 		if (MapScript.host == "AutoJs") {
 			this.showAutoJsContent();
+		} else if (MapScript.host == "Android") {
+			this.showAndroidContent();
 		}
 	} catch(e) {erp(e)}},
 	chatHook : function(s) {try {
@@ -938,7 +944,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
 		}
 		CA.icon = new G.PopupWindow(self.view, -2, -2);
-		if (MapScript.host == "AutoJs") CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
 		if (CA.settings.topIcon) PWM.addFloat(CA.icon);
 	} catch(e) {erp(e)}})},
@@ -1317,7 +1323,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.cmd.setText(CA.cmdstr);
 		}
 		CA.gen = new G.PopupWindow(self.main, -1, -1);
-		if (MapScript.host == "AutoJs") CA.gen.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) CA.gen.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.gen.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		CA.gen.setFocusable(true);
 		CA.gen.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NEEDED);
@@ -1807,6 +1813,41 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				Common.showAppSettings();
 			}
 		});
+	} catch(e) {erp(e)}})},
+	
+	showAndroidContent : function() {G.ui(function() {try {
+		var layout, help, exit, floatena;
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setGravity(G.Gravity.CENTER);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+		layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
+		help = new G.TextView(ctx);
+		help.setTextSize(16);
+		help.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+		help.setText("现在您应该可以看到悬浮窗了，如果没有看到请打开悬浮窗权限。");
+		help.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+		layout.addView(help);
+		floatena = new G.Button(ctx);
+		floatena.setText("检测悬浮窗权限");
+		floatena.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		floatena.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			if (Common.canShowFloat()) {
+				Common.toast("系统已允许悬浮窗显示");
+			} else {
+				Common.toast("系统不允许悬浮窗显示，请在设置中启用");
+				Common.showAppSettings();
+			}
+		} catch(e) {erp(e)}}}));
+		layout.addView(floatena);
+		exit = new G.Button(ctx);
+		exit.setText("退出命令助手");
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			ctx.finish();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		ScriptActivity.setContentView(layout);
 	} catch(e) {erp(e)}})},
 	
 	showSettings : function self() {G.ui(function() {try {
@@ -2317,7 +2358,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.refresh();
 		if (CA.paste) return;
 		CA.paste = new G.PopupWindow(self.bar, -1, -2);
-		if (MapScript.host == "AutoJs") CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.TOP, 0, 0);
 	} catch(e) {erp(e)}})},
 	hidePaste : function() {G.ui(function() {try {
@@ -2764,7 +2805,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (MapScript.host == "AutoJs") self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -4241,6 +4282,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 			}
+			layout = new G.LinearLayout(ctx);
 			layout.setBackgroundColor(Common.theme.message_bgcolor);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
@@ -5005,7 +5047,7 @@ MapScript.loadModule("Common", {
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (MapScript.host == "AutoJs") self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -5048,7 +5090,7 @@ MapScript.loadModule("Common", {
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new G.PopupWindow(frame, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setFocusable(true);
 		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		if (onDismiss) popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -5423,7 +5465,7 @@ MapScript.loadModule("Common", {
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (MapScript.host == "AutoJs") self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -5678,7 +5720,7 @@ MapScript.loadModule("Common", {
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (MapScript.host == "AutoJs") self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -5821,7 +5863,7 @@ MapScript.loadModule("Common", {
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.main, -1, -1);
-		if (MapScript.host == "AutoJs") self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -7196,7 +7238,7 @@ MapScript.loadModule("JSONEdit", {
 			self.main.addView(JSONEdit.list);
 		}
 		JSONEdit.edit = new G.PopupWindow(self.main, -1, -1);
-		if (MapScript.host == "AutoJs") JSONEdit.edit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) JSONEdit.edit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		//JSONEdit.edit.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		JSONEdit.edit.setFocusable(true);
 		JSONEdit.edit.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -7313,7 +7355,7 @@ MapScript.loadModule("JSONEdit", {
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		popup = new G.PopupWindow(layout, -1, -1);
-		if (MapScript.host == "AutoJs") popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		popup.setFocusable(true);
 		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
