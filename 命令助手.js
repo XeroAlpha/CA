@@ -160,6 +160,9 @@ MapScript.loadModule("ctx", (function(global) {
 	} else if ("activity" in global) { //以AutoJS脚本加载
 		MapScript.host = "AutoJs";
 		return activity;
+	} else if ("context" in global) { //以AutoJS脚本加载
+		MapScript.host = "AutoJsNoUI";
+		return context;
 	} else if ("ScriptActivity" in global) { //以AutoJS脚本加载
 		MapScript.host = "Android";
 		return ScriptActivity;
@@ -169,6 +172,8 @@ MapScript.loadModule("ctx", (function(global) {
 	}
 })(this));
 
+MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
+
 MapScript.loadModule("erp", function self(error) {
 	if (self.count) {
 		self.count++;
@@ -176,7 +181,7 @@ MapScript.loadModule("erp", function self(error) {
 		self.count = 1;
 	}
 	if (self.count > 10) return;
-	ctx.runOnUiThread(new java.lang.Runnable({run : function() {try {
+	gHandler.post(new java.lang.Runnable({run : function() {try {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
 		var tech = ["版本:{DATE}\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
 		if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
@@ -205,7 +210,7 @@ MapScript.loadModule("erp", function self(error) {
 });
 
 var lto;
-ctx.runOnUiThread(function() {try {
+gHandler.post(function() {try {
 	lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
 	lto.setGravity(android.view.Gravity.CENTER, 0, 0);
 	lto.show();
@@ -704,9 +709,9 @@ MapScript.loadModule("G", {
 	ZoomButton : android.widget.ZoomButton,
 	ZoomButtonsController : android.widget.ZoomButtonsController,
 	ZoomControls : android.widget.ZoomControls,
-	ui : function(f) {
-		ctx.runOnUiThread(f);
-	}
+	ui : (function() {
+		return ctx.runOnUiThread ? ctx.runOnUiThread.bind(ctx) : gHandler.post.bind(gHandler);
+	})()
 });
 
 MapScript.loadModule("CA", {//CommandAssistant 命令助手
@@ -879,7 +884,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
 					Common.toast("请选择智能模式");
 					CA.showModeChooser(function() {
-						self.open();
+						v.postDelayed(function() {
+							self.open();
+						}, 150);
 					});
 					return;
 				}
@@ -1107,6 +1114,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.cmd.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			CA.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			CA.cmd.setTypeface(G.Typeface.MONOSPACE);
+			CA.cmd.setText(CA.cmdstr);
 			CA.cmd.addTextChangedListener(new G.TextWatcher({
 				afterTextChanged : (function() {
 					var state = -1;
@@ -1319,8 +1327,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (G.style == "Material") {
 				self.bar.setElevation(8 * G.dp);
 			}
-			
-			CA.cmd.setText(CA.cmdstr);
 		}
 		CA.gen = new G.PopupWindow(self.main, -1, -1);
 		if (CA.supportFloat) CA.gen.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
@@ -1858,12 +1864,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.setsettingbool = function(v) {
 				CA.settings[this.id] = Boolean(v);
 			}
-			self.refresh = function() {
+			self.refresh = function(f) {
 				Common.loadTheme(Common.theme.id);
 				if (self.refreshed) return;
 				self.refreshed = true;
 				CA.resetGUI();
 				CA.showGen(true);
+				if (f) CA.showSettings();
 				if (CA.settings.topIcon) CA.showIcon();
 			}
 			self.data = [{
@@ -1902,9 +1909,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function(fset) {
 					CA.showModeChooser(function() {
-						CA.resetGUI();
-						CA.showGen(true);
-						CA.showSettings();
+						self.refresh(true);
 					});
 				}
 			},{
@@ -1923,7 +1928,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				set : self.setsettingbool
 			},{
 				id : "disablePaste",
-				name : "禁用命令粘贴提示",
+				name : "永久关闭粘贴栏",
 				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
@@ -2067,9 +2072,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return "共有" + CA.his.length + "条记录";
 				},
 				onclick : function(fset) {
-					CA.his = [];
-					fset();
-					if (CA.history) CA.showHistory();
+					Common.showConfirmDialog({
+						title : "确定清空历史记录？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							CA.his = [];
+							fset();
+							if (CA.history) CA.showHistory();
+						}
+					});
 				}
 			},{
 				name : "清空收藏",
@@ -2078,20 +2090,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return "共有" + Object.keys(CA.fav).length + "条记录";
 				},
 				onclick : function(fset) {
-					CA.fav = {};
-					fset();
-					if (CA.history) CA.showHistory();
+					Common.showConfirmDialog({
+						title : "确定清空收藏夹？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							CA.fav = {};
+							fset();
+							if (CA.history) CA.showHistory();
+						}
+					});
 				}
 			},{
 				name : "恢复默认数据",
 				type : "custom",
 				onclick : function(fset) {
-					CA.resetGUI();
-					G.ui(function() {try {
-						(new java.io.File(CA.profilePath)).delete();
-						CA.initialize();
-						Common.toast("命令助手已重新启动");
-					} catch(e) {erp(e)}});
+					Common.showConfirmDialog({
+						title : "确定恢复默认？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							CA.resetGUI();
+							G.ui(function() {try {
+								(new java.io.File(CA.profilePath)).delete();
+								CA.initialize();
+								Common.toast("命令助手已重新启动");
+							} catch(e) {erp(e)}});
+						}
+					});
 				}
 			},{
 				name : "调试工具",
@@ -2231,6 +2257,26 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.fcs = null;
 	} catch(e) {erp(e)}})},
 	
+	performPaste : function(cmd) {
+		if (MapScript.host == "AutoJs" || MapScript.host == "Android") {
+			try {
+				if (MapScript.host == "AutoJs") {
+					input(cmd);
+				} else if (MapScript.host == "Android") {
+					ScriptActivity.input(cmd);
+				}
+			} catch(e) {
+				Common.toast("请打开无障碍服务");
+			}
+		} else {
+			try {
+				ctx.updateTextboxText(cmd);
+			} catch(e) {
+				Common.toast("当前版本暂不支持粘贴命令");
+			}
+		}
+	},
+	
 	showPaste : function self(index) {G.ui(function() {try {
 		if (!self.bar) {
 			self.bar = new G.LinearLayout(ctx);
@@ -2294,16 +2340,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.next.setOnTouchListener(self.buttonlis);
 			self.bar.addView(self.next);
 			
-			self.cmd = new G.EditText(ctx);
+			self.cmd = new G.TextView(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
 			self.cmd.setBackgroundColor(G.Color.TRANSPARENT);
 			self.cmd.setTextSize(Common.theme.textsize[3]);
 			self.cmd.setTextColor(Common.theme.textcolor);
 			self.cmd.setSingleLine(true);
 			self.cmd.setFocusable(false);
-			self.cmd.setHintTextColor(Common.theme.promptcolor);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
 			self.cmd.setTypeface(G.Typeface.MONOSPACE);
+			self.cmd.setMovementMethod(G.ScrollingMovementMethod.getInstance());
 			self.cmd.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_UP && e.getEventTime() - e.getDownTime() < 100) {
 					self.exit.performClick();
@@ -2325,18 +2371,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.paste.setGravity(G.Gravity.CENTER);
 			self.paste.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.paste.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (MapScript.host == "AutoJs") {
-					input(self.cmd.getText().toString());
-				} else {
-					ctx.updateTextboxText(self.cmd.getText().toString());
-				}
-			} catch(e) {
-				if (MapScript.host == "AutoJs") {
-					Common.toast("请打开无障碍服务");
-				} else {
-					Common.toast("当前版本暂不支持粘贴命令");
-				}
-			}}}));
+				CA.performPaste(self.cmd.getText().toString());
+			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.paste);
 			
 			self.exit = new G.TextView(ctx);
@@ -2348,6 +2384,20 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setTextColor(Common.theme.go_textcolor);
 			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (!CA.settings.askedPaste) {
+					Common.showConfirmDialog({
+						title : "是否永久关闭粘贴栏？",
+						description : "您可以随时在设置中更改",
+						buttons : ["暂时隐藏", "永久关闭"],
+						canSkip : true,
+						skip : function(f) {
+							CA.settings.askedPaste = Boolean(f);
+						},
+						callback : function(id) {
+							CA.settings.disablePaste = id == 1;
+						}
+					});
+				}
 				CA.hidePaste();
 				return true;
 			} catch(e) {erp(e)}}}));
@@ -2411,11 +2461,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "恢复默认",
-				description : "将命令库恢复为默认命令库",
+				description : "将命令库恢复为默认",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						CA.settings.enabledLibrarys.length = CA.settings.disabledLibrarys.length = 0;
-						CA.IntelliSense.enableLibrary("default");
+						CA.settings.enabledLibrarys = Object.keys(CA.IntelliSense.inner);
+						CA.settings.disabledLibrarys = [];
 						cb(true, function() {
 							Common.toast("已恢复为默认命令库");
 						});
@@ -2606,21 +2656,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						Common.toast("该命令库有错误，不能锁定");
 						return true;
 					}
-					if (tag.lockConfirmed) {
-						tag.lockConfirmed = false;
-					} else {
-						Common.toast("确认要锁定这个命令库吗？锁定后无法解锁。\n再次点击以确认");
-						return tag.lockConfirmed = true;
-					}
-					self.postTask(function(cb) {
-						try {
-							CA.IntelliSense.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
-							cb(true, function() {
-								Common.toast("该命令库已锁定");
+					Common.showConfirmDialog({
+						title : "确定锁定命令库“" + tag.data.name + "”？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							self.postTask(function(cb) {
+								try {
+									CA.IntelliSense.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
+									cb(true, function() {
+										Common.toast("该命令库已锁定");
+									});
+								} catch(e) {
+									Common.toast("文件保存失败\n" + e);
+									cb(false);
+								}
 							});
-						} catch(e) {
-							Common.toast("文件保存失败\n" + e);
-							cb(false);
 						}
 					});
 				}
@@ -2906,7 +2957,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			//应用更改
 			this.apply();
 		} catch(e) {
-			Common.showTextDialog("当前命令库解析出错。\n" + e);
+			Common.showTextDialog("当前命令库解析出错。\n" + e + (e instanceof Error ? "\n堆栈：\n" + e.stack : ""));
 		}},
 		procCmd : function(s) {
 			var c, ca, t, i, pp, r;
@@ -2918,7 +2969,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			r = {
 				source : c[0],
 				cmdname : c[2],
-				hasSlash :Boolean(c[1]),
+				hasSlash : Boolean(c[1]),
 				strParam : c[4],
 				input : [],
 				output : {},
@@ -3002,7 +3053,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return r;
 		},
 		procParams : function(c) {
-			var i, j, cm = this.library.commands[c.cmdname], ps, pa, ci, cp, t, f = true, k, u, ms, pp, cpl = [], nn = false;
+			var i, j, cm = this.library.commands[c.cmdname], ps, pa, ci, cp, t, f = true, k, u, ms, pp, cpl = [], nn = false, erm = [];
 			
 			//别名处理
 			while (cm.alias) cm = this.library.commands[cm.alias];
@@ -3062,6 +3113,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							if (!t.canFinish) if (cp.canIgnore) {
 								continue;
 							} else {
+								pp.append(" ");
+								pp.append(this.getParamTag(cp, "", 3, t));
+								for (k = j + 1; k < pa.length; k++) {
+									pp.append(" ");
+									pp.append(this.getParamTag(pa[k], "", 2, null));
+								}
+								erm.push({
+									desp : "未结束的参数",
+									count : j,
+									pp : pp
+								});
 								break;
 							}
 							pp.append(" ");
@@ -3074,6 +3136,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							continue;
 							//忽略参数
 						} else {
+							pp.append(" ");
+							pp.append(this.getParamTag(cp, "", 3, t));
+							for (k = j + 1; k < pa.length; k++) {
+								pp.append(" ");
+								pp.append(this.getParamTag(pa[k], "", 2, null));
+							}
+							erm.push({
+								desp : !t ? null : t.length >= 0 ? "字符多余：" + c.strParam.slice(ci - 1) : t.description,
+								count : j,
+								pp : pp
+							});
 							break;
 							//下一个模式
 						}
@@ -3087,11 +3160,21 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			//如果未找到正确用法
 			if (f) {
 				c.input = [];
-				pp = new G.SpannableStringBuilder((c.hasSlash ? "/" : "") + c.cmdname + " ");
-				appendSSB(pp, "...", new G.ForegroundColorSpan(Common.theme.highlightcolor));
-				pp.append("\n");
-				appendSSB(pp, "无法在库中找到命令“" + c.cmdname + "”的此类用法。", new G.ForegroundColorSpan(Common.theme.criticalcolor));
-				c.prompt.push(pp);
+				erm.sort(function(a, b) {
+					return b.count - a.count;
+				});
+				erm.forEach(function(e) {
+					e.pp.append("\n");
+					appendSSB(e.pp, e.desp ? e.desp : "用法不存在", new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					c.prompt.push(e.pp);
+				});
+				if (!erm.length) {
+					pp = new G.SpannableStringBuilder((c.hasSlash ? "/" : "") + c.cmdname + " ");
+					appendSSB(pp, "...", new G.ForegroundColorSpan(Common.theme.highlightcolor));
+					pp.append("\n");
+					appendSSB(pp, "无法在库中找到命令“" + c.cmdname + "”的此类用法。", new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					c.prompt.push(pp);
+				}
 			} else if (nn) {
 				c.input.push("  - 下一个参数");
 				c.output["  - 下一个参数"] = c.source + " ";
@@ -3125,17 +3208,21 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} else if (cp.name.startsWith(ps)) {
 					r.length = ps.length;
 					r.canFinish = false;
-				} else return null;
+				} else return {
+					description : "不可为" + ps
+				};
 				break;
 				
 				case "selector":
 				r = this.procSelector(cp, ps);
-				if (!r) return null;
+				if (!r || !(r.length >= 0)) return r;
 				break;
 				
 				case "uint":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
-				if (!(/^\d*$/).test(t)) return null;
+				if (!(/^\d*$/).test(t)) return {
+					description : t + "不是自然数"
+				};
 				r = {
 					length : t.length,
 					canFinish : t.length > 0
@@ -3144,7 +3231,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				
 				case "int":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
-				if (!(/^(\+|-)?\d*$/).test(t)) return null;
+				if (!(/^(\+|-)?\d*$/).test(t)) return {
+					description : t + "不是整数"
+				};
 				r = {
 					length : t.length,
 					canFinish : t.length && !isNaN(t)
@@ -3153,7 +3242,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				
 				case "float":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
-				if (!(t2 = (/^(\+|-)?(\d*\.)?(\d)*$/).exec(t))) return null;
+				if (!(t2 = (/^(\+|-)?(\d*\.)?(\d)*$/).exec(t))) return {
+					description : t + "不是数值"
+				};
 				r = {
 					length : t.length,
 					canFinish : t.length && t2[3]
@@ -3162,7 +3253,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				
 				case "relative":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
-				if (!(t2 = (/^(~)?((\+|-)?(\d*\.)?(\d)*)$/).exec(t))) return null;
+				if (!(t2 = (/^(~)?((\+|-)?(\d*\.)?(\d)*)$/).exec(t))) return {
+					description : t + "不是数值"
+				};
 				r = {
 					length : t.length,
 					input : ["~ - 相对标识符"],
@@ -3175,12 +3268,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				
 				case "position":
 				r = this.procPosition(cp, ps);
-				if (!r) return null;
+				if (!r || !(r.length >= 0)) return r;
 				break;
 				
 				case "custom":
 				t = new RegExp(cp.input, "").exec(ps);
-				if (!t) return null;
+				if (!t) return {
+					description : t + "不满足指定的条件"
+				};
 				r = {
 					length : t[0].length,
 					canFinish : new RegExp(cp.finish, "").test(ps)
@@ -3188,7 +3283,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				break;
 				
 				case "enum":
-				if (!(t = cp.list instanceof Object ? cp.list : this.library.enums[cp.list])) return;
+				if (!(t = cp.list instanceof Object ? cp.list : this.library.enums[cp.list])) throw "无法找到指定枚举类型";
 				r = {
 					output : {},
 					canFinish : false,
@@ -3226,15 +3321,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 					r.input.sort(); t2.sort(); r.input = r.input.concat(t2);
 				}
+				if (r.length < 0) {
+					r.description = ps + "不是有效的元素";
+				}
 				break;
 				
 				case "command":
 				t = this.procCmd(ps);
+				if (!t) return {
+					description : "不是合法的命令格式"
+				};
+				t2 = t.prompt[0];
+				t3 = t2.toString().indexOf("\n");
 				r = {
-					length : t.source.length,
+					length : t.mode < 0 ? -1 :  t.source.length,
 					input : t.input,
 					output : t.output,
-					canFinish : t.canFinish
+					canFinish : t.canFinish,
+					description : String(t2.subSequence(t3 + 1, t2.length())),
+					tag : t2.subSequence(0, t3)
 				}
 				break;
 				
@@ -3284,9 +3389,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			return r;
 		},
-		getParamTag : function(cp, ms, mt, md) { //匹配模式，匹配字符串，匹配类型（已输入、输入中、未输入），matchParam返回的匹配数据
+		getParamTag : function(cp, ms, mt, md) { //匹配模式，匹配字符串，匹配类型（已输入、输入中、未输入、出错），matchParam返回的匹配数据
 			var z = cp.name, t, l;
-			if (mt == 1) {
+			if (mt == 1 || mt == 3) {
 				switch (cp.type) {
 					case "int":
 					z += ":整数";
@@ -3330,6 +3435,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					
 					case "position":
 					z += ":x y z";
+					if (mt == 3) break;
 					t = (/(\S*)\s*(\S*)\s*(\S*)/).exec(ms);
 					if (t[1]) z = z.replace("x", t[1]);
 					if (t[2]) z = z.replace("y", t[2]);
@@ -3337,6 +3443,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					
 					case "command":
+					if (md) {
+						return md.tag;
+					}
 					z += ":命令";
 					break;
 					
@@ -3358,6 +3467,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				z.setSpan(new G.ForegroundColorSpan(Common.theme.promptcolor), 0, z.length(), z.SPAN_INCLUSIVE_EXCLUSIVE);
 			} else if (mt == 1) {
 				z.setSpan(new G.ForegroundColorSpan(Common.theme.highlightcolor), 0, z.length(), z.SPAN_INCLUSIVE_EXCLUSIVE);
+			} else if (mt == 3) {
+				z.setSpan(new G.ForegroundColorSpan(Common.theme.criticalcolor), 0, z.length(), z.SPAN_INCLUSIVE_EXCLUSIVE);
 			}
 			return z;
 		},
@@ -3371,7 +3482,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					recommend : {},
 					canFinish : ps.length > 0
 				};
-				if (!(/^[^@\^~]*$/).test(ms) || ms.length && !isNaN(ms)) return null;
+				if (!(/^[^@\^~]*$/).test(ms) || ms.length && !isNaN(ms)) return {
+					description : ms + "不是合法的玩家名或选择器"
+				};
 				if (cp.target == "entity" || cp.target == "player") {
 					t.recommend["@a - 选择所有玩家"] = "@a";
 					t.recommend["@p - 选择距离最近的玩家"] = "@p";
@@ -3431,18 +3544,28 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 				if (!sk) rx = /^([^\=]+)(\=)(.*)$/;
-				for (i in ml) { //检验之前的参数
-					if (!(ms = rx.exec(ml[i]))) return null;
+				for (i in ml) { //检验之前的参数，此处需更新
+					if (!(ms = rx.exec(ml[i]))) return {
+						description : ml[i] + "不是合法的选择器参数对"
+					};
 					if (sk) continue;
 					if (!(cp2 = this.library.selectors[ms[1]])) continue;
 					if (cp2.hasInverted && ms[3].search(/^!/) == 0) {
 						ms[3] = ms[3].slice(1);
 					} else pl[ms[1]] = true;
 					mr = this.matchParam(cp2, ms[3] + " ");
-					if (!mr || mr.length < ms[3].length || !mr.canFinish) return null;
+					if (!mr || !(mr.length >= 0)) {
+						return {
+							description : mr ? mr.description : ml[i] + "不是合法的选择器参数对"
+						};
+					} else if (mr.length < ms[3].length || !mr.canFinish) return {
+						description : "未结束的选择器参数：" + ms[3]
+					};
 				}
 				rx = sk ? /^(\+|-)?(\d*\.)?\d*$/ : /^([^\=]*)(\=)?(.*)$/;
-				if (!(ms = rx.exec(ls))) return null;
+				if (!(ms = rx.exec(ls))) return {
+					description : ls + "不是合法的选择器参数对"
+				};
 				if (sk) { // 特殊处理
 					t.recommend[", - 下一个参数"] = bb + ls + ",";
 					t.output["] - 结束参数"] = bb + ls + "]";
@@ -3450,7 +3573,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return t;
 				}
 				if (ms[2]) { // 输入修饰符内容
-					if (!ms[1]) return null;
+					if (!ms[1]) return {
+						description : ls + "缺少等号"
+					};
 					bb += ms[1] + ms[2];
 					if (cp2 = this.library.selectors[ms[1]]) {
 						if (cp2.hasInverted) {
@@ -3465,7 +3590,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							}
 						}
 						mr = this.matchParam(cp2, ms[3]);
-						if (!mr || mr.length < ms[3].length) return null;
+						if (!mr || mr.length < ms[3].length) return {
+							description : mr ? mr.description : ls + "不是合法的选择器参数对"
+						};
 						if (mr.canFinish) {
 							t.recommend[", - 下一个参数"] = bb + ms[3] + ",";
 							t.output["] - 结束参数"] = bb + ms[3] + "]";
@@ -3498,17 +3625,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					length : (ms = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "))).length,
 					canFinish : true
 				};
-			} else return null;
+			} else return {
+				description : c[0] + "不是合法的选择器"
+			};
 			return t;
 		},
 		procPosition : function(cp, ps) {
 			var l = ps.split(/\s+/), f = true, uv = false, i, n = Math.min(l.length, 3), t;
 			for (i = 0; i < n; i++) {
 				if (i == 0 && l[0].startsWith("^")) uv = true;
-				if (!(t = (uv ? /^(?:(\^)((\+|-)?(\d*\.)?\d*))?$/ : /^(~)?((\+|-)?(\d*\.)?\d*)$/).exec(l[i]))) return null;
+				if (!(t = (uv ? /^(?:(\^)((\+|-)?(\d*\.)?\d*))?$/ : /^(~)?((\+|-)?(\d*\.)?\d*)$/).exec(l[i]))) return {
+					description : l[i] + "不是合法的坐标值"
+				};
 				if ((!t[1] || t[2]) && !(/^(\+|-)?(\d*\.)?\d+$/).test(t[2])) if (i == n - 1) {
 					f = false;
-				} else return null;
+				} else return {
+					description : l[i] + "不是合法的坐标值"
+				};
 			}
 			t = {
 				length : n == 3 && l[2].length > 0 ? (/^\S+\s+\S+\s+\S+/).exec(ps)[0].length : ps.length,
@@ -3870,16 +4003,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				iterateArray(a.version, checkUnsignedInt);
 				stack[1] = "前提库(require)";
 				iterateArray(a.require, checkNotEmptyString);
-				//stack[1] = "最低支持版本(minSupportVer)";
-				//checkNotEmptyString(a.minSupportVer);
-				stack[1] = "命令列表(commands)";
-				checkObject(a.commands);
-				stack[1] = "枚举列表(enums)";
-				checkObject(a.enums);
-				stack[1] = "选择器参数列表(selectors)";
-				checkObject(a.selectors);
-				stack[1] = "帮助列表(help)";
-				checkObject(a.help);
 			}
 		})(),
 		checkPackVer : (function() {
@@ -3984,6 +4107,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return function(cur, l) {
 				if (this.checkPackVer(l) != 0) return;
 				var i;
+				if (!(l.commands instanceof Object)) l.commands = {};
+				if (!(l.enums instanceof Object)) l.enums = {};
+				if (!(l.selectors instanceof Object)) l.selectors = {};
+				if (!(l.help instanceof Object)) l.help = {};
 				for (i in l.commands) {
 					if (l.mode == "remove") {
 						if (l.commands[i]) {
@@ -4857,7 +4984,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}), function(id) {
 				callback(ps[id]);
 			}, optional);
-		},
+		}
 	}
 });
 
@@ -5089,6 +5216,11 @@ MapScript.loadModule("Common", {
 		} catch(e) {erp(e)}}}));
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		if (!CA.settings.noAnimation) {
+			trans = new G.AlphaAnimation(0, 1);
+			trans.setDuration(150);
+			frame.startAnimation(trans);
+		}
 		popup = new G.PopupWindow(frame, -1, -1);
 		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setFocusable(true);
@@ -5241,6 +5373,63 @@ MapScript.loadModule("Common", {
 		} catch(e) {erp(e)}}}));
 		s.text = null;
 		s.dialog = popup = Common.showDialog(layout, -2, -2, s.onDismiss);
+	} catch(e) {erp(e)}})},
+	
+	showConfirmDialog : function(s) {G.ui(function() {try {
+		var scr, layout, title, text, skip, onClick, popup;
+		scr = new G.ScrollView(ctx);
+		scr.setBackgroundColor(Common.theme.message_bgcolor);
+		layout = new G.LinearLayout(ctx);
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
+		if (s.title) {
+			title = new G.TextView(ctx);
+			title.setTextSize(Common.theme.textsize[4]);
+			title.setTextColor(Common.theme.textcolor);
+			title.setText(s.title);
+			title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			title.setPadding(0, 0, 0, 10 * G.dp);
+			layout.addView(title);
+		}
+		if (s.description) {
+			text = new G.TextView(ctx);
+			text.setTextSize(Common.theme.textsize[2]);
+			text.setText(s.description);
+			text.setTextColor(Common.theme.promptcolor);
+			text.setPadding(0, 0, 0, 10 * G.dp);
+			text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			layout.addView(text);
+		}
+		if (s.skip) {
+			skip = new G.CheckBox(ctx);
+			skip.setChecked(Boolean(s.canSkip));
+			skip.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+			skip.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
+			skip.setText("不再提示");
+			layout.addView(skip);
+		}
+		onClick = function(i) {
+			if (s.skip) s.skip(skip.isChecked());
+			if (s.callback && s.callback(i)) return;
+			popup.dismiss();
+		}
+		but = (s.buttons || ["确定", "取消"]).map(function(e, i) {
+			var b = new G.TextView(ctx);
+			b.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			b.setText(String(e));
+			b.setTextSize(Common.theme.textsize[3]);
+			b.setGravity(G.Gravity.CENTER);
+			b.setTextColor(Common.theme.criticalcolor);
+			b.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				onClick(i);
+			} catch(e) {erp(e)}}}));
+			layout.addView(b);
+			return b;
+		});
+		scr.addView(layout);
+		popup = Common.showDialog(scr, -2, -2, s.onDismiss);
 	} catch(e) {erp(e)}})},
 	
 	showListChooser : function self(l, callback, optional) {G.ui(function() {try {
@@ -7666,7 +7855,7 @@ CA.IntelliSense.inner["default"] = {
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.2.0.2",
+	"targetSupportVer": "1.2.0.81",
 	"commands": {},
 	"enums": {
 		"block": {
@@ -8112,6 +8301,8 @@ CA.IntelliSense.inner["default"] = {
 			"ambient.weather.lightning.impact": "",
 			"ambient.weather.rain": "雨声",
 			"block.false_permissions": "",
+			"block.end_portal.spawn": "",
+			"block.end_portal_frame.fill": "",
 			"block.itemframe.add_item": "展示框放上物品声",
 			"block.itemframe.break": "破坏展示框声",
 			"block.itemframe.place": "放置展示框声",
@@ -8385,6 +8576,7 @@ CA.IntelliSense.inner["default"] = {
 			"note.pling": "音符盒未知声(未确认)",
 			"note.snare": "音符盒沙质音调声",
 			"portal.portal": "地狱传送门噪音声",
+			"portal.travel": "",
 			"portal.trigger": "地狱传送门方块穿过/传送/离开声",
 			"random.anvil_break": "随机铁砧破坏声",
 			"random.anvil_land": "随机铁砧放置声",
@@ -8416,14 +8608,41 @@ CA.IntelliSense.inner["default"] = {
 			"random.toast": "随机提示栏声",
 			"random.totem": "",
 			"camera.take_picture": "照相机拍照声",
+			"use.ladder": "",
+			"hit.ladder": "",
+			"fall.ladder": "",
 			"step.ladder": "梯子攀爬声",
+			"use.cloth": "",
+			"hit.cloth": "",
+			"fall.cloth": "",
 			"step.cloth": "羊毛行走声",
+			"use.grass": "",
+			"hit.grass": "",
+			"fall.grass": "",
 			"step.grass": "草地行走声",
+			"use.gravel": "",
+			"hit.gravel": "",
+			"fall.gravel": "",
 			"step.gravel": "沙砾行走声",
+			"use.sand": "",
+			"hit.sand": "",
+			"fall.sand": "",
 			"step.sand": "沙子行走声",
+			"use.slime": "",
+			"hit.slime": "",
+			"fall.slime": "",
 			"step.slime": "史莱姆方块行走声",
+			"use.snow": "",
+			"hit.snow": "",
+			"fall.snow": "",
 			"step.snow": "雪地行走声",
+			"use.stone": "",
+			"hit.stone": "",
+			"fall.stone": "",
 			"step.stone": "石头行走声",
+			"use.wood": "",
+			"hit.wood": "",
+			"fall.wood": "",
 			"step.wood": "木头行走声",
 			"jump.cloth": "跳动羊毛声",
 			"jump.grass": "跳动草地声",
@@ -8433,6 +8652,14 @@ CA.IntelliSense.inner["default"] = {
 			"jump.stone": "跳动石头声",
 			"jump.wood": "跳动木头声",
 			"jump.slime": "",
+			"land.cloth": "",
+			"land.grass": "",
+			"land.gravel": "",
+			"land.sand": "",
+			"land.snow": "",
+			"land.stone": "",
+			"land.wood": "",
+			"land.slime": "",
 			"vr.stutterturn": "虚拟现实未知声(未确认)",
 			"record.13": "",
 			"record.cat": "",
@@ -8611,7 +8838,8 @@ CA.IntelliSense.inner["default"] = {
 			"dodaylightcycle": "日夜交替效果是否启用",
 			"doweathercycle": "天气是否变化",
 			"naturalregeneration": "玩家能否在饥饿值足够时自然恢复生命值",
-			"tntexplodes": "TNT能否爆炸"
+			"tntexplodes": "TNT能否爆炸",
+			"showcoordinates": "是否显示坐标"
 		},
 		"particle": {},
 		"difficulty": {
@@ -10619,7 +10847,7 @@ CA.tips = [
 ];
 "IGNORELN_END";
 loadingThread = null;
-ctx.runOnUiThread(function() {try {
+gHandler.post(function() {try {
 	lto.cancel();
 } catch(e) {erp(e)}});
 MapScript.initialize();
