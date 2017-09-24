@@ -23,13 +23,14 @@ function modTick() {}
 function leaveGame() {}
 function useItem(x, y, z, itemid, blockid, side, itemDamage, blockDamage) {}
 function initialize() {}
+function unload() {}
 
 var MapScript = {
 	//世界目录
 	baseDir : android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/",
 
 	//可访问钩子
-	hooks : ["attackHook", "chatHook", "continueDestroyBlock", "destroyBlock", "projectileHitEntityHook", "eatHook", "entityAddedHook", "entityHurtHook", "entityRemovedHook", "explodeHook", "serverMessageReceiveHook", "deathHook", "playerAddExpHook", "playerExpLevelChangeHook", "redstoneUpdateHook", "screenChangeHook", "newLevel", "startDestroyBlock", "projectileHitBlockHook", "modTick", "leaveGame", "useItem", "initialize"],
+	hooks : ["attackHook", "chatHook", "continueDestroyBlock", "destroyBlock", "projectileHitEntityHook", "eatHook", "entityAddedHook", "entityHurtHook", "entityRemovedHook", "explodeHook", "serverMessageReceiveHook", "deathHook", "playerAddExpHook", "playerExpLevelChangeHook", "redstoneUpdateHook", "screenChangeHook", "newLevel", "startDestroyBlock", "projectileHitBlockHook", "modTick", "leaveGame", "useItem", "initialize", "unload"],
 
 	//全局对象
 	global : null,
@@ -757,6 +758,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.showAndroidContent();
 		}
 	} catch(e) {erp(e)}},
+	unload : function() {
+		CA.trySave();
+		CA.resetGUI();
+	},
 	chatHook : function(s) {try {
 		var i;
 		if ((/^\//).test(s)) this.addHistory(s);
@@ -834,6 +839,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				splitScreenMode : false,
 				keepWhenIME : false,
 				topIcon : true,
+				noWebImage : false,
 				iconAlpha : 0,
 				tipsRead : 0,
 				iiMode : -1,
@@ -953,7 +959,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.icon = new G.PopupWindow(self.view, -2, -2);
 		if (CA.supportFloat) CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
-		if (CA.settings.topIcon) PWM.addFloat(CA.icon);
+		if (CA.settings.topIcon) {
+			PWM.addFloat(CA.icon);
+		} else {
+			PWM.addPopup(CA.icon);
+		}
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
 		if (CA.icon) CA.icon.dismiss();
@@ -1178,6 +1188,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							gostate0();
 						}
 						if (CA.fcs) CA.showFCS(s);
+						if (CA.history) CA.showHistory();
 						if (CA.settings.iiMode != 2 || state !== 1) return;
 						if (CA.settings.senseDelay) {
 							CA.IntelliSense.callDelay(String(s));
@@ -1261,6 +1272,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return false;
 			} catch(e) {erp(e)}}}));
+			PWM.observe(function(action) {
+				if (action == "showAll") G.ui(function() {try {
+					CA.cmd.setText(CA.cmd.getText());
+				} catch(e) {erp(e)}});
+			});
 			self.bar.addView(CA.cmd);
 			
 			self.clear = new G.TextView(ctx);
@@ -1697,12 +1713,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				ws.setSaveFormData(true);
 				ws.setLoadWithOverviewMode(true);
 				ws.setJavaScriptCanOpenWindowsAutomatically(true);
-				ws.setLoadsImagesAutomatically(true);
+				ws.setLoadsImagesAutomatically(!CA.settings.noWebImage);
 				ws.setAllowContentAccess(true);
 				/*ws.setAppCachePath((new java.io.File(ctx.getCacheDir(), "com.xero.ca.webview")).getAbsolutePath());
 				ws.setAppCacheEnabled(true);
 				ws.setCacheMode(ws.LOAD_CACHE_ELSE_NETWORK);*/
-				wv.setWebViewClient(new G.WebViewClient());
 			}
 			self.initContent = function(v) {
 				if (!CA.settings.splitScreenMode) {
@@ -2014,7 +2029,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
-				name : "辅助工具",
+				name : "辅助功能",
 				type : "tag"
 			},{
 				id : "showF3",
@@ -2024,6 +2039,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				refresh : function() {
 					(this.get() ? F3.show : F3.hide)();
 				},
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
+				id : "noWebImage",
+				name : "不加载图片",
+				description : "加载网页时不加载图片",
+				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
@@ -2149,9 +2171,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	resetGUI : function() {
-		if (CA.gen) CA.hideGen();
-		if (CA.icon) CA.hideIcon();
-		if (CA.paste) CA.hidePaste();
 		CA.con = null;
 		CA.cmd = null;
 		CA.history = null;
@@ -2159,6 +2178,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.fcs = null;
 		CA.paste = null;
 		CA.IntelliSense.ui = null;
+		CA.Assist.ui = null;
 		CA.showIcon.view = null;
 		CA.showGen.main = null;
 		CA.showHistory.history = null;
@@ -2167,16 +2187,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.showPaste.bar = null;
 		CA.showLibraryMan.linear = null;
 		CA.IntelliSense.show.prompt = null;
+		CA.Assist.show.head = null;
+		Common.showChangeTheme.linear = null;
 		Common.showFileDialog.linear = null;
 		Common.showDebugDialog.main = null;
 		Common.showSettings.linear = null;
+		JSONEdit.showEdit.main = null;
+		PWM.dismissAll();
+		PWM.dismissFloat();
+		PWM.dismissPopup();
 		PWM.reset();
-		G.ui(function() {try {
-			if (CA.showLibraryMan.popup) CA.showLibraryMan.popup.dismiss();
-			if (Common.showFileDialog.popup) Common.showFileDialog.popup.dismiss();
-			if (Common.showDebugDialog.popup) Common.showDebugDialog.popup.dismiss();
-			if (Common.showSettings.popup) Common.showSettings.popup.dismiss();
-		} catch(e) {erp(e)}});
 	},
 	
 	showFCS : function self(v) {G.ui(function() {try {
@@ -2258,12 +2278,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	performPaste : function(cmd) {
+		Common.setClipboardText(cmd);
 		if (MapScript.host == "AutoJs" || MapScript.host == "Android") {
 			try {
 				if (MapScript.host == "AutoJs") {
-					input(cmd);
+					if (!editable().findOne().paste()) throw "";
 				} else if (MapScript.host == "Android") {
-					ScriptActivity.input(cmd);
+					if (!ScriptActivity.paste()) throw "";
 				}
 			} catch(e) {
 				Common.toast("请打开无障碍服务");
@@ -2271,6 +2292,20 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else {
 			try {
 				ctx.updateTextboxText(cmd);
+				
+				//多玩我的世界盒子 专用接口
+				/* 未计划加入
+				try {
+					com.mcbox.pesdk.mcfloat.func.McFloatSettings.CommandBlockConfig = JSON.stringify({
+						typeMode : "0",
+						redstoneMode : "0",
+						conditionalMode : "0",
+						commandText : cmd,
+						hoverText : "",
+						outputText : ""
+					});
+				} catch(e) {}
+				*/
 			} catch(e) {
 				Common.toast("当前版本暂不支持粘贴命令");
 			}
@@ -2409,7 +2444,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.paste) return;
 		CA.paste = new G.PopupWindow(self.bar, -1, -2);
 		if (CA.supportFloat) CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.TOP, 0, 0);
+		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.BOTTOM, 0, 0);
+		PWM.addPopup(CA.paste);
 	} catch(e) {erp(e)}})},
 	hidePaste : function() {G.ui(function() {try {
 		if (CA.paste) CA.paste.dismiss();
@@ -2855,6 +2891,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 		}
 		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -3704,10 +3741,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				"查看中文Wiki" : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4")));
 					} catch(e) {
 						Common.showWebViewDialog({
-							url : "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"
+							url : "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"
 						});
 					}
 				},
@@ -4010,30 +4047,42 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var opt = function(a) {
 				return a == "*" ? Infinity : isNaN(a) ? -1 : parseInt(a);
 			}
-			return function(o) {
-				var b, c, n, i, p1, p2;
-				if (this.ignoreVersion) return 0;
-				if (o.minSupportVer) {
-					b = String(o.minSupportVer).split(".");
-					n = Math.max(a.length, b.length);
-					for (i = 0; i < n; i++) {
-						p1 = opt(a[i]); p2 = opt(b[i]);
-						if (p1 < p2) {
-							return -1; //pe版本过低
-						} else if (p1 > p2) break;
-					}
-				}
-				if (o.maxSupportVer) {
-					c = String(o.maxSupportVer).split(".");
-					n = Math.max(a.length, c.length);
-					for (i = 0; i < n; i++) {
-						p1 = opt(a[i]); p2 = opt(c[i]);
-						if (p1 > p2) {
-							return 1; //命令库版本过低
-						} else if (p1 < p2) break;
+			var compare = function (b) {
+				var n, i, p1, p2;
+				b = String(b).split(".");
+				n = Math.max(a.length, b.length);
+				for (i = 0; i < n; i++) {
+					p1 = opt(a[i]); p2 = opt(b[i]);
+					if (p1 < p2) {
+						return -1; //pe版本过低
+					} else if (p1 > p2) {
+						return 1; //命令库版本过低
 					}
 				}
 				return 0;
+			}
+			var inRange = function(min, max) {
+				if (min && compare(min) < 0) return -1;
+				if (max && compare(max) > 0) return 1;
+				return 0;
+			}
+			return function(o) {
+				var r = 0, i, n, e;
+				if (this.ignoreVersion) return 0;
+				if (o.minSupportVer || o.maxSupportVer) {
+					r = inRange(o.minSupportVer, o.maxSupportVer);
+					if (r != 0) return r; //这两个参数是总范围
+				}
+				if (Array.isArray(o.supportVer)) {
+					n = o.supportVer.length;
+					r = 1;
+					for (i = 0; i < n; i++) {
+						e = o.supportVer[i];
+						r = Math.min(r, inRange(e.min, e.max)); //趋向返回游戏版本过低
+						if (r == 0) return 0; //这段只要存在一个范围符合条件就返回0
+					}
+				}
+				return r;
 			}
 		})(),
 		joinPack : (function() {
@@ -4991,6 +5040,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 MapScript.loadModule("PWM", {
 	windows : [],
 	floats : [],
+	popups : [],
 	listeners : [],
 	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
 	add : function(w) {
@@ -5007,6 +5057,16 @@ MapScript.loadModule("PWM", {
 			PWM.wm.addView(v, wp);
 		});
 		this._notifyListeners("add", w);
+	},
+	addFloat : function(w) {
+		if (this.floats.indexOf(w) >= 0) return;
+		this.floats.push(w);
+		this._notifyListeners("addFloat", w);
+	},
+	addPopup : function(w) {
+		if (this.popups.indexOf(w) >= 0) return;
+		this.popups.push(w);
+		this._notifyListeners("addPopup", w);
 	},
 	hideAll : function() {
 		var v;
@@ -5028,6 +5088,30 @@ MapScript.loadModule("PWM", {
 		});
 		this._notifyListeners("showAll");
 	},
+	dismissAll : function() {
+		var v;
+		this.windows.forEach(function(e) {
+			if (!e.isShowing()) return;
+			e.dismiss();
+		});
+		this._notifyListeners("dismissAll");
+	},
+	dismissFloat : function() {
+		var v;
+		this.floats.forEach(function(e) {
+			if (!e.isShowing()) return;
+			e.dismiss();
+		});
+		this._notifyListeners("dismissFloat");
+	},
+	dismissPopup : function() {
+		var v;
+		this.popups.forEach(function(e) {
+			if (!e.isShowing()) return;
+			e.dismiss();
+		});
+		this._notifyListeners("dismissPopup");
+	},
 	getCount : function() {
 		var s = 0;
 		this.windows.forEach(function(e) {
@@ -5035,13 +5119,8 @@ MapScript.loadModule("PWM", {
 		});
 		return s;
 	},
-	addFloat : function(w) {
-		if (this.floats.indexOf(w) >= 0) return;
-		this.floats.push(w);
-		this._notifyListeners("addFloat", w);
-	},
 	reset : function() {
-		this.windows.length = this.floats.length = this.listeners.length = 0;
+		this.windows.length = this.floats.length = this.popups.length = this.listeners.length = 0;
 	},
 	observe : function(f) {
 		this.unobserve(f);
@@ -5173,6 +5252,7 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 		}
 		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -5199,6 +5279,15 @@ MapScript.loadModule("Common", {
 		return view;
 	},
 	
+	initEnterAnimation : function(v) {
+		var trans;
+		if (!CA.settings.noAnimation) {
+			trans = new G.AlphaAnimation(0, 1);
+			trans.setDuration(150);
+			v.startAnimation(trans);
+		}
+	},
+	
 	showDialog : function(layout, width, height, onDismiss) {
 		var frame, popup, trans;
 		frame = new G.FrameLayout(ctx);
@@ -5215,12 +5304,8 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(layout);
+		this.initEnterAnimation(frame);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		if (!CA.settings.noAnimation) {
-			trans = new G.AlphaAnimation(0, 1);
-			trans.setDuration(150);
-			frame.startAnimation(trans);
-		}
 		popup = new G.PopupWindow(frame, -1, -1);
 		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setFocusable(true);
@@ -5653,6 +5738,7 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 		}
 		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -5908,6 +5994,7 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.inputbar, new G.LinearLayout.LayoutParams(-1, -2));
 		}
 		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -6092,7 +6179,7 @@ MapScript.loadModule("Common", {
 		ws.setSaveFormData(true);
 		ws.setLoadWithOverviewMode(true);
 		ws.setJavaScriptCanOpenWindowsAutomatically(true);
-		ws.setLoadsImagesAutomatically(true);
+		ws.setLoadsImagesAutomatically(!CA.settings.noWebImage);
 		ws.setAllowContentAccess(true);
 		//ws.setBuiltInZoomControls(true);
 		//ws.setUseWideViewPort(true);
@@ -6576,6 +6663,7 @@ MapScript.loadModule("F3", {
 		}
 		F3.bar = new G.PopupWindow(F3.scr, -2, -2);
 		F3.bar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, self.cy ? self.cy : (self.cy = 0));
+		PWM.addPopup(F3.bar);
 		F3.visible = false;
 		F3.main.setTextSize(30);
 		F3.main.setText(">");
@@ -7136,7 +7224,11 @@ MapScript.loadModule("JSONEdit", {
 	pathbar : null,
 	list : null,
 	path : [],
+	showAll : false,
 	listItems : Object.keys,
+	isObject : function(o) {
+		return o instanceof Object;
+	},
 	show : function(o) {
 		var i;
 		o = Object(o);
@@ -7145,7 +7237,21 @@ MapScript.loadModule("JSONEdit", {
 		if (data === null) {
 			return false;
 		}
-		if (!(o.source instanceof Object)) {
+		this.showAll = Boolean(o.showAll);
+		this.listItems = o.showAll ? function(o) {
+			try {
+				return Object.getOwnPropertyNames(o);
+			} catch(e) {
+				return Object.keys(o);
+			}
+		} : Object.keys;
+		this.isObject = o.showAll ? function(o) {
+			if (o == null) return false;
+			return typeof o == "object" || typeof o == "function";
+		} : function(o) {
+			return o instanceof Object;
+		};
+		if (!this.isObject(o.source)) {
 			this.showData("编辑“" + name + "”", data, function(newValue) {
 				o.source = newValue;
 				if (o.update) o.update();
@@ -7162,13 +7268,11 @@ MapScript.loadModule("JSONEdit", {
 			for (i in o.path) {
 				this.path.push({
 					name : String(o.path[i]),
-					data : (data = data[o.path[i]]) instanceof Object ? data : {},
+					data : this.isObject(data = data[o.path[i]]) ? data : {},
 					pos : 0
 				});
 			}
 		}
-		this.showAll = Boolean(o.showAll);
-		this.listItems = o.showAll ? Object.getOwnPropertyNames : Object.keys;
 		this.updateListener = o.update ? function() {
 			o.update();
 		} : function() {};
@@ -7178,7 +7282,7 @@ MapScript.loadModule("JSONEdit", {
 	},
 	create : function(callback, rootname) {
 		this.showNewItem(function(data) {
-			if (data instanceof Object) {
+			if (JSONEdit.isObject(data)) {
 				JSONEdit.show({
 					source : data,
 					rootname : rootname,
@@ -7376,7 +7480,7 @@ MapScript.loadModule("JSONEdit", {
 						if (Array.isArray(data)) {
 							data.push(newItem);
 							JSONEdit.refresh();
-						} else if (data instanceof Object) {
+						} else if (JSONEdit.isObject(data)) {
 							Common.showInputDialog({
 								title : "请输入键名",
 								callback : function(s) {
@@ -7400,7 +7504,7 @@ MapScript.loadModule("JSONEdit", {
 				var name = parent.getAdapter().getItem(pos);
 				var data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
 				JSONEdit.path[JSONEdit.path.length - 1].pos = JSONEdit.list.getFirstVisiblePosition();
-				if (data instanceof Object) {
+				if (JSONEdit.isObject(data)) {
 					JSONEdit.path.push({
 						name : String(name),
 						data : data,
@@ -7426,6 +7530,7 @@ MapScript.loadModule("JSONEdit", {
 			} catch(e) {erp(e)}}}));
 			self.main.addView(JSONEdit.list);
 		}
+		Common.initEnterAnimation(self.main);
 		JSONEdit.edit = new G.PopupWindow(self.main, -1, -1);
 		if (CA.supportFloat) JSONEdit.edit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		//JSONEdit.edit.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -7543,6 +7648,7 @@ MapScript.loadModule("JSONEdit", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
+		Common.initEnterAnimation(layout);
 		popup = new G.PopupWindow(layout, -1, -1);
 		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -7700,7 +7806,7 @@ MapScript.loadModule("JSONEdit", {
 			}].concat(self.menu);
 		}
 		var cd = JSONEdit.path[JSONEdit.path.length - 1].data;
-		Common.showOperateDialog(Array.isArray(cd) ? self.arrMenu : cd instanceof Object ? self.objMenu : obj.menu, {
+		Common.showOperateDialog(Array.isArray(cd) ? self.arrMenu : JSONEdit.isObject(cd) ? self.objMenu : obj.menu, {
 			name : name,
 			src : cd,
 			data : cd[name]
@@ -7756,7 +7862,7 @@ MapScript.loadModule("JSONEdit", {
 		try {
 			if (Array.isArray(o)) {
 				return o.length ? o[0] + "等" + o.length + "个项目" : "0个项目";
-			} else if (o instanceof Object) {
+			} else if (o instanceof Object && typeof o !== "function" && !(o instanceof java.lang.String)) {
 				return this.listItems(o).length + "个键值对";
 			} else if (o === null) {
 				return "空引用(null)";
@@ -7824,6 +7930,7 @@ MapScript.loadModule("EasterEgg", {
 		anis.addAnimation(ani2);
 		self.view.startAnimation(anis);
 		EasterEgg.view.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.addPopup(EasterEgg.view);
 	} catch(e) {if (CA.DEBUG) erp(e)}})},
 	getBitmap : function(w) {
 		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
@@ -8958,11 +9065,11 @@ CA.IntelliSense.inner["default"] = {
 		}
 	},
 	"help": {
-		"command": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4",
-		"tilder": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
-		"selector": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E7.9B.AE.E6.A0.87.E9.80.89.E6.8B.A9.E5.99.A8",
-		"nbt": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.95.B0.E6.8D.AE.E6.A0.87.E7.AD.BE",
-		"rawjson": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E5.8E.9F.E5.A7.8BJSON.E6.96.87.E6.9C.AC"
+		"command": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4",
+		"tilder": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
+		"selector": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E7.9B.AE.E6.A0.87.E9.80.89.E6.8B.A9.E5.99.A8",
+		"nbt": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.95.B0.E6.8D.AE.E6.A0.87.E7.AD.BE",
+		"rawjson": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E5.8E.9F.E5.A7.8BJSON.E6.96.87.E6.9C.AC"
 	},
 	"versionPack": {
 		"base": {
@@ -9054,7 +9161,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clone"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clone"
 				},
 				"execute": {
 					"description": "让某一实体在某一位置执行一条命令",
@@ -9078,7 +9185,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#execute"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#execute"
 				},
 				"fill": {
 					"description": "用特定方块全部或部分填充一个区域",
@@ -9156,7 +9263,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#fill"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#fill"
 				},
 				"gamemode": {
 					"description": "设置某个玩家的游戏模式",
@@ -9187,7 +9294,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamemode"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamemode"
 				},
 				"give": {
 					"description": "给一位玩家一种物品",
@@ -9222,7 +9329,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#give"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#give"
 				},
 				"help": {
 					"description": "显示帮助",
@@ -9245,7 +9352,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#kill"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#kill"
 				},
 				"msg": {
 					"alias": "tell"
@@ -9262,7 +9369,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#say"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#say"
 				},
 				"setblock": {
 					"description": "将一个方块更改为另一个方块",
@@ -9296,7 +9403,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setblock"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setblock"
 				},
 				"setworldspawn": {
 					"description": "设置世界出生点",
@@ -9313,7 +9420,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setworldspawn"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setworldspawn"
 				},
 				"spawnpoint": {
 					"description": "为特定玩家设置出生点",
@@ -9344,7 +9451,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spawnpoint"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spawnpoint"
 				},
 				"summon": {
 					"description": "生成一个实体",
@@ -9364,7 +9471,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#summon"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#summon"
 				},
 				"tell": {
 					"description": "发送一条私密信息给一个或多个玩家",
@@ -9383,7 +9490,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tell"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tell"
 				},
 				"testforblock": {
 					"description": "探测某个方块是否在特定位置",
@@ -9407,7 +9514,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblock"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblock"
 				},
 				"testforblocks": {
 					"description": "测试两个区域的方块是否相同",
@@ -9439,7 +9546,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblocks"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblocks"
 				},
 				"time": {
 					"description": "更改或查询世界游戏时间",
@@ -9514,14 +9621,14 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#time"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#time"
 				},
 				"toggledownfall": {
 					"description": "切换天气",
 					"noparams": {
 						"description": "如果天气目前晴朗，就会转换成下雨或下雪。如果天气目前是雨雪天气，它将停止下雨下雪。"
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#toggledownfall"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#toggledownfall"
 				},
 				"tp": {
 					"description": "传送实体",
@@ -9595,7 +9702,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tp"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tp"
 				},
 				"teleport": {
 					"alias": "tp"
@@ -9636,7 +9743,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#weather"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#weather"
 				},
 				"xp": {
 					"description": "将经验值给予一个玩家",
@@ -9674,7 +9781,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#xp"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#xp"
 				}
 			},
 			"minSupportVer": "0.15.90.0"
@@ -9722,7 +9829,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#enchant"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#enchant"
 				}
 			},
 			"minSupportVer": "0.15.90.5"
@@ -9768,7 +9875,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clear"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clear"
 				},
 				"difficulty": {
 					"description": "设置游戏难度等级",
@@ -9783,7 +9890,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#difficulty"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#difficulty"
 				},
 				"effect": {
 					"description": "设置玩家及实体的状态效果",
@@ -9835,7 +9942,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#effect"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#effect"
 				},
 				"gamerule": {
 					"description": "设置或查询一条游戏规则的值",
@@ -9914,7 +10021,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}*/
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamerule"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamerule"
 				},
 				"me": {
 					"description": "显示一条关于你自己的信息",
@@ -9928,7 +10035,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#me"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#me"
 				},
 				"playsound": {
 					"description": "对指定玩家播放指定声音",
@@ -9968,7 +10075,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#playsound"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#playsound"
 				},
 				"replaceitem": {
 					"description": "用给出的物品替换方块或实体物品栏内的物品",
@@ -10076,7 +10183,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#replaceitem"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#replaceitem"
 				},
 				"spreadplayers": {
 					"description": "把实体随机传送到区域内地表的某个位置",
@@ -10108,7 +10215,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spread"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spread"
 				},
 				"stopsound": {
 					"description": "停止音效播放",
@@ -10143,7 +10250,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#stopsound"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#stopsound"
 				},
 				"testfor": {
 					"description": "检测并统计符合指定条件的实体",
@@ -10158,7 +10265,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testfor"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testfor"
 				},
 				"title": {
 					"description": "标题命令相关",
@@ -10278,12 +10385,12 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
 				}
 			},
 			"minSupportVer": "1.0.5.0"
 		},
-		"particle in 1.0.5.0": {
+		"particle": {
 			"commands": {
 				"particle": {
 					"description": "创建粒子效果",
@@ -10334,15 +10441,22 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
 				}
 			},
 			"minSupportVer": "1.0.5.0",
 			"maxSupportVer": "1.0.5.0"
 		},
 		"execute_detect": {
-			"minSupportVer": "0.15.90.0",
-			"maxSupportVer": "1.1.*",
+			"supportVer": [
+				{
+					"min": "0.15.90.0",
+					"max": "1.1.*"
+				},
+				{
+					"min": "1.2.0.7"
+				}
+			],
 			"commands": {
 				"execute": {
 					"patterns": {
@@ -10386,28 +10500,14 @@ CA.IntelliSense.inner["default"] = {
 				}
 			}
 		},
-		"1.2": {
-			"minSupportVer": "1.2",
+		"detect_global": {
+			"supportVer": [
+				{
+					"min": "1.2.0.2",
+					"max": "1.2.0.2"
+				}
+			],
 			"commands": {
-				"alwaysday": {
-					"description": "锁定或解锁日夜交替",
-					"patterns": {
-						"default": {
-							"params": [
-								{
-									"type": "enum",
-									"name": "是否锁定",
-									"list": "bool",
-									"optional": true
-								}
-							]
-						}
-					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#alwaysday"
-				},
-				"daylock": {
-					"alias": "alwaysday"
-				},
 				"detect": {
 					"description": "当某一方块满足条件时执行一条命令",
 					"patterns": {
@@ -10434,7 +10534,31 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#detect"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#detect"
+				}
+			}
+		},
+		"1.2": {
+			"minSupportVer": "1.2.0.2",
+			"commands": {
+				"alwaysday": {
+					"description": "锁定或解锁日夜交替",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "enum",
+									"name": "是否锁定",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#alwaysday"
+				},
+				"daylock": {
+					"alias": "alwaysday"
 				},
 				"tickingarea": {
 					"description": "添加、移除或列出常加载区域",
@@ -10532,7 +10656,7 @@ CA.IntelliSense.inner["default"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tickingarea"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tickingarea"
 				},
 				"tp": {
 					"patterns": {
@@ -10670,12 +10794,12 @@ CA.IntelliSense.inner["addition"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#deop"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#deop"
 				},
 				"list": {
 					"description": "列出在服务器上的玩家",
 					"noparams": true,
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#list"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#list"
 				},
 				"op": {
 					"description": "给予一位玩家管理员身份",
@@ -10690,7 +10814,7 @@ CA.IntelliSense.inner["addition"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#op"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#op"
 				},
 				"wsserver": {
 					"description": "尝试连接到指定的WebSocket服务器上",
@@ -10704,7 +10828,7 @@ CA.IntelliSense.inner["addition"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#wsserver"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#wsserver"
 				}
 			},
 			"minSupportVer": "0.15.90.0"
@@ -10722,7 +10846,7 @@ CA.IntelliSense.inner["addition"] = {
 							}]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#locate"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#locate"
 				}
 			},
 			"minSupportVer": "0.17"
@@ -10745,7 +10869,7 @@ CA.IntelliSense.inner["addition"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#transferserver"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#transferserver"
 				}
 			},
 			"minSupportVer": "1.0.3.0"
@@ -10764,7 +10888,7 @@ CA.IntelliSense.inner["addition"] = {
 							]
 						}
 					},
-					"help": "http://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setmaxplayers"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setmaxplayers"
 				}
 			},
 			"minSupportVer": "1.1.0.55"
