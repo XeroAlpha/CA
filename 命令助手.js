@@ -176,6 +176,9 @@ MapScript.loadModule("ctx", (function(global) {
 MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
 
 MapScript.loadModule("erp", function self(error) {
+	var tech = [error, "\n版本:{DATE}\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
+	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
+	java.lang.System.err.println(tech);
 	if (self.count) {
 		self.count++;
 	} else {
@@ -184,11 +187,9 @@ MapScript.loadModule("erp", function self(error) {
 	if (self.count > 10) return;
 	gHandler.post(new java.lang.Runnable({run : function() {try {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
-		var tech = ["版本:{DATE}\n", "错误信息:", error, "\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
-		if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
-		dialog.setMessage("您好，" + error.fileName + "出现了一个错误。您可以将这个错误反馈给我们，来推动这个Mod的更新。您也可以选择忽略。作者联系方式：QQ-814518615(Xero)，盒子ID-4717939(ProjectXero)\n\n错误信息：\n" + tech);
+		dialog.setMessage("您好，" + error.fileName + "出现了一个错误。您可以将这个错误反馈给我们，来推动这个Mod的更新。您也可以选择忽略。作者联系方式：QQ-814518615(Xero)\n\n错误信息：\n" + tech);
 		dialog.setPositiveButton("忽略", new android.content.DialogInterface.OnClickListener({
 			onClick : function(dia,w) {
 				dia.dismiss();
@@ -211,11 +212,13 @@ MapScript.loadModule("erp", function self(error) {
 });
 
 var lto;
-gHandler.post(function() {try {
-	lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
-	lto.setGravity(android.view.Gravity.CENTER, 0, 0);
-	lto.show();
-} catch(e) {erp(e)}});
+if (MapScript.host != "Android") {
+	gHandler.post(function() {try {
+		lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
+		lto.setGravity(android.view.Gravity.CENTER, 0, 0);
+		lto.show();
+	} catch(e) {erp(e)}});
+}
 
 MapScript.loadModule("getMinecraftVersion", function self(force) {
 	if (!force && self.ver) return self.ver;
@@ -887,6 +890,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.view.setBackgroundColor(Common.theme.go_bgcolor);
 			self.view.setTextColor(Common.theme.go_textcolor);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (PWM.onResume()) return;
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
 					Common.toast("请选择智能模式");
 					CA.showModeChooser(function() {
@@ -922,7 +926,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.settings.iconY = self.cy;
 				}
 				return !touch.stead;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.open = function() {
 				if (!CA.settings.topIcon) {
 					CA.showGen(CA.settings.noAnimation);
@@ -1133,7 +1137,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						var start = G.Selection.getSelectionStart(s);
 						var end = G.Selection.getSelectionEnd(s);
 						s.clearSpans();
-						FCString.parseFC_(s, G.Color.BLACK);
+						FCString.parseFC_(s, Common.theme.textcolor);
 						skip = true;
 						CA.cmd.setText(s);
 						skip = false;
@@ -1175,7 +1179,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.add.setVisibility(G.View.GONE);
 						self.clear.setVisibility(G.View.GONE);
 					}
-					return function(s) {
+					return function(s) {try {
 						if (skip) return;
 						CA.cmdstr = String(s);
 						if (CA.settings.iiMode == 1 && CA.Assist.active) {
@@ -1196,7 +1200,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							CA.IntelliSense.proc(String(s));
 						}
 						if (CA.settings.autoFormatCmd) rep(s);
-					}
+					} catch(e) {erp(e)}}
 				})(),
 				//beforeTextChanged : function(s, start, count, after) {},
 				//onTextChanged : function(s, start, count, after) {},
@@ -1271,7 +1275,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return true;
 				}
 				return false;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			PWM.observe(function(action) {
 				if (action == "showAll") G.ui(function() {try {
 					CA.cmd.setText(CA.cmd.getText());
@@ -1322,11 +1326,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					v.setTextColor(Common.theme.go_textcolor);
 				}
 				return false;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), false}}}));
 			self.copy.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
 				EasterEgg.start();
 				return true;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.bar.addView(self.copy);
 			
 			CA.con = new G.FrameLayout(ctx);
@@ -1351,6 +1355,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.gen.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NEEDED);
 		CA.gen.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 		CA.gen.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			if (PWM.busy) return; //避免在dismiss过程中修改窗口数组
 			CA.screenChangeHook();
 			CA.trySave();
 		} catch(e) {erp(e)}}}));
@@ -1466,30 +1471,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.tag1.setGravity(G.Gravity.LEFT);
 			self.tag1.setPadding(10 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			self.tag1.setFocusable(true);
-			self.null1 = new G.TextView(ctx);
-			self.null1.setLayoutParams(new G.AbsListView.LayoutParams(-1, 0.6 * G.screenHeight));
-			self.null1.setText("空空如也");
-			self.null1.setTextSize(Common.theme.textsize[4]);
-			self.null1.setTextColor(Common.theme.promptcolor);
-			self.null1.setGravity(G.Gravity.CENTER);
-			self.null1.setFocusable(true);
 			self.history = new G.ListView(ctx);
 			self.history.setBackgroundColor(G.Color.TRANSPARENT);
 			self.history.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				pos -= parent.getHeaderViewsCount();
-				if (pos < 0) return;
+				if (pos < 1 || !parent.getItemAtPosition(pos)) return;
+				pos -= 1;
 				CA.cmd.setText(CA.his[pos]);
 				CA.showGen.activate(true);
 			} catch(e) {erp(e)}}}));
 			self.history.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
-				pos -= parent.getHeaderViewsCount();
-				if (pos < 0) return true;
+				if (pos < 1 || !parent.getItemAtPosition(pos)) return;
+				pos -= 1;
 				Common.showOperateDialog(self.historyEdit, {
 					pos : parseInt(pos),
 					cmd : CA.his[pos]
 				});
 				return true;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.history.addHeaderView(self.tag1);
 			self.linear.addView(self.history);
 			self.tag2 = new G.TextView(ctx);
@@ -1500,32 +1498,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.tag2.setGravity(G.Gravity.LEFT);
 			self.tag2.setPadding(10 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			self.tag2.setFocusable(true);
-			self.null2 = new G.TextView(ctx);
-			self.null2.setLayoutParams(new G.AbsListView.LayoutParams(-1, 0.6 * G.screenHeight));
-			self.null2.setText("空空如也");
-			self.null2.setTextSize(Common.theme.textsize[4]);
-			self.null2.setTextColor(Common.theme.promptcolor);
-			self.null2.setGravity(G.Gravity.CENTER);
-			self.null2.setFocusable(true);
 			self.favorite = new G.ListView(ctx);
 			self.favorite.setBackgroundColor(G.Color.TRANSPARENT);
 			self.favorite.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				pos -= parent.getHeaderViewsCount();
-				if (pos < 0) return;
-				CA.cmd.setText(CA.fav[parent.getAdapter().getWrappedAdapter().getItem(pos)]);
+				var t;
+				if (pos < 1 || !(t = parent.getItemAtPosition(pos))) return;
+				pos -= 1;
+				CA.cmd.setText(CA.fav[t]);
 				CA.showGen.activate(false);
 			} catch(e) {erp(e)}}}));
 			self.favorite.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
-				pos -= parent.getHeaderViewsCount();
-				if (pos < 0) return true;
 				var t;
+				if (pos < 1 || !(t = parent.getItemAtPosition(pos))) return;
+				pos -= 1;
 				Common.showOperateDialog(self.favoriteEdit, {
-					pos : parseInt(pos),
-					name : (t = String(parent.getAdapter().getWrappedAdapter().getItem(pos))),
+					name : t,
 					cmd : CA.fav[t]
 				});
 				return true;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.favorite.addHeaderView(self.tag2);
 			self.linear.addView(self.favorite);
 			CA.con.addOnLayoutChangeListener(self.layoutListener = new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
@@ -1591,6 +1582,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				layout.addView(text2);
 				return layout;
 			}
+			self.nula = function(s) {
+				var text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				text.setText("空空如也");
+				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
+				text.setTextSize(Common.theme.textsize[4]);
+				text.setTextColor(Common.theme.promptcolor);
+				text.setGravity(G.Gravity.CENTER);
+				text.setFocusable(true);
+				return text;
+			}
 			if (!CA.settings.splitScreenMode) {
 				var touchSlop = G.ViewConfiguration.get(ctx).getScaledTouchSlop();
 				var switchSlop = 80 * G.dp;
@@ -1642,22 +1644,21 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						if (self.cancelled) return true;
 					}
 					return false;
-				} catch(e) {erp(e)}}});
+				} catch(e) {return erp(e), true}}});
 				self.history.setOnTouchListener(self.scroller);
 				self.favorite.setOnTouchListener(self.scroller);
 			}
 		}
-		self.history.setAdapter(new RhinoListAdapter(CA.his, self.hisa));
-		self.favorite.setAdapter(new RhinoListAdapter(t = Object.keys(CA.fav), self.fava));
-		if (!CA.his.length) {
-			self.history.addHeaderView(self.null1);
+		t = Object.keys(CA.fav);
+		if (CA.his.length == 0) {
+			self.history.setAdapter(new RhinoListAdapter([null], self.nula));
 		} else {
-			self.history.removeHeaderView(self.null1);
+			self.history.setAdapter(new RhinoListAdapter(CA.his, self.hisa));
 		}
-		if (!t.length) {
-			self.favorite.addHeaderView(self.null2);
+		if (t.length == 0) {
+			self.favorite.setAdapter(new RhinoListAdapter([null], self.nula));
 		} else {
-			self.favorite.removeHeaderView(self.null2);
+			self.favorite.setAdapter(new RhinoListAdapter(t, self.fava));
 		}
 		if (CA.history) return;
 		CA.history = self.linear;
@@ -1797,7 +1798,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						if (self.cancelled) return true;
 					}
 					return false;
-				} catch(e) {erp(e)}}});
+				} catch(e) {return erp(e), true}}});
 				self.help.setOnTouchListener(self.scroller);
 			}
 		}
@@ -1989,14 +1990,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function() {
 					Common.showChangeTheme(function() {
-						CA.resetGUI();
-						CA.showGen(true);
-						CA.showSettings();
-					}, function() {
-						CA.showSettings();
+						self.refresh(true);
 					});
-					self.refreshed = true;
-					Common.showSettings.popup.dismiss();
 				}
 			},{
 				id : "barTop",
@@ -2132,8 +2127,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						description : "*此操作无法撤销",
 						callback : function(id) {
 							if (id != 0) return;
-							CA.resetGUI();
 							G.ui(function() {try {
+								CA.resetGUI();
 								(new java.io.File(CA.profilePath)).delete();
 								CA.initialize();
 								Common.toast("命令助手已重新启动");
@@ -2171,6 +2166,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	resetGUI : function() {
+		PWM.dismissAll();
+		PWM.dismissFloat();
+		PWM.dismissPopup();
+		PWM.reset();
+		CA.icon = null;
 		CA.con = null;
 		CA.cmd = null;
 		CA.history = null;
@@ -2193,10 +2193,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		Common.showDebugDialog.main = null;
 		Common.showSettings.linear = null;
 		JSONEdit.showEdit.main = null;
-		PWM.dismissAll();
-		PWM.dismissFloat();
-		PWM.dismissPopup();
-		PWM.reset();
 	},
 	
 	showFCS : function self(v) {G.ui(function() {try {
@@ -2231,7 +2227,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			lp2 = new G.LinearLayout.LayoutParams(0, -2, 1);
 			onclick = new G.View.OnClickListener({onClick : function(v) {try {
 				CA.cmd.getText().replace(G.Selection.getSelectionStart(CA.cmd.getText()), G.Selection.getSelectionEnd(CA.cmd.getText()), v.getText().toString());
-				return true;
 			} catch(e) {erp(e)}}});
 			
 			for (i = 0; i < data.length; i++) {
@@ -2259,7 +2254,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				CA.hideFCS();
-				return true;
 			} catch(e) {erp(e)}}}));
 			self.line.addView(self.exit);
 			
@@ -2278,13 +2272,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	performPaste : function(cmd) {
+		var r;
 		Common.setClipboardText(cmd);
 		if (MapScript.host == "AutoJs" || MapScript.host == "Android") {
 			try {
 				if (MapScript.host == "AutoJs") {
 					if (!editable().findOne().paste()) throw "";
 				} else if (MapScript.host == "Android") {
-					if (!ScriptActivity.paste()) throw "";
+					r = ScriptActivity.paste();
+					if (r < 0) throw r;
+					//0 - 成功  1 - 不是Editable对象  2 - 无法访问该Window  3 - 粘贴操作执行失败
+					//-1 - 未知错误  -2 - 未打开无障碍服务
 				}
 			} catch(e) {
 				Common.toast("请打开无障碍服务");
@@ -2332,7 +2330,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					v.setTextColor(Common.theme.go_textcolor);
 				}
 				return false;
-			} catch(e) {erp(e)}}});
+			} catch(e) {return erp(e), true}}});
 			
 			self.refresh = function() {
 				self.cmd.setText(CA.his[self.cur]);
@@ -2395,7 +2393,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					} catch(e) {erp(e)}}}), 500);
 				}
 				return false;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.bar.addView(self.cmd);
 			
 			self.paste = new G.TextView(ctx);
@@ -2444,7 +2442,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.paste) return;
 		CA.paste = new G.PopupWindow(self.bar, -1, -2);
 		if (CA.supportFloat) CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.BOTTOM, 0, 0);
+		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), CA.supportFloat ? G.Gravity.TOP : G.Gravity.BOTTOM, 0, 0);
 		PWM.addPopup(CA.paste);
 	} catch(e) {erp(e)}})},
 	hidePaste : function() {G.ui(function() {try {
@@ -2632,7 +2630,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 										Common.toast("当前命令库已另存为" + fp);
 									});
 								} catch(e) {
-									erp(e)
 									Common.toast("文件保存失败，无法另存为\n" + e);
 									cb(false);
 								}
@@ -2672,7 +2669,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 										Common.toast("当前命令库的副本已创建" + fp);
 									});
 								} catch(e) {
-									erp(e)
 									Common.toast("文件保存失败，无法创建副本\n" + e);
 									cb(false);
 								}
@@ -2884,9 +2880,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setTextSize(Common.theme.textsize[3]);
 			self.exit.setTextColor(Common.theme.criticalcolor);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				
 				self.popup.dismiss();
-				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 		}
@@ -3758,10 +3752,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				"意见反馈" : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("mqqwpa://im/chat?chat_type=wpa&uin=3493569662")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C")));
 					} catch(e) {
-						Common.toast("作者QQ（BUG反馈请找我）：814518615\n已复制到剪贴板");
-						Common.setClipboardText("814518615");
+						Common.showWebViewDialog({
+							url : "http://projectxero.mikecrm.com/CDOsI2C"
+						});
 					}
 				}
 			};
@@ -3811,7 +3806,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					if (pos == 0) {
 						CA.IntelliSense.showMoreUsage();
-						return true;
+						return;
 					}
 					var a = CA.IntelliSense.output[CA.IntelliSense.input[pos - parent.getHeaderViewsCount()]];
 					if (a instanceof Function) {
@@ -3836,7 +3831,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.lastToast.show();
 					}
 					return true;
-				} catch(e) {erp(e)}}}));
+				} catch(e) {return erp(e), true}}}));
 				self.list.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
 					var t = (b - t > 0.5 * CA.showAssist.con.getMeasuredHeight()) || CA.settings.keepWhenIME;
 					if (self.keep == t) return;
@@ -5042,7 +5037,28 @@ MapScript.loadModule("PWM", {
 	floats : [],
 	popups : [],
 	listeners : [],
+	intentBack : false,
+	busy : false,
 	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
+	initialize : function() {
+		if (MapScript.host == "Android") {
+			ScriptActivity.setNewIntentListener(new com.xero.ca.MainActivity.OnNewIntentListener({apply : function(intent) {try {
+				if (PWM.getCount() > 0) {
+					PWM.hideAll();
+					PWM.intentBack = true;
+				}
+				return true;
+			} catch(e) {erp(e)}}}));
+		}
+	},
+	onResume : function() {
+		if (this.intentBack) {
+			this.showAll();
+			this.intentBack = false;
+			return true;
+		}
+		return false;
+	},
 	add : function(w) {
 		var v, wp;
 		if (this.windows.indexOf(w) >= 0) return;
@@ -5090,26 +5106,32 @@ MapScript.loadModule("PWM", {
 	},
 	dismissAll : function() {
 		var v;
+		this.busy = true;
 		this.windows.forEach(function(e) {
 			if (!e.isShowing()) return;
 			e.dismiss();
 		});
+		this.busy = false;
 		this._notifyListeners("dismissAll");
 	},
 	dismissFloat : function() {
 		var v;
+		this.busy = true;
 		this.floats.forEach(function(e) {
 			if (!e.isShowing()) return;
 			e.dismiss();
 		});
+		this.busy = false;
 		this._notifyListeners("dismissFloat");
 	},
 	dismissPopup : function() {
 		var v;
+		this.busy = true;
 		this.popups.forEach(function(e) {
 			if (!e.isShowing()) return;
 			e.dismiss();
 		});
+		this.busy = false;
 		this._notifyListeners("dismissPopup");
 	},
 	getCount : function() {
@@ -5180,7 +5202,7 @@ MapScript.loadModule("Common", {
 		this.theme = r;
 	},
 	
-	showChangeTheme : function self(refresh, dismiss) {G.ui(function() {try {
+	showChangeTheme : function self(update, dismiss) {G.ui(function() {try {
 		if (!self.linear) {
 			self.adapter = function(e, i, a) {
 				var view = new G.TextView(ctx);
@@ -5242,23 +5264,25 @@ MapScript.loadModule("Common", {
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (Common.theme.id != self.last || self.alpha.isChecked() != self.lastchecked) {
-					if (refresh) refresh();
-					self.last = Common.theme.id;
-					self.lastchecked = self.alpha.isChecked();
+					self.modified = true;
+					if (self.update) self.update();
+				} else {
+					self.popup.dismiss();
 				}
-				self.popup.dismiss();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 		}
 		if (self.popup) self.popup.dismiss();
+		self.update = update;
+		self.modified = false;
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			Common.loadTheme(self.last);
+			if (!self.modified) Common.loadTheme(self.last);
 			if (dismiss) dismiss();
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
@@ -5297,12 +5321,12 @@ MapScript.loadModule("Common", {
 				popup.dismiss();
 			}
 			return true;
-		} catch(e) {erp(e)}}}));
+		} catch(e) {return erp(e), true}}}));
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
 		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 			return true;
-		} catch(e) {erp(e)}}}));
+		} catch(e) {return erp(e), true}}}));
 		frame.addView(layout);
 		this.initEnterAnimation(frame);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
@@ -5344,7 +5368,6 @@ MapScript.loadModule("Common", {
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
-			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		popup = Common.showDialog(layout, -2, -2);
@@ -6115,7 +6138,7 @@ MapScript.loadModule("Common", {
 					v.setTextColor(Common.theme.go_textcolor);
 				}
 				return false;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.eval.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (!self.cmd.getText().length()) return true;
 				self.exec(String(self.cmd.getText()));
@@ -6658,7 +6681,7 @@ MapScript.loadModule("F3", {
 					break;
 				}
 				return false;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			F3.scr.addView(F3.main);
 		}
 		F3.bar = new G.PopupWindow(F3.scr, -2, -2);
@@ -7428,7 +7451,7 @@ MapScript.loadModule("JSONEdit", {
 					return true;
 				}
 				return false;
-			} catch(e) {erp(e)}}}));*/
+			} catch(e) {return erp(e), true}}}));*/
 			
 			self.header = new G.LinearLayout(ctx);
 			self.header.setBackgroundColor(Common.theme.float_bgcolor);
@@ -7527,7 +7550,7 @@ MapScript.loadModule("JSONEdit", {
 				}
 				JSONEdit.showItemAction(parent.getAdapter().getItem(pos));
 				return true;
-			} catch(e) {erp(e)}}}));
+			} catch(e) {return erp(e), true}}}));
 			self.main.addView(JSONEdit.list);
 		}
 		Common.initEnterAnimation(self.main);
@@ -7616,9 +7639,9 @@ MapScript.loadModule("JSONEdit", {
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1, G.Gravity.CENTER));
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {
 			return true;
-		} catch(e) {erp(e)}}}));
+		}}));
 		ret = new G.EditText(ctx);
 		ret.setText(JSONEdit.showAll ? MapScript.toSource(data) : JSON.stringify(data, null, 4) || "<非法JSON>");
 		ret.setSingleLine(false);
@@ -7645,7 +7668,6 @@ MapScript.loadModule("JSONEdit", {
 					Common.toast("解析JSON出错\n" + e);
 				}
 			}
-			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		Common.initEnterAnimation(layout);
@@ -7816,7 +7838,6 @@ MapScript.loadModule("JSONEdit", {
 		var i = JSONEdit.pathbar.indexOfChild(v);
 		JSONEdit.path.splice(i + 1);
 		JSONEdit.refresh();
-		return true;
 	} catch(e) {erp(e)}}}),
 	itemAdapter : function(e, i, a, par) {
 		var hl, vl, name, data, more;
@@ -7853,7 +7874,6 @@ MapScript.loadModule("JSONEdit", {
 		more.getLayoutParams().gravity = G.Gravity.CENTER;
 		more.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			JSONEdit.showItemAction(e);
-			return true;
 		} catch(e) {erp(e)}}}));
 		hl.addView(more);
 		return hl;
@@ -7931,7 +7951,7 @@ MapScript.loadModule("EasterEgg", {
 		self.view.startAnimation(anis);
 		EasterEgg.view.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
 		PWM.addPopup(EasterEgg.view);
-	} catch(e) {if (CA.DEBUG) erp(e)}})},
+	} catch(e) {}})},
 	getBitmap : function(w) {
 		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
 		var cv = new G.Canvas(bmp);
@@ -10972,7 +10992,7 @@ CA.tips = [
 "IGNORELN_END";
 loadingThread = null;
 gHandler.post(function() {try {
-	lto.cancel();
+	if (lto) lto.cancel();
 } catch(e) {erp(e)}});
 MapScript.initialize();
 } catch(e) {erp(e)}}}));
