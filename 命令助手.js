@@ -1,5 +1,22 @@
 "ui";
+/*
+    Command Assistant (命令助手)
+    Copyright (C) 2017  ProjectXero
+    E-mail: projectxero@163.com
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see [http://www.gnu.org/licenses/].
+*/
 function attackHook(attacker, victim) {}
 function chatHook(str) {}
 function continueDestroyBlock(x, y, z, side, progress) {}
@@ -978,12 +995,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.gen) CA.gen.dismiss();
 		if (!self.main) {
 			self.cmdEdit = [{
-				text : "设置",
-				description : "IntelliSense、悬浮窗、命令库……",
-				onclick : function(v) {
-					CA.showSettings();
-				}
-			},{
 				text : "粘贴",
 				description : "将剪贴板中的文本粘贴到文本框中",
 				onclick : function(v) {
@@ -1053,7 +1064,24 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				onclick : function(v) {
 					CA.cmd.setText("");
 				}
+			},{
+				gap : 10 * G.dp
+			},{
+				text : "设置",
+				description : "IntelliSense、悬浮窗、命令库……",
+				onclick : function(v) {
+					CA.showSettings();
+				}
 			}];
+			if (CA.supportFloat) {
+				self.cmdEdit.push({
+					text : "退出命令助手",
+					description : "立即关闭命令助手",
+					onclick : function(v) {
+						CA.performExit();
+					}
+				});
+			}
 			self.performClose = function() {
 				if (CA.settings.noAnimation) {
 					CA.hideGen();
@@ -1815,6 +1843,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.assist = null;
 	} catch(e) {erp(e)}})},
 	
+	performExit : function() {G.ui(function() {try {
+		unload();
+		if (MapScript.host == "AutoJs") {
+			ctx.finish();
+		} else if (MapScript.host == "Android") {
+			ctx.finishAndRemoveTask();
+		}
+	} catch(e) {erp(e)}})},
+	
 	showAutoJsContent : function() {G.ui(function() {try {
 		ui.layout(
 			<vertical gravity="center" padding="10">
@@ -1825,7 +1862,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		);
 		ui.help.text("现在您应该可以看到悬浮窗了，如果没有看到请打开悬浮窗权限。");
 		ui.exit.click(function() {
-			ui.finish();
+			CA.performExit();
 		});
 		ui.floatena.click(function() {
 			if (Common.canShowFloat()) {
@@ -1866,7 +1903,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		exit.setText("退出命令助手");
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			ctx.finish();
+			CA.performExit();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		ScriptActivity.setContentView(layout);
@@ -2281,7 +2318,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} else if (MapScript.host == "Android") {
 					r = ScriptActivity.paste();
 					if (r < 0) throw r;
-					//0 - 成功  1 - 不是Editable对象  2 - 无法访问该Window  3 - 粘贴操作执行失败
+					//0 - 成功  1 - 不是Editable对象  2 - 无法访问该Window  3 - 不存在焦点View  4 - 粘贴操作执行失败
 					//-1 - 未知错误  -2 - 未打开无障碍服务
 				}
 			} catch(e) {
@@ -6077,7 +6114,6 @@ MapScript.loadModule("Common", {
 			self.ready = function() {
 				self.print("\n>  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
-			
 			self.exec = function(s) {
 				if (s.toLowerCase() == "exit") {
 					self.popup.dismiss();
@@ -6159,6 +6195,10 @@ MapScript.loadModule("Common", {
 			
 			self.main.addView(self.vscr);
 			self.main.addView(self.bar);
+			
+			self.print("命令行 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+			self.print("\n想接这坑的请联系我，联系方式在关于里面");
+			self.ready();
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.main, -1, -1);
@@ -6168,10 +6208,6 @@ MapScript.loadModule("Common", {
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
-		self.prompt.setText("");
-		self.print("命令行 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-		self.print("\n想接这坑的请联系我，联系方式在关于里面");
-		self.ready();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
 		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
