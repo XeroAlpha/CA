@@ -175,13 +175,13 @@ MapScript.loadModule("ctx", (function(global) {
 	if ("ModPE" in global) { //以ModPE脚本加载(BlockLauncher及衍生App)
 		MapScript.host = "BlockLauncher";
 		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
-	} else if ("activity" in global) { //以AutoJS脚本加载
+	} else if ("activity" in global) { //以AutoJS脚本加载（UI模式）
 		MapScript.host = "AutoJs";
 		return activity;
-	} else if ("context" in global) { //以AutoJS脚本加载
+	} else if ("context" in global) { //以AutoJS脚本加载（非UI模式）
 		MapScript.host = "AutoJsNoUI";
 		return context;
-	} else if ("ScriptActivity" in global) { //以AutoJS脚本加载
+	} else if ("ScriptActivity" in global) { //在Android脚本外壳中加载
 		MapScript.host = "Android";
 		return ScriptActivity;
 	} else {
@@ -195,7 +195,13 @@ MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
 MapScript.loadModule("erp", function self(error) {
 	var tech = [error, "\n版本:{DATE}\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
 	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
-	java.lang.System.err.println(tech);
+	android.util.Log.e("CA", tech);
+	try {
+		var fs = new java.io.FileOutputStream(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", true);
+		fs.write(new java.lang.String().getBytes());
+		fs.write(new java.lang.String(Date() + "\n" + tech + "\n").getBytes());
+		fs.close();
+	} catch(e) {}
 	if (self.count) {
 		self.count++;
 	} else {
@@ -214,6 +220,7 @@ MapScript.loadModule("erp", function self(error) {
 		}));
 		dialog.setNegativeButton("立即停止", new android.content.DialogInterface.OnClickListener({
 			onClick : function(dia,w) {
+				unload()
 				ctx.finish();
 			}
 		}));
@@ -228,30 +235,54 @@ MapScript.loadModule("erp", function self(error) {
 	} catch(e) {}}}));
 });
 
-var lto;
-if (MapScript.host != "Android") {
-	gHandler.post(function() {try {
-		lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
-		lto.setGravity(android.view.Gravity.CENTER, 0, 0);
-		lto.show();
-	} catch(e) {erp(e)}});
-}
+MapScript.loadModule("Loader", {
+	loading : false,
+	load : function(f) {
+		var lto, lm, lmb;
+		if (MapScript.host == "Android") {
+			lm = MapScript.loadModule;
+			lmb = lm.bind(MapScript);
+			MapScript.loadModule = function(name, obj, ignoreHook) {
+				gHandler.post(function() {try {
+					ScriptActivity.setLoadingTitle("正在加载模块：" + name);
+				} catch(e) {erp(e)}});
+				lmb(name, obj, ignoreHook);
+			};
+		}
+		this.loading = true;
+		if (MapScript.host != "Android") {
+			gHandler.post(function() {try {
+				lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
+				lto.setGravity(android.view.Gravity.CENTER, 0, 0);
+				lto.show();
+			} catch(e) {erp(e)}});
+		}
+		var th = new java.lang.Thread(new java.lang.Runnable({run : function() {try { //Async Loading
+			f();
+			gHandler.post(function() {try {
+				if (lto) lto.cancel();
+				if (lm) ScriptActivity.setLoadingTitle("初始化模块……");
+			} catch(e) {erp(e)}});
+			if (lm) MapScript.loadModule = lm;
+			Loader.loading = false;
+			MapScript.initialize();
+		} catch(e) {erp(e)}}}));
+		th.start();
+	},
+});
 
 MapScript.loadModule("getMinecraftVersion", function self(force) {
 	if (!force && self.ver) return self.ver;
-	if (typeof ModPE != "undefined") {
-		return self.ver = ModPE.getMinecraftVersion();
-	} else {
-		try {
-			return self.ver = String(ctx.getPackageManager().getPackageInfo("com.mojang.minecraftpe", 0).versionName);
-		} catch(e) {
-			return self.ver = "*";
-		}
+	try {
+		return self.ver = String(ctx.getPackageManager().getPackageInfo("com.mojang.minecraftpe", 0).versionName);
+	} catch(e) {
+		return self.ver = "*";
 	}
 });
 
-var loadingThread = new java.lang.Thread(new java.lang.Runnable({run : function() {try { //Async Loading
+Loader.load(function() {
 
+"IGNORELN_START";
 MapScript.loadModule("G", {
 	onCreate : function() {
 		var t;
@@ -279,461 +310,76 @@ MapScript.loadModule("G", {
 			} catch(e) {erp(e)}});
 		}
 	},
-	AbsListView : android.widget.AbsListView,
-	AbsoluteLayout : android.widget.AbsoluteLayout,
-	AbsoluteSizeSpan : android.text.style.AbsoluteSizeSpan,
-	AbsSavedState : android.view.AbsSavedState,
-	AbsSeekBar : android.widget.AbsSeekBar,
-	AbsSpinner : android.widget.AbsSpinner,
-	AccelerateDecelerateInterpolator : android.view.animation.AccelerateDecelerateInterpolator,
-	AccelerateInterpolator : android.view.animation.AccelerateInterpolator,
-	AcousticEchoCanceler : android.media.audiofx.AcousticEchoCanceler,
-	ActionMode : android.view.ActionMode,
-	ActionProvider : android.view.ActionProvider,
-	Adapter : android.widget.Adapter,
-	AdapterView : android.widget.AdapterView,
-	AdapterViewAnimator : android.widget.AdapterViewAnimator,
-	AdapterViewFlipper : android.widget.AdapterViewFlipper,
-	Advanceable : android.widget.Advanceable,
-	AlertDialog : android.app.AlertDialog,
-	AlignmentSpan : android.text.style.AlignmentSpan,
-	AlphaAnimation : android.view.animation.AlphaAnimation,
-	AlphabetIndexer : android.widget.AlphabetIndexer,
-	AlteredCharSequence : android.text.AlteredCharSequence,
-	AnalogClock : android.widget.AnalogClock,
-	AndroidCharacter : android.text.AndroidCharacter,
-	Animation : android.view.animation.Animation,
-	AnimationDrawable : android.graphics.drawable.AnimationDrawable,
-	AnimationSet : android.view.animation.AnimationSet,
-	AnimationUtils : android.view.animation.AnimationUtils,
-	Animator : android.animation.Animator,
-	AnimatorInflater : android.animation.AnimatorInflater,
-	AnimatorListenerAdapter : android.animation.AnimatorListenerAdapter,
-	AnimatorSet : android.animation.AnimatorSet,
-	Annotation : android.text.Annotation,
-	AnticipateInterpolator : android.view.animation.AnticipateInterpolator,
-	AnticipateOvershootInterpolator : android.view.animation.AnticipateOvershootInterpolator,
-	ArcShape : android.graphics.drawable.shapes.ArcShape,
-	ArgbEvaluator : android.animation.ArgbEvaluator,
-	ArrayAdapter : android.widget.ArrayAdapter,
-	ArrowKeyMovementMethod : android.text.method.ArrowKeyMovementMethod,
-	AsyncPlayer : android.media.AsyncPlayer,
-	AudioEffect : android.media.audiofx.AudioEffect,
-	AudioFormat : android.media.AudioFormat,
-	AudioManager : android.media.AudioManager,
-	AudioRecord : android.media.AudioRecord,
-	AudioTimestamp : android.media.AudioTimestamp,
-	AudioTrack : android.media.AudioTrack,
-	AutoCompleteTextView : android.widget.AutoCompleteTextView,
-	AutomaticGainControl : android.media.audiofx.AutomaticGainControl,
-	AutoText : android.text.AutoText,
-	AvoidXfermode : android.graphics.AvoidXfermode,
-	BackgroundColorSpan : android.text.style.BackgroundColorSpan,
-	Base64 : android.util.Base64,
-	Base64InputStream : android.util.Base64InputStream,
-	Base64OutputStream : android.util.Base64OutputStream,
-	BaseAdapter : android.widget.BaseAdapter,
-	BaseExpandableListAdapter : android.widget.BaseExpandableListAdapter,
-	BaseInputConnection : android.view.inputmethod.BaseInputConnection,
-	BaseKeyListener : android.text.method.BaseKeyListener,
-	BaseMovementMethod : android.text.method.BaseMovementMethod,
-	BassBoost : android.media.audiofx.BassBoost,
-	BidiFormatter : android.text.BidiFormatter,
-	Bitmap : android.graphics.Bitmap,
-	BitmapDrawable : android.graphics.drawable.BitmapDrawable,
-	BitmapFactory : android.graphics.BitmapFactory,
-	BitmapRegionDecoder : android.graphics.BitmapRegionDecoder,
-	BitmapShader : android.graphics.BitmapShader,
-	BlurMaskFilter : android.graphics.BlurMaskFilter,
-	BoringLayout : android.text.BoringLayout,
-	BounceInterpolator : android.view.animation.BounceInterpolator,
-	BulletSpan : android.text.style.BulletSpan,
-	Button : android.widget.Button,
-	CalendarView : android.widget.CalendarView,
-	CamcorderProfile : android.media.CamcorderProfile,
-	Camera : android.graphics.Camera,
-	CameraProfile : android.media.CameraProfile,
-	Canvas : android.graphics.Canvas,
-	CharacterPickerDialog : android.text.method.CharacterPickerDialog,
-	CharacterStyle : android.text.style.CharacterStyle,
-	Checkable : android.widget.Checkable,
-	CheckBox : android.widget.CheckBox,
-	CheckedTextView : android.widget.CheckedTextView,
-	Choreographer : android.view.Choreographer,
-	Chronometer : android.widget.Chronometer,
-	ClickableSpan : android.text.style.ClickableSpan,
-	ClientCertRequest : android.webkit.ClientCertRequest,
-	ClipboardManager : android.text.ClipboardManager,
-	ClipDrawable : android.graphics.drawable.ClipDrawable,
-	CollapsibleActionView : android.view.CollapsibleActionView,
-	Color : android.graphics.Color,
-	ColorDrawable : android.graphics.drawable.ColorDrawable,
-	ColorFilter : android.graphics.ColorFilter,
-	ColorMatrix : android.graphics.ColorMatrix,
-	ColorMatrixColorFilter : android.graphics.ColorMatrixColorFilter,
-	CompletionInfo : android.view.inputmethod.CompletionInfo,
-	ComposePathEffect : android.graphics.ComposePathEffect,
-	ComposeShader : android.graphics.ComposeShader,
-	CompoundButton : android.widget.CompoundButton,
-	ConsoleMessage : android.webkit.ConsoleMessage,
-	Context : android.content.Context,
-	ContextMenu : android.view.ContextMenu,
-	ContextThemeWrapper : android.view.ContextThemeWrapper,
-	CookieManager : android.webkit.CookieManager,
-	CornerPathEffect : android.graphics.CornerPathEffect,
-	CorrectionInfo : android.view.inputmethod.CorrectionInfo,
-	CursorAdapter : android.widget.CursorAdapter,
-	CursorTreeAdapter : android.widget.CursorTreeAdapter,
-	CycleInterpolator : android.view.animation.CycleInterpolator,
-	DashPathEffect : android.graphics.DashPathEffect,
-	DateKeyListener : android.text.method.DateKeyListener,
-	DatePicker : android.widget.DatePicker,
-	DateSorter : android.webkit.DateSorter,
-	DateTimeKeyListener : android.text.method.DateTimeKeyListener,
-	DecelerateInterpolator : android.view.animation.DecelerateInterpolator,
-	DialerFilter : android.widget.DialerFilter,
-	DialerKeyListener : android.text.method.DialerKeyListener,
-	DialogInterface : android.content.DialogInterface,
-	DigitalClock : android.widget.DigitalClock,
-	DigitsKeyListener : android.text.method.DigitsKeyListener,
-	DiscretePathEffect : android.graphics.DiscretePathEffect,
-	Display : android.view.Display,
-	DownloadListener : android.webkit.DownloadListener,
-	DragEvent : android.view.DragEvent,
-	Drawable : android.graphics.drawable.Drawable,
-	DrawableContainer : android.graphics.drawable.DrawableContainer,
-	DrawableMarginSpan : android.text.style.DrawableMarginSpan,
-	DrawFilter : android.graphics.DrawFilter,
-	DynamicDrawableSpan : android.text.style.DynamicDrawableSpan,
-	DynamicLayout : android.text.DynamicLayout,
-	EasyEditSpan : android.text.style.EasyEditSpan,
-	EdgeEffect : android.widget.EdgeEffect,
-	Editable : android.text.Editable,
-	EditorInfo : android.view.inputmethod.EditorInfo,
-	EditText : android.widget.EditText,
-	EmbossMaskFilter : android.graphics.EmbossMaskFilter,
-	EnvironmentalReverb : android.media.audiofx.EnvironmentalReverb,
-	Equalizer : android.media.audiofx.Equalizer,
-	ExifInterface : android.media.ExifInterface,
-	ExpandableListAdapter : android.widget.ExpandableListAdapter,
-	ExpandableListView : android.widget.ExpandableListView,
-	ExtractedText : android.view.inputmethod.ExtractedText,
-	ExtractedTextRequest : android.view.inputmethod.ExtractedTextRequest,
-	FaceDetector : android.media.FaceDetector,
-	Filter : android.widget.Filter,
-	Filterable : android.widget.Filterable,
-	FilterQueryProvider : android.widget.FilterQueryProvider,
-	FloatEvaluator : android.animation.FloatEvaluator,
-	FocusFinder : android.view.FocusFinder,
-	ForegroundColorSpan : android.text.style.ForegroundColorSpan,
-	FrameLayout : android.widget.FrameLayout,
-	Gallery : android.widget.Gallery,
-	GeolocationPermissions : android.webkit.GeolocationPermissions,
-	GestureDetector : android.view.GestureDetector,
-	GetChars : android.text.GetChars,
-	GradientDrawable : android.graphics.drawable.GradientDrawable,
-	Gravity : android.view.Gravity,
-	GridLayout : android.widget.GridLayout,
-	GridLayoutAnimationController : android.view.animation.GridLayoutAnimationController,
-	GridView : android.widget.GridView,
-	HapticFeedbackConstants : android.view.HapticFeedbackConstants,
-	HeaderViewListAdapter : android.widget.HeaderViewListAdapter,
-	HeterogeneousExpandableList : android.widget.HeterogeneousExpandableList,
-	HideReturnsTransformationMethod : android.text.method.HideReturnsTransformationMethod,
-	HorizontalScrollView : android.widget.HorizontalScrollView,
-	Html : android.text.Html,
-	HttpAuthHandler : android.webkit.HttpAuthHandler,
-	IconMarginSpan : android.text.style.IconMarginSpan,
-	Image : android.media.Image,
-	ImageButton : android.widget.ImageButton,
-	ImageFormat : android.graphics.ImageFormat,
-	ImageReader : android.media.ImageReader,
-	ImageSpan : android.text.style.ImageSpan,
-	ImageSwitcher : android.widget.ImageSwitcher,
-	ImageView : android.widget.ImageView,
-	InputBinding : android.view.inputmethod.InputBinding,
-	InputConnection : android.view.inputmethod.InputConnection,
-	InputConnectionWrapper : android.view.inputmethod.InputConnectionWrapper,
-	InputDevice : android.view.InputDevice,
-	InputEvent : android.view.InputEvent,
-	InputFilter : android.text.InputFilter,
-	InputMethod : android.view.inputmethod.InputMethod,
-	InputMethodInfo : android.view.inputmethod.InputMethodInfo,
-	InputMethodManager : android.view.inputmethod.InputMethodManager,
-	InputMethodSession : android.view.inputmethod.InputMethodSession,
-	InputMethodSubtype : android.view.inputmethod.InputMethodSubtype,
-	InputQueue : android.view.InputQueue,
-	InputType : android.text.InputType,
-	InsetDrawable : android.graphics.drawable.InsetDrawable,
-	Intent : android.content.Intent,
-	Interpolator : android.graphics.Interpolator,
-	IntEvaluator : android.animation.IntEvaluator,
-	JetPlayer : android.media.JetPlayer,
-	JsPromptResult : android.webkit.JsPromptResult,
-	JsResult : android.webkit.JsResult,
-	KeyCharacterMap : android.view.KeyCharacterMap,
-	KeyEvent : android.view.KeyEvent,
-	Keyframe : android.animation.Keyframe,
-	KeyListener : android.text.method.KeyListener,
-	LayerDrawable : android.graphics.drawable.LayerDrawable,
-	LayerRasterizer : android.graphics.LayerRasterizer,
-	Layout : android.text.Layout,
-	LayoutAnimationController : android.view.animation.LayoutAnimationController,
-	LayoutDirection : android.util.LayoutDirection,
-	LayoutInflater : android.view.LayoutInflater,
-	LayoutTransition : android.animation.LayoutTransition,
-	LeadingMarginSpan : android.text.style.LeadingMarginSpan,
-	LevelListDrawable : android.graphics.drawable.LevelListDrawable,
-	LightingColorFilter : android.graphics.LightingColorFilter,
-	LinearGradient : android.graphics.LinearGradient,
-	LinearInterpolator : android.view.animation.LinearInterpolator,
-	LinearLayout : android.widget.LinearLayout,
-	LineBackgroundSpan : android.text.style.LineBackgroundSpan,
-	LineHeightSpan : android.text.style.LineHeightSpan,
-	LinkMovementMethod : android.text.method.LinkMovementMethod,
-	ListAdapter : android.widget.ListAdapter,
-	ListPopupWindow : android.widget.ListPopupWindow,
-	ListView : android.widget.ListView,
-	LocaleSpan : android.text.style.LocaleSpan,
-	LoginFilter : android.text.LoginFilter,
-	LoudnessEnhancer : android.media.audiofx.LoudnessEnhancer,
-	MaskFilter : android.graphics.MaskFilter,
-	MaskFilterSpan : android.text.style.MaskFilterSpan,
-	Matrix : android.graphics.Matrix,
-	MediaActionSound : android.media.MediaActionSound,
-	MediaCodec : android.media.MediaCodec,
-	MediaCodecInfo : android.media.MediaCodecInfo,
-	MediaCodecList : android.media.MediaCodecList,
-	MediaController : android.widget.MediaController,
-	MediaCrypto : android.media.MediaCrypto,
-	MediaDrm : android.media.MediaDrm,
-	MediaExtractor : android.media.MediaExtractor,
-	MediaFormat : android.media.MediaFormat,
-	MediaMetadataEditor : android.media.MediaMetadataEditor,
-	MediaMetadataRetriever : android.media.MediaMetadataRetriever,
-	MediaMuxer : android.media.MediaMuxer,
-	MediaPlayer : android.media.MediaPlayer,
-	MediaRecorder : android.media.MediaRecorder,
-	MediaRouter : android.media.MediaRouter,
-	MediaScannerConnection : android.media.MediaScannerConnection,
-	MediaSyncEvent : android.media.MediaSyncEvent,
-	Menu : android.view.Menu,
-	MenuInflater : android.view.MenuInflater,
-	MenuItem : android.view.MenuItem,
-	MetaKeyKeyListener : android.text.method.MetaKeyKeyListener,
-	MetricAffectingSpan : android.text.style.MetricAffectingSpan,
-	MimeTypeMap : android.webkit.MimeTypeMap,
-	MotionEvent : android.view.MotionEvent,
-	MovementMethod : android.text.method.MovementMethod,
-	Movie : android.graphics.Movie,
-	MultiAutoCompleteTextView : android.widget.MultiAutoCompleteTextView,
-	MultiTapKeyListener : android.text.method.MultiTapKeyListener,
-	NinePatch : android.graphics.NinePatch,
-	NinePatchDrawable : android.graphics.drawable.NinePatchDrawable,
-	NoCopySpan : android.text.NoCopySpan,
-	NoiseSuppressor : android.media.audiofx.NoiseSuppressor,
-	NumberKeyListener : android.text.method.NumberKeyListener,
-	NumberPicker : android.widget.NumberPicker,
-	ObjectAnimator : android.animation.ObjectAnimator,
-	OrientationEventListener : android.view.OrientationEventListener,
-	OrientationListener : android.view.OrientationListener,
-	OvalShape : android.graphics.drawable.shapes.OvalShape,
-	OvershootInterpolator : android.view.animation.OvershootInterpolator,
-	OverScroller : android.widget.OverScroller,
-	Paint : android.graphics.Paint,
-	PaintDrawable : android.graphics.drawable.PaintDrawable,
-	PaintFlagsDrawFilter : android.graphics.PaintFlagsDrawFilter,
-	ParagraphStyle : android.text.style.ParagraphStyle,
-	ParcelableSpan : android.text.ParcelableSpan,
-	PasswordTransformationMethod : android.text.method.PasswordTransformationMethod,
-	Path : android.graphics.Path,
-	PathDashPathEffect : android.graphics.PathDashPathEffect,
-	PathEffect : android.graphics.PathEffect,
-	PathMeasure : android.graphics.PathMeasure,
-	PathShape : android.graphics.drawable.shapes.PathShape,
-	PermissionRequest : android.webkit.PermissionRequest,
-	Picture : android.graphics.Picture,
-	PictureDrawable : android.graphics.drawable.PictureDrawable,
-	PixelFormat : android.graphics.PixelFormat,
-	PixelXorXfermode : android.graphics.PixelXorXfermode,
-	PluginStub : android.webkit.PluginStub,
-	Point : android.graphics.Point,
-	PointF : android.graphics.PointF,
-	PopupMenu : android.widget.PopupMenu,
-	PopupWindow : android.widget.PopupWindow,
-	PorterDuff : android.graphics.PorterDuff,
-	PorterDuffColorFilter : android.graphics.PorterDuffColorFilter,
-	PorterDuffXfermode : android.graphics.PorterDuffXfermode,
-	PresetReverb : android.media.audiofx.PresetReverb,
-	ProgressBar : android.widget.ProgressBar,
-	PropertyValuesHolder : android.animation.PropertyValuesHolder,
-	QuickContactBadge : android.widget.QuickContactBadge,
-	QuoteSpan : android.text.style.QuoteSpan,
-	QwertyKeyListener : android.text.method.QwertyKeyListener,
-	RadialGradient : android.graphics.RadialGradient,
-	RadioButton : android.widget.RadioButton,
-	RadioGroup : android.widget.RadioGroup,
-	Rasterizer : android.graphics.Rasterizer,
-	RasterizerSpan : android.text.style.RasterizerSpan,
-	Rating : android.media.Rating,
-	RatingBar : android.widget.RatingBar,
-	Rect : android.graphics.Rect,
-	RectEvaluator : android.animation.RectEvaluator,
-	RectF : android.graphics.RectF,
-	RectShape : android.graphics.drawable.shapes.RectShape,
-	Region : android.graphics.Region,
-	RegionIterator : android.graphics.RegionIterator,
-	RelativeLayout : android.widget.RelativeLayout,
-	RelativeSizeSpan : android.text.style.RelativeSizeSpan,
-	RemoteControlClient : android.media.RemoteControlClient,
-	RemoteController : android.media.RemoteController,
-	RemoteViews : android.widget.RemoteViews,
-	RemoteViewsService : android.widget.RemoteViewsService,
-	ReplacementSpan : android.text.style.ReplacementSpan,
-	ReplacementTransformationMethod : android.text.method.ReplacementTransformationMethod,
-	ResourceCursorAdapter : android.widget.ResourceCursorAdapter,
-	ResourceCursorTreeAdapter : android.widget.ResourceCursorTreeAdapter,
-	Ringtone : android.media.Ringtone,
-	RingtoneManager : android.media.RingtoneManager,
-	RotateAnimation : android.view.animation.RotateAnimation,
-	RotateDrawable : android.graphics.drawable.RotateDrawable,
-	RoundRectShape : android.graphics.drawable.shapes.RoundRectShape,
-	ScaleAnimation : android.view.animation.ScaleAnimation,
-	ScaleDrawable : android.graphics.drawable.ScaleDrawable,
-	ScaleGestureDetector : android.view.ScaleGestureDetector,
-	ScaleXSpan : android.text.style.ScaleXSpan,
-	Scroller : android.widget.Scroller,
-	ScrollingMovementMethod : android.text.method.ScrollingMovementMethod,
-	ScrollView : android.widget.ScrollView,
-	SearchView : android.widget.SearchView,
-	SectionIndexer : android.widget.SectionIndexer,
-	SeekBar : android.widget.SeekBar,
-	Selection : android.text.Selection,
-	Shader : android.graphics.Shader,
-	Shape : android.graphics.drawable.shapes.Shape,
-	ShapeDrawable : android.graphics.drawable.ShapeDrawable,
-	ShareActionProvider : android.widget.ShareActionProvider,
-	SimpleAdapter : android.widget.SimpleAdapter,
-	SimpleCursorAdapter : android.widget.SimpleCursorAdapter,
-	SimpleCursorTreeAdapter : android.widget.SimpleCursorTreeAdapter,
-	SimpleExpandableListAdapter : android.widget.SimpleExpandableListAdapter,
-	SingleLineTransformationMethod : android.text.method.SingleLineTransformationMethod,
-	SlidingDrawer : android.widget.SlidingDrawer,
-	SoundEffectConstants : android.view.SoundEffectConstants,
-	SoundPool : android.media.SoundPool,
-	Space : android.widget.Space,
-	Spannable : android.text.Spannable,
-	SpannableString : android.text.SpannableString,
-	SpannableStringBuilder : android.text.SpannableStringBuilder,
-	Spanned : android.text.Spanned,
-	SpannedString : android.text.SpannedString,
-	SpanWatcher : android.text.SpanWatcher,
-	Spinner : android.widget.Spinner,
-	SpinnerAdapter : android.widget.SpinnerAdapter,
-	SslErrorHandler : android.webkit.SslErrorHandler,
-	StackView : android.widget.StackView,
-	StateListDrawable : android.graphics.drawable.StateListDrawable,
-	StaticLayout : android.text.StaticLayout,
-	StrikethroughSpan : android.text.style.StrikethroughSpan,
-	StyleSpan : android.text.style.StyleSpan,
-	SubMenu : android.view.SubMenu,
-	SubscriptSpan : android.text.style.SubscriptSpan,
-	SuggestionSpan : android.text.style.SuggestionSpan,
-	SumPathEffect : android.graphics.SumPathEffect,
-	SuperscriptSpan : android.text.style.SuperscriptSpan,
-	Surface : android.view.Surface,
-	SurfaceHolder : android.view.SurfaceHolder,
-	SurfaceTexture : android.graphics.SurfaceTexture,
-	SurfaceView : android.view.SurfaceView,
-	SweepGradient : android.graphics.SweepGradient,
-	Switch : android.widget.Switch,
-	TabHost : android.widget.TabHost,
-	TableLayout : android.widget.TableLayout,
-	TableRow : android.widget.TableRow,
-	TabStopSpan : android.text.style.TabStopSpan,
-	TabWidget : android.widget.TabWidget,
-	TextAppearanceSpan : android.text.style.TextAppearanceSpan,
-	TextClock : android.widget.TextClock,
-	TextDirectionHeuristic : android.text.TextDirectionHeuristic,
-	TextDirectionHeuristics : android.text.TextDirectionHeuristics,
-	TextKeyListener : android.text.method.TextKeyListener,
-	TextPaint : android.text.TextPaint,
-	TextSwitcher : android.widget.TextSwitcher,
-	TextureView : android.view.TextureView,
-	TextUtils : android.text.TextUtils,
-	TextView : android.widget.TextView,
-	TextWatcher : android.text.TextWatcher,
-	ThumbnailUtils : android.media.ThumbnailUtils,
-	TimeAnimator : android.animation.TimeAnimator,
-	TimedText : android.media.TimedText,
-	TimeInterpolator : android.animation.TimeInterpolator,
-	TimeKeyListener : android.text.method.TimeKeyListener,
-	TimePicker : android.widget.TimePicker,
-	Toast : android.widget.Toast,
-	ToggleButton : android.widget.ToggleButton,
-	ToneGenerator : android.media.ToneGenerator,
-	Touch : android.text.method.Touch,
-	TouchDelegate : android.view.TouchDelegate,
-	Transformation : android.view.animation.Transformation,
-	TransformationMethod : android.text.method.TransformationMethod,
-	TransitionDrawable : android.graphics.drawable.TransitionDrawable,
-	TranslateAnimation : android.view.animation.TranslateAnimation,
-	TwoLineListItem : android.widget.TwoLineListItem,
-	TypeEvaluator : android.animation.TypeEvaluator,
-	Typeface : android.graphics.Typeface,
-	TypefaceSpan : android.text.style.TypefaceSpan,
-	UnderlineSpan : android.text.style.UnderlineSpan,
-	UpdateAppearance : android.text.style.UpdateAppearance,
-	UpdateLayout : android.text.style.UpdateLayout,
-	Uri : android.net.Uri,
-	URLSpan : android.text.style.URLSpan,
-	URLUtil : android.webkit.URLUtil,
-	ValueAnimator : android.animation.ValueAnimator,
-	ValueCallback : android.webkit.ValueCallback,
-	VelocityTracker : android.view.VelocityTracker,
-	VideoView : android.widget.VideoView,
-	View : android.view.View,
-	ViewAnimator : android.widget.ViewAnimator,
-	ViewConfiguration : android.view.ViewConfiguration,
-	ViewDebug : android.view.ViewDebug,
-	ViewFlipper : android.widget.ViewFlipper,
-	ViewGroup : android.view.ViewGroup,
-	ViewGroupOverlay : android.view.ViewGroupOverlay,
-	ViewManager : android.view.ViewManager,
-	ViewOverlay : android.view.ViewOverlay,
-	ViewParent : android.view.ViewParent,
-	ViewPropertyAnimator : android.view.ViewPropertyAnimator,
-	ViewStub : android.view.ViewStub,
-	ViewSwitcher : android.widget.ViewSwitcher,
-	ViewTreeObserver : android.view.ViewTreeObserver,
-	Virtualizer : android.media.audiofx.Virtualizer,
-	Visualizer : android.media.audiofx.Visualizer,
-	WebBackForwardList : android.webkit.WebBackForwardList,
-	WebChromeClient : android.webkit.WebChromeClient,
-	WebHistoryItem : android.webkit.WebHistoryItem,
-	WebResourceRequest : android.webkit.WebResourceRequest,
-	WebResourceResponse : android.webkit.WebResourceResponse,
-	WebSettings : android.webkit.WebSettings,
-	WebStorage : android.webkit.WebStorage,
-	WebView : android.webkit.WebView,
-	WebViewClient : android.webkit.WebViewClient,
-	WebViewDatabase : android.webkit.WebViewDatabase,
-	WebViewFragment : android.webkit.WebViewFragment,
-	Window : android.view.Window,
-	WindowId : android.view.WindowId,
-	WindowManager : android.view.WindowManager,
-	WrapperListAdapter : android.widget.WrapperListAdapter,
-	WrapTogetherSpan : android.text.style.WrapTogetherSpan,
-	Xfermode : android.graphics.Xfermode,
-	Xml : android.util.Xml,
-	YuvImage : android.graphics.YuvImage,
-	ZoomButton : android.widget.ZoomButton,
-	ZoomButtonsController : android.widget.ZoomButtonsController,
-	ZoomControls : android.widget.ZoomControls,
 	ui : (function() {
 		return ctx.runOnUiThread ? ctx.runOnUiThread.bind(ctx) : gHandler.post.bind(gHandler);
-	})()
+	})(),
+//IMPORTS_BEGIN
+AbsListView:android.widget.AbsListView,
+AccelerateInterpolator:android.view.animation.AccelerateInterpolator,
+AdapterView:android.widget.AdapterView,
+AlphaAnimation:android.view.animation.AlphaAnimation,
+Animation:android.view.animation.Animation,
+AnimationSet:android.view.animation.AnimationSet,
+Bitmap:android.graphics.Bitmap,
+BitmapDrawable:android.graphics.drawable.BitmapDrawable,
+BitmapFactory:android.graphics.BitmapFactory,
+BitmapShader:android.graphics.BitmapShader,
+Button:android.widget.Button,
+Canvas:android.graphics.Canvas,
+CheckBox:android.widget.CheckBox,
+Color:android.graphics.Color,
+ColorDrawable:android.graphics.drawable.ColorDrawable,
+CompoundButton:android.widget.CompoundButton,
+DecelerateInterpolator:android.view.animation.DecelerateInterpolator,
+EditText:android.widget.EditText,
+EditorInfo:android.view.inputmethod.EditorInfo,
+ForegroundColorSpan:android.text.style.ForegroundColorSpan,
+FrameLayout:android.widget.FrameLayout,
+Gravity:android.view.Gravity,
+HorizontalScrollView:android.widget.HorizontalScrollView,
+Html:android.text.Html,
+ImageView:android.widget.ImageView,
+InputMethodManager:android.view.inputmethod.InputMethodManager,
+InputType:android.text.InputType,
+LinearInterpolator:android.view.animation.LinearInterpolator,
+LinearLayout:android.widget.LinearLayout,
+LinkMovementMethod:android.text.method.LinkMovementMethod,
+ListAdapter:android.widget.ListAdapter,
+ListView:android.widget.ListView,
+MotionEvent:android.view.MotionEvent,
+Paint:android.graphics.Paint,
+Path:android.graphics.Path,
+PopupWindow:android.widget.PopupWindow,
+Rect:android.graphics.Rect,
+ScrollView:android.widget.ScrollView,
+ScrollingMovementMethod:android.text.method.ScrollingMovementMethod,
+SeekBar:android.widget.SeekBar,
+Selection:android.text.Selection,
+Shader:android.graphics.Shader,
+Space:android.widget.Space,
+SpannableString:android.text.SpannableString,
+SpannableStringBuilder:android.text.SpannableStringBuilder,
+Spanned:android.text.Spanned,
+StrikethroughSpan:android.text.style.StrikethroughSpan,
+StyleSpan:android.text.style.StyleSpan,
+Surface:android.view.Surface,
+TableLayout:android.widget.TableLayout,
+TableRow:android.widget.TableRow,
+TextUtils:android.text.TextUtils,
+TextView:android.widget.TextView,
+TextWatcher:android.text.TextWatcher,
+Toast:android.widget.Toast,
+TranslateAnimation:android.view.animation.TranslateAnimation,
+Typeface:android.graphics.Typeface,
+UnderlineSpan:android.text.style.UnderlineSpan,
+View:android.view.View,
+ViewConfiguration:android.view.ViewConfiguration,
+ViewGroup:android.view.ViewGroup,
+WebView:android.webkit.WebView,
+WindowManager:android.view.WindowManager
+//IMPORTS_END
 });
+"IGNORELN_END";
 
 MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	icon : null,
@@ -752,7 +398,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9 Beta",
+	version : "0.9.1 Beta",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -780,7 +426,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}},
 	unload : function() {
 		CA.trySave();
-		CA.resetGUI();
+		G.ui(CA.resetGUI);
 	},
 	chatHook : function(s) {try {
 		var i;
@@ -833,6 +479,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Object.keys(this.IntelliSense.inner).forEach(function(e) {
 				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) this.enabledLibrarys.push(e);
 			}, this.settings);
+			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
+				f.settings.senseDelay = true;
+				f.settings.topIcon = true;
+			}
 			this.IntelliSense.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个命令库无法加载，请在设置中查看详情");
 			});
@@ -853,7 +503,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				showF3 : false,
 				alpha : false,
 				noAnimation : false,
-				senseDelay : false,
+				senseDelay : true,
 				disablePaste : false,
 				historyCount : 0,
 				splitScreenMode : false,
@@ -894,9 +544,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	trySave : function() {
 		try {
 			this.save();
+			return true;
 		} catch(e) {
 			Common.showTextDialog("命令助手无法在您的手机上运行：文件写入失败。\n原因可能为：\n1、您的内部存储没有足够的空间\n2、文件被保护\n\n请检查您的系统。\n\n错误原因：" + e);
 		}
+		return false;
 	},
 	showIcon : function self() {G.ui(function() {try {
 		if (!self.view) {
@@ -1334,7 +986,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.copy.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.copy.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var t = CA.cmd.getText(), i;
-				if ((CA.Assist.active || t != "/help") && t.length()) {
+				if (v.getText() == "复制") {
 					self.performCopy(t);
 				} else {
 					self.performClose();
@@ -1848,7 +1500,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (MapScript.host == "AutoJs") {
 			ctx.finish();
 		} else if (MapScript.host == "Android") {
-			ctx.finishAndRemoveTask();
+			if (G.style == "Material") {
+				ctx.finishAndRemoveTask();
+			} else {
+				ctx.finish();
+			}
 		}
 	} catch(e) {erp(e)}})},
 	
@@ -2992,20 +2648,28 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		help : "",
 		patterns : [],
 		mode : 0,
-		last : "",
+		last : {},
 		callDelay : function self(s) {
 			if (CA.settings.iiMode != 2) return;
 			self.current = s;
-			if (self.thread) return;
-			self.thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-				var t;
-				while (t = self.current) {
-					self.current = null;
-					CA.IntelliSense.proc(t);
+			if (!self.thread) {
+				self.thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
+					android.os.Looper.prepare();
+					self.handler = new android.os.Handler();
+					android.os.Looper.loop();
+					self.thread = null;
+				} catch(e) {erp(e)}}}));
+				self.thread.start();
+				self.runnable = function() {
+					CA.IntelliSense.proc(self.current);
+					self.running = false;
 				}
-				self.thread = null;
-			} catch(e) {erp(e)}}}));
-			self.thread.start();
+				self.running = false;
+				while (!self.handler);
+			}
+			if (self.running) self.handler.removeCallbacks(self.runnable);
+			self.handler.postDelayed(self.runnable, 150);
+			self.running = true;
 		},
 		apply : function() {
 			if (this.ui) this.show.apply(this);
@@ -3067,8 +2731,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				//分类 - 未输入参数
 				
 				//获得可选命令
-				ca = Object.keys(this.library.commands).filter(function(e, i, a) {
-					return e.startsWith(c[2].toLowerCase());
+				t = this.library.command_snap;
+				ca = Object.keys(t).filter(function(e, i, a) {
+					return e.indexOf(c[2]) >= 0 || t[e].indexOf(c[2]) >= 0;
 				}).sort();
 				
 				if (ca.length) {
@@ -3091,6 +2756,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							appendSSB(pp, t.description, new G.ForegroundColorSpan(Common.theme.promptcolor));
 						}
 						r.prompt.push(pp);
+						r.output[t.description ? e + " - "  + t.description : e] = (r.hasSlash ? "/" : "") + e + (t.noparams ?  "" : " ");
 					}, this);
 					
 					t = this.library.commands[ca[0]];
@@ -3110,12 +2776,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				
 				//设置列表内容及反应
-				r.output = {};
-				ca.forEach(function(e, i, a) {
-					t = this.library.commands[e];
-					while (t.alias) t = this.library.commands[t.alias];
-					r.output[t.description ? e + " - " + t.description : e] = (r.hasSlash ? "/" : "") + e + (t.noparams ? "" : " ");
-				}, this);
 				r.input = Object.keys(r.output);
 			}
 			return r;
@@ -3273,7 +2933,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (ps.startsWith(cp.name + " ") || ps == cp.name) {
 					r.length = cp.name.length;
 					r.canFinish = true;
-				} else if (cp.name.startsWith(ps)) {
+				} else if (cp.name.indexOf(ps) >= 0 || cp.prompt && cp.prompt.indexOf(ps) >= 0) {
 					r.length = ps.length;
 					r.canFinish = false;
 				} else return {
@@ -3357,7 +3017,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : false,
 					length : -1
 				};
-				if (Array.isArray(t)) {
+				if (Array.isArray(t)) { //这个懒得用matchString了
 					r.input = t.filter(function(e, i, a) {
 						if (ps.startsWith(e + " ") || ps == e) {
 							r.length = Math.max(r.length, e.length);
@@ -3429,32 +3089,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (!cp.suggestion) return r;
 			t = cp.suggestion instanceof Object ? cp.suggestion : this.library.enums[cp.suggestion];
 			t2 = ps.slice(0, r.length);
-			if (!r.input) r.input = [];
-			if (!r.output) r.output = {};
-			if (Array.isArray(t)) {
-				t3 = [];
-				t.forEach(function(e, i, a) {
-					if (!e.startsWith(ps)) return;
-					r.output[e] = e;
-					if (r.input.indexOf(e) < 0) t3.push(e);
-				});
-				t3.sort();
-				r.input = r.input.concat(t3);
-			} else {
-				t3 = []; t4 = [];
-				Object.keys(t).forEach(function(e, i, a) {
-					if (e.indexOf(t2) < 0 && t[e].indexOf(t2) < 0) return;
-					if (t[e]) {
-						t5 = e + " - " + t[e];
-						r.output[t5] = e;
-						if (r.input.indexOf(t5) < 0) t3.push(t5);
-					} else {
-						r.output[e] = e;
-						if (r.input.indexOf(e) < 0) t4.push(e);
-					}
-				});
-				t3.sort(); t4.sort(); r.input = r.input.concat(t3, t4);
-			}
+			this.matchString(t2, t, r);
 			return r;
 		},
 		getParamTag : function(cp, ms, mt, md) { //匹配模式，匹配字符串，匹配类型（已输入、输入中、未输入、出错），matchParam返回的匹配数据
@@ -3751,6 +3386,38 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			return t;
 		},
+		matchString : function(ps, a, r) {
+			var t, t2, t3;
+			if (!(r instanceof Object)) r = {};
+			if (!Array.isArray(r.input)) r.input = [];
+			if (!(r.output instanceof Object)) r.output = {};
+			if (Array.isArray(a)) {
+				t = [];
+				a.forEach(function(e) {
+					if (e.indexOf(ps) < 0) return;
+					r.output[e] = e;
+					if (r.input.indexOf(e) < 0) t.push(e);
+				});
+				t.sort();
+				r.input = r.input.concat(t);
+			} else {
+				t = []; t2 = [];
+				Object.keys(a).forEach(function(e) {
+					if (e.indexOf(ps) < 0 && a[e].indexOf(ps) < 0) return;
+					if (a[e]) {
+						t3 = e + " - " + a[e];
+						r.output[t3] = e;
+						if (r.input.indexOf(t3) < 0) t.push(t3);
+					} else {
+						r.output[e] = e;
+						if (r.input.indexOf(e) < 0) t2.push(e);
+					}
+				});
+				t.sort(); t2.sort();
+				r.input = r.input.concat(t, t2);
+			}
+			return r;
+		},
 		showHelp : function() {
 			var pp = new G.SpannableStringBuilder();
 			this.source = "/help";
@@ -3901,9 +3568,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Common.showTextDialog(pp);
 		},
 		initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-			var info, flag = true;
+			var info, flag = true, t, t2;
 			CA.IntelliSense.library = {
 				commands : {},
+				command_snap : {},
 				enums : {},
 				selectors : {},
 				help : {},
@@ -3941,6 +3609,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			}, this);
+			//快捷操作
+			t = CA.IntelliSense.library.commands;
+			Object.keys(t).forEach(function(e) {
+				t2 = e;
+				while (t[t2].alias) t2 = t[t2].alias;
+				t2 = t[t2];
+				CA.IntelliSense.library.command_snap[e] = t2.description ? t2.description : "";
+			});
 			if (callback) callback(flag);
 		} catch(e) {erp(e)}}}))).start()},
 		enableLibrary : function(name) {
@@ -5077,17 +4753,6 @@ MapScript.loadModule("PWM", {
 	intentBack : false,
 	busy : false,
 	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
-	initialize : function() {
-		if (MapScript.host == "Android") {
-			ScriptActivity.setNewIntentListener(new com.xero.ca.MainActivity.OnNewIntentListener({apply : function(intent) {try {
-				if (PWM.getCount() > 0) {
-					PWM.hideAll();
-					PWM.intentBack = true;
-				}
-				return true;
-			} catch(e) {erp(e)}}}));
-		}
-	},
 	onResume : function() {
 		if (this.intentBack) {
 			this.showAll();
@@ -8009,6 +7674,55 @@ MapScript.loadModule("EasterEgg", {
 	}
 });
 
+MapScript.loadModule("AndroidBridge", {
+	initialize : function() {try {
+		if (MapScript.host != "Android") return;
+		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
+			applyIntent : function(intent) {try {
+				if (PWM.getCount() > 0) {
+					PWM.hideAll();
+					PWM.intentBack = true;
+				}
+				return true;
+			} catch(e) {erp(e)}},
+			onNewIntent : function(intent) {try {
+				AndroidBridge.onNewIntent(intent, false);
+			} catch(e) {erp(e)}}
+		}));
+		this.onNewIntent(ScriptActivity.getIntent(), true);
+	} catch(e) {erp(e)}},
+	onNewIntent : function(intent, startByIntent) {
+		function onReturn() {
+			if (!CA.trySave()) return;
+			if (startByIntent) {
+				unload();
+				ScriptActivity.finish();
+			}
+		}
+		var t;
+		if (!intent) return;
+		switch (intent.getAction()) {
+			case ScriptActivity.ACTION_ADD_LIBRARY:
+			t = intent.getData().getPath();
+			Common.showConfirmDialog({
+				title : "确定加载命令库“" + t + "”？",
+				callback : function(id) {
+					if (id != 0) return onReturn();
+					if (!CA.IntelliSense.enableLibrary(String(t))) {
+						Common.toast("无法导入该命令库，可能文件不存在");
+						return onReturn();
+					}
+					CA.IntelliSense.initLibrary(function() {
+						Common.toast("导入成功！");
+						CA.showLibraryMan(onReturn);
+					});
+				}
+			});
+			break;
+		}
+	}
+});
+
 "IGNORELN_START";
 CA.IntelliSense.inner["default"] = {
 	"name": "默认命令库",
@@ -9393,7 +9107,7 @@ CA.IntelliSense.inner["default"] = {
 					"noparams": {}
 				},
 				"kill": {
-					"description": "清除/杀死实体",
+					"description": "清除或杀死实体",
 					"noparams": {
 						"description": "自杀"
 					},
@@ -11026,10 +10740,5 @@ CA.tips = [
 	"潜影贝只是站错了阵营的好孩子～"
 ];
 "IGNORELN_END";
-loadingThread = null;
-gHandler.post(function() {try {
-	if (lto) lto.cancel();
-} catch(e) {erp(e)}});
-MapScript.initialize();
-} catch(e) {erp(e)}}}));
-loadingThread.start();
+
+});
