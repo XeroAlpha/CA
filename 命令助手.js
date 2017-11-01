@@ -184,6 +184,9 @@ MapScript.loadModule("ctx", (function(global) {
 	} else if ("ScriptActivity" in global) { //在Android脚本外壳中加载
 		MapScript.host = "Android";
 		return ScriptActivity;
+	} else if ("World" in global) { //在Inner Core中加载
+		MapScript.host = "InnerCore";
+		return Packages.zhekasmirnov.launcher.utils.UIUtils.getContext();
 	} else {
 		MapScript.host = "Unknown";
 		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
@@ -405,6 +408,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	
 	initialize : function() {try {
 		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
+		if (this.supportFloat) {
+			this.showContentView(SettingsCompat.ensureCanFloat());
+		}
 		this.load();
 		var a = String(getMinecraftVersion()).split(".");
 		a[0] = parseInt(a[0]); a[1] = parseInt(a[1]); a[2] = parseInt(a[2]);
@@ -418,11 +424,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (this.settings.showF3) F3.show();
 		this.fine = true;
 		this.screenChangeHook();
-		if (MapScript.host == "AutoJs") {
-			this.showAutoJsContent();
-		} else if (MapScript.host == "Android") {
-			this.showAndroidContent();
-		}
 	} catch(e) {erp(e)}},
 	unload : function() {
 		CA.trySave();
@@ -1508,31 +1509,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 	} catch(e) {erp(e)}})},
 	
-	showAutoJsContent : function() {G.ui(function() {try {
-		ui.layout(
-			<vertical gravity="center" padding="10">
-				<text id="help" size="16" padding="10"></text>
-				<button id="floatena" text="检测悬浮窗权限" />
-				<button id="exit" text="退出命令助手" />
-			</vertical>
-		);
-		ui.help.text("现在您应该可以看到悬浮窗了，如果没有看到请打开悬浮窗权限。");
-		ui.exit.click(function() {
-			CA.performExit();
-		});
-		ui.floatena.click(function() {
-			if (Common.canShowFloat()) {
-				Common.toast("系统已允许悬浮窗显示");
-			} else {
-				Common.toast("系统不允许悬浮窗显示，请在设置中启用");
-				Common.showAppSettings();
-			}
-		});
-	} catch(e) {erp(e)}})},
-	
-	showAndroidContent : function() {G.ui(function() {try {
-		var layout, help, exit, floatena;
+	showContentView : function(canFloat) {G.ui(function() {try {
+		var layout, help, exit;
 		layout = new G.LinearLayout(ctx);
+		layout.setBackgroundColor(G.Color.WHITE);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setGravity(G.Gravity.CENTER);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
@@ -1543,18 +1523,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		help.setText("现在您应该可以看到悬浮窗了，如果没有看到请打开悬浮窗权限。");
 		help.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
 		layout.addView(help);
-		floatena = new G.Button(ctx);
-		floatena.setText("检测悬浮窗权限");
-		floatena.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		floatena.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			if (Common.canShowFloat()) {
-				Common.toast("系统已允许悬浮窗显示");
-			} else {
-				Common.toast("系统不允许悬浮窗显示，请在设置中启用");
-				Common.showAppSettings();
-			}
-		} catch(e) {erp(e)}}}));
-		layout.addView(floatena);
 		exit = new G.Button(ctx);
 		exit.setText("退出命令助手");
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -1562,7 +1530,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.performExit();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		ScriptActivity.setContentView(layout);
+		ctx.setContentView(layout);
+		if (canFloat) ctx.moveTaskToBack(true);
 	} catch(e) {erp(e)}})},
 	
 	showSettings : function self() {G.ui(function() {try {
@@ -1722,7 +1691,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				id : "showF3",
 				name : "显示调试屏幕",
-				description : "便于用户获取环境相关信息。",
+				description : "便于用户获取环境相关信息。仅在BlockLauncher系列启动器上可用。",
 				type : "boolean",
 				refresh : function() {
 					(this.get() ? F3.show : F3.hide)();
@@ -1851,6 +1820,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					Common.showDebugDialog();
 				}
 			}];
+			AndroidBridge.addSettings(self.data);
 		}
 		self.refreshed = false;
 		Common.showSettings(self.data, function() {
@@ -3196,11 +3166,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (cp.target == "entity" || cp.target == "nonplayer") t.recommend["@e - 选择所有实体"] = "@e";
 				if (cp.target != "nonselector") t.recommend["@s - 选择命令执行者"] = "@s";
 				t.input = Object.keys(t.recommend);
-				if (F3.inLevel) {
+				if (MCAdapter.available()) {
 					t.output = {};
-					pl = Server.getAllPlayerNames();
-					for (i in pl) if (String(pl[i]).startsWith(ms)) t.output[pl[i]] = String(pl[i]);
-					t.input = t.input.concat(Object.keys(t.output));
+					pl = MCAdapter.getInfo("playernames");
+					if (pl) {
+						for (i in pl) if (String(pl[i]).startsWith(ms)) t.output[pl[i]] = String(pl[i]);
+						t.input = t.input.concat(Object.keys(t.output));
+					}
 				}
 			} else if (c[1].length < 1) {
 				//正在输入p/e/a/r
@@ -3334,7 +3306,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return t;
 		},
 		procPosition : function(cp, ps) {
-			var l = ps.split(/\s+/), f = true, uv = false, i, n = Math.min(l.length, 3), t;
+			var l = ps.split(/\s+/), f = true, uv = false, i, n = Math.min(l.length, 3), t, pp, t2, t3;
 			for (i = 0; i < n; i++) {
 				if (i == 0 && l[0].startsWith("^")) uv = true;
 				if (!(t = (uv ? /^(?:(\^)((\+|-)?(\d*\.)?\d*))?$/ : /^(~)?((\+|-)?(\d*\.)?\d*)$/).exec(l[i]))) return {
@@ -3365,20 +3337,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					t.assist["^ - 相对视角"] = "^";
 				}
 			}
-			if (F3.inLevel) {
+			if (MCAdapter.available()) {
 				t.output = {};
-				if (Player.getY() != 0) {
-					t3 = Player.getY() - 1.619999885559082;
-					t2 = [Player.getX(), t3, Player.getZ()].join(" ");
+				pp = MCAdapter.getInfo("playerposition").slice();
+				if (pp && pp[1] != 0) {
+					pp[1] -= 1.619999885559082;
+					t2 = pp.join(" ");
 					t.output[t2 + " - 玩家实际坐标"] = t2;
-					t2 = [Math.floor(Player.getX()), Math.floor(t3), Math.floor(Player.getZ())].join(" ");
+					t2 = [Math.floor(pp[0]), Math.floor(pp[1]), Math.floor(pp[2])].join(" ");
 					t.output[t2 + " - 玩家脚部方块坐标"] = t2;
-					t2 = [Math.floor(Player.getX()), Math.floor(t3 + 1), Math.floor(Player.getZ())].join(" ");
+					t2 = [Math.floor(pp[0]), Math.floor(pp[1] + 1), Math.floor(pp[2])].join(" ");
 					t.output[t2 + " - 玩家头部方块坐标"] = t2;
-					t2 = [Math.floor(Player.getX()), Math.floor(t3 - 1), Math.floor(Player.getZ())].join(" ");
+					t2 = [Math.floor(pp[0]), Math.floor(pp[1] - 1), Math.floor(pp[2])].join(" ");
 					t.output[t2 + " - 玩家脚下方块坐标"] = t2;
-					if (Player.getPointedBlockY() >= 0) {
-						t2 = [Player.getPointedBlockX(), Player.getPointedBlockY(), Player.getPointedBlockZ()].join(" ");
+					pp = MCAdapter.getInfo("pointedblockpos");
+					if (pp && pp[1] >= 0) {
+						t2 = pp.join(" ");
 						t.output[t2 + " - 玩家指向方块坐标"] = t2;
 					}
 				}
@@ -5044,7 +5018,7 @@ MapScript.loadModule("Common", {
 		return popup;
 	},
 	
-	showTextDialog : function(s) {G.ui(function() {try {
+	showTextDialog : function(s, onDismiss) {G.ui(function() {try {
 		var layout, scr, text, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
@@ -5072,10 +5046,10 @@ MapScript.loadModule("Common", {
 			popup.dismiss();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		popup = Common.showDialog(layout, -2, -2);
+		popup = Common.showDialog(layout, -2, -2, onDismiss);
 	} catch(e) {erp(e)}})},
 	
-	showOperateDialog : function self(s, tag) {G.ui(function() {try {
+	showOperateDialog : function self(s, tag, onDismiss) {G.ui(function() {try {
 		var frame, list, popup;
 		if (!self.adapter) {
 			self.adapter = function(e) {
@@ -5124,7 +5098,7 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
-		popup = Common.showDialog(frame, -1, -2);
+		popup = Common.showDialog(frame, -1, -2, onDismiss);
 	} catch(e) {erp(e)}})},
 	
 	showInputDialog : function(s) {G.ui(function() {try {
@@ -5240,9 +5214,10 @@ MapScript.loadModule("Common", {
 		});
 		scr.addView(layout);
 		popup = Common.showDialog(scr, -2, -2, s.onDismiss);
+		
 	} catch(e) {erp(e)}})},
 	
-	showListChooser : function self(l, callback, optional) {G.ui(function() {try {
+	showListChooser : function self(l, callback, optional, onDismiss) {G.ui(function() {try {
 		var frame, list, popup;
 		if (!self.adapter) {
 			self.adapter = function(e) {
@@ -5289,7 +5264,7 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
-		popup = Common.showDialog(frame, -1, -2);
+		popup = Common.showDialog(frame, -1, -2, onDismiss);
 	} catch(e) {erp(e)}})},
 	
 	showSettings : function self(data, onSave) {G.ui(function() {try {
@@ -6010,27 +5985,6 @@ MapScript.loadModule("Common", {
 		} catch(e) {erp(e)}}, isNaN(delay) ? 0 : delay);
 	},
 	
-	canShowFloat : function() {
-		try {
-			return ctx.getSystemService("appops").checkOp(24, android.os.Binder.getCallingUid(), ctx.getPackageName()) == 0;
-		} catch(e) {}
-		return false;
-	},
-	
-	showAppSettings : function() {
-		var localIntent = new android.content.Intent();
-		localIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-		if (android.os.Build.VERSION.SDK_INT >= 9) {
-			localIntent.setAction("android.settings.APPLICATION_DETAILS_SETTINGS");
-			localIntent.setData(android.net.Uri.fromParts("package", ctx.getPackageName(), null));
-		} else {
-			localIntent.setAction(android.content.Intent.ACTION_VIEW);
-			localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
-			localIntent.putExtra("com.android.settings.ApplicationPkgName", ctx.getPackageName());
-		}
-		ctx.startActivity(localIntent);
-	},
-	
 	hasClipboardText : function() {
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
 			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasPrimaryClip();
@@ -6351,6 +6305,7 @@ MapScript.loadModule("FCString", {
 MapScript.loadModule("F3", {
 	BUFFER_SIZE : 20,
 	show : function self() {G.ui(function() {try {
+		if (MapScript.host != "BlockLauncher") return;
 		if (F3.bar) F3.bar.dismiss();
 		if (!F3.main) {
 			F3.scr = new G.ScrollView(ctx);
@@ -6523,195 +6478,7 @@ MapScript.loadModule("F3", {
 		}
 	}
 });
-/*
-MapScript.loadModule("DTParse", (function () {
-	//该函数基于JSON2，并对里面部分函数进行了修改与汉化。
-	var at;
-	var ch;
-	var escapee = {
-		"\"": "\"",
-		"\\": "\\",
-		"/": "/",
-		b: "\b",
-		f: "\f",
-		n: "\n",
-		r: "\r",
-		t: "\t"
-	};
-	var text;
-	var error = function (m) {
-		throw {
-			name: "数据标签语法错误",
-			message: m,
-			at: at,
-			text: text,
-			toString : Error.prototype.toString
-		};
-	};
-	var next = function (c) {
-		if (c && c !== ch) {
-			error("本应为字符 '" + c + "' 实际上却为字符 '" + ch + "'");
-		}
-		ch = text.charAt(at);
-		at += 1;
-		return ch;
-	};
-	var number = function () {
-		var value;
-		var string = "";
-		if (ch === "-") {
-			string = "-";
-			next("-");
-		}
-		while (ch >= "0" && ch <= "9") {
-			string += ch;
-			next();
-		}
-		if (ch === ".") {
-			string += ".";
-			while (next() && ch >= "0" && ch <= "9") {
-				string += ch;
-			}
-		}
-		if (ch === "b" || ch === "B" || ch === "s" || ch === "S" || ch === "l" || ch === "L" || ch === "f" || ch === "F" || ch === "d" || ch === "D") {
-			next();
-		}
-		value = +string;
-		if (!isFinite(value)) {
-			error("数字格式不正确或溢出");
-		} else {
-			return value;
-		}
-	};
-	var string = function () {
-		var hex;
-		var i;
-		var value = "";
-		var uffff;
-		if (ch === "\"") {
-			while (next()) {
-				if (ch === "\"") {
-					next();
-					return value;
-				}
-				if (ch === "\\") {
-					next();
-					if (ch === "u") {
-						uffff = 0;
-						for (i = 0; i < 4; i += 1) {
-							hex = parseInt(next(), 16);
-							if (!isFinite(hex)) {
-								break;
-							}
-							uffff = uffff * 16 + hex;
-						}
-						value += String.fromCharCode(uffff);
-					} else if (typeof escapee[ch] === "string") {
-						value += escapee[ch];
-					} else {
-						break;
-					}
-				} else {
-					value += ch;
-				}
-			}
-		} else {
-			value = ch;
-			while (next()) {
-				if (ch === "," || ch === " " || ch === "(" || ch === ")" || ch === "{" || ch === "}" || ch === "[" || ch === "]" || ch === ":") {
-					return value;
-				}
-				value += ch;
-			}
-		}
-		error("字符串格式不正确");
-	};
-	var white = function () {
-		while (ch && ch <= " ") {
-			next();
-		}
-	};
-	var value;
-	var array = function () {
-		var arr = [];
-		if (ch === "[") {
-			next("[");
-			white();
-			if (ch === "]") {
-				next("]");
-				return arr;
-			}
-			while (ch) {
-				arr.push(value());
-				white();
-				if (ch === "]") {
-					next("]");
-					return arr;
-				}
-				next(",");
-				white();
-			}
-		}
-		error("数组格式不正确");
-	};
-	var object = function () {
-		var key;
-		var obj = {};
-		if (ch === "{") {
-			next("{");
-			white();
-			if (ch === "}") {
-				next("}");
-				return obj;
-			}
-			while (ch) {
-				key = string();
-				white();
-				next(":");
-				if (Object.hasOwnProperty.call(obj, key)) {
-					error("重复的键 '" + key + "'");
-				}
-				obj[key] = value();
-				white();
-				if (ch === "}") {
-					next("}");
-					return obj;
-				}
-				next(",");
-				white();
-			}
-		}
-		error("对象格式错误");
-	};
-	value = function () {
-		white();
-		switch (ch) {
-		case "{":
-			return object();
-		case "[":
-			return array();
-		case "-":
-			return number();
-		default:
-			return (ch >= "0" && ch <= "9")
-				? number()
-				: string();
-		}
-	};
-	return function (source) {
-		var result;
-		text = source;
-		at = 0;
-		ch = " ";
-		result = value();
-		white();
-		if (ch) {
-			error("字符多余");
-		}
-		return result;
-	};
-})());
-*/
+
 MapScript.loadModule("RhinoListAdapter", (function() {
 	var r = function(arr, vmaker, params, preload) {
 		//arr是列表数组，vmaker(element, index, array, params)从item生成指定view
@@ -7620,6 +7387,250 @@ MapScript.loadModule("JSONEdit", {
 	}
 });
 
+MapScript.loadModule("SettingsCompat", {
+	// 原作者 czy1121
+	// 使用开源协议：Apache License, Version 2.0
+	// https://github.com/czy1121/settingscompat
+	// 原代码类型：Java/Android
+	// 现代码类型：JavaScript/Rhino/Android
+	// 由 ProjectXero (@XeroAlpha) 翻译，有改动
+	
+	SYSVER : android.os.Build.VERSION.SDK_INT,
+	ensureCanFloat : function() {
+		if (this.canDrawOverlays()) {
+			return true;
+		}
+		if (this.setDrawOverlays(true)) {
+			return true;
+		}
+		Common.toast("系统不允许悬浮窗显示，请在设置中启用");
+		this.manageDrawOverlays();
+		return false;
+	},
+	showAppSettings : function() {
+		var localIntent = new android.content.Intent();
+		localIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+		if (this.SYSVER >= 9) {
+			localIntent.setAction("android.settings.APPLICATION_DETAILS_SETTINGS");
+			localIntent.setData(android.net.Uri.fromParts("package", ctx.getPackageName(), null));
+		} else {
+			localIntent.setAction(android.content.Intent.ACTION_VIEW);
+			localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
+			localIntent.putExtra("com.android.settings.ApplicationPkgName", ctx.getPackageName());
+		}
+		ctx.startActivity(localIntent);
+	},
+	canDrawOverlays : function() {
+		if (this.SYSVER >= 23) { //Android M (6.0)
+			return android.provider.Settings.canDrawOverlays(ctx);
+		} else if (this.SYSVER >= 18) { //Android Jelly Bean (4.3.x)
+			return this.checkOp(ctx, 24); //OP_SYSTEM_ALERT_WINDOW
+		} else {
+			return true;
+		}
+	},
+	setDrawOverlays : function(allowed) {
+		return this.setMode(ctx, 24, allowed);
+	},
+	checkOp : function(ctx, op) {
+		try {
+			return ctx.getSystemService("appops").checkOp(op, android.os.Binder.getCallingUid(), ctx.getPackageName()) == 0; //MODE_ALLOWED
+		} catch(e) {}
+		return false;
+	},
+	setMode : function(ctx, op, allowed) {
+		if (this.SYSVER < 18 || this.SYSVER >= 21) { // Android L (5.0)
+			return false;
+		}
+		try {
+			ctx.getSystemService("appops").setMode(op, android.os.Binder.getCallingUid(), ctx.getPackageName(), allowed);
+			return true;
+		} catch(e) {}
+		return false;
+	},
+	manageDrawOverlays : function() {
+		if (this.SYSVER >= 18) {
+			if (this.manageDrawOverlaysForRom()) {
+				return;
+			}
+		}
+		if (this.SYSVER >= 23) {
+			var intent = new android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+			intent.setData(android.net.Uri.parse("package:" + ctx.getPackageName()));
+			intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+			ctx.startActivity(intent);
+		} else {
+			this.showAppSettings();
+		}
+	},
+	manageDrawOverlaysForRom : function() {
+		if (this.rom in this.ShowManager) {
+			return this.ShowManager[this.rom].call(this);
+		}
+		return false;
+	},
+	startSafely : function(intent) {
+		if (ctx.getPackageManager().queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).size() > 0) {
+			intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+			ctx.startActivity(intent);
+			return true;
+		} else {
+			return false;
+		}
+	},
+	ShowManager : {
+		"MIUI" : function() {
+			var intent = new android.content.Intent("miui.intent.action.APP_PERM_EDITOR");
+			intent.putExtra("extra_pkgname", ctx.getPackageName());
+			intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.AppPermissionsEditorActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			if (this.SYSVER < 21) {
+				var intent1 = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+				intent1.setData(android.net.Uri.fromParts("package", ctx.getPackageName(), null));
+				return this.startSafely(context, intent1);
+			}
+			return false;
+		},
+		"EMUI" : function() {
+			const HUAWEI_PACKAGE = "com.huawei.systemmanager";
+			var intent = new Intent();
+			if (this.SYSVER >= 21) {
+				intent.setClassName(HUAWEI_PACKAGE, "com.huawei.systemmanager.addviewmonitor.AddViewMonitorActivity");
+				if (this.startSafely(intent)) {
+					return true;
+				}
+			}
+			intent.setClassName(HUAWEI_PACKAGE, "com.huawei.notificationmanager.ui.NotificationManagmentActivity");
+			intent.putExtra("showTabsNumber", 1);
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			intent.setClassName(HUAWEI_PACKAGE, "com.huawei.permissionmanager.ui.MainActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			return false;
+		},
+		"OPPO" : function() {
+			var intent = new android.content.Intent();
+			intent.putExtra("packageName", ctx.getPackageName());
+			intent.setAction("com.oppo.safe");
+			intent.setClassName("com.oppo.safe", "com.oppo.safe.permission.floatwindow.FloatWindowListActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			intent.setAction("com.color.safecenter");
+			intent.setClassName("com.color.safecenter", "com.color.safecenter.permission.floatwindow.FloatWindowListActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			intent.setAction("com.coloros.safecenter");
+			intent.setClassName("com.coloros.safecenter", "com.coloros.safecenter.sysfloatwindow.FloatWindowListActivity");
+			return this.startSafely(intent);
+		},
+		"VIVO" : function() {
+			// 不支持直接到达悬浮窗设置页，只能到 i管家 首页
+			var intent = new android.content.Intent("com.iqoo.secure");
+			intent.setClassName("com.iqoo.secure", "com.iqoo.secure.MainActivity");
+			return this.startSafely(intent);
+		},
+		"SMARTISAN" : function() {
+			if (this.SYSVER >= 23) {
+				return false;
+			}
+			var intent;
+			if (this.SYSVER >= 21) {
+				intent = new android.content.Intent("com.smartisanos.security.action.SWITCHED_PERMISSIONS_NEW");
+				intent.setClassName("com.smartisanos.security", "com.smartisanos.security.SwitchedPermissions");
+				intent.putExtra("index", 17); // 不同版本会不一样
+				return this.startSafely(intent);
+			} else {
+				intent = new android.content.Intent("com.smartisanos.security.action.SWITCHED_PERMISSIONS");
+				intent.setClassName("com.smartisanos.security", "com.smartisanos.security.SwitchedPermissions");
+				var b = new android.os.Bundle();
+				b.putStringArray("permission", [android.Manifest.permission.SYSTEM_ALERT_WINDOW]);
+				//intent.putExtra("permission", new String[]{Manifest.permission.SYSTEM_ALERT_WINDOW});
+				intent.putExtras(b);
+				return this.startSafely(intent);
+			}
+		},
+		"FLYME" : function() {
+			var intent = new android.content.Intent("com.meizu.safe.security.SHOW_APPSEC");
+			intent.setClassName("com.meizu.safe", "com.meizu.safe.security.AppSecActivity");
+			intent.putExtra("packageName", ctx.getPackageName());
+			return this.startSafely(intent);
+		},
+		"QIKU" : function() {
+			return this.ShowManager["360"].call(this);
+		},
+		"360" : function() {
+			var intent = new android.content.Intent();
+			intent.setClassName("com.android.settings", "com.android.settings.Settings$OverlaySettingsActivity");
+			if (this.startSafely(intent)) {
+				return true;
+			}
+			intent.setClassName("com.qihoo360.mobilesafe", "com.qihoo360.mobilesafe.ui.index.AppEnterActivity");
+			return this.startSafely(intent);
+		}
+	},
+	RomCheck : {
+		"MIUI" : function() {
+			return this.getProp("ro.miui.ui.version.name");
+		},
+		"EMUI" : function() {
+			return this.getProp("ro.build.version.emui");
+		},
+		"OPPO" : function() {
+			return this.getProp("ro.build.version.opporom");
+		},
+		"VIVO" : function() {
+			return this.getProp("ro.vivo.os.version");
+		},
+		"SMARTISAN" : function() {
+			return this.getProp("ro.smartisan.version");
+		},
+		"FLYME" : function() {
+			var r = android.os.Build.DISPLAY;
+			return r.contains("FLYME") ? r : null;
+		}
+	},
+	onCreate : function() {
+		var i, t;
+		for (i in this.RomCheck) {
+			if (t = this.RomCheck[i].call(this)) {
+				this.rom = i;
+				this.version = t;
+				return;
+			}
+		}
+		this.rom = android.os.Build.MANUFACTURER.toUpperCase();
+		this.version = "unknown";
+	},
+	getProp : function(key) {
+		var ln = null, is = null;
+		try {
+			var p = java.lang.Runtime.getRuntime().exec("getprop " + key);
+			is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
+			ln = is.readLine();
+			is.close();
+		} catch(e) {
+			return null;
+		}
+		if (is != null) {
+			try {
+				is.close();
+			} catch(e) {}
+		}
+		return String(ln);
+	}
+});
+
 MapScript.loadModule("EasterEgg", {
 	start : function self() {G.ui(function() {try {
 		if (EasterEgg.view) return;
@@ -7674,6 +7685,130 @@ MapScript.loadModule("EasterEgg", {
 	}
 });
 
+MapScript.loadModule("MCAdapter", {
+	bundle : null,
+	onCreate : function() {
+		if (MapScript.host == "Android") {
+			this.getInfo = this.getInfo_Android;
+			this.available = this.available_Android;
+		} else if (MapScript.host == "BlockLauncher") {
+			this.getInfo = this.getInfo_ModPE;
+			this.available = this.available_ModPE;
+		} else if (MapScript.host == "InnerCore") {
+			this.getInfo = this.getInfo_IC;
+			this.available = this.available_IC;
+		}
+	},
+	initialize : function() {
+		this.asked = CA.settings.neverAskAdapter;
+	},
+	getInfo_Android : function(id) {
+		if (!this.bundle || !this.bundle.containsKey(id)) return null;
+		return this.bundle.get(id);
+	},
+	available_Android : function() {
+		if (this.bundle != null) return true;
+		if (!this.asked) this.askNeedAdapter();
+		return false;
+	},
+	getInfo_ModPE : function(id) {
+		try {
+			switch (id) {
+				case "playernames":
+				return Server.getAllPlayerNames();
+				case "playerposition":
+				return [Player.getX(), Player.getY(), Player.getZ()];
+				case "pointedblockpos":
+				return [Player.getPointedBlockX(), Player.getPointedBlockY(), Player.getPointedBlockZ()];
+			}
+		} catch(e) {}
+		return null;
+	},
+	available_ModPE : function() {
+		return F3.inLevel;
+	},
+	getInfo_IC : function(id) {
+		var r;
+		try {
+			switch (id) {
+				case "playernames":
+				return [Player.getName()];
+				case "playerposition":
+				r = Player.getPosition();
+				return [r.x, r.y, r.z];
+				case "pointedblockpos":
+				r = Player.getPointed().pos;
+				return [r.x, r.y, r.z];
+			}
+		} catch(e) {}
+		return null;
+	},
+	available_IC : function() {
+		return World.isLoaded;
+	},
+	getInfo : function(id) {
+		return null;
+	},
+	available : function() {
+		return false;
+	},
+	callHook : function(name, args) {
+		if (name in MapScript.global) {
+			MapScript.global[name].apply(null, args);
+		}
+	},
+	asked : false,
+	askNeedAdapter : function() {
+		this.asked = true;
+		Common.showConfirmDialog({
+			title : "是否启用适配器？",
+			description : "适配器可以在输入命令时提供一些与游戏相关的信息，例如当前玩家的坐标。\n您可以随时在设置里启用。",
+			buttons : ["启用", "暂不启用"],
+			canSkip : true,
+			skip : function(f) {
+				CA.settings.neverAskAdapter = Boolean(f);
+			},
+			callback : function(id) {
+				if (id != 0) return;
+				MCAdapter.listAdapters();
+			}
+		});
+	},
+	adapters : [{
+		text : "ModPE适配器",
+		description : "适用于BlockLauncher/BlockLauncher PRO\n*多玩我的世界盒子理论上也可加载。",
+		callback : function() {
+			var f = new java.io.File(ctx.getExternalFilesDir(null), "ModPE适配器.js");
+			this.unpackAssets("adapter/ModPE.js", f);
+			this.viewFile(f.getAbsolutePath(), "text/*");
+		}
+	}],
+	listAdapters : function() {
+		var a, self = this;
+		Common.toast("请选择系统适用的适配器");
+		Common.showListChooser(this.adapters, function(id) {
+			self.adapters[id].callback.call(self);
+		});
+	},
+	unpackAssets : function(fn, path) {
+		const BUFFER_SIZE = 4096;
+		var is, os, buf, hr;
+		is = ctx.getAssets().open(fn);
+		os = new java.io.FileOutputStream(path);
+		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
+		while ((hr = is.read(buf)) > 0) os.write(buf, 0, hr);
+		is.close();
+		os.close();
+	},
+	viewFile : function(path, mime) {
+		var intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+		intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+		intent.addCategory(android.content.Intent.CATEGORY_DEFAULT);
+		intent.setDataAndType(android.net.Uri.parse("file://" + path), mime);
+		ctx.startActivity(intent);
+	}
+});
+
 MapScript.loadModule("AndroidBridge", {
 	initialize : function() {try {
 		if (MapScript.host != "Android") return;
@@ -7687,6 +7822,23 @@ MapScript.loadModule("AndroidBridge", {
 			} catch(e) {erp(e)}},
 			onNewIntent : function(intent) {try {
 				AndroidBridge.onNewIntent(intent, false);
+			} catch(e) {erp(e)}},
+			onRemoteEnabled : function() {try {
+				Common.toast("已连接至Minecraft适配器");
+			} catch(e) {erp(e)}},
+			onRemoteMessage : function(msg) {try {
+				if (msg.what != 1) return;
+				var data = msg.getData();
+				switch (String(data.getString("action"))) {
+					case "init":
+					break;
+					case "info":
+					MCAdapter.bundle = data.getBundle("info");
+				}
+			} catch(e) {erp(e)}},
+			onRemoteDisabled : function() {try {
+				Common.toast("已断开至Minecraft适配器的连接");
+				MCAdapter.bundle = null;
 			} catch(e) {erp(e)}}
 		}));
 		this.onNewIntent(ScriptActivity.getIntent(), true);
@@ -7719,7 +7871,52 @@ MapScript.loadModule("AndroidBridge", {
 				}
 			});
 			break;
+			case ScriptActivity.ACTION_EDIT_COMMAND:
+			t = intent.getExtras().getString("text", "");
+			G.ui(function() {try {
+				CA.showGen(true);
+				CA.cmd.setText(t);
+				CA.showGen.activate(false);
+			} catch(e) {erp(e)}});
+			break;
+			case ScriptActivity.ACTION_SHOW_DEBUG:
+			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+			Common.showDebugDialog();
+			break;
 		}
+	},
+	addSettings : function(o) {
+		if (MapScript.host != "Android") return;
+		o.splice(3, 0, {
+			name : "Android版设置",
+			type : "tag"
+		}, {
+			name : "加载适配器……",
+			type : "custom",
+			get : function() {
+				return MCAdapter.bundle ? "已连接" : "未连接";
+			},
+			onclick : function(fset) {
+				MCAdapter.listAdapters();
+			}
+		}, {
+			name : "开机自动启动",
+			description : "需要系统允许开机自启",
+			type : "boolean",
+			get : ScriptActivity.getBootStart.bind(ScriptActivity),
+			set : ScriptActivity.setBootStart.bind(ScriptActivity)
+		}, {
+			name : "隐藏启动界面",
+			type : "boolean",
+			get : ScriptActivity.getHideSplash.bind(ScriptActivity),
+			set : ScriptActivity.setHideSplash.bind(ScriptActivity)
+		}, {
+			name : "隐藏通知",
+			description : "可能导致应用被自动关闭",
+			type : "boolean",
+			get : ScriptActivity.getHideNotification.bind(ScriptActivity),
+			set : ScriptActivity.setHideNotification.bind(ScriptActivity)
+		});
 	}
 });
 
