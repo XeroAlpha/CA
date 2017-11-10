@@ -214,6 +214,7 @@ MapScript.loadModule("erp", function self(error) {
 	}
 	if (self.count > 10) return;
 	gHandler.post(new java.lang.Runnable({run : function() {try {
+		android.widget.Toast.makeText(ctx, error.fileName + "出现了一个错误：" + error + "\n查看对话框获得更多信息。", 0).show();
 		var dialog = new android.app.AlertDialog.Builder(ctx);
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
@@ -7832,12 +7833,55 @@ MapScript.loadModule("MCAdapter", {
 		});
 	},
 	adapters : [{
-		text : "ModPE适配器",
-		description : "适用于BlockLauncher/BlockLauncher PRO\n*多玩我的世界盒子理论上也可加载。",
+		text : "ModPE适配器（通用）",
+		description : "适用于BlockLauncher/BlockLauncher PRO",
 		callback : function() {
 			var f = new java.io.File(ctx.getExternalFilesDir(null), "ModPE适配器.js");
 			this.unpackAssets("adapter/ModPE.js", f);
-			this.viewFile(f.getAbsolutePath(), "text/*");
+			var i = new android.content.Intent("net.zhuoweizhang.mcpelauncher.action.IMPORT_SCRIPT");
+			if (this.existPackage("net.zhuoweizhang.mcpelauncher.pro")) {
+				i.setClassName("net.zhuoweizhang.mcpelauncher.pro", "net.zhuoweizhang.mcpelauncher.api.ImportScriptActivity");
+			} else if (this.existPackage("net.zhuoweizhang.mcpelauncher")) {
+				i.setClassName("net.zhuoweizhang.mcpelauncher", "net.zhuoweizhang.mcpelauncher.api.ImportScriptActivity");
+			} else {
+				Common.toast("未找到BlockLauncher/BlockLauncher PRO");
+				return;
+			}
+			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
+			ctx.startActivity(i);
+		}
+	}, {
+		text : "ModPE适配器（盒子专版）",
+		description : "适用于多玩我的世界盒子",
+		callback : function() {
+			var f = new java.io.File(ctx.getExternalFilesDir(null), "ModPE适配器.js");
+			this.unpackAssets("adapter/ModPE.js", f);
+			var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+			if (this.existPackage("com.duowan.groundhog.mctools")) {
+				i.setClassName("com.duowan.groundhog.mctools", "com.duowan.groundhog.mctools.activity.plug.PluginOutsideImportActivity");
+			} else {
+				Common.toast("未找到多玩我的世界盒子");
+				return;
+			}
+			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
+			ctx.startActivity(i);
+			Common.showTextDialog("因为多玩我的世界盒子无法创建android.content.Intent，该适配器可能无法与本体连接。");
+		}
+	}, {
+		text : "InnerCore适配器",
+		description : "适用于Inner Core",
+		callback : function() {
+			var fs = [
+				"main.js",
+				"mod.info",
+				"launcher.js",
+				"build.config"
+			], i;
+			new java.io.File("/sdcard/games/com.mojang/mods/ICAdpt").mkdirs();
+			for (i in fs) {
+				this.unpackAssets("adapter/IC/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
+			}
+			Common.toast("Mod文件已释放");
 		}
 	}],
 	listAdapters : function() {
@@ -7863,6 +7907,12 @@ MapScript.loadModule("MCAdapter", {
 		intent.addCategory(android.content.Intent.CATEGORY_DEFAULT);
 		intent.setDataAndType(android.net.Uri.parse("file://" + path), mime);
 		ctx.startActivity(intent);
+	},
+	existPackage : function(pkg) {
+		try {
+			if (ctx.getPackageManager().getPackageInfo(pkg, 0)) return true;
+		} catch(e) {}
+		return false;
 	}
 });
 
@@ -7885,21 +7935,41 @@ MapScript.loadModule("AndroidBridge", {
 				AndroidBridge.onNewIntent(intent, false);
 			} catch(e) {erp(e)}},
 			onRemoteEnabled : function() {try {
-				Common.toast("已连接至Minecraft适配器");
+				Common.toast("正在连接至Minecraft适配器……/\n等待游戏数据传输……");
 			} catch(e) {erp(e)}},
 			onRemoteMessage : function(msg) {try {
 				if (msg.what != 1) return;
 				var data = msg.getData();
+				if (data.getString("action") != "init" && !MCAdapter.client) {
+					var msg2 = android.os.Message.obtain();
+					msg2.what = 2;
+					msg.replyTo.send(msg2);
+					return;
+				}
 				switch (String(data.getString("action"))) {
 					case "init":
+					MCAdapter.client = msg.replyTo;
+					Common.toast("已连接至Minecraft适配器，终端：" + data.getString("platform"));
 					break;
 					case "info":
 					MCAdapter.bundle = data.getBundle("info");
+					break;
+					case "resetMCV":
+					getMinecraftVersion.ver = String(data.getString("version"));
+					Common.toast("正在切换命令库版本，请稍候……");
+					CA.IntelliSense.initLibrary(function(flag) {
+						if (flag) {
+							Common.toast("命令库加载完毕");
+						} else {
+							Common.toast("有至少1个命令库无法加载，请在设置中查看详情");
+						}
+					});
 				}
 			} catch(e) {erp(e)}},
 			onRemoteDisabled : function() {try {
 				Common.toast("已断开至Minecraft适配器的连接");
 				MCAdapter.bundle = null;
+				MCAdapter.client = null;
 			} catch(e) {erp(e)}}
 		}));
 		this.onNewIntent(ScriptActivity.getIntent(), true);
@@ -7948,6 +8018,7 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
+		
 		o.splice(3, 0, {
 			name : "Android版设置",
 			type : "tag"
@@ -7955,7 +8026,7 @@ MapScript.loadModule("AndroidBridge", {
 			name : "加载适配器……",
 			type : "custom",
 			get : function() {
-				return MCAdapter.bundle ? "已连接" : "未连接";
+				return MCAdapter.connInit ? "已连接" : "未连接";
 			},
 			onclick : function(fset) {
 				MCAdapter.listAdapters();
