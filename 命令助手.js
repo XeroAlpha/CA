@@ -356,9 +356,9 @@ ListView:android.widget.ListView,
 MotionEvent:android.view.MotionEvent,
 Paint:android.graphics.Paint,
 Path:android.graphics.Path,
+PixelFormat:android.graphics.PixelFormat,
 PopupWindow:android.widget.PopupWindow,
 Rect:android.graphics.Rect,
-ScaleDrawable:android.graphics.drawable.ScaleDrawable,
 ScrollView:android.widget.ScrollView,
 ScrollingMovementMethod:android.text.method.ScrollingMovementMethod,
 SeekBar:android.widget.SeekBar,
@@ -426,7 +426,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
 		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.tips[this.settings.tipsRead], 1);
-		if (this.settings.showF3) F3.show();
 		this.fine = true;
 		this.screenChangeHook();
 	} catch(e) {erp(e)}},
@@ -506,7 +505,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				barTop : false,
 				autoHideIcon : false,
 				autoFormatCmd : false,
-				showF3 : false,
 				alpha : false,
 				noAnimation : false,
 				senseDelay : true,
@@ -1702,16 +1700,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				name : "辅助功能",
 				type : "tag"
-			},{
-				id : "showF3",
-				name : "显示调试屏幕",
-				description : "便于用户获取环境相关信息。仅在BlockLauncher系列启动器上可用。",
-				type : "boolean",
-				refresh : function() {
-					(this.get() ? F3.show : F3.hide)();
-				},
-				get : self.getsettingbool,
-				set : self.setsettingbool
 			},{
 				id : "noWebImage",
 				name : "不加载图片",
@@ -3951,6 +3939,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var stat, gbl;
 			function calcCmd(c) {
 				var i;
+				if (!c) return;
 				stat.command++;
 				if (c.noparams) stat.pattern++;
 				for (i in c.patterns) {
@@ -3958,13 +3947,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			function calcSelectors(c) {
+				if (!c) return;
 				stat.selector += Object.keys(c).length;
 			}
 			function calcEnum(c) {
+				if (!c) return 0;
 				return typeof c == "string" ? calcEnum(gbl.enums[c]) : Array.isArray(c) ? c.length : Object.keys(c).length;
 			}
 			function calcEnums(c) {
 				var i;
+				if (!c) return;
 				for (i in c) {
 					stat.enums++;
 					stat.enumitem += calcEnum(c);
@@ -3972,6 +3964,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			function calcCommands(k) {
 				var i;
+				if (!k) return;
 				for (i in k) {
 					calcCmd(k[i]);
 				}
@@ -6358,183 +6351,6 @@ MapScript.loadModule("FCString", {
 	}
 });
 
-MapScript.loadModule("F3", {
-	BUFFER_SIZE : 20,
-	show : function self() {G.ui(function() {try {
-		if (MapScript.host != "BlockLauncher") return;
-		if (F3.bar) F3.bar.dismiss();
-		if (!F3.main) {
-			F3.scr = new G.ScrollView(ctx);
-			F3.main = new G.TextView(ctx);
-			F3.main.setBackgroundColor(G.Color.argb(0xC0, 0, 0, 0));
-			F3.main.setTextColor(G.Color.WHITE);
-			F3.main.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
-			F3.main.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			F3.main.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (!F3.inLevel) {
-					Common.toast("进入地图即可启用调试屏幕");
-					return true;
-				}
-				F3.visible = !F3.visible;
-				F3.main.setTextSize(F3.visible ? 8 : 30);
-				if (!F3.visible) {
-					F3.main.setText(">");
-				}
-				return true;
-			} catch(e) {erp(e)}}}));
-			F3.main.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				var t;
-				switch (e.getAction()) {
-					case e.ACTION_MOVE:
-					F3.bar.update(0, self.cy = e.getRawY() + touch.offy, -1, -1);
-					break;
-					case e.ACTION_DOWN:
-					touch.offy = self.cy - e.getRawY();
-					break;
-				}
-				return false;
-			} catch(e) {return erp(e), true}}}));
-			F3.scr.addView(F3.main);
-		}
-		F3.bar = new G.PopupWindow(F3.scr, -2, -2);
-		F3.bar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, self.cy ? self.cy : (self.cy = 0));
-		PWM.addPopup(F3.bar);
-		F3.visible = false;
-		F3.main.setTextSize(30);
-		F3.main.setText(">");
-		F3.eventbuffer.length = 0;
-	} catch(e) {erp(e)}})},
-	hide : function() {G.ui(function() {try {
-		if (F3.bar) F3.bar.dismiss();
-		F3.bar = null;
-		F3.visible = false;
-	} catch(e) {erp(e)}})},
-	refresh : function() {G.ui(function() {try {
-		var i, l = new G.SpannableStringBuilder();
-		if (!F3.visible) return;
-		for (i in F3.items) {
-			if (F3.items[i] == null) continue;
-			l.append(String(F3.names[i]));
-			l.append(" : ");
-			l.append(String(F3.items[i]));
-			l.append("\n");
-		}
-		if (F3.eventbuffer.length) {
-			l.append("\n--Events--\n");
-			l.append(F3.eventbuffer.join("\n\n"));
-		}
-		F3.main.setText(l);
-	} catch(e) {erp(e)}})},
-	modTick : function() {try {
-		if (!F3.visible) return;
-		var p = Player.getEntity();
-		this.items.x = Player.getX().toFixed(5);
-		this.items.y = (Player.getY() - 1.619999885559082).toFixed(5);
-		this.items.z = Player.getZ().toFixed(5);
-		this.items.d = Player.getDimension();
-		/*this.items.vx = Entity.getVelX(p).toFixed(5);
-		this.items.vy = Entity.getVelY(p).toFixed(5);
-		this.items.vz = Entity.getVelZ(p).toFixed(5);*/
-		this.items.rx = Entity.getPitch(p).toFixed(5);
-		this.items.ry = Entity.getYaw(p).toFixed(5);
-		this.items.b = Level.getBiome(this.items.x, this.items.z);
-		this.items.bn = Level.biomeIdToName(this.items.b);
-		this.items.bl = Level.getBrightness(this.items.x, this.items.y, this.items.z);
-		/*this.items.cx = Math.floor(this.items.x) >> 4;
-		this.items.cz = Math.floor(this.items.z) >> 4;*/
-		this.items.t = Level.getTime();
-		/*this.items.ll = Level.getLightningLevel().toFixed(5);
-		this.items.rl = Level.getRainLevel().toFixed(5);*/
-		if (Player.getPointedBlockY() >= 0) {
-			this.items.lx = Player.getPointedBlockX();
-			this.items.ly = Player.getPointedBlockY();
-			this.items.lz = Player.getPointedBlockZ();
-			this.items.lb = Player.getPointedBlockId();
-			this.items.ld = Player.getPointedBlockData();
-			this.items.ls = Player.getPointedBlockSide();
-		} else {
-			this.items.lx = this.items.ly = this.items.lz = this.items.lb = this.items.ld = this.items.ls = null;
-		}
-		if (Entity.getY(Player.getPointedEntity()) > 0) {
-			this.items.puid = Player.getPointedEntity();
-			this.items.pt = Entity.getEntityTypeId(this.items.puid);
-		} else {
-			this.items.puid = this.items.pt = null;
-		}
-		this.refresh();
-	} catch(e) {erp(e)}},
-	newLevel : function() {try {
-		this.inLevel = true;
-	} catch(e) {erp(e)}},
-	leaveGame : function() {try {
-		this.inLevel = false;
-	} catch(e) {erp(e)}},
-	useItem : function(x, y, z, itemid, blockid, side, itemDamage, blockDamage) {
-		this.logEvent("TapBlock", {
-			pos : [x, y, z],
-			block : blockid + ":" + blockDamage + ">" + side,
-			carry : itemid + ":" + itemDamage
-		});
-	},
-	destroyBlock : function(x, y, z, side) {
-		this.logEvent("DestroyBlock", {
-			pos : [x, y, z],
-			block : Level.getTile(x, y, z) + ":" + Level.getData(x, y, z) + ">" + side
-		});
-	},
-	attackHook : function(attacker, victim) {
-		this.logEvent("AttackEntity", {
-			atk : attacker,
-			vic : victim
-		});
-	},
-	names : {
-		x : "X",
-		y : "Y",
-		z : "Z",
-		d : "Dimision",
-		rx : "Rx",
-		ry : "Ry",
-		vx : "Vx",
-		vy : "Vy",
-		vz : "Vz",
-		b : "BiomeID",
-		bn : "BiomeName",
-		bl : "LightLevel",
-		cx : "ChunkX",
-		cz : "ChunkZ",
-		t : "Time",
-		rl : "RainLevel",
-		ll : "LNLevel",
-		lx : "PBX",
-		ly : "PBY",
-		lz : "PBZ",
-		lb : "PBID",
-		ld : "PBData",
-		ls : "PBSide",
-		puid : "PEUUID",
-		pt : "PEType"
-	},
-	items : {},
-	inLevel : false,
-	eventbuffer : [],
-	logEvent : function(name, tags) {
-		if (!this.visible) return;
-		var s = [name], r, k;
-		for (i in tags) {
-			s.push(i + ":" + tags[i]);
-		}
-		r = s.join("\n");
-		if ((k = this.eventbuffer.indexOf(r)) >= 0) {
-			this.eventbuffer.splice(k, 1);
-		}
-		this.eventbuffer.unshift(r);
-		if (this.eventbuffer.length > this.BUFFER_SIZE) {
-			this.eventbuffer.length = this.BUFFER_SIZE;
-		}
-	}
-});
-
 MapScript.loadModule("RhinoListAdapter", (function() {
 	var r = function(arr, vmaker, params, preload) {
 		//arr是列表数组，vmaker(element, index, array, params)从item生成指定view
@@ -6968,14 +6784,18 @@ MapScript.loadModule("JSONEdit", {
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			/*self.main.setFocusable(true);
+			self.main.setFocusableInTouchMode(true);
 			self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
-				if (code == e.KEYCODE_BACK && JSONEdit.path.length > 1) {
-					JSONEdit.path.pop();
-					return true;
+				if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
+					if (JSONEdit.path.length > 1) {
+						JSONEdit.path.pop();
+						JSONEdit.refresh();
+					} else {
+						self.dismiss();
+					}
 				}
 				return false;
-			} catch(e) {return erp(e), true}}}));*/
+			} catch(e) {return erp(e), true}}}));
 			
 			self.header = new G.LinearLayout(ctx);
 			self.header.setBackgroundColor(Common.theme.float_bgcolor);
@@ -6990,7 +6810,7 @@ MapScript.loadModule("JSONEdit", {
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			self.back.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				JSONEdit.edit.dismiss();
+				self.dismiss();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
@@ -7076,18 +6896,35 @@ MapScript.loadModule("JSONEdit", {
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.main.addView(JSONEdit.list);
+			self.getContentView = self.getRootView = function() {
+				return self.main;
+			}
+			self.isShowing = function() {
+				return JSONEdit.edit != null;
+			}
+			self.show = function() {
+				var p = new G.WindowManager.LayoutParams();
+				p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
+				p.flags = 0;
+				p.type = CA.supportFloat ? G.WindowManager.LayoutParams.TYPE_PHONE : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+				p.token = ctx.getWindow().getDecorView().getWindowToken();
+				p.format = G.PixelFormat.TRANSLUCENT;
+				p.height = -1;
+				p.width = -1;
+				p.x = 0;
+				p.y = 0;
+				PWM.wm.addView(self.main, p);
+				JSONEdit.edit = self;
+				PWM.add(self);
+			}
+			self.dismiss = function() {
+				JSONEdit.edit = null;
+				if (JSONEdit.updateListener) JSONEdit.updateListener();
+				PWM.wm.removeViewImmediate(self.main);
+			}
 		}
 		Common.initEnterAnimation(self.main);
-		JSONEdit.edit = new G.PopupWindow(self.main, -1, -1);
-		if (CA.supportFloat) JSONEdit.edit.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		//JSONEdit.edit.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		JSONEdit.edit.setFocusable(true);
-		JSONEdit.edit.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			JSONEdit.edit = null;
-			if (JSONEdit.updateListener) JSONEdit.updateListener();
-		} catch(e) {erp(e)}}}));
-		JSONEdit.edit.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(JSONEdit.edit);
+		self.show();
 	} catch(e) {erp(e)}})},
 	hideEdit : function() {G.ui(function() {try {
 		if (JSONEdit.edit) JSONEdit.edit.dismiss();
@@ -7760,6 +7597,13 @@ MapScript.loadModule("MCAdapter", {
 	initialize : function() {
 		this.asked = CA.settings.neverAskAdapter;
 	},
+	inLevel : false,
+	newLevel : function() {
+		this.inLevel = true;
+	},
+	leaveGame : function() {
+		this.inLevel = false;
+	},
 	getInfo_Android : function(id) {
 		if (!this.bundle || !this.bundle.containsKey(id)) return null;
 		return this.bundle.get(id);
@@ -7783,7 +7627,7 @@ MapScript.loadModule("MCAdapter", {
 		return null;
 	},
 	available_ModPE : function() {
-		return F3.inLevel;
+		return this.inLevel;
 	},
 	getInfo_IC : function(id) {
 		var r;
@@ -7925,12 +7769,17 @@ MapScript.loadModule("AndroidBridge", {
 		this.checkPackage();
 		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
 			applyIntent : function(intent) {try {
-				if (PWM.getCount() > 0) {
-					PWM.hideAll();
-					PWM.intentBack = true;
-				}
+				AndroidBridge.callHide();
 				return true;
 			} catch(e) {erp(e)}},
+			onKeyEvent : function(e) {
+				if (e.getAction() == e.ACTION_DOWN) {
+					var k = e.getKeyCode();
+					if (k == e.KEYCODE_HOME || k == e.KEYCODE_MENU || k == e.KEYCODE_ENDCALL || k == e.KEYCODE_POWER || k == e.KEYCODE_NOTIFICATION) {
+						AndroidBridge.callHide();
+					}
+				}
+			},
 			onNewIntent : function(intent) {try {
 				AndroidBridge.onNewIntent(intent, false);
 			} catch(e) {erp(e)}},
@@ -8016,12 +7865,29 @@ MapScript.loadModule("AndroidBridge", {
 			break;
 		}
 	},
+	callHide : function() {
+		if (PWM.getCount() > 0) {
+			PWM.hideAll();
+			PWM.intentBack = true;
+		}
+	},
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
 		
 		o.splice(3, 0, {
 			name : "Android版设置",
 			type : "tag"
+		}, {
+			name : "管理无障碍服务",
+			description : "用于支持粘贴命令以及一些其他操作",
+			type : "custom",
+			get : function() {
+				return ScriptActivity.getAccessibilitySvc() != null ? "已启用" : "未启用";
+			},
+			onclick : function(fset) {
+				ScriptActivity.goToAccessibilitySetting();
+				Common.showSettings.popup.dismiss();
+			}
 		}, {
 			name : "加载适配器……",
 			type : "custom",
