@@ -7394,7 +7394,7 @@ MapScript.loadModule("SettingsCompat", {
 		},
 		"EMUI" : function() {
 			const HUAWEI_PACKAGE = "com.huawei.systemmanager";
-			var intent = new Intent();
+			var intent = new android.content.Intent();
 			if (this.SYSVER >= 21) {
 				intent.setClassName(HUAWEI_PACKAGE, "com.huawei.systemmanager.addviewmonitor.AddViewMonitorActivity");
 				if (this.startSafely(intent)) {
