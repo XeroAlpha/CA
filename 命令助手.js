@@ -6551,8 +6551,10 @@ MapScript.loadModule("Updater", {
 		if (!this.latest) return "版本：" + CA.publishDate;
 		if (Date.parse(CA.publishDate) < Date.parse(this.latest)) {
 			return "更新：" + CA.publishDate + " -> " + this.latest;
-		} else {
+		} else if (Date.parse(CA.publishDate) == Date.parse(this.latest)) {
 			return "您使用的是最新版本";
+		} else {
+			return "Beta版本：" + CA.publishDate;
 		}
 	},
 	checkUpdate : function(callback) {
