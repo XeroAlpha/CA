@@ -7766,7 +7766,6 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	initialize : function() {try {
 		if (MapScript.host != "Android") return;
-		this.checkPackage();
 		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
 			applyIntent : function(intent) {try {
 				AndroidBridge.callHide();
@@ -7932,14 +7931,6 @@ MapScript.loadModule("AndroidBridge", {
 				return frm;
 			};
 		}
-	},
-	checkPackage : function() {
-		if (com.xero.ca.BuildConfig.DEBUG) return;
-		this.checkSignature("+WqkZESKkZMnf0wOFd24/ynHPBs=");
-	},
-	checkSignature : function(key) {
-		if (android.util.Base64.encodeToString(java.security.MessageDigest.getInstance("SHA-1").digest(ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 64).signatures[0].toByteArray()), 2) == key) return;
-		ctx.finish();
 	}
 });
 
