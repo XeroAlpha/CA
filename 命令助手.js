@@ -5263,7 +5263,6 @@ MapScript.loadModule("Common", {
 		});
 		scr.addView(layout);
 		popup = Common.showDialog(scr, -2, -2, s.onDismiss);
-		
 	} catch(e) {erp(e)}})},
 	
 	showListChooser : function self(l, callback, optional, onDismiss) {G.ui(function() {try {
@@ -7668,7 +7667,7 @@ MapScript.loadModule("MCAdapter", {
 			title : "是否启用适配器？",
 			description : "适配器可以在输入命令时提供一些与游戏相关的信息，例如当前玩家的坐标。\n您可以随时在设置里启用。",
 			buttons : ["启用", "暂不启用"],
-			canSkip : true,
+			canSkip : false,
 			skip : function(f) {
 				CA.settings.neverAskAdapter = Boolean(f);
 			},
@@ -7677,6 +7676,36 @@ MapScript.loadModule("MCAdapter", {
 				MCAdapter.listAdapters();
 			}
 		});
+	},
+	askShortcut : function(name, pkg) {
+		var z = {
+			title : "是否创建快捷方式？",
+			description : "需要给予对应权限",
+			canSkip : true,
+			skip : function(f) {
+				CA.settings.neverAskShortcut = Boolean(f);
+			},
+			callback : function(id) {
+				if (CA.settings.neverAskShortcut) {
+					CA.settings.needShortcut = parseInt(id);
+				}
+				if (id == 0) {
+					MCAdapter.createShortcut(name, pkg);
+				}
+			}
+		};
+		if (CA.settings.neverAskShortcut) z.callback(CA.settings.needShortcut);
+	},
+	createShortcut : function(name, pkg) {
+		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
+		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
+		sc.setData(android.net.Uri.fromParts("package", pkg, null));
+		var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, String(name));
+		i.putExtra("duplicate", false);
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, sc);
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, com.xero.ca.R.drawable.icon));
+		ctx.sendBroadcast(i);
 	},
 	adapters : [{
 		text : "ModPE适配器（通用）",
@@ -7695,6 +7724,7 @@ MapScript.loadModule("MCAdapter", {
 			}
 			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
 			ctx.startActivity(i);
+			this.askShortcut("BlockLauncher", i.getComponent().getPackageName());
 		}
 	}, {
 		text : "ModPE适配器（盒子专版）",
@@ -7711,6 +7741,7 @@ MapScript.loadModule("MCAdapter", {
 			}
 			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
 			ctx.startActivity(i);
+			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
 			Common.showTextDialog("因为多玩我的世界盒子无法创建android.content.Intent，该适配器可能无法与本体连接。");
 		}
 	}, {
@@ -7728,10 +7759,11 @@ MapScript.loadModule("MCAdapter", {
 				this.unpackAssets("adapter/IC/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
 			}
 			Common.toast("Mod文件已释放");
+			this.askShortcut("Inner Core", "com.zhekasmirnov.innercore");
 		}
 	}],
 	listAdapters : function() {
-		var a, self = this;
+		var self = this;
 		Common.toast("请选择系统适用的适配器");
 		Common.showListChooser(this.adapters, function(id) {
 			self.adapters[id].callback.call(self);
@@ -7759,6 +7791,40 @@ MapScript.loadModule("MCAdapter", {
 			if (ctx.getPackageManager().getPackageInfo(pkg, 0)) return true;
 		} catch(e) {}
 		return false;
+	},
+	askShortcut : function(name, pkg) {
+		var z = {
+			title : "是否创建快捷方式？",
+			description : "需要给予对应权限",
+			canSkip : false,
+			skip : function(f) {
+				CA.settings.neverAskShortcut = Boolean(f);
+			},
+			callback : function(id) {
+				if (CA.settings.neverAskShortcut) {
+					CA.settings.needShortcut = parseInt(id);
+				}
+				if (id == 0) {
+					MCAdapter.createShortcut(name, pkg);
+				}
+			}
+		};
+		if (CA.settings.neverAskShortcut) {
+			z.callback(CA.settings.needShortcut);
+		} else {
+			Common.showConfirmDialog(z);
+		}
+	},
+	createShortcut : function(name, pkg) {
+		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
+		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
+		sc.setData(android.net.Uri.fromParts("package", pkg, null));
+		var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, String(name));
+		i.putExtra("duplicate", false);
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, sc);
+		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, com.xero.ca.R.drawable.icon));
+		ctx.sendBroadcast(i);
 	}
 });
 
@@ -7860,10 +7926,24 @@ MapScript.loadModule("AndroidBridge", {
 				CA.showGen.activate(false);
 			} catch(e) {erp(e)}});
 			break;
+			case ScriptActivity.ACTION_START_FROM_SHORTCUT:
+			t = ctx.getPackageManager().getLaunchIntentForPackage(intent.getData().getSchemeSpecificPart());
+			if (t) {
+				ctx.startActivity(t);
+			}
+			break;
 			case ScriptActivity.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			Common.showDebugDialog();
 			break;
+			
+			default:
+			if (startByIntent && CA.settings.chainLaunch) {
+				t = ctx.getPackageManager().getLaunchIntentForPackage(CA.settings.chainLaunch);
+				if (t) {
+					ctx.startActivity(t);
+				}
+			}
 		}
 	},
 	callHide : function() {
@@ -7891,12 +7971,36 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		}, {
 			name : "加载适配器……",
+			description : "点击以刷新状态",
 			type : "custom",
 			get : function() {
 				return MCAdapter.connInit ? "已连接" : "未连接";
 			},
 			onclick : function(fset) {
+				fset(this.get());
 				MCAdapter.listAdapters();
+			}
+		}, {
+			name : "连锁启动……",
+			description : "设置启动命令助手时自动启动的应用",
+			type : "custom",
+			get : function() {
+				var r = CA.settings.chainLaunch, ai;
+				try {
+					if (r) ai = ctx.getPackageManager().getApplicationInfo(r, 128);
+				} catch(e) {}
+				if (!ai) return "无";
+				return ctx.getPackageManager().getApplicationLabel(ai);
+			},
+			onclick : function(fset) {
+				AndroidBridge.listApp((function(pkg) {
+					if (pkg == ctx.getPackageName()) {
+						Common.toast("不能连锁启动自身！");
+						return;
+					}
+					CA.settings.chainLaunch = pkg;
+					fset(this.get());
+				}).bind(this));
 			}
 		}, {
 			name : "开机自动启动",
@@ -7933,6 +8037,25 @@ MapScript.loadModule("AndroidBridge", {
 				return frm;
 			};
 		}
+	},
+	listApp : function(callback) {
+		var self = this, pm = ctx.getPackageManager();
+		var lp = pm.getInstalledPackages(0).toArray();
+		var i, r = [{
+			text : "不使用"
+		}];
+		for (i in lp) {
+			if (!lp[i].applicationInfo) continue;
+			if (!pm.getLaunchIntentForPackage(lp[i].packageName)) continue;
+			r.push({
+				text : pm.getApplicationLabel(lp[i].applicationInfo),
+				description : lp[i].versionName,
+				result : lp[i].packageName
+			});
+		}
+		Common.showListChooser(r, function(id) {
+			callback(String(r[id].result));
+		});
 	}
 });
 
