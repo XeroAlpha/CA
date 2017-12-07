@@ -800,7 +800,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			CA.cmd = new G.EditText(ctx);
 			CA.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
-			CA.cmd.setHint("命令");
+			if (CA.settings.genOpenedMenu) {
+				CA.cmd.setHint("命令");
+			} else {
+				CA.cmd.setHint("在此输入命令|长按打开菜单");
+			}
 			CA.cmd.setBackgroundColor(G.Color.TRANSPARENT);
 			CA.cmd.setTextSize(Common.theme.textsize[3]);
 			CA.cmd.setTextColor(Common.theme.textcolor);
@@ -919,6 +923,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						Common.showOperateDialog(self.cmdEdit, {
 							cmd : String(CA.cmd.getText())
 						});
+						CA.settings.genOpenedMenu = true;
 						touch.cbk = null;
 						touch(CA.cmd, G.MotionEvent.obtain(0, 0, G.MotionEvent.ACTION_CANCEL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 					} catch(e) {erp(e)}}}), 300);
@@ -5783,6 +5788,7 @@ MapScript.loadModule("Common", {
 	
 	showDebugDialog : function self(o) {G.ui(function() {try {
 		if (!self.main) {
+			self.last = "";
 			self.cls = function() {
 				self.prompt.setText("");
 				self.ready();
@@ -5803,11 +5809,15 @@ MapScript.loadModule("Common", {
 				self.print("\n>  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
 			self.exec = function(s) {
+				self.last = s;
 				if (s.toLowerCase() == "exit") {
 					self.popup.dismiss();
 					return;
 				} else if (s.toLowerCase() == "cls") {
 					self.cls();
+					return;
+				} else if (s.toLowerCase() == "ls") {
+					JSONEdit.traceGlobal();
 					return;
 				}
 				self.print(s);
@@ -5832,11 +5842,9 @@ MapScript.loadModule("Common", {
 			
 			self.cmd = new G.EditText(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
-			self.cmd.setHint("命令");
 			self.cmd.setBackgroundColor(G.Color.TRANSPARENT);
 			self.cmd.setTextSize(Common.theme.textsize[3]);
 			self.cmd.setTextColor(Common.theme.textcolor);
-			self.cmd.setHintTextColor(Common.theme.promptcolor);
 			self.cmd.setFocusableInTouchMode(true);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
 			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
@@ -5879,6 +5887,10 @@ MapScript.loadModule("Common", {
 			self.prompt.setTextSize(Common.theme.textsize[2]);
 			self.prompt.setTextColor(Common.theme.textcolor);
 			self.prompt.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			self.prompt.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
+				self.cmd.setText(self.last);
+				return true;
+			} catch(e) {return erp(e), true}}}));
 			self.vscr.addView(self.prompt);
 			
 			self.main.addView(self.vscr);
@@ -7773,6 +7785,7 @@ MapScript.loadModule("MCAdapter", {
 		const BUFFER_SIZE = 4096;
 		var is, os, buf, hr;
 		is = ctx.getAssets().open(fn);
+		(new java.io.File(path)).getParentFile().mkdirs();
 		os = new java.io.FileOutputStream(path);
 		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
 		while ((hr = is.read(buf)) > 0) os.write(buf, 0, hr);
@@ -8068,7 +8081,7 @@ CA.IntelliSense.inner["default"] = {
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.2.0.81",
+	"targetSupportVer": "1.2.5.52",
 	"commands": {},
 	"enums": {
 		"block": {
@@ -8527,6 +8540,7 @@ CA.IntelliSense.inner["default"] = {
 			"bucket.empty_water": "",
 			"bucket.fill_lava": "",
 			"bucket.fill_water": "",
+			"bottle.dragonbreath": "",
 			"cauldron.explode": "炼药锅爆炸声",
 			"cauldron.dyearmor": "炼药锅着色装备声",
 			"cauldron.cleanarmor": "炼药锅洗清装备声",
@@ -8540,6 +8554,7 @@ CA.IntelliSense.inner["default"] = {
 			"damage.fallsmall": "短高度掉落伤害",
 			"elytra.loop": "",
 			"game.player.attack.nodamage": "",
+			"game.player.attack.strong": "",
 			"game.player.hurt": "玩家受伤声",
 			"game.player.die": "玩家死亡声",
 			"dig.cloth": "挖掘羊毛声",
@@ -8916,7 +8931,7 @@ CA.IntelliSense.inner["default"] = {
 			"ender_pearl": "丢出的末影珍珠",
 			"enderman": "末影人",
 			"endermite": "末影螨",
-			"evocation_fangs": "尖牙",
+			"evocation_fang": "尖牙",
 			"evocation_illager": "唤魔者",
 			"eye_of_ender_signal": "丢出的末影之眼",
 			"falling_block": "掉落中的方块",
