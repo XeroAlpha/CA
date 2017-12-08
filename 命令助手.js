@@ -2533,7 +2533,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var data = parent.getAdapter().getItem(pos);
-				Common.showOperateDialog(data.disabled ? self.disabledMenu : data.hasError ? self.errMenu : self.enabledMenu, {
+				var mnu = data.disabled ? self.disabledMenu : data.hasError ? self.errMenu : self.enabledMenu;
+				if (data.menu) {
+					mnu = data.menu.concat(mnu);
+				}
+				Common.showOperateDialog(mnu, {
 					pos : parseInt(pos),
 					data : data,
 					callback : function() {G.ui(function() {try {
@@ -2560,6 +2564,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
+		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			callback();
 			self.popup = null;
@@ -3615,6 +3620,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						uuid : cur.uuid,
 						version : cur.version,
 						update : cur.update,
+						menu : cur.menu,
 						mode : m,
 						stat : CA.IntelliSense.statLib(cur, CA.IntelliSense.library),
 						loaded : true
@@ -3947,7 +3953,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (!c) return;
 				stat.command++;
 				if (c.noparams) stat.pattern++;
-				for (i in c.patterns) {
+				for (i in c.patterns) { // patterns 是 可枚举类型 包括但不限于 数组、对象
 					stat.pattern++;
 				}
 			}
@@ -3964,7 +3970,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (!c) return;
 				for (i in c) {
 					stat.enums++;
-					stat.enumitem += calcEnum(c);
+					stat.enumitem += calcEnum(c[i]);
 				}
 			}
 			function calcCommands(k) {
@@ -5011,6 +5017,7 @@ MapScript.loadModule("Common", {
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
+		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			if (!self.modified) Common.loadTheme(self.last);
 			if (dismiss) dismiss();
@@ -5496,6 +5503,7 @@ MapScript.loadModule("Common", {
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
+		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			self.data.forEach(function(e, i) {
 				switch (e.type) {
@@ -6043,6 +6051,10 @@ MapScript.loadModule("Common", {
 			v.requestFocus();
 			ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(v, G.InputMethodManager.SHOW_IMPLICIT);
 		} catch(e) {erp(e)}}, isNaN(delay) ? 0 : delay);
+	},
+	
+	hideIME : function(v) {
+		ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).hideSoftInputFromWindow(v.getWindowToken(), 0);
 	},
 	
 	hasClipboardText : function() {
