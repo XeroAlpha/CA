@@ -414,7 +414,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	initialize : function() {try {
 		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
 		if (this.supportFloat) {
-			this.showContentView(SettingsCompat.ensureCanFloat());
+			if (SettingsCompat.ensureCanFloat()) {
+				this.showContentView(true);
+			} else {
+				this.showContentView(false);
+				this.supportFloat = false;
+				Common.showTextDialog("警告\n\n命令助手无法获取到系统悬浮窗权限，已切换为弹窗模式。\n下次打开时将重新检测。");
+			}
 		}
 		this.load();
 		var a = String(getMinecraftVersion()).split(".");
@@ -3534,6 +3540,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.prompt.setLineSpacing(10, 1);
 				self.list = new G.ListView(ctx);
 				self.list.setBackgroundColor(G.Color.TRANSPARENT);
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
 				self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					if (pos == 0) {
 						CA.IntelliSense.showMoreUsage();
@@ -4302,6 +4310,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var sugg = new G.ListView(ctx);
 				sugg.setBackgroundColor(G.Color.TRANSPARENT);
 				sugg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+				sugg.setFastScrollEnabled(true);
+				sugg.setFastScrollAlwaysVisible(false);
 				sugg.setAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
 				sugg.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					setText(suggestion[parent.getItemAtPosition(pos)]);
@@ -5684,6 +5694,8 @@ MapScript.loadModule("Common", {
 			
 			self.list = new G.ListView(ctx);
 			self.list.setBackgroundColor(Common.theme.message_bgcolor);
+			self.list.setFastScrollEnabled(true);
+			self.list.setFastScrollAlwaysVisible(false);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var o = self.sets;
 				var e = self.curadp.getItem(pos);
@@ -6863,6 +6875,8 @@ MapScript.loadModule("JSONEdit", {
 			
 			JSONEdit.list = new G.ListView(ctx);
 			JSONEdit.list.setBackgroundColor(Common.theme.message_bgcolor);
+			JSONEdit.list.setFastScrollEnabled(true);
+			JSONEdit.list.setFastScrollAlwaysVisible(false);
 			JSONEdit.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			JSONEdit.list.addHeaderView(self.create);
 			JSONEdit.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
