@@ -323,6 +323,7 @@ MapScript.loadModule("G", {
 AbsListView:android.widget.AbsListView,
 AccelerateInterpolator:android.view.animation.AccelerateInterpolator,
 AdapterView:android.widget.AdapterView,
+AlertDialog:android.app.AlertDialog,
 AlphaAnimation:android.view.animation.AlphaAnimation,
 Animation:android.view.animation.Animation,
 AnimationSet:android.view.animation.AnimationSet,
@@ -358,6 +359,9 @@ Paint:android.graphics.Paint,
 Path:android.graphics.Path,
 PixelFormat:android.graphics.PixelFormat,
 PopupWindow:android.widget.PopupWindow,
+ProgressBar:android.widget.ProgressBar,
+R:android.R,
+RadioButton:android.widget.RadioButton,
 Rect:android.graphics.Rect,
 ScrollView:android.widget.ScrollView,
 ScrollingMovementMethod:android.text.method.ScrollingMovementMethod,
@@ -3613,12 +3617,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				info : info = []
 			};
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
-				var m = 0, v, cur;
+				var m = 0, v, cur, resolved, stat;
 				try {
-					cur = CA.IntelliSense.inner[e] || (m = 1, MapScript.readJSON(e, null)) || (m = 2, MapScript.readJSON(e, null, true)) || (m = 2, CA.IntelliSense.loadPrefixed(e, null));
-					if (!cur) throw "无法读取文件";
-					if ((v = CA.IntelliSense.checkPackVer(cur)) != 0) throw v > 0 ? "命令库版本过低" : "游戏版本过低";
-					CA.IntelliSense.loadLibrary(CA.IntelliSense.library, cur);
+					cur = CA.IntelliSense.inner[e] || (m = 1, MapScript.readJSON(e, null, false)) || (m = 2, MapScript.readJSON(e, null, true)) || (m = 2, CA.IntelliSense.loadPrefixed(e, null));
+					if (!cur) throw "无法读取或解析命令库";
+					if (!(cur instanceof Object)) throw "错误的命令库格式";
+					resolved = true;
+					if ((v = CA.IntelliSense.checkPackVer(cur)) != 0) throw v > 0 ? "命令库版本过低" : "游戏版本过低"; //兼容旧版
+					if (cur.minCAVersion && Date.parse(CA.publishDate) < Date.parse(cur.minCAVersion)) throw "命令助手版本过低";
+					stat = CA.IntelliSense.statLib(cur);
+					CA.IntelliSense.loadLibrary(CA.IntelliSense.library, cur, stat);
 					info.push({
 						src : e,
 						index : i,
@@ -3630,19 +3638,33 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						update : cur.update,
 						menu : cur.menu,
 						mode : m,
-						stat : CA.IntelliSense.statLib(cur, CA.IntelliSense.library),
+						stat : stat,
 						loaded : true
 					});
 				} catch(err) {
 					flag = false;
-					info.push({
-						src : e,
-						index : i,
-						name : cur instanceof Object && typeof cur.name == "string" ? String(cur.name) : m = 0 ? e : (new java.io.File(e)).getName(),
-						hasError : true,
-						mode : m,
-						error : err
-					});
+					if (resolved) {
+						info.push({
+							src : e,
+							index : i,
+							name : cur.name,
+							version : cur.version,
+							update : cur.update,
+							menu : cur.menu,
+							hasError : true,
+							mode : m,
+							error : err
+						});
+					} else {
+						info.push({
+							src : e,
+							index : i,
+							name : m = 0 ? e : (new java.io.File(e)).getName(),
+							hasError : true,
+							mode : m,
+							error : err
+						});
+					}
 				}
 			}, this);
 			//快捷操作
@@ -3686,8 +3708,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (p >= 0) a.splice(p, 1);
 			return true;
 		},
-		loadLibrary : function(cur, l) {
-			var c, i;
+		loadLibrary : function(cur, l, stat) {
+			var c, i, t;
 			this.checkLibrary(l);
 			if (this.library.info.some(function(e) {
 				return l.uuid == e.uuid;
@@ -3701,7 +3723,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (!l.versionPack) return;
 			c = l.versionPack;
 			for (i in c) {
-				this.joinPack(cur, c[i]); //加载版本包
+				t = this.joinPack(cur, c[i]); //加载版本包
+				if (stat && t) stat.availablePack++;
 			}
 		},
 		loadPrefixed : function(path, defaultValue) {
@@ -3898,7 +3921,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return g.enums[o];
 			}
 			return function(cur, l) {
-				if (this.checkPackVer(l) != 0) return;
+				if (this.checkPackVer(l) != 0) return false;
 				var i;
 				if (!(l.commands instanceof Object)) l.commands = {};
 				if (!(l.enums instanceof Object)) l.enums = {};
@@ -3952,10 +3975,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 					}
 				}
+				return true;
 			}
 		})(),
 		statLib : (function() {
-			var stat, gbl;
+			var stat;
 			function calcCmd(c) {
 				var i;
 				if (!c) return;
@@ -3971,7 +3995,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			function calcEnum(c) {
 				if (!c) return 0;
-				return typeof c == "string" ? calcEnum(gbl.enums[c]) : Array.isArray(c) ? c.length : Object.keys(c).length;
+				return typeof c == "string" ? 0 : Array.isArray(c) ? c.length : Object.keys(c).length;
 			}
 			function calcEnums(c) {
 				var i;
@@ -3989,11 +4013,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			function toString() {
-				return ["命令数:", this.command, "\n枚举数:", this.enums, "\n选择器数:", this.selector, "\n版本包数:", this.versionPack, "\n命令模式数:", this.pattern, "\n枚举项目数:", this.enumitem].join("");
+				return ["命令数:", this.command, "\n枚举数:", this.enums, "\n选择器数:", this.selector, "\n版本包数:", this.availablePack, "/", this.versionPack, "\n命令模式数:", this.pattern, "\n枚举项目数:", this.enumitem].join("");
 			}
-			return function (l, g) {
+			return function (l) {
 				var i;
 				stat = {
+					availablePack : 0,
 					command : 0,
 					versionPack : 0,
 					enums : 0,
@@ -4002,7 +4027,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					enumitem : 0,
 					toString : toString
 				}
-				gbl = g;
 				calcCommands(l.commands);
 				calcEnums(l.enums);
 				calcSelectors(l.selectors);
@@ -6469,6 +6493,29 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 			}, this);
 			this.notifyChange();
 		},
+		filter : function(f, thisArg) {
+			var i;
+			for (i = 0; i < this.src.length; i++) {
+				if (!f.call(thisArg, this.src[i], i, this.src)) {
+					this.src.splice(i, 1);
+					this.views.splice(i, 1);
+					i--;
+				}
+			}
+			this.notifyChange();
+		},
+		forEach : function(f, thisArg) {
+			var i;
+			for (i in this.src) {
+				if (f.call(thisArg, this.src[i], i, this.src)) {
+					this.views[i] = this.vmaker(this.src[i], i, this.src, this.params);
+				}
+			}
+			this.notifyChange();
+		},
+		get : function(i) {
+			return this.src[i];
+		},
 		insert : function(e, i, respawn) {
 			this.src.splice(i, 0, e);
 			if (respawn) {
@@ -6477,6 +6524,9 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 				this.views.splice(i, 0, this.preload ? this.vmaker(e, i, this.src, this.params) : null);
 			}
 			this.notifyChange();
+		},
+		length : function() {
+			return this.src.length;
 		},
 		remove : function(e, respawn) {
 			var i;
@@ -6492,6 +6542,7 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 			this.src.splice(i, 1);
 			this.views.splice(i, 1);
 			if (respawn) this.respawnAll();
+			this.notifyChange();
 		},
 		replace : function(e, i) {
 			this.src[i] = e;
@@ -6508,13 +6559,31 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 			}, this);
 			this.notifyChange();
 		},
+		slice : function(start, end) {
+			return Array.prototype.slice.apply(this.src, arguments);
+		},
+		splice : function(index, len) {
+			var i, z = [];
+			for (i in arguments) z.push(arguments[i]);
+			var r = Array.prototype.splice.apply(this.src, z);
+			for (i = 2; i < z.length; i++) {
+				z[i] = this.preload ? this.vmaker(z[i], i - 2 + index, this.src, this.params) : null;
+			}
+			Array.prototype.splice.apply(this.views, z);
+			this.notifyChange();
+		},
 		getArray : function() {
 			return this.src.slice();
 		},
 		setArray : function(a) {
-			this.src = a.slice();
+			this.views.length = this.src.length = 0;
+			for (i in a) this.views.push(a[i]);
 			this.views.length = this.src.length;
-			this.respawnAll();
+			if (this.preload) {
+				this.respawnAll();
+			} else {
+				this.notifyChange();
+			}
 		}
 	}
 	r.getController = function(adapter) {
