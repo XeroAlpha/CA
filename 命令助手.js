@@ -320,75 +320,77 @@ MapScript.loadModule("G", {
 		return ctx.runOnUiThread ? ctx.runOnUiThread.bind(ctx) : gHandler.post.bind(gHandler);
 	})(),
 //IMPORTS_BEGIN
-AbsListView:android.widget.AbsListView,
-AccelerateInterpolator:android.view.animation.AccelerateInterpolator,
-AdapterView:android.widget.AdapterView,
-AlertDialog:android.app.AlertDialog,
-AlphaAnimation:android.view.animation.AlphaAnimation,
-Animation:android.view.animation.Animation,
-AnimationSet:android.view.animation.AnimationSet,
-Bitmap:android.graphics.Bitmap,
-BitmapDrawable:android.graphics.drawable.BitmapDrawable,
-BitmapFactory:android.graphics.BitmapFactory,
-BitmapShader:android.graphics.BitmapShader,
-Button:android.widget.Button,
-Canvas:android.graphics.Canvas,
-CheckBox:android.widget.CheckBox,
-Color:android.graphics.Color,
-ColorDrawable:android.graphics.drawable.ColorDrawable,
-CompoundButton:android.widget.CompoundButton,
-DecelerateInterpolator:android.view.animation.DecelerateInterpolator,
-EditText:android.widget.EditText,
-EditorInfo:android.view.inputmethod.EditorInfo,
-ForegroundColorSpan:android.text.style.ForegroundColorSpan,
-FrameLayout:android.widget.FrameLayout,
-Gravity:android.view.Gravity,
-GridView:android.widget.GridView,
-HorizontalScrollView:android.widget.HorizontalScrollView,
-Html:android.text.Html,
-ImageView:android.widget.ImageView,
-InputMethodManager:android.view.inputmethod.InputMethodManager,
-InputType:android.text.InputType,
-LinearInterpolator:android.view.animation.LinearInterpolator,
-LinearLayout:android.widget.LinearLayout,
-LinkMovementMethod:android.text.method.LinkMovementMethod,
-ListAdapter:android.widget.ListAdapter,
-ListView:android.widget.ListView,
-MotionEvent:android.view.MotionEvent,
-Paint:android.graphics.Paint,
-Path:android.graphics.Path,
-PixelFormat:android.graphics.PixelFormat,
-PopupWindow:android.widget.PopupWindow,
-ProgressBar:android.widget.ProgressBar,
-R:android.R,
-RadioButton:android.widget.RadioButton,
-Rect:android.graphics.Rect,
-ScrollView:android.widget.ScrollView,
-ScrollingMovementMethod:android.text.method.ScrollingMovementMethod,
-SeekBar:android.widget.SeekBar,
-Selection:android.text.Selection,
-Shader:android.graphics.Shader,
-Space:android.widget.Space,
-SpannableString:android.text.SpannableString,
-SpannableStringBuilder:android.text.SpannableStringBuilder,
-Spanned:android.text.Spanned,
-StrikethroughSpan:android.text.style.StrikethroughSpan,
-StyleSpan:android.text.style.StyleSpan,
-Surface:android.view.Surface,
-TableLayout:android.widget.TableLayout,
-TableRow:android.widget.TableRow,
-TextUtils:android.text.TextUtils,
-TextView:android.widget.TextView,
-TextWatcher:android.text.TextWatcher,
-Toast:android.widget.Toast,
-TranslateAnimation:android.view.animation.TranslateAnimation,
-Typeface:android.graphics.Typeface,
-UnderlineSpan:android.text.style.UnderlineSpan,
-View:android.view.View,
-ViewConfiguration:android.view.ViewConfiguration,
-ViewGroup:android.view.ViewGroup,
-WebView:android.webkit.WebView,
-WindowManager:android.view.WindowManager
+	AbsListView: android.widget.AbsListView,
+	AccelerateInterpolator: android.view.animation.AccelerateInterpolator,
+	AdapterView: android.widget.AdapterView,
+	AlertDialog: android.app.AlertDialog,
+	AlphaAnimation: android.view.animation.AlphaAnimation,
+	Animation: android.view.animation.Animation,
+	AnimationSet: android.view.animation.AnimationSet,
+	Bitmap: android.graphics.Bitmap,
+	BitmapDrawable: android.graphics.drawable.BitmapDrawable,
+	BitmapFactory: android.graphics.BitmapFactory,
+	BitmapShader: android.graphics.BitmapShader,
+	Button: android.widget.Button,
+	Canvas: android.graphics.Canvas,
+	CheckBox: android.widget.CheckBox,
+	Color: android.graphics.Color,
+	ColorDrawable: android.graphics.drawable.ColorDrawable,
+	CompoundButton: android.widget.CompoundButton,
+	DecelerateInterpolator: android.view.animation.DecelerateInterpolator,
+	EditText: android.widget.EditText,
+	EditorInfo: android.view.inputmethod.EditorInfo,
+	ForegroundColorSpan: android.text.style.ForegroundColorSpan,
+	FrameLayout: android.widget.FrameLayout,
+	Gravity: android.view.Gravity,
+	GridView: android.widget.GridView,
+	HorizontalScrollView: android.widget.HorizontalScrollView,
+	Html: android.text.Html,
+	ImageView: android.widget.ImageView,
+	InputMethodManager: android.view.inputmethod.InputMethodManager,
+	InputType: android.text.InputType,
+	LinearInterpolator: android.view.animation.LinearInterpolator,
+	LinearLayout: android.widget.LinearLayout,
+	LinkMovementMethod: android.text.method.LinkMovementMethod,
+	ListAdapter: android.widget.ListAdapter,
+	ListView: android.widget.ListView,
+	MotionEvent: android.view.MotionEvent,
+	Paint: android.graphics.Paint,
+	Path: android.graphics.Path,
+	PixelFormat: android.graphics.PixelFormat,
+	PopupWindow: android.widget.PopupWindow,
+	PorterDuff: android.graphics.PorterDuff,
+	PorterDuffXfermode: android.graphics.PorterDuffXfermode,
+	ProgressBar: android.widget.ProgressBar,
+	R: android.R,
+	RadioButton: android.widget.RadioButton,
+	Rect: android.graphics.Rect,
+	ScrollView: android.widget.ScrollView,
+	ScrollingMovementMethod: android.text.method.ScrollingMovementMethod,
+	SeekBar: android.widget.SeekBar,
+	Selection: android.text.Selection,
+	Shader: android.graphics.Shader,
+	Space: android.widget.Space,
+	SpannableString: android.text.SpannableString,
+	SpannableStringBuilder: android.text.SpannableStringBuilder,
+	Spanned: android.text.Spanned,
+	StrikethroughSpan: android.text.style.StrikethroughSpan,
+	StyleSpan: android.text.style.StyleSpan,
+	Surface: android.view.Surface,
+	TableLayout: android.widget.TableLayout,
+	TableRow: android.widget.TableRow,
+	TextUtils: android.text.TextUtils,
+	TextView: android.widget.TextView,
+	TextWatcher: android.text.TextWatcher,
+	Toast: android.widget.Toast,
+	TranslateAnimation: android.view.animation.TranslateAnimation,
+	Typeface: android.graphics.Typeface,
+	UnderlineSpan: android.text.style.UnderlineSpan,
+	View: android.view.View,
+	ViewConfiguration: android.view.ViewConfiguration,
+	ViewGroup: android.view.ViewGroup,
+	WebView: android.webkit.WebView,
+	WindowManager: android.view.WindowManager
 //IMPORTS_END
 });
 "IGNORELN_END";
@@ -569,10 +571,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var vcfg = G.ViewConfiguration.get(ctx);
 			var longPressTimeout = vcfg.getLongPressTimeout();
 			var touchSlop = vcfg.getScaledTouchSlop();
-			if (!(CA.settings.icon in CA.Icon)) CA.settings.icon = "default";
-			self.icon = CA.Icon[CA.settings.icon]()
 			self.view = new G.FrameLayout(ctx);
-			self.view.addView(self.icon);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (PWM.onResume()) return;
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
@@ -608,6 +607,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.icon.dispatchTouchEvent(e);
 				return true;
 			} catch(e) {return erp(e), true}}}));
+			self.view.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
+				var w, h;
+				if (self.cx > (w = Common.getScreenWidth())) self.cx = w;
+				if (self.cy > (h = Common.getScreenHeight())) self.cy = h;
+			} catch(e) {erp(e)}}}));
 			self.open = function() {
 				if (!CA.settings.topIcon) {
 					CA.showGen(CA.settings.noAnimation);
@@ -622,19 +626,28 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} else {
 					CA.showGen(CA.settings.noAnimation);
 				}
-				self.refresh();
+				self.refreshAlpha();
 			}
-			self.refresh = function() {
+			self.refreshAlpha = function() {
 				if (CA.settings.iconAlpha) {
 					self.view.setAlpha(CA.settings.iconAlpha / 10);
 				} else {
 					self.view.setAlpha(self.lastState && PWM.getCount() > 0 ? 0.3 : 0.7);
 				}
 			}
+			self.refresh = function() {
+				if (!(CA.settings.icon in CA.Icon)) CA.settings.icon = "default";
+				if (!(CA.settings.iconSize > 0)) CA.settings.iconSize = 1;
+				self.icon = CA.Icon[CA.settings.icon](CA.settings.iconSize, false);
+				self.view.removeAllViews();
+				self.view.addView(self.icon);
+				self.refreshAlpha();
+			}
 			self.lastState = true;
+			self.rect = new G.Rect();
 		}
+		if (CA.icon) return self.refreshAlpha();
 		self.refresh();
-		if (CA.icon) return;
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
 			//ctx.getWindowManager().getDefaultDisplay().getRotation() == G.Surface.ROTATION_90
@@ -1567,6 +1580,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (f) CA.showSettings();
 				if (CA.settings.topIcon) CA.showIcon();
 			}
+			self.iconRefresh = function() {
+				if (CA.showIcon.refresh) CA.showIcon.refresh();
+			}
 			self.data = [{
 				name : "版本",
 				type : "tag"
@@ -1637,13 +1653,28 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function() {
 					CA.showIconChooser(function() {
-						self.refresh(true);
+						self.iconRefresh();
 					});
+				}
+			},{
+				name : "图标大小",
+				type : "seekbar",
+				values : [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
+				current : function(p) {
+					return parseInt(this.values[p] * 100) + "%";
+				},
+				max : 10,
+				get : function() {
+					var i = this.values.indexOf(CA.settings.iconSize);
+					return i >= 0 ? i : 3;
+				},
+				set : function(v) {
+					CA.settings.iconSize = this.values[v];
+					self.iconRefresh();
 				}
 			},{
 				name : "不透明度",
 				type : "seekbar",
-				refresh : self.refresh,
 				current : function(p) {
 					return p == 0 ? "自动" : p + "0%";
 				},
@@ -1653,6 +1684,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				set : function(v) {
 					CA.settings.iconAlpha = v;
+					self.iconRefresh();
 				}
 			},{
 				id : "topIcon",
@@ -2630,7 +2662,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		list.setNumColumns(-1);
 		list.setStretchMode(2);
 		list.setAdapter(new RhinoListAdapter(Object.keys(CA.Icon), function(e) {
-			var view = CA.Icon[e]();
+			var view = CA.Icon[e](1, true);
 			view.setLayoutParams(new G.AbsListView.LayoutParams(-2, -2));
 			return view;
 		}));
@@ -2643,11 +2675,36 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		popup = Common.showDialog(frame, -1, -1, onDismiss);
 	} catch(e) {erp(e)}})},
 	Icon : {
-		"default" : function() {
+		"default" : function(size) {
+			const w = 32 * G.dp * size;
+			var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
+			var cv = new G.Canvas(bmp);
+			cv.scale(w / 256, w / 256);
+			var pt = new G.Paint();
+			pt.setAntiAlias(true);
+			pt.setColor(Common.theme.go_bgcolor);
+			pt.setShadowLayer(16, 0, 0, Common.theme.go_touchbgcolor);
+			cv.drawCircle(128, 128, 112, pt);
+			pt.setTextSize(128);
+			pt.setTypeface(G.Typeface.create(G.Typeface.MONOSPACE, G.Typeface.BOLD));
+			pt.clearShadowLayer();
+			var fb = new G.Rect(), fm = pt.getFontMetrics();
+			pt.getTextBounds("CA", 0, 2, fb);
+			pt.setColor(Common.theme.go_textcolor);
+			cv.drawText("CA", 128 - fb.centerX(), 128 - (fm.descent + fm.ascent) / 2 , pt);
+			var frm = new G.FrameLayout(ctx);
+			var view = new G.ImageView(ctx);
+			view.setImageBitmap(bmp);
+			view.setLayoutParams(new G.FrameLayout.LayoutParams(w, w));
+			frm.addView(view);
+			return frm;
+		},
+		"default_old" : function(size) {
+			var zp = G.dp * size;
 			var view = new G.TextView(ctx);
 			view.setText("CA");
-			view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			view.setTextSize(Common.theme.textsize[4]);
+			view.setPadding(5 * zp, 5 * zp, 5 * zp, 5 * zp);
+			view.setTextSize(Common.theme.textsize[4] * size);
 			view.setBackgroundColor(Common.theme.go_bgcolor);
 			view.setTextColor(Common.theme.go_textcolor);
 			view.setOnTouchListener(new G.View.OnTouchListener({onTouch : function(v, e) {try {
@@ -3126,7 +3183,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return r;
 		},
 		getParamTag : function(cp, ms, mt, md) { //匹配模式，匹配字符串，匹配类型（已输入、输入中、未输入、出错），matchParam返回的匹配数据
-			var z = cp.name, t, l;
+			var z = cp.name, t, t2;
 			if (mt == 1 || mt == 3) {
 				switch (cp.type) {
 					case "int":
@@ -3170,12 +3227,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					
 					case "position":
-					z += ":x y z";
-					if (mt == 3) break;
+					if (mt == 3) {
+						z += ":x y z";
+						break;
+					}
+					t2 = md.uv ? ["左", "上", "前"] : ["x", "y", "z"];
 					t = (/(\S*)\s*(\S*)\s*(\S*)/).exec(ms);
-					if (t[1]) z = z.replace("x", t[1]);
-					if (t[2]) z = z.replace("y", t[2]);
-					if (t[3]) z = z.replace("z", t[3]);
+					if (t[1]) t2[0] = t[1];
+					if (t[2]) t2[1] = t[2];
+					if (t[3]) t2[2] = t[3];
+					z += ":" + t2.join(" ");
 					break;
 					
 					case "command":
@@ -3385,7 +3446,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				length : n == 3 && l[2].length > 0 ? (/^\S+\s+\S+\s+\S+/).exec(ps)[0].length : ps.length,
 				input : [],
 				assist : {},
-				canFinish : f && n == 3
+				canFinish : f && n == 3,
+				uv : uv
 			}
 			if (l[n - 1].length > 0) {
 				t.input.push("  - 空格");
@@ -3396,8 +3458,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					t.assist["~ - 相对位置"] = "~";
 				}
 				if (ps.length == 0 || uv) {
-					t.input.push("^ - 相对视角");
-					t.assist["^ - 相对视角"] = "^";
+					t.input.push("^ - 相对视角(^左 ^上 ^前)");
+					t.assist["^ - 相对视角(^左 ^上 ^前)"] = "^";
 				}
 			}
 			if (MCAdapter.available()) {
@@ -7635,6 +7697,9 @@ MapScript.loadModule("SettingsCompat", {
 });
 
 MapScript.loadModule("EasterEgg", {
+	onCreate : function() {
+		G.ui(this.initIcon);
+	},
 	start : function self() {G.ui(function() {try {
 		if (EasterEgg.view) return;
 		if (!self.view) {
@@ -7668,23 +7733,43 @@ MapScript.loadModule("EasterEgg", {
 		PWM.addPopup(EasterEgg.view);
 	} catch(e) {}})},
 	getBitmap : function(w) {
+		var zf = new java.util.zip.ZipFile(ctx.getPackageManager().getApplicationInfo("com.mojang.minecraftpe", 128).publicSourceDir);
+		var b = zf.getInputStream(zf.getEntry("assets/resource_packs/vanilla/textures/blocks/command_block_front_mipmap.png"));
 		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
 		var cv = new G.Canvas(bmp);
-		cv.scale(w / 17, w / 17);
+		cv.scale(w / 170, w / 170);
 		var pt = new G.Paint();
-		pt.setShader(new G.BitmapShader(G.Bitmap.createScaledBitmap(G.BitmapFactory.decodeStream(ModPE.openInputStreamFromTexturePack("textures/blocks/command_block.png")), 16, 16, false), G.Shader.TileMode.REPEAT, G.Shader.TileMode.REPEAT));
-		cv.drawRect(0, 0, 17, 17, pt);
+		pt.setAntiAlias(true);
+		pt.setShader(new G.BitmapShader(G.Bitmap.createScaledBitmap(G.BitmapFactory.decodeStream(b), 160, 160, false), G.Shader.TileMode.REPEAT, G.Shader.TileMode.REPEAT));
+		cv.drawRect(0, 0, 170, 170, pt);
 		pt.setShader(null);
-		pt.setTextSize(3);
+		pt.setTextSize(60);
 		var fm = pt.getFontMetrics();
 		var th = fm.bottom - fm.top;
 		pt.setColor(G.Color.argb(0x80, 0, 0, 0));
-		pt.setShadowLayer(0.1, 0, 0, pt.getColor());
-		cv.drawRoundRect(0, 17 - th, 17, 18, 0.5, 0.5, pt);
+		pt.setShadowLayer(1, 0, 0, pt.getColor());
+		cv.drawRoundRect(0, 170 - th, 170, 200, 10, 10, pt);
 		pt.setColor(G.Color.WHITE);
-		pt.setShadowLayer(0.1, 0, 0, G.Color.BLACK);
-		cv.drawText(" CA_", 0, 17 - fm.descent, pt);
+		pt.setShadowLayer(1, 0, 0, G.Color.BLACK);
+		cv.drawText(" CA_", 0, 170 - fm.descent, pt);
 		return bmp;
+	},
+	initIcon : function() {
+		var img;
+		try {
+			img = EasterEgg.getBitmap(480);
+		} catch(e) {Log.e(e)}
+		if (img) {
+			CA.Icon.easteregg = function(size) {
+				var zp = G.dp * size;
+				var frm = new G.FrameLayout(ctx);
+				var view = new G.ImageView(ctx);
+				view.setImageBitmap(img);
+				view.setLayoutParams(new G.FrameLayout.LayoutParams(32 * zp, 32 * zp));
+				frm.addView(view);
+				return frm;
+			};
+		}
 	}
 });
 
@@ -8136,11 +8221,12 @@ MapScript.loadModule("AndroidBridge", {
 		} catch(e) {}
 		if (img) {
 			CA.Icon.default0 = CA.Icon.default;
-			CA.Icon.default = function() {
+			CA.Icon.default = function(size) {
+				var zp = G.dp * size;
 				var frm = new G.FrameLayout(ctx);
 				var view = new G.ImageView(ctx);
 				view.setImageDrawable(img);
-				view.setLayoutParams(new G.FrameLayout.LayoutParams(32 * G.dp, 32 * G.dp));
+				view.setLayoutParams(new G.FrameLayout.LayoutParams(32 * zp, 32 * zp));
 				frm.addView(view);
 				return frm;
 			};
