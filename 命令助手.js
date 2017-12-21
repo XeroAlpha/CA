@@ -597,7 +597,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					touch.offx = self.cx - (touch.lx = e.getRawX());
 					touch.offy = self.cy - (touch.ly = e.getRawY());
 					touch.stead = true;
-					break;
+					return true;
 					case e.ACTION_UP:
 					if (touch.stead && e.getEventTime() - e.getDownTime() < longPressTimeout) v.performClick();
 					case e.ACTION_CANCEL:
@@ -636,15 +636,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			self.refresh = function() {
-				if (!(CA.settings.icon in CA.Icon)) CA.settings.icon = "default";
 				if (!(CA.settings.iconSize > 0)) CA.settings.iconSize = 1;
-				self.icon = CA.Icon[CA.settings.icon](CA.settings.iconSize, false);
+				self.icon = CA.settings.icon in CA.Icon ? CA.Icon[CA.settings.icon](CA.settings.iconSize, false) : CA.customIcon(CA.settings.icon, CA.settings.iconSize);
 				self.view.removeAllViews();
 				self.view.addView(self.icon);
 				self.refreshAlpha();
 			}
 			self.lastState = true;
-			self.rect = new G.Rect();
 		}
 		if (CA.icon) return self.refreshAlpha();
 		self.refresh();
@@ -2649,7 +2647,21 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		});
 	},
 	showIconChooser : function self(callback, onDismiss) {G.ui(function() {try {
-		var frame, list, popup;
+		if (!self.addCustom) {
+			self.addCustom = function() {
+				var view = new G.TextView(ctx);
+				view.setText("自定义图标");
+				view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				view.setTextSize(Common.theme.textsize[2]);
+				view.setBackgroundColor(Common.theme.go_bgcolor);
+				view.setTextColor(Common.theme.go_textcolor);
+				return view;
+			}
+			self.recent = [];
+		}
+		var ci = Object.keys(CA.Icon).concat(self.recent), frame, list, popup;
+		if (!(CA.settings.icon in CA.Icon) && self.recent.indexOf(CA.settings.icon) < 0) ci.push(CA.settings.icon);
+		ci.push("");
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(Common.theme.message_bgcolor);
 		list = new G.GridView(ctx);
@@ -2661,19 +2673,58 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		list.setGravity(G.Gravity.CENTER);
 		list.setNumColumns(-1);
 		list.setStretchMode(2);
-		list.setAdapter(new RhinoListAdapter(Object.keys(CA.Icon), function(e) {
-			var view = CA.Icon[e](1, true);
+		list.setAdapter(new RhinoListAdapter(ci, function(e) {
+			var view = e == "" ? self.addCustom() : e in CA.Icon ? CA.Icon[e](1, true) : CA.customIcon(e, 1, true);
 			view.setLayoutParams(new G.AbsListView.LayoutParams(-2, -2));
 			return view;
 		}));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-			CA.settings.icon = String(parent.getItemAtPosition(pos));
-			if (callback) callback();
+			var z = String(parent.getItemAtPosition(pos));
+			if (z) {
+				CA.settings.icon = z;
+				if (callback) callback();
+			} else {
+				Common.showFileDialog({
+					type : 0,
+					check : function(path) {
+						var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
+						if (!bmp) {
+							Common.toast("不支持的图片格式");
+							return false;
+						}
+						bmp.recycle();
+						return true;
+					},
+					callback : function(f) {
+						var path = String(f.result.getAbsolutePath());
+						CA.settings.icon = path;
+						if (self.recent.indexOf(path) < 0) self.recent.push(path);
+						if (callback) callback();
+					}
+				});
+			}
 			popup.dismiss();
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
 		popup = Common.showDialog(frame, -1, -1, onDismiss);
 	} catch(e) {erp(e)}})},
+	customIcon : function(path, size, preview) {
+		const w = 32 * G.dp * size;
+		var frm = new G.FrameLayout(ctx);
+		var view = new G.ImageView(ctx);
+		var bmp = G.BitmapFactory.decodeFile(path);
+		if (bmp) {
+			view.setImageBitmap(bmp);
+		} else if (preview) {
+			view.setImageResource(G.R.drawable.ic_delete);
+		} else {
+			return CA.Icon.default(size, false);
+		}
+		view.setScaleType(G.ImageView.ScaleType.FIT_XY);
+		view.setLayoutParams(new G.FrameLayout.LayoutParams(w, w));
+		frm.addView(view);
+		return frm;
+	},
 	Icon : {
 		"default" : function(size) {
 			const w = 32 * G.dp * size;
@@ -7679,20 +7730,23 @@ MapScript.loadModule("SettingsCompat", {
 	},
 	getProp : function(key) {
 		var ln = null, is = null;
-		try {
-			var p = java.lang.Runtime.getRuntime().exec("getprop " + key);
-			is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
-			ln = is.readLine();
-			is.close();
-		} catch(e) {
-			return null;
-		}
+		var th = new java.lang.Thread(function() {
+			try {
+				var p = java.lang.Runtime.getRuntime().exec("getprop " + key);
+				is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
+				ln = is.readLine();
+				is.close();
+			} catch(e) {}
+		});
+		th.start();
+		th.join(50, 0);
+		if (th.getState() != java.lang.Thread.State.TERMINATED) th.interrupt();
 		if (is != null) {
 			try {
 				is.close();
 			} catch(e) {}
 		}
-		return String(ln);
+		return ln ? String(ln) : null;
 	}
 });
 
@@ -8215,17 +8269,47 @@ MapScript.loadModule("AndroidBridge", {
 		});
 	},
 	initIcon : function() {
-		var img;
+		var logo, icon;
 		try {
-			img = ctx.getPackageManager().getApplicationIcon("com.xero.ca");
+			var appi = ctx.getPackageManager().getApplicationInfo("com.xero.ca", 128);
+			icon = ctx.getPackageManager().getResourcesForApplication(appi).getDrawable(appi.icon, null);
 		} catch(e) {}
-		if (img) {
+		if (icon) {
+			CA.Icon.default0 = CA.Icon.default;
+			CA.Icon.default = function(size) {
+				const w = 32 * G.dp * size;
+				var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
+				var cv = new G.Canvas(bmp);
+				cv.scale(w / 256, w / 256);
+				var pt = new G.Paint();
+				pt.setAntiAlias(true);
+				pt.setColor(G.Color.BLACK);
+				pt.setShadowLayer(16, 0, 0, G.Color.BLACK);
+				var ph = new G.Path();
+				ph.addCircle(128, 128, 112, G.Path.Direction.CW);
+				cv.drawPath(ph, pt);
+				cv.clipPath(ph);
+				icon.setBounds(16, 16, 240, 240);
+				icon.draw(cv);
+				var frm = new G.FrameLayout(ctx);
+				var view = new G.ImageView(ctx);
+				view.setImageBitmap(bmp);
+				view.setLayoutParams(new G.FrameLayout.LayoutParams(w, w));
+				frm.addView(view);
+				return frm;
+			}
+			return;
+		}
+		try {
+			logo = ctx.getPackageManager().getApplicationIcon("com.xero.ca");
+		} catch(e) {}
+		if (logo) {
 			CA.Icon.default0 = CA.Icon.default;
 			CA.Icon.default = function(size) {
 				var zp = G.dp * size;
 				var frm = new G.FrameLayout(ctx);
 				var view = new G.ImageView(ctx);
-				view.setImageDrawable(img);
+				view.setImageDrawable(logo);
 				view.setLayoutParams(new G.FrameLayout.LayoutParams(32 * zp, 32 * zp));
 				frm.addView(view);
 				return frm;
