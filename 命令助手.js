@@ -471,8 +471,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.fav = f.favorite;
 			this.cmdstr = f.cmd ? String(f.cmd) : "";
 			this.settings = f.settings;
-			Common.alpha = f.settings.alpha;
-			Common.loadTheme(f.theme);
+			if (f.theme) {
+				f.settings.alpha = f.settings.alpha ? 0.75 : 1;
+				Common.loadTheme(f.theme);
+			} else {
+				Common.loadTheme(f.settings.theme);
+			}
 			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.IntelliSense.inner);
 			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
 			if (f.settings.libPath) {
@@ -517,7 +521,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				barTop : false,
 				autoHideIcon : false,
 				autoFormatCmd : false,
-				alpha : false,
+				alpha : 1,
 				noAnimation : false,
 				senseDelay : true,
 				disablePaste : false,
@@ -532,22 +536,19 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				enabledLibrarys : Object.keys(this.IntelliSense.inner),
 				disabledLibrarys : []
 			};
-			this.IntelliSense.initLibrary();
-			Common.alpha = Boolean(this.settings.alpha);
 			Common.loadTheme();
+			this.IntelliSense.initLibrary();
 		}
 	},
 	save : function() {
-		var a = {
+		if (Common.theme) this.settings.theme = Common.theme.id;
+		MapScript.saveJSON(this.profilePath, {
 			history : this.his,
 			favorite : this.fav,
 			cmd : this.cmdstr,
 			settings : this.settings,
-			theme : Common.theme.id,
 			publishDate : this.publishDate
-		};
-		a.settings.alpha = Common.alpha;
-		MapScript.saveJSON(this.profilePath, a, true);
+		}, true);
 	},
 	addHistory : function(t) {
 		var i = this.his.indexOf(String(t));
@@ -2657,6 +2658,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				view.setTextColor(Common.theme.go_textcolor);
 				return view;
 			}
+			self.selectIcon = function(callback) {
+				if (MapScript.host == "Android") {
+					AndroidBridge.selectFile("image/*", function(path) {
+						CA.settings.icon = path;
+						if (self.recent.indexOf(path) < 0) self.recent.push(path);
+						if (callback) callback();
+					});
+				} else {
+					Common.showFileDialog({
+						type : 0,
+						check : function(path) {
+							var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
+							if (!bmp) {
+								Common.toast("不支持的图片格式");
+								return false;
+							}
+							bmp.recycle();
+							return true;
+						},
+						callback : function(f) {
+							var path = String(f.result.getAbsolutePath());
+							CA.settings.icon = path;
+							if (self.recent.indexOf(path) < 0) self.recent.push(path);
+							if (callback) callback();
+						}
+					});
+				}
+			}
 			self.recent = [];
 		}
 		var ci = Object.keys(CA.Icon).concat(self.recent), frame, list, popup;
@@ -2684,24 +2713,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.settings.icon = z;
 				if (callback) callback();
 			} else {
-				Common.showFileDialog({
-					type : 0,
-					check : function(path) {
-						var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
-						if (!bmp) {
-							Common.toast("不支持的图片格式");
-							return false;
-						}
-						bmp.recycle();
-						return true;
-					},
-					callback : function(f) {
-						var path = String(f.result.getAbsolutePath());
-						CA.settings.icon = path;
-						if (self.recent.indexOf(path) < 0) self.recent.push(path);
-						if (callback) callback();
-					}
-				});
+				self.selectIcon(callback);
 			}
 			popup.dismiss();
 		} catch(e) {erp(e)}}}));
@@ -2755,7 +2767,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var view = new G.TextView(ctx);
 			view.setText("CA");
 			view.setPadding(5 * zp, 5 * zp, 5 * zp, 5 * zp);
-			view.setTextSize(Common.theme.textsize[4] * size);
+			view.setTextSize(18 * size);
 			view.setBackgroundColor(Common.theme.go_bgcolor);
 			view.setTextColor(Common.theme.go_textcolor);
 			view.setOnTouchListener(new G.View.OnTouchListener({onTouch : function(v, e) {try {
@@ -5075,12 +5087,19 @@ MapScript.loadModule("Common", {
 			r[i] = convert(k[i], light[i]);
 		}
 		r.name = k === light ? "默认主题" : String(k.name);
-		if (this.alpha) { //Java里可以直接写r.bgcolor = r.bgcolor & 0xffffff | 0xc0000000;
-			r.bgcolor = G.Color.argb(0xc0, G.Color.red(r.bgcolor), G.Color.green(r.bgcolor), G.Color.blue(r.bgcolor));
-			r.float_bgcolor = G.Color.argb(0xe0, G.Color.red(r.float_bgcolor), G.Color.green(r.float_bgcolor), G.Color.blue(r.float_bgcolor));
+		i = Math.floor(CA.settings.alpha * 255);
+		if (i >= 0 && i < 255) {
+			r.bgcolor = G.Color.argb(i, G.Color.red(r.bgcolor), G.Color.green(r.bgcolor), G.Color.blue(r.bgcolor));
+			r.float_bgcolor = G.Color.argb(i, G.Color.red(r.float_bgcolor), G.Color.green(r.float_bgcolor), G.Color.blue(r.float_bgcolor));
 			r.message_bgcolor = G.Color.argb(0xe0, G.Color.red(r.message_bgcolor), G.Color.green(r.message_bgcolor), G.Color.blue(r.message_bgcolor));
+		} else {
+			CA.settings.alpha = i = 1;
 		}
-		r.textsize = [10, 12, 14, 16, 18];
+		i = parseFloat(CA.settings.textSize);
+		if (!(i > 0)) {
+			CA.settings.textSize = i = 1;
+		}
+		r.textsize = [Math.ceil(10 * i), Math.ceil(12 * i), Math.ceil(14 * i), Math.ceil(16 * i), Math.ceil(18 * i)];
 		this.theme = r;
 	},
 	
@@ -5105,8 +5124,12 @@ MapScript.loadModule("Common", {
 				self.linear.setBackgroundColor(Common.theme.message_bgcolor);
 				self.title.setTextSize(Common.theme.textsize[4]);
 				self.title.setTextColor(Common.theme.textcolor);
+				self.alpha.setText("不透明度：" + (isFinite(CA.settings.alpha) ? parseInt(CA.settings.alpha * 100) : 100) + "%");
 				self.alpha.setTextSize(Common.theme.textsize[2]);
-				self.alpha.setTextColor(Common.theme.textcolor);
+				self.alpha.setTextColor(Common.theme.highlightcolor);
+				self.tsz.setText("字体大小：" + (isFinite(CA.settings.textSize) ? parseInt(CA.settings.textSize * 100) : 100) + "%");
+				self.tsz.setTextSize(Common.theme.textsize[2]);
+				self.tsz.setTextColor(Common.theme.highlightcolor);
 				self.exit.setTextSize(Common.theme.textsize[3]);
 				self.exit.setTextColor(Common.theme.criticalcolor);
 			}
@@ -5130,22 +5153,44 @@ MapScript.loadModule("Common", {
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			
-			self.alpha = new G.CheckBox(ctx);
-			self.alpha.setText("启用半透明风格");
-			self.alpha.setChecked(Boolean(Common.alpha));
-			self.alpha.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
-				Common.alpha = Boolean(s);
-				Common.loadTheme(self.current);
-				self.refresh();
+			self.exbar = new G.LinearLayout(ctx);
+			self.exbar.setOrientation(G.LinearLayout.HORIZONTAL);
+			
+			self.alpha = new G.TextView(ctx);
+			self.alpha.setGravity(G.Gravity.CENTER);
+			self.alpha.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				var l = [0, 0.2, 0.4, 0.6, 0.8, 1];
+				Common.showListChooser(l.map(function(e) {
+					return String(e * 100) + "%";
+				}), function(p) {
+					CA.settings.alpha = l[p];
+					Common.loadTheme(self.current);
+					self.refresh();
+				});
 			} catch(e) {erp(e)}}}));
-			self.linear.addView(self.alpha, new G.LinearLayout.LayoutParams(-1, -2));
+			self.exbar.addView(self.alpha, new G.LinearLayout.LayoutParams(-2, -2, 1));
+			
+			self.tsz = new G.TextView(ctx);
+			self.tsz.setGravity(G.Gravity.CENTER);
+			self.tsz.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				var l = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+				Common.showListChooser(l.map(function(e) {
+					return String(e * 100) + "%";
+				}), function(p) {
+					CA.settings.textSize = l[p];
+					Common.loadTheme(self.current);
+					self.refresh();
+				});
+			} catch(e) {erp(e)}}}));
+			self.exbar.addView(self.tsz, new G.LinearLayout.LayoutParams(-2, -2, 1));
+			self.linear.addView(self.exbar, new G.LinearLayout.LayoutParams(-1, -2));
 			
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (Common.theme.id != self.last || self.alpha.isChecked() != self.lastchecked) {
+				if (Common.theme.id != self.last || CA.settings.alpha != self.lastalpha || CA.settings.textSize != self.lasttsz) {
 					self.modified = true;
 					if (self.update) self.update();
 					//此处无需dismiss。因为update会自动resetGUI()
@@ -5171,7 +5216,8 @@ MapScript.loadModule("Common", {
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.last = Common.theme.id;
-		self.lastchecked = self.alpha.isChecked();
+		self.lastalpha = CA.settings.alpha;
+		self.lasttsz = CA.settings.textSize;
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
 		PWM.add(self.popup);
@@ -8076,6 +8122,7 @@ MapScript.loadModule("MCAdapter", {
 });
 
 MapScript.loadModule("AndroidBridge", {
+	intentCallback : {},
 	onCreate : function() {
 		G.ui(this.initIcon);
 	},
@@ -8085,6 +8132,13 @@ MapScript.loadModule("AndroidBridge", {
 			applyIntent : function(intent) {try {
 				AndroidBridge.callHide();
 				return true;
+			} catch(e) {erp(e)}},
+			onActivityResult : function(requestCode, resultCode, data) {try {
+				var cb = AndroidBridge.intentCallback[requestCode];
+				if (!cb) return;
+				PWM.onResume();
+				delete AndroidBridge.intentCallback[requestCode];
+				cb(resultCode, data);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -8333,6 +8387,38 @@ MapScript.loadModule("AndroidBridge", {
 		}
 		Common.showListChooser(r, function(id) {
 			callback(String(r[id].result));
+		});
+	},
+	startActivityForResult : function(intent, callback) {
+		this.intentCallback[intent.hashCode()] = callback;
+		ScriptActivity.startActivityForResult(intent, intent.hashCode());
+	},
+	uriToFile : function(uri) {
+		/*
+		 作者：Thresh0ld
+		 链接：http://www.jianshu.com/p/42de16d76721
+		 來源：简书
+		*/
+		if (uri.getScheme().equalsIgnoreCase("content")) {
+			var cursor;
+			try {
+				cursor = ctx.getContentResolver().query(uri, ["_data"], null, null, null);
+				var column_index = cursor.getColumnIndexOrThrow("_data");
+				if (cursor.moveToFirst()) {
+					return String(cursor.getString(column_index));
+				}
+			} catch(e) {}
+		} else if (uri.getScheme().equalsIgnoreCase("file")) {
+			return String(uri.getPath());
+		}
+		return null;
+	},
+	selectFile : function(mimeType, callback) {
+		var i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
+		i.setType(mimeType);
+		this.startActivityForResult(i, function(resultCode, data) {
+			if (resultCode != ctx.RESULT_OK) return;
+			callback(AndroidBridge.uriToFile(data.getData()));
 		});
 	}
 });
