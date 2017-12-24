@@ -425,7 +425,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} else {
 				this.showContentView(false);
 				this.supportFloat = false;
-				Common.showTextDialog("警告\n\n命令助手无法获取到系统悬浮窗权限，已切换为弹窗模式。\n下次打开时将重新检测。");
+				Common.showConfirmDialog({
+					title : "警告\n\n命令助手无法获取到系统悬浮窗权限，已切换为弹窗模式。\n下次打开时将重新检测。",
+					buttons : ["立即重启", "暂时忽略"],
+					callback : function(id) {
+						if (id == 1) return;
+						unload();
+						initialize();
+					}
+				});
 			}
 		}
 		this.load();
@@ -7858,7 +7866,7 @@ MapScript.loadModule("EasterEgg", {
 		var img;
 		try {
 			img = EasterEgg.getBitmap(480);
-		} catch(e) {Log.e(e)}
+		} catch(e) {}
 		if (img) {
 			CA.Icon.easteregg = function(size) {
 				var zp = G.dp * size;
