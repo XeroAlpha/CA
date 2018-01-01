@@ -515,6 +515,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.IntelliSense.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个命令库无法加载，请在设置中查看详情");
 			});
+			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
+				Updater.showNewVersionInfo(f.publishDate);
+			}
 		} else {
 			this.his = [
 				"/say 你好，我是命令助手！左边是历史，右边是收藏，可以拖来拖去，也可以长按编辑哦"
@@ -593,7 +596,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return;
 				}
 				self.open();
-				return;
 			} catch(e) {erp(e)}}}));
 			self.view.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
@@ -6794,27 +6796,17 @@ MapScript.loadModule("Updater", {
 	toAnchor : function(title, url) {
 		return '<a href="' + url + '">' + title + '</a>';
 	},
-	getUpdateInfo : function(callback) {
-		var src;
+	getUpdateInfo : function(callback, silently) {
+		var r;
 		try {
 			if (this.lastcheck) {
-				src = this.lastcheck;
+				r = this.lastcheck;
 			} else {
-				src = this.queryPage(this.url);
-				this.lastcheck = src;
+				this.lastcheck = r = JSON.parse(this.queryPage(this.url));
 			}
-			var r = JSON.parse(src);
-			callback(Date.parse(CA.publishDate) < Date.parse(r.version), r.version, G.Html.fromHtml([
-				"<b>最新版本：" + r.version + "</b>\t(" + r.belongs + ")",
-				"发布时间：" + this.toChineseDate(r.time),
-				"<br /><b>下载地址：</b><br />" + Object.keys(r.downloads).map(function(e) {
-					return Updater.toAnchor("★" + e, r.downloads[e]);
-				}).join("<br />"),
-				"<br />最近更新内容：",
-				r.info.replace(/\n/g, "<br />")
-			].join("<br />")));
+			callback(Date.parse(CA.publishDate) < Date.parse(r.version), r.version, r);
 		} catch(e) {
-			Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
+			if (!silently) return Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
 		}
 	},
 	getVersionInfo : function() {
@@ -6828,7 +6820,7 @@ MapScript.loadModule("Updater", {
 			return "Beta版本：" + CA.publishDate;
 		}
 	},
-	checkUpdate : function(callback) {
+	checkUpdate : function(callback, silently) {
 		if (this.checking) {
 			Common.toast("正在检查更新中，请稍候");
 			return false;
@@ -6836,15 +6828,41 @@ MapScript.loadModule("Updater", {
 		this.checking = true;
 		if (callback) callback();
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-			Updater.getUpdateInfo(function(flag, date, message) {
+			Updater.getUpdateInfo(function(flag, date, info) {
 				if (flag) {
-					Common.showTextDialog(message.insert(0, G.Html.fromHtml("<b>命令助手更新啦！</b><br /><br />")));
-				} else {
+					Common.showTextDialog(G.Html.fromHtml([
+						"<b>命令助手更新啦！</b><br />",
+						"<b>最新版本：" + info.version + "</b>\t(" + info.belongs + ")",
+						"发布时间：" + Updater.toChineseDate(info.time),
+						"<br /><b>下载地址：</b><br />" + Object.keys(info.downloads).map(function(e) {
+							return Updater.toAnchor("★" + e, info.downloads[e]);
+						}).join("<br />"),
+						"<br />最近更新内容：",
+						info.info.replace(/\n/g, "<br />")
+					].join("<br />")));
+				} else if (!silently) {
 					Common.toast("当前已经是最新版本：" + date);
 				}
 				Updater.latest = date;
-			});
+			}, silently);
 			if (callback) callback();
+			Updater.checking = false;
+		} catch(e) {erp(e)}}}));
+		thread.start();
+	},
+	showNewVersionInfo : function(oldVer) {
+		this.checking = true;
+		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
+			Updater.getUpdateInfo(function(flag, date, info) {
+				Common.showTextDialog(G.Html.fromHtml([
+					"<b>命令助手已更新！</b>",
+					"<b>" + oldVer + " -> " + info.version + "</b>\t(" + info.belongs + ")",
+					"发布时间：" + Updater.toChineseDate(info.time),
+					"<br />最近更新内容：",
+					info.info.replace(/\n/g, "<br />")
+				].join("<br />")));
+				Updater.latest = date;
+			}, true);
 			Updater.checking = false;
 		} catch(e) {erp(e)}}}));
 		thread.start();
@@ -6852,7 +6870,7 @@ MapScript.loadModule("Updater", {
 	latest : null,
 	lastcheck : null,
 	checking : false,
-	url : "http://git.oschina.net/projectxero/ca/raw/master/update.json",
+	url : "http://git.oschina.net/projectxero/ca/raw/master/update.json"
 });
 
 MapScript.loadModule("JSONEdit", {
@@ -7528,7 +7546,7 @@ MapScript.loadModule("JSONEdit", {
 		}
 	},
 	refresh : function() {G.ui(function() {try {
-		var lbl, i, e, ci = JSONEdit.path[JSONEdit.path.length - 1], cd = ci.data;
+		var lbl, i, e, ci = JSONEdit.path[JSONEdit.path.length - 1], cd = ci.data, items;
 		JSONEdit.pathbar.removeAllViews();
 		for (i in JSONEdit.path) {
 			e = JSONEdit.path[i];
@@ -7541,7 +7559,9 @@ MapScript.loadModule("JSONEdit", {
 			lbl.setOnClickListener(JSONEdit.pathClick);
 			JSONEdit.pathbar.addView(lbl);
 		}
-		JSONEdit.list.setAdapter(new RhinoListAdapter(JSONEdit.listItems(cd), JSONEdit.itemAdapter, cd));
+		items =  JSONEdit.listItems(cd);
+		//items.sort();
+		JSONEdit.list.setAdapter(new RhinoListAdapter(items, JSONEdit.itemAdapter, cd));
 		JSONEdit.list.post(function() {try {
 			JSONEdit.list.setSelection(ci.pos);
 		} catch(e) {erp(e)}});
@@ -8435,12 +8455,12 @@ MapScript.loadModule("AndroidBridge", {
 CA.IntelliSense.inner["default"] = {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.1.1.51 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.2.6 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.2.5.52",
+	"targetSupportVer": "1.2.6.60",
 	"commands": {},
 	"enums": {
 		"block": {
@@ -8484,7 +8504,7 @@ CA.IntelliSense.inner["default"] = {
 			"cocoa": "可可果",
 			"command_block": "命令方块",
 			"concrete": "混凝土",
-			"concretepowder": "黑色混凝土粉末/红色混凝土粉末/绿色混凝土粉末/棕色混凝土粉末/蓝色混凝土粉末/紫色混凝土粉末/青色混凝土粉末/淡灰色混凝土粉末/灰色混凝土粉末/粉红色混凝土粉末/黄绿色混凝土粉末/黄色混凝土粉末/淡蓝色混凝土粉末/品红色混凝土粉末/橙色混凝土粉末/白色混凝土粉末",
+			"concretepowder": "混凝土粉末",
 			"crafting_table": "工作台",
 			"cyan_glazed_terracotta": "青色带釉陶瓦",
 			"dark_oak_door": "深色橡木门",
@@ -8501,7 +8521,7 @@ CA.IntelliSense.inner["default"] = {
 			"double_plant": "向日葵",
 			"double_stone_slab": "双石台阶",
 			"double_stone_slab2": "双红砂岩台阶",
-			"double_wooden_slab": "",
+			"double_wooden_slab": "双木台阶",
 			"dragon_egg": "龙蛋",
 			"dropper": "投掷器",
 			"emerald_block": "绿宝石块",
@@ -8563,8 +8583,8 @@ CA.IntelliSense.inner["default"] = {
 			"lime_glazed_terracotta": "黄绿色带釉陶瓦",
 			"lit_furnace": "燃烧的熔炉",
 			"lit_pumpkin": "南瓜灯",
-			"lit_redstone_lamp": "红石灯",
-			"lit_redstone_ore": "红石矿石",
+			"lit_redstone_lamp": "点亮的红石灯",
+			"lit_redstone_ore": "发光的红石矿石",
 			"log": "木头",
 			"log2": "金合欢木",
 			"magenta_glazed_terracotta": "品红色带釉陶瓦",
@@ -8596,8 +8616,8 @@ CA.IntelliSense.inner["default"] = {
 			"podzol": "灰化土",
 			"portal": "下界传送门",
 			"potatoes": "马铃薯",
-			"powered_comparator": "红石比较器",
-			"powered_repeater": "红石中继器",
+			"powered_comparator": "充能的红石比较器",
+			"powered_repeater": "充能的红石中继器",
 			"prismarine": "海晶石",
 			"pumpkin": "南瓜",
 			"pumpkin_stem": "南瓜梗",
@@ -8650,12 +8670,12 @@ CA.IntelliSense.inner["default"] = {
 			"stone_button": "石质按钮",
 			"stone_pressure_plate": "石质压力板",
 			"stone_slab": "石台阶",
-			"stone_slab2": "红沙石台阶/紫珀台阶",
+			"stone_slab2": "红沙石台阶",
 			"stone_stairs": "圆石楼梯",
 			"stonebrick": "石砖",
 			"stonecutter": "切石机",
 			"structure_block": "结构方块",
-			"structure_void": "建筑空隙",
+			"structure_void": "结构虚空",
 			"tallgrass": "草丛",
 			"tnt": "TNT",
 			"torch": "火把",
@@ -8664,12 +8684,12 @@ CA.IntelliSense.inner["default"] = {
 			"tripwire": "绊线",
 			"tripwire_hook": "绊线钩",
 			"undyed_shulker_box": "未染色的潜影盒",
-			"unlit_redstone_torch": "红石火把",
+			"unlit_redstone_torch": "熄灭的红石火把",
 			"unpowered_comparator": "红石比较器",
 			"unpowered_repeater": "红石中继器",
 			"vine": "藤蔓",
 			"wall_banner": "墙上的旗帜",
-			"wall_sign": "",
+			"wall_sign": "墙上的告示牌",
 			"water": "静态水",
 			"waterlily": "睡莲",
 			"web": "蜘蛛网",
@@ -8688,8 +8708,10 @@ CA.IntelliSense.inner["default"] = {
 			"anvil": "",
 			"apple": "苹果",
 			"appleenchanted": "附魔金苹果",
+			"armor_stand": "盔甲架",
 			"arrow": "箭",
 			"baked_potato": "烤马铃薯",
+			"banner": "旗帜",
 			"beacon": "",
 			"bed": "床",
 			"beef": "生牛肉",
@@ -8699,7 +8721,7 @@ CA.IntelliSense.inner["default"] = {
 			"birch_door": "白桦木门",
 			"blaze_powder": "烈焰粉",
 			"blaze_rod": "烈焰棒",
-			"board": "",
+			"board": "黑板",
 			"boat": "船",
 			"bone": "骨头",
 			"book": "书",
@@ -8728,6 +8750,7 @@ CA.IntelliSense.inner["default"] = {
 			"clownfish": "小丑鱼",
 			"coal": "煤炭",
 			"cobblestone_wall": "",
+			"command_block_minecart": "命令方块矿车",
 			"comparator": "红石比较器",
 			"compass": "指南针",
 			"cooked_beef": "牛排",
@@ -8764,6 +8787,7 @@ CA.IntelliSense.inner["default"] = {
 			"fence": "",
 			"fermented_spider_eye": "发酵蛛眼",
 			"fireball": "火焰弹",
+			"fireworks": "烟花火箭",
 			"fish": "生鱼",
 			"fishing_rod": "钓鱼竿",
 			"flint": "燧石",
@@ -8801,6 +8825,7 @@ CA.IntelliSense.inner["default"] = {
 			"iron_hoe": "铁锄",
 			"iron_ingot": "铁锭",
 			"iron_leggings": "铁护腿",
+			"iron_nugget": "铁粒",
 			"iron_pickaxe": "铁镐",
 			"iron_shovel": "铁锹",
 			"iron_sword": "铁剑",
@@ -8841,6 +8866,18 @@ CA.IntelliSense.inner["default"] = {
 			"rabbit_foot": "兔子脚",
 			"rabbit_hide": "兔子皮",
 			"rabbit_stew": "兔肉煲",
+			"record_11": "11唱片",
+			"record_13": "13唱片",
+			"record_blocks": "blocks唱片",
+			"record_cat": "cat唱片",
+			"record_chirp": "chirp唱片",
+			"record_far": "far唱片",
+			"record_mall": "mall唱片",
+			"record_mellohi": "mellohi唱片",
+			"record_stal": "stal唱片",
+			"record_strad": "strad唱片",
+			"record_wait": "wait唱片",
+			"record_ward": "ward唱片",
 			"red_flower": "",
 			"redstone": "红石粉",
 			"reeds": "甘蔗",
@@ -8850,6 +8887,7 @@ CA.IntelliSense.inner["default"] = {
 			"salmon": "生鲑鱼",
 			"sapling": "",
 			"shears": "剪刀",
+			"shulker_shell": "潜影壳",
 			"sign": "告示牌",
 			"skull": "生物头颅",
 			"slime_ball": "粘液球",
@@ -8870,7 +8908,7 @@ CA.IntelliSense.inner["default"] = {
 			"sugar": "糖",
 			"tallgrass": "",
 			"tnt_minecart": "TNT矿车",
-			"waterlilly": "",
+			"totem": "不死图腾",
 			"wheat": "小麦",
 			"wheat_seeds": "种子",
 			"wooden_axe": "木斧",
@@ -8879,6 +8917,7 @@ CA.IntelliSense.inner["default"] = {
 			"wooden_pickaxe": "木镐",
 			"wooden_shovel": "木锹",
 			"wooden_sword": "木剑",
+			"writable_book": "书与笔",
 			"yellow_flower": ""
 		},
 		"sound": {
@@ -9189,6 +9228,7 @@ CA.IntelliSense.inner["default"] = {
 			"random.orb": "随机获得经验声",
 			"random.pop": "随机捡起物品声",
 			"random.pop2": "随机捡起未知声(未确认)",
+			"random.screenshot": "",
 			"random.splash": "随机捕鱼声",
 			"random.swim": "随机游泳声",
 			"random.hurt": "随机受伤声",
@@ -9278,7 +9318,7 @@ CA.IntelliSense.inner["default"] = {
 			"cave_spider": "洞穴蜘蛛",
 			"chest_minecart": "运输矿车",
 			"chicken": "鸡",
-			"commandblock_minecart": "命令方块矿车",
+			"command_block_minecart": "命令方块矿车",
 			"cow": "牛",
 			"creeper": "爬行者",
 			"donkey": "驴",
@@ -9296,20 +9336,23 @@ CA.IntelliSense.inner["default"] = {
 			"falling_block": "掉落中的方块",
 			"fireball": "火球",
 			"fireworks_rocket": "烟花火箭",
-			"furnace_minecart": "动力矿车",
+			"fishing_hook": "鱼钩",
 			"ghast": "恶魂",
 			"guardian": "守卫者",
 			"hopper_minecart": "漏斗矿车",
 			"horse": "马",
 			"husk": "尸壳",
+			"iron_golem": "铁傀儡",
 			"item": "掉落的物品",
 			"leash_knot": "拴绳结",
 			"lightning_bolt": "闪电",
+			"lingering_potion": "滞留药水",
 			"llama": "羊驼",
 			"llama_spit": "羊驼唾沫",
 			"magma_cube": "岩浆怪",
 			"minecart": "矿车",
 			"mooshroom": "哞菇",
+			"moving_block": "",
 			"mule": "骡",
 			"ocelot": "豹猫",
 			"painting": "画",
@@ -9326,8 +9369,8 @@ CA.IntelliSense.inner["default"] = {
 			"skeleton_horse": "骷髅马",
 			"slime": "史莱姆",
 			"small_fireball": "烈焰人火球/射出的火球",
+			"snow_golem": "雪傀儡",
 			"snowball": "丢出的雪球",
-			"snowman": "雪傀儡",
 			"spider": "蜘蛛",
 			"splash_potion": "丢出的喷溅药水",
 			"squid": "鱿鱼",
@@ -9336,12 +9379,12 @@ CA.IntelliSense.inner["default"] = {
 			"tnt_minecart": "TNT矿车",
 			"vex": "恼鬼",
 			"villager": "村民",
-			"villager_golem": "铁傀儡",
-			"vindication_illager": "卫道士",
+			"vindicator": "卫道士",
 			"witch": "女巫",
 			"wither": "凋灵",
 			"wither_skeleton": "凋灵骷髅",
-			"wither_skull": "凋灵之首",
+			"wither_skull": "黑色凋灵之首",
+			"wither_skull_dangerous": "蓝色凋灵之首",
 			"wolf": "狼",
 			"xp_bottle": "丢出的附魔之瓶",
 			"xp_orb": "经验球",
@@ -9374,8 +9417,9 @@ CA.IntelliSense.inner["default"] = {
 			"health_boost": "生命提升",
 			"absorption": "伤害吸收",
 			"saturation": "饱和",
-			"glowing": "发光",
-			"levitation": "飘浮"
+			//"glowing": "发光",
+			"levitation": "飘浮",
+			"fatal_poison": "剧毒"
 		},
 		"enchant_type": {
 			"protection": "保护",
@@ -9396,7 +9440,7 @@ CA.IntelliSense.inner["default"] = {
 			"looting": "抢夺",
 			"efficiency": "效率",
 			"silk_touch": "精准采集",
-			"durability": "耐久",
+			"unbreaking": "耐久",
 			"fortune": "时运",
 			"power": "力量",
 			"punch": "冲击",
@@ -10279,9 +10323,9 @@ CA.IntelliSense.inner["default"] = {
 									"target": "player"
 								},
 								{
-									"type": "enum",
+									"type": "string",
 									"name": "附魔ID",
-									"list": "enchant_type"
+									"suggestion": "enchant_type"
 								},
 								{
 									"type": "uint",
@@ -10399,9 +10443,9 @@ CA.IntelliSense.inner["default"] = {
 									"target": "entity"
 								},
 								{
-									"type": "enum",
+									"type": "string",
 									"name": "状态效果",
-									"list": "effect"
+									"suggestion": "effect"
 								},
 								{
 									"type": "uint",
@@ -11372,6 +11416,60 @@ CA.IntelliSense.inner["addition"] = {
 				}
 			},
 			"minSupportVer": "1.1.0.55"
+		},
+		"1.2.5": {
+			"commands": {
+				"mixer": {
+					"description": "Mixer交互性控制[需安装Mixer]",
+					"patterns": {
+						"start": {
+							"description": "启动Mixer交互会话",
+							"params": [
+								{
+									"type": "plain",
+									"name": "start",
+									"prompt": "启动Mixer交互会话"
+								},
+								{
+									"type": "uint",
+									"name": "版本ID"
+								},
+								{
+									"type": "string",
+									"name": "分享码",
+									"optional": true
+								}
+							]
+						},
+						"stop": {
+							"description": "停止Mixer交互会话",
+							"params": [
+								{
+									"type": "plain",
+									"name": "stop",
+									"prompt": "停止Mixer交互会话"
+								}
+							]
+						},
+						"scene": {
+							"description": "切换Mixer交互场景",
+							"params": [
+								{
+									"type": "plain",
+									"name": "scene",
+									"prompt": "切换Mixer交互场景"
+								},
+								{
+									"type": "string",
+									"name": "场景名"
+								}
+							]
+						}
+					},
+					"help": "https://blog.mixer.com/minecraft"
+				}
+			},
+			"minSupportVer": "1.2.5.12"
 		}
 	}
 };
