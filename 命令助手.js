@@ -412,7 +412,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.1 Beta",
+	version : "0.9.3 Beta",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -5533,8 +5533,18 @@ MapScript.loadModule("Common", {
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
 			self.refreshText = function() {
+				if (!self.popup) return;
 				self.data.forEach(function(e, i) {
-					if (e.type == "text") e._text.setText(String(e.get ? e.get() : e.text));
+					if (!e._view) return;
+					if (e.type == "text") {
+						e._text.setText(String(e.get ? e.get() : e.text));
+					} else if (e.type == "custom") {
+						e._text.setText(e.get ? String(e.get()) : "");
+					} else if (e.type == "boolean") {
+						e._box.setChecked(e.get());
+					} else if (e.type == "seekbar") {
+						e._seekbar.setProgress(e.get());
+					}
 				});
 			}
 			self.adapter = function(e, i, a, extra) {
@@ -5589,12 +5599,12 @@ MapScript.loadModule("Common", {
 						e._box.setFocusable(false);
 						hl.addView(e._box);
 					}
-					return hl;
+					return e._view = hl;
 					case "space":
 					e._sp = new G.Space(ctx);
 					e._sp.setLayoutParams(G.AbsListView.LayoutParams(-1, e.height));
 					e._sp.setFocusable(true);
-					return e._sp;
+					return e._view = e._sp;
 					case "tag":
 					e._tag = new G.TextView(ctx);
 					e._tag.setText(String(e.name));
@@ -5603,7 +5613,7 @@ MapScript.loadModule("Common", {
 					e._tag.setPadding(20 * G.dp, 25 * G.dp, 0, 0);
 					e._tag.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
 					e._tag.setFocusable(true);
-					return e._tag;
+					return e._view = e._tag;
 					case "text":
 					e._text = new G.TextView(ctx);
 					e._text.setText(String(e.get ? e.get() : e.text));
@@ -5612,7 +5622,7 @@ MapScript.loadModule("Common", {
 					e._text.setPadding(20 * G.dp, 0, 20 * G.dp, 10 * G.dp);
 					e._text.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
 					e._text.setFocusable(true);
-					return e._text;
+					return e._view = e._text;
 					case "seekbar":
 					vl = new G.LinearLayout(ctx);
 					vl.setOrientation(G.LinearLayout.VERTICAL);
@@ -5652,7 +5662,7 @@ MapScript.loadModule("Common", {
 					e._seekbar.setMax(e.max);
 					e._seekbar.setProgress(e.get());
 					vl.addView(e._seekbar);
-					return vl;
+					return e._view = vl;
 				}
 			}
 			self.linear = new G.LinearLayout(ctx);
@@ -8161,6 +8171,12 @@ MapScript.loadModule("AndroidBridge", {
 				AndroidBridge.callHide();
 				return true;
 			} catch(e) {erp(e)}},
+			onAccessibilitySvcCreate : function() {
+				AndroidBridge.notifySettings();
+			},
+			onAccessibilitySvcDestroy : function() {
+				AndroidBridge.notifySettings();
+			},
 			onActivityResult : function(requestCode, resultCode, data) {try {
 				var cb = AndroidBridge.intentCallback[requestCode];
 				if (!cb) return;
@@ -8194,6 +8210,8 @@ MapScript.loadModule("AndroidBridge", {
 				switch (String(data.getString("action"))) {
 					case "init":
 					MCAdapter.client = msg.replyTo;
+					MCAdapter.connInit = true;
+					AndroidBridge.notifySettings();
 					Common.toast("已连接至Minecraft适配器，终端：" + data.getString("platform"));
 					break;
 					case "info":
@@ -8215,9 +8233,12 @@ MapScript.loadModule("AndroidBridge", {
 				Common.toast("已断开至Minecraft适配器的连接");
 				MCAdapter.bundle = null;
 				MCAdapter.client = null;
+				MCAdapter.connInit = false;
+				AndroidBridge.notifySettings();
 			} catch(e) {erp(e)}}
 		}));
 		this.onNewIntent(ScriptActivity.getIntent(), true);
+		if (CA.settings.autoStartAccSvcRoot) AndroidBridge.startAccessibilitySvcByRootAsync(null, true);
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -8281,6 +8302,11 @@ MapScript.loadModule("AndroidBridge", {
 			PWM.intentBack = true;
 		}
 	},
+	notifySettings : function() {
+		G.ui(function() {try {
+			if (Common.showSettings.refreshText) Common.showSettings.refreshText();
+		} catch(e) {erp(e)}});
+	},
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
 		
@@ -8296,11 +8322,10 @@ MapScript.loadModule("AndroidBridge", {
 			},
 			onclick : function(fset) {
 				ScriptActivity.goToAccessibilitySetting();
-				Common.showSettings.popup.dismiss();
 			}
 		}, {
 			name : "加载适配器……",
-			description : "点击以刷新状态",
+			description : "在输入命令时提供一些与游戏相关的信息",
 			type : "custom",
 			get : function() {
 				return MCAdapter.connInit ? "已连接" : "未连接";
@@ -8348,6 +8373,19 @@ MapScript.loadModule("AndroidBridge", {
 			type : "boolean",
 			get : ScriptActivity.getHideNotification.bind(ScriptActivity),
 			set : ScriptActivity.setHideNotification.bind(ScriptActivity)
+		}, {
+			name : "自动启动无障碍服务",
+			description : "需要Root",
+			type : "boolean",
+			get : function() {
+				return Boolean(CA.settings.autoStartAccSvcRoot);
+			},
+			set : function(v) {
+				CA.settings.autoStartAccSvcRoot = Boolean(v);
+				if (v) {
+					AndroidBridge.startAccessibilitySvcByRootAsync();
+				}
+			}
 		});
 	},
 	initIcon : function() {
@@ -8448,6 +8486,38 @@ MapScript.loadModule("AndroidBridge", {
 			if (resultCode != ctx.RESULT_OK) return;
 			callback(AndroidBridge.uriToFile(data.getData()));
 		});
+	},
+	startAccessibilitySvcByRoot : function() {
+		var s = String(android.provider.Settings.Secure.getString(ctx.getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)).split(":");
+		var t = "com.xero.ca/com.xero.ca.AccessibilitySvc";
+		var f = s.some(function(e) {
+			return e == t;
+		});
+		if (f) return true;
+		s.push(t);
+		try {
+			var r = java.lang.Runtime.getRuntime(), p;
+			p = r.exec(["su", "root", "settings", "put", "secure", "enabled_accessibility_services", s.join(":")]);
+			p.waitFor();
+			if (p.getErrorStream().available() > 0) return false;
+			p = r.exec(["su", "root", "settings", "put", "secure", "accessibility_enabled", "1"]);
+			p.waitFor();
+			if (p.getErrorStream().available() > 0) return false;
+			return true;
+		} catch(e) {}
+		return false;
+	},
+	startAccessibilitySvcByRootAsync : function(callback, silently) {
+		new java.lang.Thread(function() {
+			var success = AndroidBridge.startAccessibilitySvcByRoot();
+			if (callback) callback(success);
+			if (silently) return;
+			if (success) {
+				Common.toast("无障碍服务已启动");
+			} else {
+				Common.toast("无障碍服务启动失败");
+			}
+		}).start();
 	}
 });
 
