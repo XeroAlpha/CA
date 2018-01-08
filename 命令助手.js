@@ -196,8 +196,13 @@ MapScript.loadModule("ctx", (function(global) {
 MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
 
 MapScript.loadModule("erp", function self(error) {
-	var tech = [error, "\n版本:{DATE}\n堆栈:", error.stack, "\n来源:", error.fileName, "\n包名:", ctx.getPackageName(), "\nSDK版本：", android.os.Build.VERSION.SDK_INT].join("");
-	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本:" + ModPE.getMinecraftVersion();
+	var tech = [error, "\n版本: {DATE}\n堆栈: ", error.stack, "\n来源: ", error.fileName, "\n包名: ", ctx.getPackageName(), "\nSDK版本: ", android.os.Build.VERSION.SDK_INT].join("");
+	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本: " + ModPE.getMinecraftVersion();
+	if (error.javaException) {
+		var strw = new java.io.StringWriter(), strp = new java.io.PrintWriter(strw);
+		error.javaException.printStackTrace(strp);
+		tech += "\nJavaException: " + strw.toString();
+	}
 	android.util.Log.e("CA", tech);
 	try {
 		var fs = new java.io.PrintWriter(new java.io.FileOutputStream(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", true));
@@ -397,6 +402,7 @@ MapScript.loadModule("G", {
 
 MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	icon : null,
+	qbar : null,
 	gen : null,
 	con : null,
 	cmd : null,
@@ -600,29 +606,47 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.view.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
-					if (touch.stead && Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) break;
-					touch.stead = false;
+					if (touch.stead) {
+						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
+							break;
+						}
+						self.longClicked = false;
+						touch.stead = false;
+					}
 					CA.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
 					break;
 					case e.ACTION_DOWN:
 					touch.offx = self.cx - (touch.lx = e.getRawX());
 					touch.offy = self.cy - (touch.ly = e.getRawY());
 					touch.stead = true;
+					v.postDelayed(self.longClick, longPressTimeout);
+					self.longClicked = true;
 					return true;
 					case e.ACTION_UP:
-					if (touch.stead && e.getEventTime() - e.getDownTime() < longPressTimeout) v.performClick();
+					if (touch.stead) {
+						if (e.getEventTime() - e.getDownTime() < longPressTimeout) {
+							v.performClick();
+						}
+					}
 					case e.ACTION_CANCEL:
 					CA.settings.iconX = self.cx;
 					CA.settings.iconY = self.cy;
+					self.longClicked = false;
 				}
 				self.icon.dispatchTouchEvent(e);
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.view.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
 				var w, h;
+				if (self.cx < 0) self.cx = 0;
+				if (self.cy < 0) self.cy = 0;
 				if (self.cx > (w = Common.getScreenWidth())) self.cx = w;
 				if (self.cy > (h = Common.getScreenHeight())) self.cy = h;
 			} catch(e) {erp(e)}}}));
+			self.longClick = new java.lang.Runnable({run : function() {try {
+				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
+				self.longClicked = false;
+			} catch(e) {erp(e)}}});
 			self.open = function() {
 				if (!CA.settings.topIcon) {
 					CA.showGen(CA.settings.noAnimation);
@@ -675,6 +699,42 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	hideIcon : function() {G.ui(function() {try {
 		if (CA.icon) CA.icon.dismiss();
 		CA.icon = null;
+	} catch(e) {erp(e)}})},
+	
+	showQuickBar : function self() {G.ui(function() {try {
+		if (!self.list) {
+			self.list = new G.LinearLayout(ctx);
+			self.list.setOrientation(G.LinearLayout.VERTICAL);
+			self.list.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				if (e.getAction() == e.ACTION_DOWN) CA.hideQuickBar();
+				return true;
+			} catch(e) {return erp(e), true}}}));
+			self.lp = new G.LinearLayout.LayoutParams(-1, -2);
+		}
+		if (CA.qbar) return;
+		var i, e, a;
+		self.list.removeAllViews();
+		for (i in CA.QuickBar) {
+			e = CA.QuickBar[i];
+			a = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
+			a.setDuration(100);
+			a.setStartOffset(self.list.getChildCount() * 30);
+			if (!e._view) {
+				e._view = e.create(CA.hideQuickBar);
+			}
+			if (e.refresh) e.refresh();
+			e._view.startAnimation(a);
+			self.list.addView(e._view, self.lp);
+		}
+		CA.qbar = new G.PopupWindow(self.list, -2, -2);
+		CA.qbar.setFocusable(true);
+		if (CA.supportFloat) CA.qbar.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		CA.qbar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.RIGHT | G.Gravity.TOP, 0, 0);
+		PWM.addPopup(CA.qbar);
+	} catch(e) {erp(e)}})},
+	hideQuickBar : function() {G.ui(function() {try {
+		if (CA.qbar) CA.qbar.dismiss();
+		CA.qbar = null;
 	} catch(e) {erp(e)}})},
 	
 	showGen : function self(noani) {G.ui(function() {try {
@@ -1012,7 +1072,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.clear.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				CA.cmd.setText("");
 				self.activate(false);
-				return true;
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.clear);
 			
@@ -1031,7 +1090,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.performClose();
 				}
 				CA.cmd.setText("");
-				return true;
 			} catch(e) {erp(e)}}}));
 			self.copy.setOnTouchListener(new G.View.OnTouchListener({onTouch : function(v, e) {try {
 				switch (e.getAction()) {
@@ -2796,6 +2854,43 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return view;
 		}
 	},
+	QuickBar : [{
+		create : function(hide) {
+			var v = new G.Button(ctx);
+			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			v.setText("退出");
+			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				hide();
+				unload();
+				if (CA.supportFloat) ctx.finish();
+			} catch(e) {erp(e)}}}));
+			return v;
+		}
+	}, {
+		create : function(hide) {
+			var v = new G.Button(ctx);
+			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			v.setText("编辑剪贴板");
+			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				hide();
+				CA.showGen(CA.settings.noAnimation);
+				CA.cmd.setText(String(Common.getClipboardText()));
+				CA.showGen.activate(false);
+			} catch(e) {erp(e)}}}));
+			return v;
+		}
+	}, {
+		create : function(hide) {
+			var v = new G.Button(ctx);
+			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			v.setText("快速粘贴");
+			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				hide();
+				CA.performPaste(String(Common.getClipboardText()));
+			} catch(e) {erp(e)}}}));
+			return v;
+		}
+	}],
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -3655,7 +3750,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					} catch(e) {
 						CA.showAssist.postHelp(1, z.help || "暂时没有帮助，以后会加上的啦");
 					}
-					self.list.setAdapter(new RhinoListAdapter(z.input, self.adapter));
+					if (self.adptcon) {
+						self.adptcon.setArray(z.input);
+					} else {
+						var a = new RhinoListAdapter(z.input, self.adapter);
+						self.adptcon = RhinoListAdapter.getController(a);
+						self.list.setAdapter(a);
+					}
 				} catch(e) {erp(e)}})}
 				self.adapter = function(s, i, a) {
 					var view = new G.TextView(ctx);
@@ -6756,7 +6857,7 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 		},
 		setArray : function(a) {
 			this.views.length = this.src.length = 0;
-			for (i in a) this.views.push(a[i]);
+			for (i in a) this.src.push(a[i]);
 			this.views.length = this.src.length;
 			if (this.preload) {
 				this.respawnAll();
