@@ -2861,8 +2861,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			v.setText("退出");
 			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				hide();
-				unload();
-				if (CA.supportFloat) ctx.finish();
+				CA.performExit();
 			} catch(e) {erp(e)}}}));
 			return v;
 		}
@@ -8340,6 +8339,7 @@ MapScript.loadModule("AndroidBridge", {
 		}));
 		this.onNewIntent(ScriptActivity.getIntent(), true);
 		if (CA.settings.autoStartAccSvcRoot) AndroidBridge.startAccessibilitySvcByRootAsync(null, true);
+		if (CA.settings.watchClipboard) AndroidBridge.startWatchClipboard();
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -8487,6 +8487,18 @@ MapScript.loadModule("AndroidBridge", {
 					AndroidBridge.startAccessibilitySvcByRootAsync();
 				}
 			}
+		}, {
+			name : "监听剪切板",
+			type : "boolean",
+			get : function() {
+				return Boolean(CA.settings.watchClipboard);
+			},
+			set : function(v) {
+				CA.settings.watchClipboard = Boolean(v);
+				if (v) {
+					if (!AndroidBridge.clipListener) AndroidBridge.startWatchClipboard();
+				}
+			}
 		});
 	},
 	initIcon : function() {
@@ -8619,7 +8631,23 @@ MapScript.loadModule("AndroidBridge", {
 				Common.toast("无障碍服务启动失败");
 			}
 		}).start();
-	}
+	},
+	startWatchClipboard : function() {G.ui(function() {try {
+		var svc = ctx.getSystemService(ctx.CLIPBOARD_SERVICE);
+		if (android.os.Build.VERSION.SDK_INT >= 11) {
+			svc.addPrimaryClipChangedListener(AndroidBridge.clipListener = new android.content.ClipboardManager.OnPrimaryClipChangedListener({onPrimaryClipChanged : function() {try {
+				if (!CA.settings.watchClipboard || !CA.IntelliSense.library) return;
+				var s = String(Common.getClipboardText()), t, o;
+				s = s.replace(/^\s*\/?/, "");
+				o = s.search(/\n/);
+				if (o >= 0) s = s.slice(0, o);
+				o = s.search(/\s/);
+				t = o >= 0 ? s.slice(0, o) : s;
+				if (!(t.toLowerCase() in CA.IntelliSense.library.commands)) return;
+				CA.addHistory(s);
+			} catch(e) {erp(e)}}}));
+		}
+	} catch(e) {erp(e)}})}
 });
 
 "IGNORELN_START";
