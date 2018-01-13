@@ -4445,7 +4445,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		},
 		editParamDialog : function self(e, callback) {G.ui(function() {try {
-			var layout, title, p, ret, exit, popup, t, getText, setText, suggestion = {}, i;
+			var layout, title, p, ret, exit, popup, t, listener = {}, suggestion = {}, i;
 			if (!self.initTextBox) {
 				self.initTextBox = function(e, defVal) {
 					var ret = new G.EditText(ctx);
@@ -4460,10 +4460,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					ret.setSelection(ret.length());
 					return ret;
 				}
-				self.initSetText = function(ret) {
-					return function(e) {
+				self.initListener = function(ret, l, gText) {
+					if (gText) l.getText = gText;
+					l.setText = function(e) {
 						ret.setText(String(e));
 					}
+					ret.addTextChangedListener(new G.TextWatcher({
+						afterTextChanged : function(s) {try {
+							l.onTextChanged(s);
+						} catch(e) {erp(e)}}
+					}));
 				}
 			}
 			layout = new G.LinearLayout(ctx);
@@ -4481,28 +4487,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				case "int":
 				layout.addView(ret = self.initTextBox(e));
 				ret.setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED);
-				getText = function() {
+				self.initListener(ret, listener, function() {
 					return isFinite(t = ret.getText()) && t.length() ? parseInt(t) : (Common.toast("内容不是数字！"), null);
-				}
-				setText = self.initSetText(ret);
+				});
 				Common.postIME(ret);
 				break;
 				case "uint":
 				layout.addView(ret = self.initTextBox(e));
 				ret.setInputType(G.InputType.TYPE_CLASS_NUMBER);
-				getText = function() {
+				self.initListener(ret, listener, function() {
 					return isFinite(t = ret.getText()) && t.length() ? Math.abs(parseInt(t)) : (Common.toast("内容不是数字！"), null);
-				}
-				setText = self.initSetText(ret);
+				});
 				Common.postIME(ret);
 				break;
 				case "float":
 				layout.addView(ret = self.initTextBox(e));
 				ret.setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-				getText = function() {
+				self.initListener(ret, listener, function() {
 					return isFinite(t = ret.getText()) && t.length() ? parseFloat(t) : (Common.toast("内容不是数字！"), null);
-				}
-				setText = self.initSetText(ret);
+				});
 				Common.postIME(ret);
 				break;
 				case "relative":
@@ -4514,25 +4517,29 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				rela.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
 				rela.setText("启用相对参数");
 				layout.addView(rela);
-				getText = function() {
+				listener.getText = function() {
 					e.isRela = rela.isChecked();
 					e.offset = ret.getText();
 					return e.offset.length() && isFinite(e.offset) ? (e.isRela ? "~" : "") + parseFloat(e.offset) : (Common.toast("内容不是数字！"), null);
 				}
-				setText = function(e) {
+				listener.setText = function(e) {
 					var s = String(e), f = s.startsWith("~");
 					rela.setChecked(f);
 					ret.setText(f ? s.slice(1) : s);
 				}
+				ret.addTextChangedListener(new G.TextWatcher({
+					afterTextChanged : function(s) {try {
+						listener.onTextChanged();
+					} catch(e) {erp(e)}}
+				}));
 				Common.postIME(ret);
 				break;
 				case "custom":
 				layout.addView(ret = self.initTextBox(e));
 				ret.setInputType(G.InputType.TYPE_CLASS_TEXT);
-				getText = function() {
+				self.initListener(ret, listener, function() {
 					return ret.length() == 0 ? (Common.toast("内容不能为空！"), null) : (new RegExp(e.param.finish, "")).test(ret.getText()) ? ret.getText() : (Common.toast("内容不合规范！"), null);
-				}
-				setText = self.initSetText(ret);
+				});
 				Common.postIME(ret);
 				break;
 				case "command":
@@ -4543,10 +4550,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				default:
 				layout.addView(ret = self.initTextBox(e));
 				ret.setInputType(G.InputType.TYPE_CLASS_TEXT);
-				getText = function() {
+				self.initListener(ret, listener, function() {
 					return ret.length() > 0 ? ret.getText() : (Common.toast("内容不能为空！"), null);
-				}
-				setText = self.initSetText(ret);
+				});
 				Common.postIME(ret);
 			}
 			if (e.param.suggestion) {
@@ -4565,17 +4571,27 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 			}
-			if (setText) {
-				var sugg = new G.ListView(ctx);
+			if (listener.setText) {
+				var sugg = new G.ListView(ctx), adpt = new FilterListAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
 				sugg.setBackgroundColor(G.Color.TRANSPARENT);
 				sugg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 				sugg.setFastScrollEnabled(true);
 				sugg.setFastScrollAlwaysVisible(false);
-				sugg.setAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
+				sugg.setAdapter(adpt.build());
 				sugg.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-					setText(suggestion[parent.getItemAtPosition(pos)]);
+					listener.setText(suggestion[parent.getItemAtPosition(pos)]);
 				} catch(e) {erp(e)}}}));
 				layout.addView(sugg);
+				listener.onTextChanged = function(s) {
+					var s = String(s);
+					if (s) {
+						adpt.setFilter(function(e, i) {
+							return e.indexOf(s) >= 0;
+						});
+					} else {
+						adpt.clearFilter();
+					}
+				}
 			}
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -4585,7 +4601,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit.setTextColor(Common.theme.criticalcolor);
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var t = getText();
+				var t = listener.getText();
 				if (t == null) return;
 				callback(String(t));
 				popup.dismiss();
@@ -6867,6 +6883,102 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 	}
 	r.getController = function(adapter) {
 		return adapter.getItem(-1);
+	}
+	return r;
+})());
+
+MapScript.loadModule("FilterListAdapter", (function() {
+	var r = function(wrap) {
+		this._wrap = wrap;
+		this._dso = [];
+		this._pos = [];
+		try {
+			new java.lang.Runnable({run : function() { //防止直接从InterfaceAdapter抛出
+				var self = this;
+				wrap.registerDataSetObserver(new JavaAdapter(android.database.DataSetObserver, {
+					onChanged : function() {
+						self.requestFilter();
+					}
+				}));
+			}}).run();
+		} catch(e) {}
+	}
+	r.prototype = {
+		build : function() {
+			if (this.buildAdapter) return this.buildAdapter;
+			var self = this;
+			return this.buildAdapter = new G.ListAdapter({
+				getCount : function() {
+					return self._filter ? self._pos.length : self._wrap.getCount();
+				},
+				getItem : function(pos) {
+					return self._wrap.getItem(self.getRealPosition(pos));
+				},
+				getItemId : function(pos) {
+					return self._wrap.getItemId(self.getRealPosition(pos));
+				},
+				getItemViewType : function(pos) {
+					return self._wrap.getItemViewType(self.getRealPosition(pos));
+				},
+				getView : function(pos, convert, parent) {
+					return self._wrap.getView(self.getRealPosition(pos), convert, parent);
+				},
+				getViewTypeCount : function() {
+					return self._wrap.getViewTypeCount();
+				},
+				hasStableIds : function() {
+					return self._wrap.hasStableIds();
+				},
+				isEmpty : function() {
+					return self._filter ? self._pos.length === 0 : self._wrap.isEmpty();
+				},
+				areAllItemsEnabled : function() {
+					return self._wrap.areAllItemsEnabled();
+				},
+				isEnabled : function(pos) {
+					return self._wrap.isEnabled(self.getRealPosition(pos));
+				},
+				registerDataSetObserver : function(p) {
+					self._wrap.registerDataSetObserver(p);
+					if (self._dso.indexOf(p) >= 0) return;
+					self._dso.push(p);
+				},
+				unregisterDataSetObserver : function(p) {
+					self._wrap.unregisterDataSetObserver(p);
+					var i = self._dso.indexOf(p);
+					if (p >= 0) self._dso.splice(i, 1);
+				}
+			});
+		},
+		setFilter : function(f) {
+			this._filter = f;
+			this.requestFilter();
+		},
+		clearFilter : function() {
+			this.setFilter(null);
+		},
+		hasFilter : function() {
+			return this._filter != null;
+		},
+		requestFilter : function() {
+			if (this._filter != null) {
+				var i, n = this._wrap.getCount();
+				this._pos.length = 0;
+				for (i = 0; i < n; i++) {
+					if (this._filter(this._wrap.getItem(i), i)) this._pos.push(i);
+				}
+			}
+			this.notifyDataSetChanged();
+		},
+		getRealPosition : function(pos) {
+			return this._filter ? this._pos[pos] : pos;
+		},
+		notifyDataSetChanged : function() {
+			var i;
+			for (i in this._dso) {
+				this._dso[i].onChanged();
+			}
+		}
 	}
 	return r;
 })());
