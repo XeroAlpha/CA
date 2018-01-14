@@ -4188,26 +4188,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						cur.enums[i] = parseAliasEnum(cur, l.enums[i]);
 					}
 				}
-				if (l.mode == "overwrite") {
-					cur.selectors = l.selectors;
-				} else {
-					for (i in l.selectors) {
-						if (l.mode == "remove") {
-							delete cur.selectors[i];
-						} else {
-							cur.selectors[i] = l.selectors[i];
-						}
+				for (i in l.selectors) {
+					if (l.mode == "remove") {
+						delete cur.selectors[i];
+					} else {
+						cur.selectors[i] = l.selectors[i];
 					}
 				}
-				if (l.mode == "overwrite") {
-					cur.help = l.help;
-				} else {
-					for (i in l.help) {
-						if (l.mode == "remove") {
-							delete cur.help[i];
-						} else {
-							cur.help[i] = l.help[i];
-						}
+				for (i in l.help) {
+					if (l.mode == "remove") {
+						delete cur.help[i];
+					} else {
+						cur.help[i] = l.help[i];
 					}
 				}
 				return true;
@@ -7882,13 +7874,14 @@ MapScript.loadModule("SettingsCompat", {
 		return false;
 	},
 	startSafely : function(intent) {
-		if (ctx.getPackageManager().queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).size() > 0) {
-			intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-			ctx.startActivity(intent);
-			return true;
-		} else {
-			return false;
-		}
+		try {
+			if (ctx.getPackageManager().queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).size() > 0) {
+				intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+				ctx.startActivity(intent);
+				return true;
+			}
+		} catch(e) {}
+		return false;
 	},
 	ShowManager : {
 		"MIUI" : function() {
