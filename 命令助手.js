@@ -2204,6 +2204,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						canSkip : true,
 						skip : function(f) {
 							CA.settings.askedPaste = Boolean(f);
+							CA.trySave();
 						},
 						callback : function(id) {
 							CA.settings.disablePaste = id == 1;
@@ -3741,6 +3742,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		show : function self() {G.ui(function() {try {
 			if (CA.IntelliSense.ui) return;
 			if (!self.prompt) {
+				self.adptcon = null;
 				self.apply = function(z) {G.ui(function() {try {
 					self.prompt.setText(z.prompt[0] || "");
 					try {
@@ -6150,6 +6152,9 @@ MapScript.loadModule("Common", {
 				} else if (s.toLowerCase() == "ls") {
 					JSONEdit.traceGlobal();
 					return;
+				} else if (s.toLowerCase().startsWith("ls ")) {
+					JSONEdit.trace(eval(s.slice(3)));
+					return;
 				}
 				self.print(s);
 				self.print("\n");
@@ -7786,6 +7791,13 @@ MapScript.loadModule("JSONEdit", {
 			rootname : "全局对象",
 			showAll : true
 		});
+	},
+	trace : function(obj) {
+		this.show({
+			source : obj,
+			rootname : "Trace",
+			showAll : true
+		});
 	}
 });
 
@@ -8117,6 +8129,7 @@ MapScript.loadModule("EasterEgg", {
 });
 
 MapScript.loadModule("MCAdapter", {
+	targetVersion : 1,
 	bundle : null,
 	onCreate : function() {
 		if (MapScript.host == "Android") {
@@ -8205,6 +8218,7 @@ MapScript.loadModule("MCAdapter", {
 			canSkip : false,
 			skip : function(f) {
 				CA.settings.neverAskAdapter = Boolean(f);
+				CA.trySave();
 			},
 			callback : function(id) {
 				if (id != 0) return;
@@ -8265,8 +8279,8 @@ MapScript.loadModule("MCAdapter", {
 		text : "ModPE适配器（盒子专版）",
 		description : "适用于多玩我的世界盒子",
 		callback : function() {
-			var f = new java.io.File(ctx.getExternalFilesDir(null), "ModPE适配器.js");
-			this.unpackAssets("adapter/ModPE.js", f);
+			var f = new java.io.File(ctx.getExternalFilesDir(null), "多玩我的世界盒子适配器.js");
+			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
 			var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
 			if (this.existPackage("com.duowan.groundhog.mctools")) {
 				i.setClassName("com.duowan.groundhog.mctools", "com.duowan.groundhog.mctools.activity.plug.PluginOutsideImportActivity");
@@ -8277,7 +8291,7 @@ MapScript.loadModule("MCAdapter", {
 			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
 			ctx.startActivity(i);
 			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
-			Common.showTextDialog("因为多玩我的世界盒子无法创建android.content.Intent，该适配器可能无法与本体连接。");
+			Common.showTextDialog("因为多玩我的世界盒子采用了沙盒机制，该适配器可能无法与本体连接。");
 		}
 	}, {
 		text : "InnerCore适配器",
@@ -8335,6 +8349,7 @@ MapScript.loadModule("MCAdapter", {
 			canSkip : false,
 			skip : function(f) {
 				CA.settings.neverAskShortcut = Boolean(f);
+				CA.trySave();
 			},
 			callback : function(id) {
 				if (CA.settings.neverAskShortcut) {
@@ -8416,8 +8431,9 @@ MapScript.loadModule("AndroidBridge", {
 					case "init":
 					MCAdapter.client = msg.replyTo;
 					MCAdapter.connInit = true;
+					MCAdapter.version = data.getInt("version", 0);
 					AndroidBridge.notifySettings();
-					Common.toast("已连接至Minecraft适配器，终端：" + data.getString("platform"));
+					Common.toast("已连接至Minecraft适配器，终端：" + data.getString("platform") + "\n" + (MCAdapter.targetVersion > MCAdapter.version ? "此适配器版本较旧，可能不支持部分提示，请在设置中重新加载适配器" : "当前适配器为最新版本"));
 					break;
 					case "info":
 					MCAdapter.bundle = data.getBundle("info");
