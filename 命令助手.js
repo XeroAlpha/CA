@@ -1190,6 +1190,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					Common.toast("删除啦～");
 					CA.showHistory();
 				}
+			}, {
+				text : "批量编辑",
+				onclick : function(v, tag) {
+					CA.showHistoryEdit(tag.pos, function() {
+						CA.showHistory();
+					});
+				}
 			}];
 			self.favoriteEdit = [{
 				text : "复制",
@@ -1235,6 +1242,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					delete CA.fav[tag.name];
 					Common.toast("删除啦～");
 					CA.showHistory();
+				}
+			}, {
+				text : "批量编辑",
+				onclick : function(v, tag) {
+					CA.showFavoriteEdit(tag.name, function() {
+						CA.showHistory();
+					});
 				}
 			}];
 			self.linear = new G.LinearLayout(ctx);
@@ -1314,7 +1328,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var layout = new G.LinearLayout(ctx),
 					text1 = new G.TextView(ctx),
 					text2 = new G.TextView(ctx);
-				layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.HORIZONTAL);
 				text1.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
@@ -1341,7 +1355,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var layout = new G.LinearLayout(ctx),
 					text1 = new G.TextView(ctx),
 					text2 = new G.TextView(ctx);
-				layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.VERTICAL);
 				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -1590,6 +1604,436 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.showAssist.hLoad();
 		CA.con.removeView(CA.assist);
 		CA.assist = null;
+	} catch(e) {erp(e)}})},
+	
+	showHistoryEdit : function self(pos, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.adapter = null;
+			self.refresh = function(pos) {
+				var a;
+				self.selection = new Array(CA.his.length);
+				if (pos != null) self.selection[pos] = true;
+				if (CA.his.length == 0) {
+					self.adapter = null;
+					self.list.setAdapter(new RhinoListAdapter([null], self.nula));
+				} else {
+					if (self.adapter) {
+						self.adapter.setArray(CA.his);
+					} else {
+						self.list.setAdapter(a = new RhinoListAdapter(CA.his, self.adpt));
+						self.adapter = RhinoListAdapter.getController(a);
+					}
+				}
+				self.refreshBar();
+			}
+			self.refreshBar = function() {
+				var i, c = 0;
+				for (i in self.selection) {
+					if (!self.selection[i]) continue;
+					c++;
+				}
+				for (i = 0; i < self.actions.length; i++) {
+					if (self.actions[i].type == 0) { //总是显示
+						self.bar.getChildAt(i).setVisibility(G.View.VISIBLE);
+					} else if (self.actions[i].type == 1) { //仅选中1个时显示
+						self.bar.getChildAt(i).setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
+					} else if (self.actions[i].type == 2) { //选中1个或多个时显示
+						self.bar.getChildAt(i).setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
+					}
+				}
+				self.title.setText("编辑 历史 （" + c + "/" + self.selection.length + "）");
+			}
+			self.actions = [{
+				type : 0,
+				text : "全选",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = true;
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "反选",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = !self.selection[i];
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "清除选择",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = false;
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "复制",
+				action : function() {
+					var z = [], i, c = 0;
+					for (i in self.selection) {
+						if (!self.selection[i]) continue;
+						z.push(CA.his[i]);
+						c++;
+					}
+					Common.setClipboardText(z.join("\n"));
+					Common.toast(c + "条命令已复制");
+				}
+			}, {
+				type : 0,
+				text : "粘贴",
+				action : function() {
+					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
+					var i, z = String(Common.getClipboardText()).split("\n");
+					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
+					for (i in z) CA.addHistory(z[i]);
+					Common.toast(z.length + "条命令已粘贴");
+					self.refresh();
+				}
+			}, {
+				type : 2,
+				text : "删除",
+				action : function() {
+					var i, c = 0;
+					for (i = self.selection.length - 1; i >= 0; i--) {
+						if (!self.selection[i]) continue;
+						CA.his.splice(i, 1);
+						c++;
+					}
+					Common.toast(c + "条命令已删除");
+					self.refresh();
+				}
+			}];
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setBackgroundColor(Common.theme.bgcolor);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.header = new G.LinearLayout(ctx);
+			self.header.setBackgroundColor(Common.theme.message_bgcolor);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			self.title = new G.TextView(ctx);
+			self.title.setBackgroundColor(Common.theme.message_bgcolor);
+			self.title.setTextSize(Common.theme.textsize[4]);
+			self.title.setTextColor(Common.theme.textcolor);
+			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			self.header.addView(self.title);
+			
+			self.hscr = new G.HorizontalScrollView(ctx);
+			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.hscr.setHorizontalScrollBarEnabled(false);
+			self.hscr.setFillViewport(true);
+			self.bar = new G.LinearLayout(ctx);
+			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.bar.setPadding(0, 0, 5 * G.dp, 0);
+			self.bar.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+			self.bar.setGravity(G.Gravity.RIGHT);
+			self.actions.forEach(function(o) {
+				var b = new G.TextView(ctx);
+				b.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+				b.setText(o.text);
+				b.setTextSize(Common.theme.textsize[2]);
+				b.setGravity(G.Gravity.CENTER);
+				b.setTextColor(Common.theme.highlightcolor);
+				b.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					o.action();
+				} catch(e) {erp(e)}}}));
+				self.bar.addView(b);
+			});
+			self.hscr.addView(self.bar);
+			self.header.addView(self.hscr);
+			self.linear.addView(self.header);
+			
+			self.list = new G.ListView(ctx);
+			self.list.setBackgroundColor(G.Color.TRANSPARENT);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				view.getChildAt(0).performClick();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list);
+			self.adpt = function(e, i) {
+				var layout = new G.LinearLayout(ctx),
+					check = new G.CheckBox(ctx),
+					text = new G.TextView(ctx);
+				layout.setGravity(G.Gravity.CENTER);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				check.setChecked(self.selection[i] == true);
+				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+					self.selection[i] = s;
+					self.refreshBar();
+				} catch(e) {erp(e)}}}));
+				check.setFocusable(false);
+				layout.addView(check);
+				text.setPadding(5 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+				text.setText(e);
+				text.setMaxLines(2);
+				text.setEllipsize(G.TextUtils.TruncateAt.END);
+				text.setTextSize(Common.theme.textsize[3]);
+				text.setTextColor(Common.theme.textcolor);
+				layout.addView(text);
+				return layout;
+			}
+			self.nula = function(s) {
+				var text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				text.setText("空空如也");
+				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
+				text.setTextSize(Common.theme.textsize[4]);
+				text.setTextColor(Common.theme.promptcolor);
+				text.setGravity(G.Gravity.CENTER);
+				text.setFocusable(true);
+				return text;
+			}
+		}
+		if (self.popup) self.popup.dismiss();
+		self.refresh(pos);
+		self.popup = new G.PopupWindow(self.linear, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			self.popup = null;
+			if (callback) callback();
+		} catch(e) {erp(e)}}}));
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
+	} catch(e) {erp(e)}})},
+	
+	showFavoriteEdit : function self(key, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.adapter = null;
+			self.refresh = function(key) {
+				var a, t;
+				self.array = Object.keys(CA.fav);
+				self.selection = new Array(self.array.length);
+				if (key != null) self.selection[self.array.indexOf(String(key))] = true;
+				if (self.array.length == 0) {
+					self.adapter = null;
+					self.list.setAdapter(new RhinoListAdapter([null], self.nula));
+				} else {
+					if (self.adapter) {
+						self.adapter.setArray(self.array);
+					} else {
+						self.list.setAdapter(a = new RhinoListAdapter(self.array, self.adpt));
+						self.adapter = RhinoListAdapter.getController(a);
+					}
+				}
+				self.refreshBar();
+			}
+			self.refreshBar = function() {
+				var i, c = 0;
+				for (i in self.selection) {
+					if (!self.selection[i]) continue;
+					c++;
+				}
+				for (i = 0; i < self.actions.length; i++) {
+					if (self.actions[i].type == 0) { //总是显示
+						self.bar.getChildAt(i).setVisibility(G.View.VISIBLE);
+					} else if (self.actions[i].type == 1) { //仅选中1个时显示
+						self.bar.getChildAt(i).setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
+					} else if (self.actions[i].type == 2) { //选中1个或多个时显示
+						self.bar.getChildAt(i).setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
+					}
+				}
+				self.title.setText("编辑 收藏 （" + c + "/" + self.selection.length + "）");
+			}
+			self.actions = [{
+				type : 0,
+				text : "全选",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = true;
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "反选",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = !self.selection[i];
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "清除选择",
+				action : function() {
+					var i, aa;
+					if (!self.adapter) return;
+					aa = self.adapter.views;
+					for (i = 0; i < self.selection.length; i++) {
+						self.selection[i] = false;
+						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
+					}
+				}
+			}, {
+				type : 2,
+				text : "复制",
+				action : function() {
+					var z = [], i, c = 0;
+					for (i in self.selection) {
+						if (!self.selection[i]) continue;
+						z.push(self.array[i], CA.fav[self.array[i]]);
+						c++;
+					}
+					Common.setClipboardText(z.join("\n"));
+					Common.toast(c + "条命令已复制");
+				}
+			}, {
+				type : 0,
+				text : "粘贴",
+				action : function() {
+					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
+					var i, z = String(Common.getClipboardText()).split("\n");
+					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
+					for (i = 1; i < z.length; i += 2) CA.fav[z[i - 1]] = z[i];
+					Common.toast(Math.floor(z.length / 2) + "条命令已粘贴");
+					self.refresh();
+				}
+			}, {
+				type : 2,
+				text : "删除",
+				action : function() {
+					var i, c = 0;
+					for (i = self.selection.length; i >= 0; i--) {
+						if (!self.selection[i]) continue;
+						delete CA.fav[self.array[i]];
+						c++;
+					}
+					Common.toast(c + "条命令已删除");
+					self.refresh();
+				}
+			}];
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setBackgroundColor(Common.theme.bgcolor);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.header = new G.LinearLayout(ctx);
+			self.header.setBackgroundColor(Common.theme.message_bgcolor);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			self.title = new G.TextView(ctx);
+			self.title.setBackgroundColor(Common.theme.message_bgcolor);
+			self.title.setTextSize(Common.theme.textsize[4]);
+			self.title.setTextColor(Common.theme.textcolor);
+			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			self.header.addView(self.title);
+			
+			self.hscr = new G.HorizontalScrollView(ctx);
+			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.hscr.setHorizontalScrollBarEnabled(false);
+			self.hscr.setFillViewport(true);
+			self.bar = new G.LinearLayout(ctx);
+			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.bar.setPadding(0, 0, 5 * G.dp, 0);
+			self.bar.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+			self.bar.setGravity(G.Gravity.RIGHT);
+			self.actions.forEach(function(o) {
+				var b = new G.TextView(ctx);
+				b.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+				b.setText(o.text);
+				b.setTextSize(Common.theme.textsize[2]);
+				b.setGravity(G.Gravity.CENTER);
+				b.setTextColor(Common.theme.highlightcolor);
+				b.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					o.action();
+				} catch(e) {erp(e)}}}));
+				self.bar.addView(b);
+			});
+			self.hscr.addView(self.bar);
+			self.header.addView(self.hscr);
+			self.linear.addView(self.header);
+			
+			self.list = new G.ListView(ctx);
+			self.list.setBackgroundColor(G.Color.TRANSPARENT);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				view.getChildAt(0).performClick();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list);
+			self.adpt = function(e, i) {
+				var layout = new G.LinearLayout(ctx),
+					check = new G.CheckBox(ctx),
+					linear = new G.LinearLayout(ctx),
+					text1 = new G.TextView(ctx),
+					text2 = new G.TextView(ctx);
+				layout.setGravity(G.Gravity.CENTER);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				check.setChecked(self.selection[i] == true);
+				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+					self.selection[i] = s;
+					self.refreshBar();
+				} catch(e) {erp(e)}}}));
+				check.setFocusable(false);
+				layout.addView(check);
+				linear.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				linear.setOrientation(G.LinearLayout.VERTICAL);
+				text1.setPadding(10 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text1.setText(e);
+				text1.setTextSize(Common.theme.textsize[3]);
+				text1.setTextColor(Common.theme.textcolor);
+				linear.addView(text1);
+				text2.setPadding(10 * G.dp, 0, 15 * G.dp, 15 * G.dp);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text2.setText(CA.fav[e]);
+				text2.setEllipsize(G.TextUtils.TruncateAt.END);
+				text2.setSingleLine(true);
+				text2.setTextSize(Common.theme.textsize[1]);
+				text2.setTextColor(Common.theme.promptcolor);
+				linear.addView(text2);
+				layout.addView(linear);
+				return layout;
+			}
+			self.nula = function(s) {
+				var text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				text.setText("空空如也");
+				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
+				text.setTextSize(Common.theme.textsize[4]);
+				text.setTextColor(Common.theme.promptcolor);
+				text.setGravity(G.Gravity.CENTER);
+				text.setFocusable(true);
+				return text;
+			}
+		}
+		if (self.popup) self.popup.dismiss();
+		self.refresh(key);
+		self.popup = new G.PopupWindow(self.linear, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			self.popup = null;
+			if (callback) callback();
+		} catch(e) {erp(e)}}}));
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
 	performExit : function() {G.ui(function() {try {
@@ -1861,39 +2305,27 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (CA.settings.histroyCount) CA.his.splice(CA.settings.histroyCount);
 				}
 			},{
-				name : "清空历史",
+				name : "管理历史",
 				type : "custom",
 				get : function() {
 					return "共有" + CA.his.length + "条记录";
 				},
 				onclick : function(fset) {
-					Common.showConfirmDialog({
-						title : "确定清空历史记录？",
-						description : "*此操作无法撤销",
-						callback : function(id) {
-							if (id != 0) return;
-							CA.his = [];
-							fset();
-							if (CA.history) CA.showHistory();
-						}
+					CA.showHistoryEdit(null, function() {
+						fset();
+						if (CA.history) CA.showHistory();
 					});
 				}
 			},{
-				name : "清空收藏",
+				name : "管理收藏",
 				type : "custom",
 				get : function() {
 					return "共有" + Object.keys(CA.fav).length + "条记录";
 				},
 				onclick : function(fset) {
-					Common.showConfirmDialog({
-						title : "确定清空收藏夹？",
-						description : "*此操作无法撤销",
-						callback : function(id) {
-							if (id != 0) return;
-							CA.fav = {};
-							fset();
-							if (CA.history) CA.showHistory();
-						}
+					CA.showFavoriteEdit(null, function() {
+						fset();
+						if (CA.history) CA.showHistory();
 					});
 				}
 			},{
@@ -2554,7 +2986,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var layout = new G.LinearLayout(ctx),
 					text1 = new G.TextView(ctx),
 					text2 = new G.TextView(ctx);
-				layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.VERTICAL);
 				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -2605,7 +3037,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.processing = false;
 			
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
 			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
@@ -2873,6 +3304,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			v.setText("编辑剪贴板");
 			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				hide();
+				if (!Common.hasClipboardText()) {
+					Common.toast("剪切板为空");
+					return;
+				}
 				CA.showGen(CA.settings.noAnimation);
 				CA.cmd.setText(String(Common.getClipboardText()));
 				CA.showGen.activate(false);
@@ -2886,7 +3321,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			v.setText("快速粘贴");
 			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				hide();
-				CA.performPaste(String(Common.getClipboardText()));
+				var a = [], t;
+				if (Common.hasClipboardText()) {
+					t = Common.getClipboardText();
+					a.push({
+						text : t,
+						description : "剪贴板",
+						cmd : t
+					});
+				}
+				CA.his.forEach(function(e) {
+					if (e == t) return;
+					a.push({
+						text : e,
+						cmd : e
+					});
+				});
+				Object.keys(CA.fav).forEach(function(e) {
+					a.push({
+						text : e,
+						description : CA.fav[e],
+						cmd : CA.fav[e]
+					});
+				});
+				Common.showListChooser(a, function(id) {
+					gHandler.post(function() {
+						CA.performPaste(String(a[id].cmd));
+					});
+				}, true);
 			} catch(e) {erp(e)}}}));
 			return v;
 		}
@@ -3766,7 +4228,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					} else {
 						view.setPadding(15 * G.dp, 2 * G.dp, 15 * G.dp, 2 * G.dp);
 					}
-					view.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					view.setText(s);
 					view.setTextSize(Common.theme.textsize[3]);
 					view.setTextColor(Common.theme.textcolor);
@@ -3781,8 +4243,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.prompt.setLineSpacing(10, 1);
 				self.list = new G.ListView(ctx);
 				self.list.setBackgroundColor(G.Color.TRANSPARENT);
-				self.list.setFastScrollEnabled(true);
-				self.list.setFastScrollAlwaysVisible(false);
 				self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					if (pos == 0) {
 						CA.IntelliSense.showMoreUsage();
@@ -3825,6 +4285,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} catch(e) {erp(e)}}}));
 				self.list.addHeaderView(self.prompt);
 				self.list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+				if (G.style == "Material") { //已修复：Android 5.0以下FastScroller会尝试将RhinoListAdapter强转为BaseAdapter
+					self.list.setFastScrollEnabled(true);
+					self.list.setFastScrollAlwaysVisible(false);
+				}
 				CA.showAssist.initContent(self.list);
 			}
 			CA.showAssist.con.addView(CA.IntelliSense.ui = self.list);
@@ -4569,13 +5033,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var sugg = new G.ListView(ctx), adpt = new FilterListAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
 				sugg.setBackgroundColor(G.Color.TRANSPARENT);
 				sugg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
-				sugg.setFastScrollEnabled(true);
-				sugg.setFastScrollAlwaysVisible(false);
 				sugg.setAdapter(adpt.build());
 				sugg.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					listener.setText(suggestion[parent.getItemAtPosition(pos)]);
 				} catch(e) {erp(e)}}}));
 				layout.addView(sugg);
+				if (G.style == "Material") {
+					sugg.setFastScrollEnabled(true);
+					sugg.setFastScrollAlwaysVisible(false);
+				}
 				listener.onTextChanged = function(s) {
 					var s = String(s);
 					if (s) {
@@ -4954,7 +5420,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		smallVMaker : function(s) {
 			var view = new G.TextView(ctx);
 			view.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			view.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+			view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			view.setText(s);
 			view.setTextSize(Common.theme.textsize[2]);
 			view.setTextColor(Common.theme.textcolor);
@@ -5229,7 +5695,7 @@ MapScript.loadModule("Common", {
 				var view = new G.TextView(ctx);
 				Common.loadTheme(e);
 				view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-				view.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				view.setBackgroundColor(Common.theme.bgcolor);
 				view.setText(Common.theme.name + (self.current == e ? " (当前)" : ""));
 				view.setTextSize(Common.theme.textsize[3]);
@@ -5254,7 +5720,6 @@ MapScript.loadModule("Common", {
 				self.exit.setTextColor(Common.theme.criticalcolor);
 			}
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
 			
@@ -5346,7 +5811,7 @@ MapScript.loadModule("Common", {
 	customVMaker : function(s) {
 		var view = new G.TextView(ctx);
 		view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-		view.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+		view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 		view.setText(s);
 		view.setTextSize(Common.theme.textsize[3]);
 		view.setTextColor(Common.theme.textcolor);
@@ -5776,7 +6241,6 @@ MapScript.loadModule("Common", {
 				}
 			}
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			
 			self.title = new G.TextView(ctx);
@@ -6007,8 +6471,6 @@ MapScript.loadModule("Common", {
 			
 			self.list = new G.ListView(ctx);
 			self.list.setBackgroundColor(Common.theme.message_bgcolor);
-			self.list.setFastScrollEnabled(true);
-			self.list.setFastScrollAlwaysVisible(false);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var o = self.sets;
 				var e = self.curadp.getItem(pos);
@@ -6026,6 +6488,10 @@ MapScript.loadModule("Common", {
 				self.refresh();
 				return true;
 			} catch(e) {erp(e)}}}));
+			if (G.style == "Material") {
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
+			}
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			
 			self.inputbar = new G.LinearLayout(ctx);
@@ -6394,7 +6860,9 @@ MapScript.loadModule("Common", {
 	},
 	getClipboardText : function() {
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getPrimaryClip().getItemAt(0).coerceToText(ctx);
+			var clip = ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getPrimaryClip();
+			if (!clip) return null;
+			return clip.getItemAt(0).coerceToText(ctx);
 		} else {
 			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getText();
 		}
@@ -6727,7 +7195,14 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 				return 0;
 			},
 			getView : function(pos) {
-				return views[pos] ? views[pos] : (views[pos] = vmaker(src[pos], parseInt(pos), src, params));
+				try {
+					return views[pos] ? views[pos] : (views[pos] = vmaker(src[pos], parseInt(pos), src, params));
+				} catch(e) {
+					var a = new G.TextView(ctx);
+					a.setText(e);
+					erp(e);
+					return a;
+				}
 			},
 			getViewTypeCount : function() {
 				return 1;
@@ -7348,8 +7823,6 @@ MapScript.loadModule("JSONEdit", {
 			
 			JSONEdit.list = new G.ListView(ctx);
 			JSONEdit.list.setBackgroundColor(Common.theme.message_bgcolor);
-			JSONEdit.list.setFastScrollEnabled(true);
-			JSONEdit.list.setFastScrollAlwaysVisible(false);
 			JSONEdit.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			JSONEdit.list.addHeaderView(self.create);
 			JSONEdit.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -7407,6 +7880,10 @@ MapScript.loadModule("JSONEdit", {
 				JSONEdit.showItemAction(parent.getAdapter().getItem(pos));
 				return true;
 			} catch(e) {return erp(e), true}}}));
+			if (G.style == "Material") {
+				JSONEdit.list.setFastScrollEnabled(true);
+				JSONEdit.list.setFastScrollAlwaysVisible(false);
+			}
 			self.main.addView(JSONEdit.list);
 			self.getContentView = self.getRootView = function() {
 				return self.main;
@@ -8757,7 +9234,7 @@ MapScript.loadModule("AndroidBridge", {
 		var svc = ctx.getSystemService(ctx.CLIPBOARD_SERVICE);
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
 			svc.addPrimaryClipChangedListener(AndroidBridge.clipListener = new android.content.ClipboardManager.OnPrimaryClipChangedListener({onPrimaryClipChanged : function() {try {
-				if (!CA.settings.watchClipboard || !CA.IntelliSense.library) return;
+				if (!CA.settings.watchClipboard || !CA.IntelliSense.library || !Common.hasClipboardText()) return;
 				var s = String(Common.getClipboardText()), t, o;
 				s = s.replace(/^\s*\/?/, "");
 				o = s.search(/\n/);
