@@ -49,9 +49,6 @@ var MapScript = {
 	//可访问钩子
 	hooks : ["attackHook", "chatHook", "continueDestroyBlock", "destroyBlock", "projectileHitEntityHook", "eatHook", "entityAddedHook", "entityHurtHook", "entityRemovedHook", "explodeHook", "serverMessageReceiveHook", "deathHook", "playerAddExpHook", "playerExpLevelChangeHook", "redstoneUpdateHook", "screenChangeHook", "newLevel", "startDestroyBlock", "projectileHitBlockHook", "modTick", "leaveGame", "useItem", "initialize", "unload"],
 
-	//全局对象
-	global : null,
-
 	//已加载模块列表
 	modules : [],
 
@@ -157,7 +154,12 @@ var MapScript = {
 
 	//初始化
 	init : function(g) {
-		this.global = g;
+		Object.defineProperty(this, "global", {
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: g
+		});
 		if ("module" in g) { //Node.js
 			module.exports = function(name) {
 				return g[name];
@@ -1803,6 +1805,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		if (self.popup) self.popup.dismiss();
 		self.refresh(pos);
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -2024,6 +2027,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		if (self.popup) self.popup.dismiss();
 		self.refresh(key);
+		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -2359,6 +2363,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					JSONEdit.main();
 				}
 			},{
+				name : "查看错误记录",
+				type : "custom",
+				get : function() {
+					return "";
+				},
+				onclick : function() {
+					CA.showErrors();
+				}
+			},{
 				name : "命令行",
 				type : "custom",
 				get : function() {
@@ -2375,6 +2388,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.trySave();
 		});
 	} catch(e) {erp(e)}})},
+	
+	showErrors : function() {
+		var f = Common.readFile(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", "");
+		if (!f.length) return Common.toast("无错误记录");
+		var a = f.slice(9).split("\n* Error: ");
+		a.reverse();
+		Common.showListChooser(a, function(id) {
+			Common.setClipboardText(a[id]);
+			Common.toast("错误信息已复制");
+		});
+	},
 	
 	resetGUI : function() {
 		PWM.dismissAll();
