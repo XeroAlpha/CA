@@ -284,15 +284,6 @@ MapScript.loadModule("Loader", {
 	},
 });
 
-MapScript.loadModule("getMinecraftVersion", function self(force) {
-	if (!force && self.ver) return self.ver;
-	try {
-		return self.ver = String(ctx.getPackageManager().getPackageInfo("com.mojang.minecraftpe", 0).versionName);
-	} catch(e) {
-		return self.ver = "*";
-	}
-});
-
 Loader.load(function() {
 
 "IGNORELN_START";
@@ -366,8 +357,6 @@ MapScript.loadModule("G", {
 	Path: android.graphics.Path,
 	PixelFormat: android.graphics.PixelFormat,
 	PopupWindow: android.widget.PopupWindow,
-	PorterDuff: android.graphics.PorterDuff,
-	PorterDuffXfermode: android.graphics.PorterDuffXfermode,
 	ProgressBar: android.widget.ProgressBar,
 	R: android.R,
 	RadioButton: android.widget.RadioButton,
@@ -378,6 +367,7 @@ MapScript.loadModule("G", {
 	Selection: android.text.Selection,
 	Shader: android.graphics.Shader,
 	Space: android.widget.Space,
+	SpanWatcher: android.text.SpanWatcher,
 	SpannableString: android.text.SpannableString,
 	SpannableStringBuilder: android.text.SpannableStringBuilder,
 	Spanned: android.text.Spanned,
@@ -863,6 +853,19 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.cmd.setSelection(CA.cmd.getText().length());
 				if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
 			}
+			self.pointerChanged = function(p) {
+				//即将支持
+				//Common.toast(p);
+			}
+			self.spanWatcher = new G.SpanWatcher({
+				//onSpanAdded : function(text, what, start, end) {},
+				//onSpanRemoved : function(text, what, start, end) {},
+				onSpanChanged : function(text, what, ostart, oend, nstart, nend) {try {
+					if (what === G.Selection.SELECTION_START) {
+						self.pointerChanged(nstart);
+					}
+				} catch(e) {erp(e)}}
+			});
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
@@ -960,6 +963,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.clear.setVisibility(G.View.GONE);
 					}
 					return function(s) {try {
+						s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 						if (skip) return;
 						CA.cmdstr = String(s);
 						if (CA.settings.iiMode == 1 && CA.Assist.active) {
@@ -981,7 +985,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 						if (CA.settings.autoFormatCmd) rep(s);
 					} catch(e) {erp(e)}}
-				})(),
+				})()
 				//beforeTextChanged : function(s, start, count, after) {},
 				//onTextChanged : function(s, start, count, after) {},
 			}));
@@ -1057,6 +1061,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return false;
 			} catch(e) {return erp(e), true}}}));
+			CA.cmd.getText().setSpan(self.spanWatcher, 0, CA.cmd.getText().length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 			PWM.observe(function(action) {
 				if (action == "showAll") G.ui(function() {try {
 					CA.cmd.setText(CA.cmd.getText());
@@ -2719,6 +2724,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				text : "切换版本",
+				description : "切换命令所属版本",
+				onclick : function(v, tag) {
+					NeteaseAdapter.switchVersion(function() {
+						self.postTask(function(cb) {
+							cb(true, function() {
+								Common.toast("版本已切换为" + getMinecraftVersion() + "。");
+							});
+						});
+					});
+				}
+			},{
 				text : "忽略版本",
 				description : "暂时忽略版本限制",
 				onclick : function(v, tag) {
@@ -4297,7 +4314,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return true;
 				} catch(e) {return erp(e), true}}}));
 				self.list.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-					var t = (b - t > 0.5 * CA.showAssist.con.getMeasuredHeight()) || CA.settings.keepWhenIME;
+					var t = (b - t > Common.theme.textsize[3] * G.sp * 8) || CA.settings.keepWhenIME;
 					if (self.keep == t) return;
 					self.keep = t;
 					if (t) {
@@ -4535,7 +4552,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		})(),
 		checkPackVer : (function() {
-			var a = String(getMinecraftVersion()).split(".");
+			var a;
 			var opt = function(a) {
 				return a == "*" ? Infinity : isNaN(a) ? -1 : parseInt(a);
 			}
@@ -4561,6 +4578,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return function(o) {
 				var r = 0, i, n, e;
 				if (this.ignoreVersion) return 0;
+				a = getMinecraftVersion().split(".");
 				if (o.minSupportVer || o.maxSupportVer) {
 					r = inRange(o.minSupportVer, o.maxSupportVer);
 					if (r != 0) return r; //这两个参数是总范围
@@ -8940,7 +8958,7 @@ MapScript.loadModule("AndroidBridge", {
 					MCAdapter.bundle = data.getBundle("info");
 					break;
 					case "resetMCV":
-					getMinecraftVersion.ver = String(data.getString("version"));
+					NeteaseAdapter.mcVersion = String(data.getString("version"));
 					Common.toast("正在切换命令库版本，请稍候……");
 					CA.IntelliSense.initLibrary(function(flag) {
 						if (flag) {
@@ -9270,6 +9288,189 @@ MapScript.loadModule("AndroidBridge", {
 			} catch(e) {erp(e)}}}));
 		}
 	} catch(e) {erp(e)}})}
+});
+
+MapScript.loadModule("NeteaseAdapter", {
+	onCreate : function() {
+		MapScript.loadModule("getMinecraftVersion", this.getMinecraftVersion);
+	},
+	getMinecraftVersion : function(force) {
+		if (!force && NeteaseAdapter.mcVersion) return NeteaseAdapter.mcVersion;
+		try {
+			return NeteaseAdapter.mcVersion = NeteaseAdapter.getCoreVersion();
+		} catch(e) {
+			return NeteaseAdapter.mcVersion = "*";
+		}
+	},
+	getCoreVersion : function() {
+		if (MapScript.host == "BlockLauncher") return ModPE.getMinecraftVersion();
+		if (CA.settings.mcPublisher && CA.settings.mcPackName) {
+			return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
+		} else {
+			var i, result;
+			for (i = 0; i < this.packNames.length; i++) {
+				if (MCAdapter.existPackage(this.packNames[i])) {
+					return this.getVersionByPar(this.packNames[i], this.packages[this.packNames[i]].publisher);
+				}
+			}
+		}
+		return "*";
+	},
+	getVersionByPar : function(packName, publisher) {
+		switch(publisher) {
+			case "Mojang":
+			return this.getMojangVersion(packName);
+			case "Netease":
+			return this.getNeteaseVersion(packName);
+			case "Custom":
+			return packName;
+		}
+		return "*";
+	},
+	getMojangVersion : function(packageName) {
+		return String(ctx.getPackageManager().getPackageInfo(packageName, 0).versionName);
+	},
+	getNeteaseVersion : function(packageName) {
+		var c = ctx.getPackageManager().getPackageInfo(packageName, 0).versionCode;
+		if (c < 840035545) {
+			return "1.1.3.52";
+		} else {
+			return "1.2.5.12";
+		}
+	},
+	askPackage : function(callback, canCustomize) {
+		var pm = ctx.getPackageManager();
+		var lp = pm.getInstalledPackages(0).toArray();
+		var i, j, as, r = [], f, t;
+		for (i in lp) {
+			if (!lp[i].applicationInfo) continue;
+			f = true;
+			as = pm.getPackageInfo(lp[i].packageName, 1).activities;
+			for (j in as) {
+				if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
+					f = false;
+					break;
+				}
+			}
+			if (f) continue;
+			t = {
+				text : pm.getApplicationLabel(lp[i].applicationInfo),
+				result : lp[i].packageName
+			};
+			if (t.result in this.packages) {
+				t.description = this.packages[t.result].desc + " - " + lp[i].versionName;
+				t.publisher = this.packages[t.result].publisher;
+			} else {
+				t.description = "未知的版本:" + lp[i].packageName + " - " + lp[i].versionName;
+			}
+			r.push(t);
+		}
+		if (canCustomize) {
+			r.unshift({
+				text : "自动",
+				auto : true
+			});
+			r.push({
+				text : "自定义",
+				custom : true
+			});
+		}
+		if (r.length > 0) {
+			Common.showListChooser(r, function(id) {
+				var res = r[id];
+				if (res.auto) {
+					callback(null, null);
+				} else if (res.custom) {
+					NeteaseAdapter.askCustomVersion(function(v) {
+						callback(v, "Custom");
+					});
+				} else if (res.publisher) {
+					callback(String(res.result), res.publisher);
+				} else {
+					Common.toast("请选择对应的发行商");
+					NeteaseAdapter.askPublisher(function(pub) {
+						callback(String(res.result), pub);
+					});
+				}
+			});
+		} else {
+			Common.toast("找不到可用的Minecraft版本");
+		}
+	},
+	askPublisher : function(callback) {
+		var r = [{
+			text : "Minecraft",
+			description : "国际版",
+			result : "Mojang"
+		}, {
+			text : "我的世界",
+			description : "网易版",
+			result : "Netease"
+		}, {
+			text : "其他版本",
+			result : "unknown"
+		}];
+		Common.showListChooser(r, function(id) {
+			callback(r[id].result);
+		});
+	},
+	switchVersion : function(callback) {
+		if (MapScript.host == "BlockLauncher") {
+			Common.toast("您正在使用启动器加载本JS，因此不能切换版本");
+			return;
+		}
+		this.askPackage(function(name, publisher) {
+			CA.settings.mcPackName = name;
+			CA.settings.mcPublisher = publisher;
+			NeteaseAdapter.mcVersion = null;
+			callback();
+		}, true);
+	},
+	askCustomVersion : function(callback) {
+		Common.showInputDialog({
+			title : "自定义版本",
+			callback : function(s) {
+				callback(s);
+			},
+			singleLine : true,
+			defaultValue : getMinecraftVersion()
+		});
+	},
+	packNames : [
+		"com.mojang.minecraftpe",
+		"com.netease.x19",
+		"com.netease.mc.aligames",
+		"com.netease.mc.bili",
+		"com.netease.mc.mi",
+		"com.zhekasmirnov.innercore"
+	],
+	packages : {
+		"com.mojang.minecraftpe" : {
+			desc : "国际版",
+			publisher : "Mojang"
+		},
+		"com.netease.x19" : {
+			desc : "网易-官方版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.aligames" : {
+			desc : "网易-阿里游戏版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.bili" : {
+			desc : "网易-Bilibili版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.mi" : {
+			desc : "网易-小米版",
+			publisher : "Netease"
+		},
+		//待补
+		"com.zhekasmirnov.innercore" : {
+			desc : "Inner Core",
+			publisher : "innercore"
+		}
+	}
 });
 
 "IGNORELN_START";
