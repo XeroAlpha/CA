@@ -410,7 +410,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.3 Beta",
+	version : "0.9.4 Beta",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -9345,14 +9345,16 @@ MapScript.loadModule("NeteaseAdapter", {
 		for (i in lp) {
 			if (!lp[i].applicationInfo) continue;
 			f = true;
-			as = pm.getPackageInfo(lp[i].packageName, 1).activities;
-			for (j in as) {
-				if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
-					f = false;
-					break;
+			try { //非常神奇的Exception:Package manager has died
+				as = pm.getPackageInfo(lp[i].packageName, 1).activities;
+				for (j in as) {
+					if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
+						f = false;
+						break;
+					}
 				}
-			}
-			if (f) continue;
+				if (f) continue;
+			} catch(e) {}
 			t = {
 				text : pm.getApplicationLabel(lp[i].applicationInfo),
 				result : lp[i].packageName
