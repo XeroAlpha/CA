@@ -410,7 +410,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.4 Beta",
+	version : "0.9.5 Beta",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -435,11 +435,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}
 		this.load();
-		var a = String(getMinecraftVersion()).split(".");
-		a[0] = parseInt(a[0]); a[1] = parseInt(a[1]); a[2] = parseInt(a[2]);
-		if (a[0] == 0 && a[1] < 16) {
+		this.checkFeatures();
+		if (!this.hasFeature("enableCommand")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本过低（" + getMinecraftVersion() + "），没有命令和命令方块等功能，无法正常使用命令助手。请升级您的Minecraft PE至alpha 0.16.0及以上。");
-		} else if ((a[0] == 1 && a[1] == 0 && a[2] < 5) || a[0] == 0) {
+		} else if (!this.hasFeature("enableCommandBlock")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有命令方块等功能，部分命令助手的功能可能无法使用。推荐升级您的Minecraft PE至1.0.5及以上。");
 		}
 		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
@@ -546,6 +545,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				disabledLibrarys : []
 			};
 			Common.loadTheme();
+			CA.checkFeatures();
 			this.IntelliSense.initLibrary();
 		}
 	},
@@ -2728,6 +2728,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "切换命令所属版本",
 				onclick : function(v, tag) {
 					NeteaseAdapter.switchVersion(function() {
+						CA.checkFeatures();
 						self.postTask(function(cb) {
 							cb(true, function() {
 								Common.toast("版本已切换为" + getMinecraftVersion() + "。");
@@ -2741,6 +2742,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
 						CA.IntelliSense.ignoreVersion = true;
+						CA.checkFeatures();
 						cb(true, function() {
 							Common.toast("版本限制已关闭，重新打开游戏即可恢复。");
 						});
@@ -3394,6 +3396,26 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			return v;
 		}
 	}],
+	checkFeatures : function() {
+		var i;
+		for (i in this.Features) {
+			this.Features[i].flag = this.IntelliSense.checkPackVer(this.Features[i]);
+		}
+	},
+	hasFeature : function(feature) {
+		return this.Features[feature].flag == 0;
+	},
+	Features : {
+		enableCommand : {
+			minSupportVer : "0.16"
+		},
+		enableCommandBlock : {
+			minSupportVer : "1.0.5"
+		},
+		enableLocalCoord : {
+			minSupportVer : "1.2"
+		}
+	},
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -4103,7 +4125,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		procPosition : function(cp, ps) {
 			var l = ps.split(/\s+/), f = true, uv = false, i, n = Math.min(l.length, 3), t, pp, t2, t3;
 			for (i = 0; i < n; i++) {
-				if (i == 0 && l[0].startsWith("^")) uv = true;
+				if (i == 0 && l[0].startsWith("^") && CA.hasFeature("enableLocalCoord")) uv = true;
 				if (!(t = (uv ? /^(?:(\^)((\+|-)?(\d*\.)?\d*))?$/ : /^(~)?((\+|-)?(\d*\.)?\d*)$/).exec(l[i]))) return {
 					description : l[i] + "不是合法的坐标值"
 				};
@@ -4128,9 +4150,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					t.input.push("~ - 相对位置");
 					t.assist["~ - 相对位置"] = "~";
 				}
-				if (ps.length == 0 || uv) {
-					t.input.push("^ - 相对视角(^左 ^上 ^前)");
-					t.assist["^ - 相对视角(^左 ^上 ^前)"] = "^";
+				if ((ps.length == 0 || uv) && CA.hasFeature("enableLocalCoord")) {
+					t.input.push("^ - 本地坐标(^左 ^上 ^前)");
+					t.assist["^ - 本地坐标(^左 ^上 ^前)"] = "^";
 				}
 			}
 			if (MCAdapter.available()) {
@@ -5235,11 +5257,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			screla.setChecked(false);
 			screla.setLayoutParams(G.TableLayout.LayoutParams(-1, -2));
 			screla.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
-			screla.setText("相对于视角");
+			screla.setText("使用本地坐标（^左 ^上 ^前）");
 			screla.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+				var i;
 				for (i = 0; i < 3; i++) rela[i].setVisibility(s ? G.View.GONE : G.View.VISIBLE);
 			} catch(e) {erp(e)}}}));
 			screla.setChecked(Boolean(e.screla));
+			screla.setVisibility(CA.hasFeature("enableLocalCoord") ? G.View.VISIBLE : G.View.GONE);
 			layout.addView(screla);
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
@@ -5250,7 +5274,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var r = [];
-				e.screla = screla.isChecked();
+				e.screla = CA.hasFeature("enableLocalCoord") && screla.isChecked();
 				for (i = 0; i < 3; i++) {
 					e.pos[i] = parseFloat(ret[i].getText());
 					e.rela[i] = rela[i].isChecked();
@@ -8960,6 +8984,7 @@ MapScript.loadModule("AndroidBridge", {
 					case "resetMCV":
 					NeteaseAdapter.mcVersion = String(data.getString("version"));
 					Common.toast("正在切换命令库版本，请稍候……");
+					CA.checkFeatures();
 					CA.IntelliSense.initLibrary(function(flag) {
 						if (flag) {
 							Common.toast("命令库加载完毕");
