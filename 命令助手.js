@@ -8840,17 +8840,32 @@ MapScript.loadModule("MCAdapter", {
 		text : "InnerCore适配器",
 		description : "适用于Inner Core",
 		callback : function() {
-			var fs = [
-				"main.js",
-				"mod.info",
-				"launcher.js",
-				"build.config"
-			], i;
-			new java.io.File("/sdcard/games/com.mojang/mods/ICAdpt").mkdirs();
-			for (i in fs) {
-				this.unpackAssets("adapter/IC/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
+			if (this.getPackageVersion("com.zhekasmirnov.innercore") > 10) { //这个数字我瞎编的，反正介于1～25之间就好
+				var f = new java.io.File(ctx.getExternalFilesDir(null), "InnerCore适配器.icmod");
+				this.unpackAssets("adapter/InnerCore.icmod", f);
+				var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+				if (this.existPackage("com.zhekasmirnov.innercore")) {
+					i.setClassName("com.zhekasmirnov.innercore", "zhekasmirnov.launcher.core.ExtractModActivity");
+				} else {
+					Common.toast("未找到InnerCore");
+					return;
+				}
+				i.setDataAndType(android.net.Uri.fromFile(f), "application/icmod");
+				ctx.startActivity(i);
+			} else {
+				var fs = [
+					"main.js",
+					"mod.info",
+					"launcher.js",
+					"build.config",
+					"mod_icon.png"
+				], i;
+				new java.io.File("/sdcard/games/com.mojang/mods/ICAdpt").mkdirs();
+				for (i in fs) {
+					this.unpackAssets("adapter/ICAdpt/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
+				}
+				Common.toast("Mod文件已释放");
 			}
-			Common.toast("Mod文件已释放");
 			this.askShortcut("Inner Core", "com.zhekasmirnov.innercore");
 		}
 	}],
@@ -8919,6 +8934,12 @@ MapScript.loadModule("MCAdapter", {
 		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, sc);
 		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, com.xero.ca.R.drawable.icon));
 		ctx.sendBroadcast(i);
+	},
+	getPackageVersion : function(pkg) {
+		try {
+			return ctx.getPackageManager().getPackageInfo(pkg, 0).versionCode;
+		} catch(e) {}
+		return NaN;
 	}
 });
 
