@@ -2446,7 +2446,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.frame.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
 			
 			self.scr = new G.ScrollView(ctx);
-			self.scr.setBackgroundColor(G.Color.argb(0xC0, G.Color.red(bgcolor), G.Color.green(bgcolor), G.Color.blue(bgcolor)));
+			self.scr.setBackgroundColor(Common.argbInt(0xC0, G.Color.red(bgcolor), G.Color.green(bgcolor), G.Color.blue(bgcolor)));
 			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, CA.settings.barTop ? G.Gravity.TOP : G.Gravity.BOTTOM));
 			if (G.style == "Material") self.scr.setElevation(10 * G.dp);
 			
@@ -5714,6 +5714,18 @@ MapScript.loadModule("Common", {
 	},
 	theme : null,
 	
+	/* BUG 修复
+	 * Android 8.0 颜色转换出错
+	 * 原因：Oreo版本新增了一个方法：
+	    Color.argb(float, float, float, float)
+	   与它的同名方法在JS层面上参数表相同。
+	    Color.argb(int, int, int, int)
+	   解决方案：自定义argb。
+	 */
+	argbInt : function(alpha, red, green, blue) {
+		return (new java.lang.Long((alpha << 24) | (red << 16) | (green << 8) | blue)).intValue();
+	},
+	
 	loadTheme : function(id) {
 		var light = {
 			"bgcolor" : "#FAFAFA",
@@ -5731,7 +5743,7 @@ MapScript.loadModule("Common", {
 		var convert = function(v, d) {
 			var n = Number("0x" + String(v).slice(1));
 			if (isNaN(n)) n = Number("0x" + d.slice(1));
-			return G.Color.argb(0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff);
+			return Common.argbInt(0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff);
 		}
 		var r = {id : (id in this.themelist ? String(id) : "light")}, k, i;
 		k = r.id in this.themelist ? this.themelist[r.id] : light;
@@ -5741,9 +5753,9 @@ MapScript.loadModule("Common", {
 		r.name = k === light ? "默认主题" : String(k.name);
 		i = Math.floor(CA.settings.alpha * 255);
 		if (i >= 0 && i < 255) {
-			r.bgcolor = G.Color.argb(i, G.Color.red(r.bgcolor), G.Color.green(r.bgcolor), G.Color.blue(r.bgcolor));
-			r.float_bgcolor = G.Color.argb(i, G.Color.red(r.float_bgcolor), G.Color.green(r.float_bgcolor), G.Color.blue(r.float_bgcolor));
-			r.message_bgcolor = G.Color.argb(0xe0, G.Color.red(r.message_bgcolor), G.Color.green(r.message_bgcolor), G.Color.blue(r.message_bgcolor));
+			r.bgcolor = this.argbInt(i, G.Color.red(r.bgcolor), G.Color.green(r.bgcolor), G.Color.blue(r.bgcolor));
+			r.float_bgcolor = this.argbInt(i, G.Color.red(r.float_bgcolor), G.Color.green(r.float_bgcolor), G.Color.blue(r.float_bgcolor));
+			r.message_bgcolor = this.argbInt(0xe0, G.Color.red(r.message_bgcolor), G.Color.green(r.message_bgcolor), G.Color.blue(r.message_bgcolor));
 		} else {
 			CA.settings.alpha = i = 1;
 		}
@@ -5896,7 +5908,7 @@ MapScript.loadModule("Common", {
 	showDialog : function(layout, width, height, onDismiss) {
 		var frame, popup, trans;
 		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(G.Color.argb(0x80, 0, 0, 0));
+		frame.setBackgroundColor(this.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 			if (e.getAction() == e.ACTION_DOWN) {
 				popup.dismiss();
@@ -7206,11 +7218,11 @@ MapScript.loadModule("FCString", {
 				break;
 				
 				case "c_":
-				ss.setSpan(new G.ForegroundColorSpan(G.Color.argb(0x80, G.Color.red(e.color), G.Color.green(e.color), G.Color.blue(e.color))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+				ss.setSpan(new G.ForegroundColorSpan(Common.argbInt(0x80, G.Color.red(e.color), G.Color.green(e.color), G.Color.blue(e.color))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 				break;
 				
 				case "s_":
-				ss.setSpan(new G.ForegroundColorSpan(G.Color.argb(0x80, G.Color.red(defaultcolor), G.Color.green(defaultcolor), G.Color.blue(defaultcolor))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+				ss.setSpan(new G.ForegroundColorSpan(Common.argbInt(0x80, G.Color.red(defaultcolor), G.Color.green(defaultcolor), G.Color.blue(defaultcolor))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 				break;
 				
 				case self.BOLD:
@@ -8644,7 +8656,7 @@ MapScript.loadModule("EasterEgg", {
 		pt.setTextSize(60);
 		var fm = pt.getFontMetrics();
 		var th = fm.bottom - fm.top;
-		pt.setColor(G.Color.argb(0x80, 0, 0, 0));
+		pt.setColor(Common.argbInt(0x80, 0, 0, 0));
 		pt.setShadowLayer(1, 0, 0, pt.getColor());
 		cv.drawRoundRect(0, 170 - th, 170, 200, 10, 10, pt);
 		pt.setColor(G.Color.WHITE);
