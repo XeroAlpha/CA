@@ -2446,7 +2446,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.frame.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
 			
 			self.scr = new G.ScrollView(ctx);
-			self.scr.setBackgroundColor(Common.argbInt(0xC0, G.Color.red(bgcolor), G.Color.green(bgcolor), G.Color.blue(bgcolor)));
+			self.scr.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
 			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, CA.settings.barTop ? G.Gravity.TOP : G.Gravity.BOTTOM));
 			if (G.style == "Material") self.scr.setElevation(10 * G.dp);
 			
@@ -5716,14 +5716,21 @@ MapScript.loadModule("Common", {
 	
 	/* BUG 修复
 	 * Android 8.0 颜色转换出错
-	 * 原因：Oreo版本新增了一个方法：
+	 * 原因：Oreo版本新增了多个方法：
 	    Color.argb(float, float, float, float)
 	   与它的同名方法在JS层面上参数表相同。
 	    Color.argb(int, int, int, int)
-	   解决方案：自定义argb。
+	   还有Color.red, Color.green等方法也出现此状况。
+	   解决方案：自定义argb、rgb等方法。
 	 */
 	argbInt : function(alpha, red, green, blue) {
 		return (new java.lang.Long((alpha << 24) | (red << 16) | (green << 8) | blue)).intValue();
+	},
+	rgbInt : function(red, green, blue) {
+		return (new java.lang.Long((0xff << 24) | (red << 16) | (green << 8) | blue)).intValue();
+	},
+	setAlpha : function(color, alpha) {
+		return (new java.lang.Long((alpha << 24) | (color & 0xffffff))).intValue();
 	},
 	
 	loadTheme : function(id) {
@@ -5753,9 +5760,9 @@ MapScript.loadModule("Common", {
 		r.name = k === light ? "默认主题" : String(k.name);
 		i = Math.floor(CA.settings.alpha * 255);
 		if (i >= 0 && i < 255) {
-			r.bgcolor = this.argbInt(i, G.Color.red(r.bgcolor), G.Color.green(r.bgcolor), G.Color.blue(r.bgcolor));
-			r.float_bgcolor = this.argbInt(i, G.Color.red(r.float_bgcolor), G.Color.green(r.float_bgcolor), G.Color.blue(r.float_bgcolor));
-			r.message_bgcolor = this.argbInt(0xe0, G.Color.red(r.message_bgcolor), G.Color.green(r.message_bgcolor), G.Color.blue(r.message_bgcolor));
+			r.bgcolor = this.setAlpha(r.bgcolor, i);
+			r.float_bgcolor = this.setAlpha(r.float_bgcolor, i);
+			r.message_bgcolor = this.setAlpha(r.message_bgcolor, 0xe0);
 		} else {
 			CA.settings.alpha = i = 1;
 		}
@@ -7003,22 +7010,22 @@ MapScript.loadModule("ES6Ex", { //Partically Supported ECMAScript 6
 MapScript.loadModule("FCString", {
 	BEGIN : "§",
 	COLOR : {
-		"0" : G.Color.rgb(0, 0, 0),
-		"1" : G.Color.rgb(0, 0, 170),
-		"2" : G.Color.rgb(0, 170, 0),
-		"3" : G.Color.rgb(0, 170, 170),
-		"4" : G.Color.rgb(170, 0, 0),
-		"5" : G.Color.rgb(170, 0, 170),
-		"6" : G.Color.rgb(255, 170, 0),
-		"7" : G.Color.rgb(170, 170, 170),
-		"8" : G.Color.rgb(85, 85, 85),
-		"9" : G.Color.rgb(85, 85, 255),
-		"a" : G.Color.rgb(85, 255, 85),
-		"b" : G.Color.rgb(85, 255, 255),
-		"c" : G.Color.rgb(255, 85, 85),
-		"d" : G.Color.rgb(255, 85, 255),
-		"e" : G.Color.rgb(255, 255, 85),
-		"f" : G.Color.rgb(255, 255, 255)
+		"0" : Common.rgbInt(0, 0, 0),
+		"1" : Common.rgbInt(0, 0, 170),
+		"2" : Common.rgbInt(0, 170, 0),
+		"3" : Common.rgbInt(0, 170, 170),
+		"4" : Common.rgbInt(170, 0, 0),
+		"5" : Common.rgbInt(170, 0, 170),
+		"6" : Common.rgbInt(255, 170, 0),
+		"7" : Common.rgbInt(170, 170, 170),
+		"8" : Common.rgbInt(85, 85, 85),
+		"9" : Common.rgbInt(85, 85, 255),
+		"a" : Common.rgbInt(85, 255, 85),
+		"b" : Common.rgbInt(85, 255, 255),
+		"c" : Common.rgbInt(255, 85, 85),
+		"d" : Common.rgbInt(255, 85, 255),
+		"e" : Common.rgbInt(255, 255, 85),
+		"f" : Common.rgbInt(255, 255, 255)
 	},
 	BOLD : "l",
 	STRIKETHROUGH : "m",
@@ -7218,11 +7225,11 @@ MapScript.loadModule("FCString", {
 				break;
 				
 				case "c_":
-				ss.setSpan(new G.ForegroundColorSpan(Common.argbInt(0x80, G.Color.red(e.color), G.Color.green(e.color), G.Color.blue(e.color))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+				ss.setSpan(new G.ForegroundColorSpan(Common.setAlpha(e.color, 0x80)), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 				break;
 				
 				case "s_":
-				ss.setSpan(new G.ForegroundColorSpan(Common.argbInt(0x80, G.Color.red(defaultcolor), G.Color.green(defaultcolor), G.Color.blue(defaultcolor))), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+				ss.setSpan(new G.ForegroundColorSpan(Common.setAlpha(defaultcolor, 0x80)), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 				break;
 				
 				case self.BOLD:
