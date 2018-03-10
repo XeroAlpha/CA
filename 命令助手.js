@@ -9609,7 +9609,7 @@ MapScript.loadModule("AndroidBridge", {
 	verifyApk : function() {
 		if (ctx.getPackageName() != "com.xero.ca") throw new java.lang.SecurityException();
 		AndroidBridge.verifySign();
-		AndroidBridge.verifyDex();
+		//AndroidBridge.verifyDex();
 	},
 	verifySign : function() {
 		try {
@@ -9627,7 +9627,7 @@ MapScript.loadModule("AndroidBridge", {
 	verifyDex : function() {
 		var zf = new java.util.zip.ZipFile(ctx.getPackageCodePath());
 		var e = zf.getEntry("classes.dex");
-		if (java.lang.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException();
+		if (java.lang.Long.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException();
 	},
 	callHide : function() {
 		if (PWM.getCount() > 0) {
