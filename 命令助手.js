@@ -325,10 +325,12 @@ MapScript.loadModule("G", {
 	AlphaAnimation: android.view.animation.AlphaAnimation,
 	Animation: android.view.animation.Animation,
 	AnimationSet: android.view.animation.AnimationSet,
+	BackgroundColorSpan: android.text.style.BackgroundColorSpan,
 	Bitmap: android.graphics.Bitmap,
 	BitmapDrawable: android.graphics.drawable.BitmapDrawable,
 	BitmapFactory: android.graphics.BitmapFactory,
 	BitmapShader: android.graphics.BitmapShader,
+	BulletSpan: android.text.style.BulletSpan,
 	Button: android.widget.Button,
 	Canvas: android.graphics.Canvas,
 	CheckBox: android.widget.CheckBox,
@@ -344,6 +346,7 @@ MapScript.loadModule("G", {
 	GridView: android.widget.GridView,
 	HorizontalScrollView: android.widget.HorizontalScrollView,
 	Html: android.text.Html,
+	ImageSpan: android.text.style.ImageSpan,
 	ImageView: android.widget.ImageView,
 	InputMethodManager: android.view.inputmethod.InputMethodManager,
 	InputType: android.text.InputType,
@@ -373,6 +376,8 @@ MapScript.loadModule("G", {
 	Spanned: android.text.Spanned,
 	StrikethroughSpan: android.text.style.StrikethroughSpan,
 	StyleSpan: android.text.style.StyleSpan,
+	SubscriptSpan: android.text.style.SubscriptSpan,
+	SuperscriptSpan: android.text.style.SuperscriptSpan,
 	Surface: android.view.Surface,
 	TableLayout: android.widget.TableLayout,
 	TableRow: android.widget.TableRow,
@@ -382,6 +387,7 @@ MapScript.loadModule("G", {
 	Toast: android.widget.Toast,
 	TranslateAnimation: android.view.animation.TranslateAnimation,
 	Typeface: android.graphics.Typeface,
+	TypefaceSpan: android.text.style.TypefaceSpan,
 	UnderlineSpan: android.text.style.UnderlineSpan,
 	View: android.view.View,
 	ViewConfiguration: android.view.ViewConfiguration,
@@ -410,7 +416,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.5 Beta",
+	version : "0.9.7",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -509,8 +515,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				f.settings.senseDelay = true;
 				f.settings.topIcon = true;
 			}
+			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
+				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
+			}
 			this.IntelliSense.initLibrary(function(flag) {
-				if (!flag) Common.toast("有至少1个命令库无法加载，请在设置中查看详情");
+				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 			});
 			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
 				Updater.showNewVersionInfo(f.publishDate);
@@ -532,7 +541,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				alpha : 1,
 				noAnimation : false,
 				senseDelay : true,
-				disablePaste : false,
+				pasteMode : 1,
 				historyCount : 0,
 				splitScreenMode : false,
 				keepWhenIME : false,
@@ -805,8 +814,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				gap : 10 * G.dp
 			},{
+				text : "教程",
+				onclick : function(v) {
+					Tutorial.showList();
+				}
+			},{
 				text : "设置",
-				description : "IntelliSense、悬浮窗、命令库……",
 				onclick : function(v) {
 					CA.showSettings();
 				}
@@ -814,16 +827,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (CA.supportFloat) {
 				self.cmdEdit.push({
 					text : "退出命令助手",
-					description : "立即关闭命令助手",
 					onclick : function(v) {
 						CA.performExit();
 					}
 				});
 			}
-			self.performClose = function() {
+			self.performClose = function(callback) {
 				if (CA.settings.noAnimation) {
 					CA.hideGen();
-					return true;
+					if (callback) callback();
+					return;
 				}
 				var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, CA.settings.barTop ? -1 : 1);
 				animation.setInterpolator(new G.AccelerateInterpolator(2.0));
@@ -834,18 +847,27 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				animation.setInterpolator(new G.AccelerateInterpolator(2.0));
 				animation.setDuration(200);
 				animation.setAnimationListener(new G.Animation.AnimationListener({
-					onAnimationEnd : function(a) {
+					onAnimationEnd : function(a) {try {
 						CA.hideGen();
-					},
+						if (callback) callback();
+					} catch(e) {erp(e)}},
 					//onAnimationStart : function(a) {},
 					//onAnimationRepeat : function(a) {},
 				}));
 				CA.con.startAnimation(animation);
 			}
 			self.performCopy = function(s) {
-				Common.setClipboardText(String(s));
-				CA.addHistory(String(s));
-				if (!CA.settings.disablePaste) CA.showPaste(0);
+				s = String(s);
+				Common.setClipboardText(s);
+				CA.addHistory(s);
+				if (CA.settings.pasteMode == 1) {
+					CA.showPaste(0);
+				} else if (CA.settings.pasteMode == 2) {
+					self.performClose(function() {
+						CA.performPaste(s);
+					});
+					return;
+				}
 				self.performClose();
 			}
 			self.activate = function(fl) {
@@ -941,7 +963,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						} else {
 							CA.hideAssist(); CA.showHistory();
 						}
-						self.copy.setText("复制");
+						self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
 						self.add.setVisibility(G.View.GONE);
 						self.clear.setVisibility(G.View.VISIBLE);
 					}
@@ -958,7 +980,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						state = 3;
 						CA.hideHistory(); CA.showAssist();
 						CA.IntelliSense.hide(); CA.Assist.show(); CA.hideFCS();
-						self.copy.setText("复制");
+						self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
 						self.add.setVisibility(G.View.GONE);
 						self.clear.setVisibility(G.View.GONE);
 					}
@@ -1090,8 +1112,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.copy.setTextColor(Common.theme.go_textcolor);
 			self.copy.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.copy.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var t = CA.cmd.getText(), i;
-				if (v.getText() == "复制") {
+				var t = CA.cmd.getText(), i, s = v.getText();
+				if (s == "复制" || s == "粘贴") {
 					self.performCopy(t);
 				} else {
 					self.performClose();
@@ -2104,14 +2126,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (CA.showIcon.refresh) CA.showIcon.refresh();
 			}
 			self.data = [{
-				name : "版本",
-				type : "tag"
-			},{
 				name : "当前版本",
 				description : "基于Rhino (" + MapScript.host + ")",
 				type : "custom",
 				get : function() {
 					return CA.version;
+				},
+				onclick : function(fset) {
+					CA.showDonateDialog();
 				}
 			},{
 				name : "检查更新",
@@ -2128,7 +2150,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
-				name : "IntelliSense设置",
+				name : "智能补全设置",
 				type : "tag"
 			},{
 				name : "智能模式",
@@ -2140,6 +2162,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				onclick : function(fset) {
 					CA.showModeChooser(function() {
 						self.refresh(true);
+					});
+				}
+			},{
+				name : "拓展包",
+				type : "custom",
+				get : function() {
+					return CA.settings.enabledLibrarys.length + "个已启用";
+				},
+				onclick : function(fset) {
+					CA.showLibraryMan(function() {
+						fset();
 					});
 				}
 			},{
@@ -2157,9 +2190,110 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
-				id : "disablePaste",
-				name : "永久关闭粘贴栏",
+				name : "粘贴模式",
+				type : "custom",
+				list : [{
+					text : "仅复制"
+				}, {
+					text : "复制并显示粘贴栏"
+				}, {
+					text : "复制并立即粘贴"
+				}],
+				get : function() {
+					if (CA.settings.pasteMode in this.list) {
+						return this.list[CA.settings.pasteMode].text;
+					} else {
+						return this.list[CA.settings.pasteMode = 1].text;
+					}
+				},
+				onclick : function(fset) {
+					Common.showListChooser(this.list, function(i) {
+						CA.settings.pasteMode = i;
+						fset();
+					});
+				}
+			},{
+				name : "管理历史",
+				type : "custom",
+				get : function() {
+					return "共有" + CA.his.length + "条记录";
+				},
+				onclick : function(fset) {
+					CA.showHistoryEdit(null, function() {
+						fset();
+						if (CA.history) CA.showHistory();
+					});
+				}
+			},{
+				name : "管理收藏",
+				type : "custom",
+				get : function() {
+					return "共有" + Object.keys(CA.fav).length + "条记录";
+				},
+				onclick : function(fset) {
+					CA.showFavoriteEdit(null, function() {
+						fset();
+						if (CA.history) CA.showHistory();
+					});
+				}
+			},{
+				name : "历史记录容量",
+				type : "seekbar",
+				current : function(p) {
+					return p == 0 ? "无限制" : this.list[p] + "条";
+				},
+				list : [0, 1, 3, 5, 8, 10, 20, 30, 50, 100],
+				max : 9,
+				get : function() {
+					var k = this.list.indexOf(CA.settings.histroyCount);
+					return k < 0 ? 0 : this.list[k];
+				},
+				set : function(v) {
+					CA.settings.histroyCount = parseInt(this.list[v]);
+					if (CA.settings.histroyCount) CA.his.splice(CA.settings.histroyCount);
+				}
+			},{
+				name : "外观设置",
+				type : "tag"
+			},{
+				name : "界面主题",
+				type : "custom",
+				get : function() {
+					return Common.theme.name;
+				},
+				onclick : function() {
+					Common.showChangeTheme(function() {
+						self.refresh(true);
+					});
+				}
+			},{
+				id : "barTop",
+				name : "输入栏置顶",
+				description : "命令输入栏会被显示在顶部，兼容旧版UI。",
 				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
+				id : "noAnimation",
+				name : "关闭动画",
+				description : "关闭部分动画以减轻卡顿。",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
+				id : "keepWhenIME",
+				name : "禁用压缩列表栏",
+				description : "当输入法弹出时不再压缩列表栏。",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
+				id : "splitScreenMode",
+				name : "双栏模式",
+				description : "推荐大屏手机/Pad使用",
+				type : "boolean",
+				refresh : self.refresh,
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
@@ -2221,50 +2355,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
-				name : "外观设置",
-				type : "tag"
-			},{
-				name : "界面主题",
-				type : "custom",
-				get : function() {
-					return Common.theme.name;
-				},
-				onclick : function() {
-					Common.showChangeTheme(function() {
-						self.refresh(true);
-					});
-				}
-			},{
-				id : "barTop",
-				name : "输入栏置顶",
-				description : "命令输入栏会被显示在顶部，兼容旧版UI。",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "noAnimation",
-				name : "关闭动画",
-				description : "关闭部分动画以减轻卡顿。",
-				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "keepWhenIME",
-				name : "禁用压缩列表栏",
-				description : "当输入法弹出时不再压缩列表栏。",
-				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "splitScreenMode",
-				name : "双栏模式",
-				description : "推荐大屏手机/Pad使用",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
 				name : "辅助功能",
 				type : "tag"
 			},{
@@ -2282,60 +2372,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function() {
 					Common.showTextDialog(CA.tips.join("\n\n"));
-				}
-			},{
-				name : "用户数据",
-				type : "tag"
-			},{
-				name : "命令库",
-				type : "custom",
-				get : function() {
-					return CA.settings.enabledLibrarys.length + "个已启用";
-				},
-				onclick : function(fset) {
-					CA.showLibraryMan(function() {
-						fset();
-					});
-				}
-			},{
-				name : "历史记录数量",
-				type : "seekbar",
-				current : function(p) {
-					return p == 0 ? "无限制" : this.list[p] + "条";
-				},
-				list : [0, 1, 3, 5, 8, 10, 20, 30, 50, 100],
-				max : 9,
-				get : function() {
-					var k = this.list.indexOf(CA.settings.histroyCount);
-					return k < 0 ? 0 : this.list[k];
-				},
-				set : function(v) {
-					CA.settings.histroyCount = parseInt(this.list[v]);
-					if (CA.settings.histroyCount) CA.his.splice(CA.settings.histroyCount);
-				}
-			},{
-				name : "管理历史",
-				type : "custom",
-				get : function() {
-					return "共有" + CA.his.length + "条记录";
-				},
-				onclick : function(fset) {
-					CA.showHistoryEdit(null, function() {
-						fset();
-						if (CA.history) CA.showHistory();
-					});
-				}
-			},{
-				name : "管理收藏",
-				type : "custom",
-				get : function() {
-					return "共有" + Object.keys(CA.fav).length + "条记录";
-				},
-				onclick : function(fset) {
-					CA.showFavoriteEdit(null, function() {
-						fset();
-						if (CA.history) CA.showHistory();
-					});
 				}
 			},{
 				name : "恢复默认数据",
@@ -2432,6 +2468,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		Common.showFileDialog.linear = null;
 		Common.showDebugDialog.main = null;
 		Common.showSettings.linear = null;
+		Tutorial.showList.linear = null;
+		Tutorial.showTutorial.linear = null;
 		JSONEdit.showEdit.main = null;
 	},
 	
@@ -2530,20 +2568,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else {
 			try {
 				ctx.updateTextboxText(cmd);
-				
-				//多玩我的世界盒子 专用接口
-				/* 未计划加入
-				try {
-					com.mcbox.pesdk.mcfloat.func.McFloatSettings.CommandBlockConfig = JSON.stringify({
-						typeMode : "0",
-						redstoneMode : "0",
-						conditionalMode : "0",
-						commandText : cmd,
-						hoverText : "",
-						outputText : ""
-					});
-				} catch(e) {}
-				*/
 			} catch(e) {
 				Common.toast("当前版本暂不支持粘贴命令");
 			}
@@ -2668,7 +2692,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							CA.trySave();
 						},
 						callback : function(id) {
-							CA.settings.disablePaste = id == 1;
+							CA.settings.pasteMode = id == 1 ? 0 : 1;
 						}
 					});
 				}
@@ -2695,14 +2719,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (!self.linear) {
 			self.contextMenu = [{
 				text : "从文件中导入",
-				description : "导入外置命令库",
+				description : "导入外置拓展包",
 				onclick : function(v, tag) {
 					Common.showFileDialog({
 						type : 0,
 						callback : function(f) {
 							self.postTask(function(cb) {
 								if (!CA.IntelliSense.enableLibrary(String(f.result.getAbsolutePath()))) {
-									Common.toast("无法导入该命令库，可能文件不存在");
+									Common.toast("无法导入该拓展包，可能文件不存在");
 									cb(false);
 									return;
 								}
@@ -2714,8 +2738,38 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				text : "新建拓展包",
+				description : "新建一个不包含内容的包",
+				onclick : function(v, tag) {
+					Common.showFileDialog({
+						type : 1,
+						callback : function(f) {
+							self.postTask(function(cb) {
+								var fp = String(f.result.getAbsolutePath());
+								try {
+									MapScript.saveJSON(fp, {
+										"name": "新建拓展包",
+										"author": "作者名",
+										"description": "此处填写介绍，可留空，新建于" + new Date().toLocaleDateString(),
+										"uuid": String(java.util.UUID.randomUUID().toString()),
+										"version": [0, 0, 1],
+										"require": []
+									});
+									CA.IntelliSense.enableLibrary(fp);
+									cb(true, function() {
+										Common.toast("拓展包已新建：" + fp);
+									});
+								} catch(e) {
+									Common.toast("文件保存失败，无法新建\n" + e);
+									cb(false);
+								}
+							});
+						}
+					});
+				}
+			},{
 				text : "刷新",
-				description : "刷新所有的命令库",
+				description : "刷新所有的拓展包",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
 						cb(true, function() {
@@ -2750,35 +2804,35 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "恢复默认",
-				description : "将命令库恢复为默认",
+				description : "将拓展包列表恢复为默认",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
 						CA.settings.enabledLibrarys = Object.keys(CA.IntelliSense.inner);
 						CA.settings.disabledLibrarys = [];
 						cb(true, function() {
-							Common.toast("已恢复为默认命令库");
+							Common.toast("已恢复为默认拓展包列表");
 						});
 					});
 				}
 			}];
 			self.itemMenu = [{
 				text : "移除",
-				description : "将该命令库从列表中移除",
+				description : "将该拓展包从列表中移除",
 				onclick : function(v, tag) {
 					if (tag.data.mode == 0) {
-						Common.toast("内置命令库无法删除");
+						Common.toast("内置拓展包无法删除");
 						return true;
 					}
 					self.postTask(function(cb) {
 						CA.IntelliSense.removeLibrary(tag.data.src);
 						cb(true, function() {
-							Common.toast("该命令库已从列表中移除");
+							Common.toast("该拓展包已从列表中移除");
 						});
 					});
 				}
 			},{
 				text : "查看信息",
-				description : "查看该命令库文件的相关信息",
+				description : "查看该拓展包的相关信息",
 				onclick : function(v, tag) {
 					var f = new java.io.File(tag.data.src), s;
 					s = "名称 : " + tag.data.name;
@@ -2792,7 +2846,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "如果可行，连接服务器检测是否有更新",
 				onclick : function(v, tag) {
 					if (tag.data.mode == 0 || !tag.data.update) {
-						Common.toast("该命令库暂不支持检测更新");
+						Common.toast("该拓展包暂不支持检测更新");
 						return true;
 					}
 					self.postTask(function(cb) {new java.lang.Thread(function() {try {
@@ -2804,7 +2858,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								r = JSON.parse(Updater.queryPage(u));
 							}
 							if (!(r instanceof Object) || !Array.isArray(r.version)) {
-								Common.toast("该命令库没有更新数据");
+								Common.toast("该拓展包没有更新数据");
 								return cb(false);
 							}
 							for (i = 0; i < d.version.length; i++) {
@@ -2833,10 +2887,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "编辑",
-				description : "用JSON编辑器编辑该命令库",
+				description : "用JSON编辑器编辑该拓展包",
 				onclick : function(v, tag) {
 					if (tag.data.mode != 1) {
-						Common.toast("命令库已被锁定，无法编辑");
+						Common.toast("拓展包已被锁定，无法编辑");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -2844,7 +2898,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						if (!(a instanceof Object)) a = {};
 						JSONEdit.show({
 							source : a,
-							rootname : "命令库",
+							rootname : "拓展包",
 							update : function() {
 								try {
 									self.processing = true;
@@ -2863,10 +2917,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "另存为",
-				description : "将该命令库保存到一个新文件里",
+				description : "将该拓展包保存到一个新文件里",
 				onclick : function(v, tag) {
 					if (tag.data.hasError) {
-						Common.toast("该命令库有错误，不能另存为");
+						Common.toast("该拓展包有错误，不能另存为");
 						return true;
 					}
 					Common.showFileDialog({
@@ -2882,7 +2936,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									}
 									CA.IntelliSense.disableLibrary(fp);
 									cb(true, function() {
-										Common.toast("当前命令库已另存为" + fp);
+										Common.toast("当前拓展包已另存为" + fp);
 									});
 								} catch(e) {
 									Common.toast("文件保存失败，无法另存为\n" + e);
@@ -2894,14 +2948,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "创建副本",
-				description : "创建该命令库的副本（副本不会被认为与原命令库相同）",
+				description : "创建该拓展包的副本（副本不会被认为与原拓展包相同）",
 				onclick : function(v, tag) {
 					if (tag.data.hasError) {
-						Common.toast("该命令库有错误，不能创建副本");
+						Common.toast("该拓展包有错误，不能创建副本");
 						return true;
 					}
 					if (tag.data.mode == 2) {
-						Common.toast("命令库已被锁定，不能创建副本");
+						Common.toast("拓展包已被锁定，不能创建副本");
 						return true;
 					}
 					Common.showFileDialog({
@@ -2921,7 +2975,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									MapScript.saveJSON(fp, l);
 									CA.IntelliSense.enableLibrary(fp);
 									cb(true, function() {
-										Common.toast("当前命令库的副本已创建" + fp);
+										Common.toast("当前拓展包的副本已创建" + fp);
 									});
 								} catch(e) {
 									Common.toast("文件保存失败，无法创建副本\n" + e);
@@ -2933,18 +2987,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "锁定",
-				description : "锁定命令库，使其不能被编辑",
+				description : "锁定拓展包，使其不能被编辑",
 				onclick : function(v, tag) {
 					if (tag.data.mode != 1) {
-						Common.toast("该命令库已被锁定");
+						Common.toast("该拓展包已被锁定");
 						return true;
 					}
 					if (tag.data.hasError) {
-						Common.toast("该命令库有错误，不能锁定");
+						Common.toast("该拓展包有错误，不能锁定");
 						return true;
 					}
 					Common.showConfirmDialog({
-						title : "确定锁定命令库“" + tag.data.name + "”？",
+						title : "确定锁定拓展包“" + tag.data.name + "”？",
 						description : "*此操作无法撤销",
 						callback : function(id) {
 							if (id != 0) return;
@@ -2952,7 +3006,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								try {
 									CA.IntelliSense.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
 									cb(true, function() {
-										Common.toast("该命令库已锁定");
+										Common.toast("该拓展包已锁定");
 									});
 								} catch(e) {
 									Common.toast("文件保存失败\n" + e);
@@ -2964,10 +3018,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "上移",
-				description : "使该命令库较早加载",
+				description : "使该拓展包较早加载",
 				onclick : function(v, tag) {
 					if (tag.data.index < 1) {
-						Common.toast("该命令库已在顶端，无法继续上移");
+						Common.toast("该拓展包已在顶端，无法继续上移");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -2978,10 +3032,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "下移",
-				description : "使该命令库较晚加载",
+				description : "使该拓展包较晚加载",
 				onclick : function(v, tag) {
 					if (tag.data.index > CA.settings.enabledLibrarys.length - 2) {
-						Common.toast("该命令库已在底端，无法继续下移");
+						Common.toast("该拓展包已在底端，无法继续下移");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -2992,24 +3046,24 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				text : "停用",
-				description : "停用该命令库",
+				description : "停用该拓展包",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
 						CA.IntelliSense.disableLibrary(tag.data.src);
 						cb(true, function() {
-							Common.toast("该命令库已停用");
+							Common.toast("该拓展包已停用");
 						});
 					});
 				}
 			}].concat(self.itemMenu);
 			self.disabledMenu = [{
 				text : "启用",
-				description : "启用该命令库",
+				description : "启用该拓展包",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
 						CA.IntelliSense.enableLibrary(tag.data.src);
 						cb(true, function() {
-							Common.toast("该命令库已启用");
+							Common.toast("该拓展包已启用");
 						});
 					});
 				}
@@ -3031,7 +3085,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					text2 = new G.TextView(ctx);
 				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.VERTICAL);
-				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : "") + e.name + (e.disabled || e.hasError ? "" : " (已启用)"));
 				text1.setTextSize(Common.theme.textsize[3]);
@@ -3039,7 +3093,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
 				text1.setSingleLine(true);
 				layout.addView(text1);
-				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 15 * G.dp);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
 				text2.setTextSize(Common.theme.textsize[1]);
@@ -3097,7 +3151,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {erp(e)}}}));
 			
 			self.title = new G.TextView(ctx);
-			self.title.setText("管理命令库");
+			self.title.setText("管理拓展包");
 			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
 			self.title.setTextSize(Common.theme.textsize[4]);
@@ -3416,6 +3470,74 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			minSupportVer : "1.2"
 		}
 	},
+	getDonateQRCode : function(w) {
+		var size = 37, code = "f14l0z9I5TYKdmlZGN0u/Fqj23XvNXSDsjOw4F9VVfUHyOz0AOLWOvZhY0LFaqU5K4ae3tR7QsN1ohFOM+T/sdDdGmA6z4wzpGj+UIJ3zPZMdJtCMYGq25wk00tBnyRrXC/gBPP2NvS/IVGoqmhh9vOqg6r3/O3sZJ+d5TUcEhEzZH1mj/8BBAsu+t9uZlYJOv+vGF1mVPa1S9lj5nRBFDaWoDvEzvsHu9S5AQ==";
+		var bytes = android.util.Base64.decode(code, 2), x, y;
+		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
+		var cv = new G.Canvas(bmp);
+		var pt = new G.Paint();
+		pt.setAntiAlias(true);
+		pt.setColor(G.Color.BLACK);
+		pt.setStyle(G.Paint.Style.FILL);
+		cv.drawColor(G.Color.WHITE);
+		cv.scale(w / (size + 2), w / (size + 2));
+		cv.translate(1, 1);
+		for (x = 0; x < size; x++) {
+			for (y = 0; y < size; y++) {
+				t = x * size + y;
+				if (bytes[t >> 3] & new java.lang.Integer(1 << (t & 7)).byteValue()) {
+					cv.drawRect(x, y, x + 1, y + 1, pt);
+				}
+			}
+		}
+		return bmp;
+	},
+	showDonateDialog : function() {G.ui(function() {try {
+		var layout, scr, text, img, exit, popup, bmp;
+		scr = new G.ScrollView(ctx);
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		layout.setBackgroundColor(Common.theme.message_bgcolor);
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
+		text = new G.TextView(ctx);
+		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+		text.setText("捐助通道（微信支付） - 2.99元");
+		text.setTextSize(Common.theme.textsize[2]);
+		text.setTextColor(Common.theme.textcolor);
+		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		layout.addView(text);
+		img = new G.ImageView(ctx);
+		img.setImageBitmap(bmp = CA.getDonateQRCode(240 * G.dp));
+		img.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+		img.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			try {
+				var f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "Pictures/ca_donate.png");
+				f.getParentFile().mkdirs();
+				var out = new java.io.FileOutputStream(f);
+				bmp.compress(G.Bitmap.CompressFormat.PNG, 0, out);
+				out.close();
+				Common.toast("图片已保存至" + f.getAbsolutePath());
+			} catch(e) {
+				Common.toast("图片保存失败\n" + e);
+			}
+		} catch(e) {erp(e)}}}));
+		layout.addView(img);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setText("关闭");
+		exit.setTextSize(Common.theme.textsize[3]);
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setTextColor(Common.theme.criticalcolor);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			popup.dismiss();
+			bmp.recycle();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		scr.addView(layout);
+		popup = Common.showDialog(scr, -2, -2);
+	} catch(e) {erp(e)}})},
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -3605,6 +3727,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							if (t.output) for (k in t.output) if (!(k in c.output)) c.output[k] = u + t.output[k];
 							if (t.recommend) for (k in t.recommend) if (!(k in c.output)) c.output[k] = u + t.recommend[k];
 							if (t.assist) for (k in t.assist) if (!(k in c.output)) c.output[k] = c.source + t.assist[k];
+							if (t.menu) for (k in t.menu) if (!(k in c.output)) c.output[k] = t.menu[k];
 							if (t.canFinish && (!pa[j + 1] || pa[j + 1].optional)) c.canFinish = true;
 							f = false;
 							pp.append(" ");
@@ -3990,7 +4113,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						for (i in pl) if (String(pl[i]).startsWith(ms)) t.output[pl[i]] = String(pl[i]);
 						t.input = t.input.concat(Object.keys(t.output));
 					}
-				}
+				} else MCAdapter.applySense(t);
 			} else if (c[1].length < 1) {
 				//正在输入p/e/a/r
 				t = {
@@ -4175,7 +4298,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 				t.input = t.input.concat(Object.keys(t.output));
-			}
+			} else MCAdapter.applySense(t);
 			return t;
 		},
 		matchString : function(ps, a, r) {
@@ -4378,16 +4501,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				enums : {},
 				selectors : {},
 				help : {},
+				tutorials : [],
 				info : info = []
 			};
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
 				var m = 0, v, cur, resolved, stat;
 				try {
 					cur = CA.IntelliSense.inner[e] || (m = 1, MapScript.readJSON(e, null, false)) || (m = 2, MapScript.readJSON(e, null, true)) || (m = 2, CA.IntelliSense.loadPrefixed(e, null));
-					if (!cur) throw "无法读取或解析命令库";
-					if (!(cur instanceof Object)) throw "错误的命令库格式";
+					if (!cur) throw "无法读取或解析拓展包";
+					if (!(cur instanceof Object)) throw "错误的拓展包格式";
 					resolved = true;
-					if ((v = CA.IntelliSense.checkPackVer(cur)) != 0) throw v > 0 ? "命令库版本过低" : "游戏版本过低"; //兼容旧版
+					if ((v = CA.IntelliSense.checkPackVer(cur)) != 0) throw v > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
 					if (cur.minCAVersion && Date.parse(CA.publishDate) < Date.parse(cur.minCAVersion)) throw "命令助手版本过低";
 					stat = CA.IntelliSense.statLib(cur);
 					CA.IntelliSense.loadLibrary(CA.IntelliSense.library, cur, stat);
@@ -4439,6 +4563,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				t2 = t[t2];
 				CA.IntelliSense.library.command_snap[e] = t2.description ? t2.description : "";
 			});
+			Tutorial.library = CA.IntelliSense.library.tutorials;
 			if (callback) callback(flag);
 		} catch(e) {erp(e)}}}))).start()},
 		enableLibrary : function(name) {
@@ -4477,12 +4602,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.checkLibrary(l);
 			if (this.library.info.some(function(e) {
 				return l.uuid == e.uuid;
-			})) throw "已存在相同的命令库";
+			})) throw "已存在相同的拓展包";
 			if (l.require.some(function(e1) {
 				return !this.library.info.some(function(e2) {
 					return e1 == e2.uuid;
 				});
-			}, this)) throw "前提库并未全部加载，请检查加载顺序及命令库列表";
+			}, this)) throw "前提包并未全部加载，请检查加载顺序及拓展包列表";
 			this.joinPack(cur, Object.copy(l)); //创建副本
 			if (!l.versionPack) return;
 			c = l.versionPack;
@@ -4569,7 +4694,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				checkNotEmptyString(a.uuid);
 				stack[1] = "版本(version)";
 				iterateArray(a.version, checkUnsignedInt);
-				stack[1] = "前提库(require)";
+				stack[1] = "前提包(require)";
 				iterateArray(a.require, checkNotEmptyString);
 			}
 		})(),
@@ -4587,7 +4712,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (p1 < p2) {
 						return -1; //pe版本过低
 					} else if (p1 > p2) {
-						return 1; //命令库版本过低
+						return 1; //拓展包版本过低
 					}
 				}
 				return 0;
@@ -4730,6 +4855,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						delete cur.help[i];
 					} else {
 						cur.help[i] = l.help[i];
+					}
+				}
+				for (i in l.tutorials) {
+					if (l.mode != "remove") {
+						cur.tutorials.push(l.tutorials[i]);
 					}
 				}
 				return true;
@@ -7255,6 +7385,380 @@ MapScript.loadModule("FCString", {
 	}
 });
 
+MapScript.loadModule("Tutorial", {
+	library : [],
+	showList : function self(callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.adapter = function(e, i, a) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = new G.TextView(ctx),
+					text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text1.setText(e.title);
+				text1.setTextSize(Common.theme.textsize[3]);
+				text1.setTextColor(e.state == 2 ? Common.theme.promptcolor : Common.theme.textcolor);
+				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
+				text1.setSingleLine(true);
+				layout.addView(text1);
+				if (e.description) {
+					text2.setPadding(0, 5 * G.dp, 0, 0);
+					text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					text2.setText(e.description);
+					text2.setTextSize(Common.theme.textsize[1]);
+					text2.setTextColor(Common.theme.promptcolor);
+					layout.addView(text2);
+				}
+				return layout;
+			}
+			self.refresh = function() {
+				var i, e, t;
+				var data = Tutorial.getSettings();
+				var a = {}, states = [[], [], []];
+				Tutorial.library.forEach(function(e, i) {
+					a[e.id] = {
+						index : i,
+						type : e.type,
+						name : e.name,
+						description : e.description,
+						segmentLen : e.segments.length,
+						progress : data[e.id] ? data[e.id].progress : -1,
+						source : e
+					}
+				});
+				Object.keys(a).forEach(function(i) {
+					if (a[i].progress >= a[i].segmentLen) {
+						a[i].title = a[i].name;
+						states[a[i].state = 2].push(a[i]);
+					} else if (a[i].progress >= 0) {
+						a[i].title = a[i].name + " （" + ((a[i].progress + 1) / a[i].segmentLen * 100).toFixed(0) + "%）";
+						states[a[i].state = 0].push(a[i]);
+					} else {
+						a[i].title = a[i].name + " *";
+						states[a[i].state = 1].push(a[i]);
+					}
+				});
+				self.title.setText("教程 (进行中:" + states[0].length + "|未读:" + states[1].length + "|已读:" + states[2].length + ")");
+				self.list.setAdapter(new RhinoListAdapter(states[0].concat(states[1], states[2]), self.adapter));
+			}
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
+			self.title = new G.TextView(ctx);
+			self.title.setText("教程");
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 10 * G.dp);
+			self.title.setTextSize(Common.theme.textsize[4]);
+			self.title.setTextColor(Common.theme.textcolor);
+			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
+			self.list = new G.ListView(ctx);
+			self.list.setBackgroundColor(G.Color.TRANSPARENT);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				var data = parent.getAdapter().getItem(pos);
+				Tutorial.showIntro(data.source, function() {
+					self.refresh();
+				});
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			self.exit.setTextSize(Common.theme.textsize[3]);
+			self.exit.setTextColor(Common.theme.criticalcolor);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.dismiss();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+		}
+		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
+		self.popup = new G.PopupWindow(self.linear, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			CA.trySave();
+			if (callback) callback();
+			self.popup = null;
+		} catch(e) {erp(e)}}}));
+		self.refresh();
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
+	} catch(e) {erp(e)}})},
+	
+	showIntro : function(o, callback) {G.ui(function() {try {
+		var linear, title, scr, desc, enter, popup;
+		linear = new G.LinearLayout(ctx);
+		linear.setOrientation(G.LinearLayout.VERTICAL);
+		linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		linear.setBackgroundColor(Common.theme.message_bgcolor);
+		title = new G.TextView(ctx);
+		title.setText(o.name);
+		title.setPadding(0, 0, 0, 10 * G.dp);
+		title.setTextSize(Common.theme.textsize[4]);
+		title.setTextColor(Common.theme.textcolor);
+		linear.addView(title, new G.LinearLayout.LayoutParams(-1, -2));
+		scr = new G.ScrollView(ctx);
+		desc = new G.TextView(ctx);
+		desc.setText(Tutorial.rawJson(o.intro || o.description || "暂无简介"));
+		desc.setTextSize(Common.theme.textsize[3]);
+		desc.setTextColor(Common.theme.textcolor);
+		scr.addView(desc, new G.FrameLayout.LayoutParams(-1, -2));
+		linear.addView(scr, new G.LinearLayout.LayoutParams(-1, 0, 1));
+		enter = new G.TextView(ctx);
+		enter.setText("进入");
+		enter.setGravity(G.Gravity.RIGHT);
+		enter.setPadding(0, 10 * G.dp, 20 * G.dp, 20 * G.dp);
+		enter.setTextSize(Common.theme.textsize[3]);
+		enter.setTextColor(Common.theme.criticalcolor);
+		enter.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			popup.dismiss();
+			if (o.type == "tutorial") {
+				Tutorial.showTutorial(o, callback);
+			} // more: exam article
+		} catch(e) {erp(e)}}}));
+		linear.addView(enter, new G.LinearLayout.LayoutParams(-1, -2));
+		popup = Common.showDialog(linear, -1, -1);
+	} catch(e) {erp(e)}})},
+	
+	showTutorial : function self(o, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.adapter = function(e, i, a) {
+				return e.view;
+			}
+			self.init = function(o) {
+				var i, a, adapter, r = [{
+					type : "title",
+					view : self.linear
+				}];
+				self.current = o;
+				self.sets = Tutorial.getSettings(String(o.id));
+				self.title.setText(o.name);
+				if (isNaN(self.sets.progress)) self.sets.progress = 0;
+				if (!self.sets.varmap) self.sets.varmap = {};
+				a = o.segments;
+				for (i = 0; i < self.sets.progress && i < a.length; i++) {
+					r.push(self.convertView(a[i], self.sets));
+				}
+				adapter = new RhinoListAdapter(r, self.adapter);
+				self.list.setAdapter(adapter);
+				self.adpt = RhinoListAdapter.getController(adapter);
+				self.next();
+			}
+			self.next = function() {
+				var i, a = self.current.segments, t, f;
+				for (i = self.sets.progress; i < a.length; i++) {
+					t = a[i];
+					self.adpt.add(self.convertView(t, self.sets));
+					switch (t.stepMode) {
+						case "manual":
+						f = true;
+						self.adpt.add({
+							type : "step.manual",
+							view : self.generateText("点击进入下一步", false)
+						});
+						case "auto":
+						default:
+						break;
+					}
+					if (f) break;
+				}
+				self.sets.progress = i;
+				if (i == a.length) {
+					self.adpt.add({
+						type : "ending",
+						view : self.generateText(self.current.name + "已结束，点击以退出", false)
+					});
+				}
+				//self.list.setSelectionFromTop(self.adpt.length() - 1, 0);
+				self.list.smoothScrollToPosition(self.adpt.length() - 1);
+			}
+			self.convertView = function(e, sets) {
+				var t;
+				if (e.text) {
+					t = Tutorial.rawJson(e.text, sets.varmap);
+					return {
+						type : "text",
+						text : t,
+						view : self.generateText(t, true)
+					};
+				} else if (e.command) {
+					return {
+						type : "command",
+						command : e.command,
+						view : self.generateCopyable(Tutorial.rawJson({command : e.command}, null))
+					};
+				}
+				return {
+					type : "unknown",
+					view : self.generateText("未知的片段&")
+				};
+			}
+			self.generateText = function(str, focusable) {
+				var text = new G.TextView(ctx);
+				text.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				text.setText(str);
+				text.setTextSize(Common.theme.textsize[3]);
+				text.setTextColor(Common.theme.textcolor);
+				text.setFocusable(focusable);
+				return text;
+			}
+			self.generateCopyable = function(str) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = new G.TextView(ctx),
+					text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				text1.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+				text1.setText(str);
+				text1.setTextSize(Common.theme.textsize[3]);
+				text1.setTextColor(Common.theme.textcolor);
+				layout.addView(text1);
+				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+				text2.setText("📋");
+				text2.setGravity(G.Gravity.CENTER);
+				text2.setTextSize(Common.theme.textsize[3]);
+				text2.setTextColor(Common.theme.promptcolor);
+				layout.addView(text2);
+				return layout;
+			}
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
+			if (G.style == "Material") self.linear.setElevation(8 * G.dp);
+			self.linear.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			self.title = new G.TextView(ctx);
+			self.title.setPadding(20 * G.dp, 20 * G.dp, 0, 20 * G.dp);
+			self.title.setTextSize(Common.theme.textsize[4]);
+			self.title.setTextColor(Common.theme.textcolor);
+			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(0, -1, 1.0));
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setTextSize(Common.theme.textsize[3]);
+			self.exit.setTextColor(Common.theme.criticalcolor);
+			self.exit.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (self.popup) self.popup.dismiss();
+				//BUG: View显示卡顿，导致可以在dismissed的状态下点击按钮
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -1));
+			self.list = new G.ListView(ctx);
+			self.list.setBackgroundColor(Common.theme.message_bgcolor);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				var e = parent.getAdapter().getItem(pos);
+				if (!e) return;
+				switch (e.type) {
+					case "command":
+					Common.setClipboardText(e.command);
+					Common.toast("内容已复制");
+					break;
+					case "step.manual":
+					self.sets.progress++;
+					self.adpt.removeByIndex(pos);
+					self.next();
+					break;
+					case "ending":
+					self.popup.dismiss();
+					break;
+				}
+			} catch(e) {erp(e)}}}));
+		}
+		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
+		self.popup = new G.PopupWindow(self.list, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			CA.trySave();
+			if (callback) callback();
+			self.popup = null;
+		} catch(e) {erp(e)}}}));
+		self.init(o);
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
+	} catch(e) {erp(e)}})},
+	
+	getSettings : function(id) {
+		if (!CA.settings.tutorialData) {
+			CA.settings.tutorialData = {};
+		}
+		if (id) {
+			if (!CA.settings.tutorialData[id]) {
+				CA.settings.tutorialData[id] = {};
+			}
+			return CA.settings.tutorialData[id];
+		} else {
+			return CA.settings.tutorialData;
+		}
+	},
+	
+	rawJson : function self(o, variableMap) {
+		if (!self.coverSpan) {
+			self.coverSpan = function(src, span) {
+				src.setSpan(span, 0, src.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			}
+		}
+		var i, result = new G.SpannableStringBuilder();
+		if (Array.isArray(o)) {
+			for (i in o) {
+				result.append(self(o[i], variableMap));
+			}
+		} else if (typeof o == "function") {
+			result.append(self(o(variableMap), variableMap));
+		} else if (o instanceof Object) {
+			if (o.text) {
+				result.append(o.text);
+			} else if (o.variable) {
+				result.append(String(variableMap[o.variable]));
+			} else if (o.command) {
+				result.append(o.command);
+				self.coverSpan(result, new G.ForegroundColorSpan(G.Color.WHITE));
+				FCString.parseFC_(result, G.Color.WHITE);
+				self.coverSpan(result, new G.TypefaceSpan("monospace"));
+				self.coverSpan(result, new G.BackgroundColorSpan(G.Color.BLACK));
+			} else if (o.list) {
+				for (i in o.list) {
+					result.setSpan(new G.BulletSpan(), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+					result.append(self(o.list[i], variableMap));
+					result.append("\n");
+				}
+			} else if (o.image) {
+				result.setSpan(new G.ImageSpan(ctx, android.net.Uri.parse(o.image)), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			}
+			if (o.extra) {
+				for (i in o.extra) {
+					result.append(self(o.extra[i], variableMap));
+				}
+			}
+			if (o.color) self.coverSpan(result, new G.ForegroundColorSpan(o.color in Common.theme ? Common.theme[o.color] : G.Color.parseColor(o.color)));
+			if (o.bgcolor) self.coverSpan(result, new G.BackgroundColorSpan(o.bgcolor in Common.theme ? Common.theme[o.bgcolor] : G.Color.parseColor(o.bgcolor)));
+			if (o.bold) self.coverSpan(result, new G.StyleSpan(G.Typeface.BOLD));
+			if (o.italic) self.coverSpan(result, new G.StyleSpan(G.Typeface.ITALIC));
+			if (o.underlined) self.coverSpan(result, new G.UnderlineSpan());
+			if (o.strikethrough) self.coverSpan(result, new G.StrikethroughSpan());
+			if (o.superscript) self.coverSpan(result, new G.SuperscriptSpan());
+			if (o.subscript) self.coverSpan(result, new G.SubscriptSpan());
+			if (o.typeface) self.coverSpan(result, new G.TypefaceSpan(o.typeface));
+		} else if (o instanceof java.lang.CharSequence) {
+			result.append(o);
+		} else {
+			result.append(String(o));
+		}
+		return result;
+	}
+});
+
 MapScript.loadModule("RhinoListAdapter", (function() {
 	var r = function(arr, vmaker, params, preload) {
 		//arr是列表数组，vmaker(element, index, array, params)从item生成指定view
@@ -7633,13 +8137,22 @@ MapScript.loadModule("Updater", {
 		this.checking = true;
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			Updater.getUpdateInfo(function(flag, date, info) {
-				Common.showTextDialog(G.Html.fromHtml([
-					"<b>命令助手已更新！</b>",
-					"<b>" + oldVer + " -> " + info.version + "</b>\t(" + info.belongs + ")",
-					"发布时间：" + Updater.toChineseDate(info.time),
-					"<br />最近更新内容：",
-					info.info.replace(/\n/g, "<br />")
-				].join("<br />")));
+				if (Date.parse(CA.publishDate) <= Date.parse(date)) {
+					Common.showTextDialog(G.Html.fromHtml([
+						"<b>命令助手已更新！</b>",
+						"<b>" + oldVer + " -> " + info.version + "</b>\t(" + info.belongs + ")",
+						"发布时间：" + Updater.toChineseDate(info.time),
+						"<br />最近更新内容：",
+						info.info.replace(/\n/g, "<br />")
+					].join("<br />")));
+				} else {
+					Common.showTextDialog(G.Html.fromHtml([
+						"<b>欢迎使用命令助手 公测版本</b>",
+						"<b>" + oldVer + " -> " + CA.publishDate + "</b>\t(" + CA.version + ")",
+						"公测版容易出现bug。如果出现bug，欢迎加入命令助手讨论区向我反馈。",
+						"MCPE命令助手讨论区：" + Updater.toAnchor("207913610", "https://jq.qq.com/?_wv=1027&k=46Yl84D")
+					].join("<br />")));
+				}
 				Updater.latest = date;
 			}, true);
 			Updater.checking = false;
@@ -8721,7 +9234,6 @@ MapScript.loadModule("MCAdapter", {
 	},
 	available_Android : function() {
 		if (this.bundle != null) return true;
-		if (!this.asked) this.askNeedAdapter();
 		return false;
 	},
 	getInfo_ModPE : function(id) {
@@ -8770,23 +9282,14 @@ MapScript.loadModule("MCAdapter", {
 			MapScript.global[name].apply(null, args);
 		}
 	},
-	asked : false,
-	askNeedAdapter : function() {
-		this.asked = true;
-		Common.showConfirmDialog({
-			title : "是否启用适配器？",
-			description : "适配器可以在输入命令时提供一些与游戏相关的信息，例如当前玩家的坐标。\n您可以随时在设置里启用。",
-			buttons : ["启用", "暂不启用"],
-			canSkip : false,
-			skip : function(f) {
-				CA.settings.neverAskAdapter = Boolean(f);
-				CA.trySave();
-			},
-			callback : function(id) {
-				if (id != 0) return;
-				MCAdapter.listAdapters();
-			}
-		});
+	applySense : function(t) {
+		if (MapScript.host != "Android" || CA.settings.neverAskAdapter) return;
+		if (!t.input) t.input = [];
+		if (!t.menu) t.menu = {};
+		t.input.push("（加载适配器以显示更多信息……）");
+		t.menu["（加载适配器以显示更多信息……）"] = function() {
+			MCAdapter.listAdapters();
+		};
 	},
 	askShortcut : function(name, pkg) {
 		var z = {
@@ -8969,17 +9472,18 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	initialize : function() {try {
 		if (MapScript.host != "Android") return;
+		if (CA.RELEASE) gHandler.post(this.verifyApk);
 		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
 			applyIntent : function(intent) {try {
 				AndroidBridge.callHide();
 				return true;
 			} catch(e) {erp(e)}},
-			onAccessibilitySvcCreate : function() {
+			onAccessibilitySvcCreate : function() {try {
 				AndroidBridge.notifySettings();
-			},
-			onAccessibilitySvcDestroy : function() {
+			} catch(e) {erp(e)}},
+			onAccessibilitySvcDestroy : function() {try {
 				AndroidBridge.notifySettings();
-			},
+			} catch(e) {erp(e)}},
 			onActivityResult : function(requestCode, resultCode, data) {try {
 				var cb = AndroidBridge.intentCallback[requestCode];
 				if (!cb) return;
@@ -8987,14 +9491,14 @@ MapScript.loadModule("AndroidBridge", {
 				delete AndroidBridge.intentCallback[requestCode];
 				cb(resultCode, data);
 			} catch(e) {erp(e)}},
-			onKeyEvent : function(e) {
+			onKeyEvent : function(e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
 					var k = e.getKeyCode();
 					if (k == e.KEYCODE_HOME || k == e.KEYCODE_MENU || k == e.KEYCODE_ENDCALL || k == e.KEYCODE_POWER || k == e.KEYCODE_NOTIFICATION) {
 						AndroidBridge.callHide();
 					}
 				}
-			},
+			} catch(e) {erp(e)}},
 			onNewIntent : function(intent) {try {
 				AndroidBridge.onNewIntent(intent, false);
 			} catch(e) {erp(e)}},
@@ -9023,13 +9527,13 @@ MapScript.loadModule("AndroidBridge", {
 					break;
 					case "resetMCV":
 					NeteaseAdapter.mcVersion = String(data.getString("version"));
-					Common.toast("正在切换命令库版本，请稍候……");
+					Common.toast("正在切换拓展包版本，请稍候……");
 					CA.checkFeatures();
 					CA.IntelliSense.initLibrary(function(flag) {
 						if (flag) {
-							Common.toast("命令库加载完毕");
+							Common.toast("拓展包加载完毕");
 						} else {
-							Common.toast("有至少1个命令库无法加载，请在设置中查看详情");
+							Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 						}
 					});
 				}
@@ -9060,11 +9564,11 @@ MapScript.loadModule("AndroidBridge", {
 			case ScriptActivity.ACTION_ADD_LIBRARY:
 			t = intent.getData().getPath();
 			Common.showConfirmDialog({
-				title : "确定加载命令库“" + t + "”？",
+				title : "确定加载拓展包“" + t + "”？",
 				callback : function(id) {
 					if (id != 0) return onReturn();
 					if (!CA.IntelliSense.enableLibrary(String(t))) {
-						Common.toast("无法导入该命令库，可能文件不存在");
+						Common.toast("无法导入该拓展包，可能文件不存在");
 						return onReturn();
 					}
 					CA.IntelliSense.initLibrary(function() {
@@ -9102,6 +9606,29 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		}
 	},
+	verifyApk : function() {
+		if (ctx.getPackageName() != "com.xero.ca") throw new java.lang.SecurityException();
+		AndroidBridge.verifySign();
+		AndroidBridge.verifyDex();
+	},
+	verifySign : function() {
+		try {
+			var sn = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), android.content.pm.PackageManager.GET_SIGNATURES).signatures, vc = [], i;
+			var md = java.security.MessageDigest.getInstance("SHA-256");
+			for (i in sn) {
+				md.update(sn[i].toByteArray());
+				vc.push(android.util.Base64.encodeToString(md.digest(), android.util.Base64.NO_WRAP));
+			}
+			if (vc.join("") != "HmzSXz/O6M/qIPo8mvhmFuXusTaKk3caC/vjP+ymxzw=") throw 0;
+		} catch(e) {
+			throw new java.lang.SecurityException();
+		}
+	},
+	verifyDex : function() {
+		var zf = new java.util.zip.ZipFile(ctx.getPackageCodePath());
+		var e = zf.getEntry("classes.dex");
+		if (java.lang.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException();
+	},
 	callHide : function() {
 		if (PWM.getCount() > 0) {
 			PWM.hideAll();
@@ -9116,7 +9643,7 @@ MapScript.loadModule("AndroidBridge", {
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
 		
-		o.splice(3, 0, {
+		o.splice(2, 0, {
 			name : "Android版设置",
 			type : "tag"
 		}, {
@@ -9203,6 +9730,15 @@ MapScript.loadModule("AndroidBridge", {
 				if (v) {
 					if (!AndroidBridge.clipListener) AndroidBridge.startWatchClipboard();
 				}
+			}
+		}, {
+			name : "隐藏“启用适配器”的提示",
+			type : "boolean",
+			get : function() {
+				return Boolean(CA.settings.neverAskAdapter);
+			},
+			set : function(v) {
+				CA.settings.neverAskAdapter = Boolean(v);
 			}
 		});
 	},
@@ -12561,6 +13097,102 @@ CA.IntelliSense.inner["addition"] = {
 			"minSupportVer": "1.2.5.12"
 		}
 	}
+};
+
+CA.IntelliSense.inner["basicedu"] = {
+	"name": "基本命令教程",
+	"author": "ProjectXero",
+	"description": "该教程为命令初学者提供了入门级别的教程。",
+	"uuid": "8a4cc227-66f4-455c-9be4-7f988f408696",
+	"version": [0, 0, 1],
+	"require": [],
+	"tutorials": [{
+		"name": "初识命令",
+		"description": "在此，你将了解到什么是命令",
+		"id": "xero.firstlesson",
+		"type": "tutorial",
+		"intro": [
+			{
+				"text": "请使用基岩版 1.0.5及以上版本或国服最新版",
+				"bold": true,
+				"color": "criticalcolor"
+			},
+			"，因为本教程需要以下功能：\n",
+			{
+				"list": [
+					"命令方块",
+					"say命令",
+					"多人游戏玩家权限设置"
+				]
+			},
+			"\n\n作为一款风靡一时的像素游戏，",
+			{
+				"text": "Minecraft",
+				"bold": true
+			},
+			"能够长期占据排行榜前列绝非偶然。Minecraft衍生的各种玩法堪称无穷无尽，命令则是大多数玩法中的主要组成部分。",
+			"\n\n接下来您将了解本教程的第一条命令：\n",
+			{
+				"command": "/say §eHello World!",
+				"bold": true
+			}
+		],
+		"segments": [{
+			"text": [
+				"首先，要使用命令，请先切换为创造模式并启用作弊。\n\n",
+				{
+					"text": "单人模式",
+					"bold": true
+				},
+				"：打开世界设置，启用作弊。\n",
+				{
+					"text": "多人模式/网易租赁服",
+					"bold": true
+				},
+				"：请让游戏的操作员（OP）给予您操作员权限。\n",
+				{
+					"text": "服务器",
+					"bold": true
+				},
+				"：",
+				{
+					"text": "服务器还用啥命令方块？用插件啊",
+					"bgcolor": "textcolor"
+				}
+			],
+			"stepMode": "manual"
+		}, {
+			"text": "首先在聊天框里输入以下命令："
+		}, {
+			"command": "/give @p command_block"
+		}, {
+			"text": "如果成功的话，玩家应该可以在物品栏中获得命令方块。",
+			"stepMode": "manual"
+		}, {
+			"text": "将命令方块放置在地面上。点击命令方块进入命令方块设置界面。",
+			"stepMode": "manual"
+		}, {
+			"text": "在命令输入框内输入以下命令并关闭："
+		}, {
+			"command": "/say §eHello World!",
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"现在你可以试试用红石信号激活它了。\n\n",
+				"如果成功的话，应当会在聊天栏内显示以下内容："
+			]
+		}, {
+			"text": {
+				"command": "§eHello World!"
+			},
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"恭喜你，成功地完成了你的第一个命令！\n\n",
+				"本教程只是一个开始，之后会有更多的教程加入。"
+			]
+		}]
+	}]
 };
 
 Common.themelist = {
