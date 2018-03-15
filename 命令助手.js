@@ -511,6 +511,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Object.keys(this.IntelliSense.inner).forEach(function(e) {
 				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) this.enabledLibrarys.push(e);
 			}, this.settings);
+			if (isNaN(f.settings.firstUse)) {
+				f.settings.firstUse = Date.parse(this.publishDate) - 30 * 24 * 60 * 60 * 1000; //30d
+			}
+			if (isNaN(f.settings.nextAskSupport)) {
+				f.settings.nextAskSupport = Date.now() + 30 * 24 * 60 * 60 * 1000; //30d
+			}
+			
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 				f.settings.topIcon = true;
@@ -518,6 +525,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
+			
 			this.IntelliSense.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 			});
@@ -535,6 +543,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			};
 			this.cmdstr = "";
 			this.settings = {
+				firstUse : Date.now(),
+				nextAskSupport : Date.now() + 30 * 24 * 60 * 60 * 1000,
 				barTop : false,
 				autoHideIcon : false,
 				autoFormatCmd : false,
@@ -581,7 +591,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.save();
 			return true;
 		} catch(e) {
-			Common.showTextDialog("命令助手无法在您的手机上运行：文件写入失败。\n原因可能为：\n1、您的内部存储没有足够的空间\n2、文件被保护\n\n请检查您的系统。\n\n错误原因：" + e);
+			Common.showTextDialog("命令助手无法在您的手机上运行：文件写入失败。\n原因可能为：\n1、您的内部存储没有足够的空间\n2、文件被保护\n3、未开放文件读写权限\n\n请检查您的系统。\n\n错误原因：" + e);
 		}
 		return false;
 	},
@@ -2133,7 +2143,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return CA.version;
 				},
 				onclick : function(fset) {
-					CA.showDonateDialog();
+					CA.showSupportDialog(false);
 				}
 			},{
 				name : "检查更新",
@@ -2427,6 +2437,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.refreshed = false;
 		Common.showSettings(self.data, function() {
 			CA.trySave();
+			if (CA.settings.firstUse < Date.now() - 180 * 24 * 60 * 60 * 1000) return;
+			if (CA.settings.nextAskSupport > Date.now()) return;
+			CA.showSupportDialog(true);
 		});
 	} catch(e) {erp(e)}})},
 	
@@ -3470,8 +3483,49 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			minSupportVer : "1.2"
 		}
 	},
-	getDonateQRCode : function(w) {
-		var size = 37, code = "f14l0z9I5TYKdmlZGN0u/Fqj23XvNXSDsjOw4F9VVfUHyOz0AOLWOvZhY0LFaqU5K4ae3tR7QsN1ohFOM+T/sdDdGmA6z4wzpGj+UIJ3zPZMdJtCMYGq25wk00tBnyRrXC/gBPP2NvS/IVGoqmhh9vOqg6r3/O3sZJ+d5TUcEhEzZH1mj/8BBAsu+t9uZlYJOv+vGF1mVPa1S9lj5nRBFDaWoDvEzvsHu9S5AQ==";
+	showSupportDialog : function(auto) {
+		var offset = 10 * 24 * 60 * 60 * 1000; //10d
+		Common.showConfirmDialog({
+			title : "喜欢使用命令助手吗？\n喜欢的话请选择一项来帮助我们",
+			buttons : [
+				"残忍拒绝",
+				"加入交流群（207913610）",
+				"提出意见/反馈bug",
+				"向作者捐助"
+			],
+			callback : function(id) {
+				switch (id) {
+					case 0:
+					Common.toast("是我们做的不够好吗？请告诉我们需要改进的地方吧");
+					return;
+					case 1:
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D")));
+					} catch(e) {
+						Common.toast("QQ群号已复制至剪贴板");
+						Common.setClipboardText("207913610");
+					}
+					break;
+					case 2:
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C")));
+					} catch(e) {
+						Common.showWebViewDialog({
+							url : "http://projectxero.mikecrm.com/CDOsI2C"
+						});
+					}
+					break;
+					case 3:
+					CA.showDonateDialog();
+				}
+				offset = 30 * 24 * 60 * 60 * 1000; //30d
+			},
+			onDismiss : function() {
+				if (auto) CA.settings.nextAskSupport = Date.now() + offset;
+			}
+		});
+	},
+	getQRCode : function(w, size, code) {
 		var bytes = android.util.Base64.decode(code, 2), x, y;
 		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
 		var cv = new G.Canvas(bmp);
@@ -3501,14 +3555,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		text = new G.TextView(ctx);
-		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-		text.setText("捐助通道（微信支付） - 2.99元");
-		text.setTextSize(Common.theme.textsize[2]);
+		text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		text.setText("捐助通道（微信支付)\n\n命令助手捐助\n2.99元");
+		text.setGravity(G.Gravity.CENTER);
+		text.setTextSize(Common.theme.textsize[4]);
 		text.setTextColor(Common.theme.textcolor);
 		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		layout.addView(text);
 		img = new G.ImageView(ctx);
-		img.setImageBitmap(bmp = CA.getDonateQRCode(240 * G.dp));
+		img.setImageBitmap(bmp = CA.getQRCode(240 * G.dp, 37, "f14l0z9I5TYKdmlZGN0u/Fqj23XvNXSDsjOw4F9VVfUHyOz0AOLWOvZhY0LFaqU5K4ae3tR7QsN1ohFOM+T/sdDdGmA6z4wzpGj+UIJ3zPZMdJtCMYGq25wk00tBnyRrXC/gBPP2NvS/IVGoqmhh9vOqg6r3/O3sZJ+d5TUcEhEzZH1mj/8BBAsu+t9uZlYJOv+vGF1mVPa1S9lj5nRBFDaWoDvEzvsHu9S5AQ=="));
 		img.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 		img.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			try {
@@ -3533,6 +3588,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 			bmp.recycle();
+			Common.toast("感谢您的支持！");
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		scr.addView(layout);
