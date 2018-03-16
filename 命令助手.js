@@ -389,6 +389,7 @@ MapScript.loadModule("G", {
 	Typeface: android.graphics.Typeface,
 	TypefaceSpan: android.text.style.TypefaceSpan,
 	UnderlineSpan: android.text.style.UnderlineSpan,
+	ValueAnimator: android.animation.ValueAnimator,
 	View: android.view.View,
 	ViewConfiguration: android.view.ViewConfiguration,
 	ViewGroup: android.view.ViewGroup,
@@ -623,7 +624,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 						self.longClicked = false;
 						touch.stead = false;
+						self.animateTranslation(0);
 					}
+					if (CA.settings.iconDragMode == 2) break;
 					CA.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
 					break;
 					case e.ACTION_DOWN:
@@ -632,6 +635,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					touch.stead = true;
 					v.postDelayed(self.longClick, longPressTimeout);
 					self.longClicked = true;
+					self.cancelAnimator();
 					return true;
 					case e.ACTION_UP:
 					if (touch.stead) {
@@ -640,6 +644,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 					}
 					case e.ACTION_CANCEL:
+					self.refreshPos();
 					CA.settings.iconX = self.cx;
 					CA.settings.iconY = self.cy;
 					self.longClicked = false;
@@ -648,16 +653,59 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.view.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-				var w, h;
+				self.updateScreenInfo();
 				if (self.cx < 0) self.cx = 0;
 				if (self.cy < 0) self.cy = 0;
-				if (self.cx > (w = Common.getScreenWidth())) self.cx = w;
-				if (self.cy > (h = Common.getScreenHeight())) self.cy = h;
+				if (self.cx > self.scrWidth) self.cx = self.scrWidth;
+				if (self.cy > self.scrHeight) self.cy = self.scrHeight;
 			} catch(e) {erp(e)}}}));
 			self.longClick = new java.lang.Runnable({run : function() {try {
 				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
 				self.longClicked = false;
 			} catch(e) {erp(e)}}});
+			self.updateScreenInfo = function() {
+				self.scrWidth = Common.getScreenWidth();
+				self.scrHeight = Common.getScreenHeight();
+			}
+			self.animateToPos = function(x, y, dur, interpolator, callback) {
+				if (!CA.icon) return;
+				self.cancelAnimator();
+				var xani, yani;
+				self.xanimator = xani = G.ValueAnimator.ofInt([self.cx, x]);
+				self.yanimator = yani = G.ValueAnimator.ofInt([self.cy, y]);
+				xani.setDuration(dur);
+				yani.setDuration(dur);
+				if (interpolator) {
+					xani.setInterpolator(interpolator);
+					yani.setInterpolator(interpolator);
+				}
+				var updater = new java.lang.Runnable({run : function() {try {
+					if (!CA.icon) return;
+					CA.icon.update(self.cx = xani.getAnimatedValue(), self.cy = yani.getAnimatedValue(), -1, -1);
+					if (!xani.isRunning()) {
+						if (callback) callback();
+						return;
+					}
+					gHandler.post(updater);
+				} catch(e) {erp(e)}}});
+				xani.start();
+				yani.start();
+				gHandler.post(updater);
+			}
+			self.cancelAnimator = function() {
+				if (self.xanimator) {
+					self.xanimator.cancel();
+					self.yanimator.cancel();
+					self.xanimator = self.yanimator = null;
+				}
+			}
+			self.animateTranslation = function(offset, delay) {
+				if (offset == self.icon.getTranslationX()) return;
+				var animation = new G.TranslateAnimation(self.icon.getTranslationX() - offset, 0, 0, 0);
+				animation.setDuration(100);
+				self.icon.setTranslationX(offset);
+				self.icon.startAnimation(animation);
+			}
 			self.open = function() {
 				if (!CA.settings.topIcon) {
 					CA.showGen(CA.settings.noAnimation);
@@ -681,17 +729,38 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.view.setAlpha(self.lastState && PWM.getCount() > 0 ? 0.3 : 0.7);
 				}
 			}
-			self.refresh = function() {
+			self.refreshPos = function() {
+				if (CA.settings.iconDragMode == 1) {
+					if (self.cx * 2 > self.scrWidth) {
+						self.animateToPos(self.scrWidth, self.cy, 150, new G.AccelerateInterpolator(2.0), function() {
+							self.animateTranslation(0.6 * self.view.getMeasuredWidth());
+						});
+					} else {
+						self.animateToPos(0, self.cy, 150, new G.AccelerateInterpolator(2.0), function() {
+							self.animateTranslation(-0.6 * self.view.getMeasuredWidth());
+						});
+					}
+				} else {
+					self.animateTranslation(0);
+				}
+			}
+			self.refreshIcon = function() {
 				if (!(CA.settings.iconSize > 0)) CA.settings.iconSize = 1;
 				self.icon = CA.settings.icon in CA.Icon ? CA.Icon[CA.settings.icon](CA.settings.iconSize, false) : CA.customIcon(CA.settings.icon, CA.settings.iconSize);
 				self.view.removeAllViews();
 				self.view.addView(self.icon);
 				self.refreshAlpha();
 			}
+			self.refresh = function() {
+				self.refreshIcon();
+				self.refreshAlpha();
+				self.refreshPos();
+			}
 			self.lastState = true;
 		}
 		if (CA.icon) return self.refreshAlpha();
-		self.refresh();
+		self.updateScreenInfo();
+		self.refreshIcon();
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
 			//ctx.getWindowManager().getDefaultDisplay().getRotation() == G.Surface.ROTATION_90
@@ -701,6 +770,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.icon = new G.PopupWindow(self.view, -2, -2);
 		if (CA.supportFloat) CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
+		self.refreshPos();
 		if (CA.settings.topIcon) {
 			PWM.addFloat(CA.icon);
 		} else {
@@ -2132,9 +2202,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (f) CA.showSettings();
 				if (CA.settings.topIcon) CA.showIcon();
 			}
-			self.iconRefresh = function() {
-				if (CA.showIcon.refresh) CA.showIcon.refresh();
-			}
 			self.data = [{
 				name : "当前版本",
 				description : "基于Rhino (" + MapScript.host + ")",
@@ -2317,7 +2384,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function() {
 					CA.showIconChooser(function() {
-						self.iconRefresh();
+						if (CA.showIcon.refresh) CA.showIcon.refreshIcon();
 					});
 				}
 			},{
@@ -2334,7 +2401,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				set : function(v) {
 					CA.settings.iconSize = this.values[v];
-					self.iconRefresh();
+					if (CA.showIcon.refresh) {
+						CA.showIcon.refreshIcon();
+						CA.showIcon.refreshPos();
+					}
 				}
 			},{
 				name : "不透明度",
@@ -2348,7 +2418,29 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				set : function(v) {
 					CA.settings.iconAlpha = v;
-					self.iconRefresh();
+					if (CA.showIcon.refresh) CA.showIcon.refreshAlpha();
+				}
+			},{
+				name : "拖动方式",
+				type : "custom",
+				list : [
+					"自由拖动",
+					"自动贴边",
+					"固定"
+				],
+				get : function() {
+					if (CA.settings.iconDragMode in this.list) {
+						return this.list[CA.settings.iconDragMode];
+					} else {
+						return this.list[CA.settings.iconDragMode = 0];
+					}
+				},
+				onclick : function(fset) {
+					Common.showListChooser(this.list, function(i) {
+						CA.settings.iconDragMode = i;
+						if (CA.showIcon.refresh) CA.showIcon.refreshPos();
+						fset();
+					});
 				}
 			},{
 				id : "topIcon",
