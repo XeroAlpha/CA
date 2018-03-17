@@ -1,7 +1,7 @@
 "ui";
 /*
     Command Assistant (命令助手)
-    Copyright (C) 2017  ProjectXero
+    Copyright (C) 2017-2018  ProjectXero
     E-mail: projectxero@163.com
 
     This program is free software: you can redistribute it and/or modify
@@ -448,8 +448,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else if (!this.hasFeature("enableCommandBlock")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有命令方块等功能，部分命令助手的功能可能无法使用。推荐升级您的Minecraft PE至1.0.5及以上。");
 		}
-		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
-		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.tips[this.settings.tipsRead], 1);
+		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.getTip(), 1);
 		this.fine = true;
 		this.screenChangeHook();
 	} catch(e) {erp(e)}},
@@ -3686,6 +3685,32 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		scr.addView(layout);
 		popup = Common.showDialog(scr, -2, -2);
 	} catch(e) {erp(e)}})},
+	SpecialTips : [
+		function(d) {
+			if (d.getFullYear() > 2017 && d.getMonth() == 2 && d.getDate() == 20) return "命令助手" + (d.getFullYear() - 2017) + "周年！感谢你们的支持！";
+		},
+		function(d) {
+			if (d.getMonth() == 3 && d.getDate() == 1) return "来自作者：命令助手停更了";
+		},
+		function(d) {
+			if (d.getMonth() == 4 && d.getDate() == 1) return "劳动节快乐！";
+		},
+		function(d) {
+			if (d.getMonth() == 5 && d.getDate() == 1) return "儿童节快乐！";
+		},
+		function(d) {
+			if (d.getMonth() == 9 && d.getDate() == 1) return "国庆节快乐！";
+		}
+	],
+	getTip : function() {
+		var i, date = new Date(), t;
+		for (i in this.SpecialTips) {
+			t = this.SpecialTips[i](date);
+			if (t) return t;
+		}
+		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
+		return this.tips[this.settings.tipsRead];
+	},
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -10081,10 +10106,10 @@ MapScript.loadModule("NeteaseAdapter", {
 	},
 	getNeteaseVersion : function(packageName) {
 		var c = ctx.getPackageManager().getPackageInfo(packageName, 0).versionCode;
-		if (c < 840035545) {
-			return "1.1.3.52";
+		if (c < 840035545) { //1.0.0.35545
+			return "1.1.3.52"; //未确认
 		} else {
-			return "1.2.5.12";
+			return "1.2.5.50";
 		}
 	},
 	askPackage : function(callback, canCustomize) {
