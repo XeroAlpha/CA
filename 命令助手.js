@@ -7678,7 +7678,7 @@ MapScript.loadModule("Tutorial", {
 		linear.addView(title, new G.LinearLayout.LayoutParams(-1, -2));
 		scr = new G.ScrollView(ctx);
 		desc = new G.TextView(ctx);
-		desc.setText(Tutorial.rawJson(o.intro || o.description || "暂无简介"));
+		desc.setText(ISegment.rawJson(o.intro || o.description || "暂无简介"));
 		desc.setTextSize(Common.theme.textsize[3]);
 		desc.setTextColor(Common.theme.textcolor);
 		scr.addView(desc, new G.FrameLayout.LayoutParams(-1, -2));
@@ -7754,7 +7754,7 @@ MapScript.loadModule("Tutorial", {
 			self.convertView = function(e, sets) {
 				var t;
 				if (e.text) {
-					t = Tutorial.rawJson(e.text, sets.varmap);
+					t = ISegment.rawJson(e.text, sets.varmap);
 					return {
 						type : "text",
 						text : t,
@@ -7764,7 +7764,7 @@ MapScript.loadModule("Tutorial", {
 					return {
 						type : "command",
 						command : e.command,
-						view : self.generateCopyable(Tutorial.rawJson({command : e.command}, null))
+						view : self.generateCopyable(ISegment.rawJson({command : e.command}, null))
 					};
 				}
 				return {
@@ -7874,61 +7874,6 @@ MapScript.loadModule("Tutorial", {
 		} else {
 			return CA.settings.tutorialData;
 		}
-	},
-	
-	rawJson : function self(o, variableMap) {
-		if (!self.coverSpan) {
-			self.coverSpan = function(src, span) {
-				src.setSpan(span, 0, src.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			}
-		}
-		var i, result = new G.SpannableStringBuilder();
-		if (Array.isArray(o)) {
-			for (i in o) {
-				result.append(self(o[i], variableMap));
-			}
-		} else if (typeof o == "function") {
-			result.append(self(o(variableMap), variableMap));
-		} else if (o instanceof Object) {
-			if (o.text) {
-				result.append(o.text);
-			} else if (o.variable) {
-				result.append(String(variableMap[o.variable]));
-			} else if (o.command) {
-				result.append(o.command);
-				self.coverSpan(result, new G.ForegroundColorSpan(G.Color.WHITE));
-				FCString.parseFC_(result, G.Color.WHITE);
-				self.coverSpan(result, new G.TypefaceSpan("monospace"));
-				self.coverSpan(result, new G.BackgroundColorSpan(G.Color.BLACK));
-			} else if (o.list) {
-				for (i in o.list) {
-					result.setSpan(new G.BulletSpan(), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-					result.append(self(o.list[i], variableMap));
-					result.append("\n");
-				}
-			} else if (o.image) {
-				result.setSpan(new G.ImageSpan(ctx, android.net.Uri.parse(o.image)), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			}
-			if (o.extra) {
-				for (i in o.extra) {
-					result.append(self(o.extra[i], variableMap));
-				}
-			}
-			if (o.color) self.coverSpan(result, new G.ForegroundColorSpan(o.color in Common.theme ? Common.theme[o.color] : G.Color.parseColor(o.color)));
-			if (o.bgcolor) self.coverSpan(result, new G.BackgroundColorSpan(o.bgcolor in Common.theme ? Common.theme[o.bgcolor] : G.Color.parseColor(o.bgcolor)));
-			if (o.bold) self.coverSpan(result, new G.StyleSpan(G.Typeface.BOLD));
-			if (o.italic) self.coverSpan(result, new G.StyleSpan(G.Typeface.ITALIC));
-			if (o.underlined) self.coverSpan(result, new G.UnderlineSpan());
-			if (o.strikethrough) self.coverSpan(result, new G.StrikethroughSpan());
-			if (o.superscript) self.coverSpan(result, new G.SuperscriptSpan());
-			if (o.subscript) self.coverSpan(result, new G.SubscriptSpan());
-			if (o.typeface) self.coverSpan(result, new G.TypefaceSpan(o.typeface));
-		} else if (o instanceof java.lang.CharSequence) {
-			result.append(o);
-		} else {
-			result.append(String(o));
-		}
-		return result;
 	}
 });
 
@@ -8336,6 +8281,61 @@ MapScript.loadModule("Updater", {
 	lastcheck : null,
 	checking : false,
 	url : "http://git.oschina.net/projectxero/ca/raw/master/update.json"
+});
+
+MapScript.loadModule("ISegment", {
+	rawJson : function self(o, variableMap) {
+		if (!self.coverSpan) {
+			self.coverSpan = function(src, span) {
+				src.setSpan(span, 0, src.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			}
+		}
+		var i, result = new G.SpannableStringBuilder();
+		if (Array.isArray(o)) {
+			for (i in o) {
+				result.append(self(o[i], variableMap));
+			}
+		} else if (typeof o == "function") {
+			result.append(self(o(variableMap), variableMap));
+		} else if (o instanceof Object) {
+			if (o.text) {
+				result.append(o.text);
+			} else if (o.variable) {
+				result.append(String(variableMap[o.variable]));
+			} else if (o.command) {
+				result.append(o.command);
+				self.coverSpan(result, new G.ForegroundColorSpan(G.Color.WHITE));
+				FCString.parseFC_(result, G.Color.WHITE);
+				self.coverSpan(result, new G.TypefaceSpan("monospace"));
+				self.coverSpan(result, new G.BackgroundColorSpan(G.Color.BLACK));
+			} else if (o.list) {
+				for (i in o.list) {
+					result.setSpan(new G.BulletSpan(), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+					result.append(self(o.list[i], variableMap));
+					result.append("\n");
+				}
+			} else if (o.image) {
+				result.setSpan(new G.ImageSpan(ctx, android.net.Uri.parse(o.image)), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			}
+			if (o.extra) {
+				result.append(self(o.extra, variableMap));
+			}
+			if (o.color) self.coverSpan(result, new G.ForegroundColorSpan(o.color in Common.theme ? Common.theme[o.color] : G.Color.parseColor(o.color)));
+			if (o.bgcolor) self.coverSpan(result, new G.BackgroundColorSpan(o.bgcolor in Common.theme ? Common.theme[o.bgcolor] : G.Color.parseColor(o.bgcolor)));
+			if (o.bold) self.coverSpan(result, new G.StyleSpan(G.Typeface.BOLD));
+			if (o.italic) self.coverSpan(result, new G.StyleSpan(G.Typeface.ITALIC));
+			if (o.underlined) self.coverSpan(result, new G.UnderlineSpan());
+			if (o.strikethrough) self.coverSpan(result, new G.StrikethroughSpan());
+			if (o.superscript) self.coverSpan(result, new G.SuperscriptSpan());
+			if (o.subscript) self.coverSpan(result, new G.SubscriptSpan());
+			if (o.typeface) self.coverSpan(result, new G.TypefaceSpan(o.typeface));
+		} else if (o instanceof java.lang.CharSequence) {
+			result.append(o);
+		} else {
+			result.append(String(o));
+		}
+		return result;
+	}
 });
 
 MapScript.loadModule("JSONEdit", {
