@@ -364,6 +364,7 @@ MapScript.loadModule("G", {
 	R: android.R,
 	RadioButton: android.widget.RadioButton,
 	Rect: android.graphics.Rect,
+	ScaleAnimation: android.view.animation.ScaleAnimation,
 	ScrollView: android.widget.ScrollView,
 	ScrollingMovementMethod: android.text.method.ScrollingMovementMethod,
 	SeekBar: android.widget.SeekBar,
@@ -3223,10 +3224,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					Common.toast("处理中，请稍候……");
 					return true;
 				}
+				var progress = Common.showProgressDialog();
+				progress.setText("正在处理……");
 				self.processing = true;
 				f(function(success, callback) {
 					if (!success) return self.processing = false;
+					progress.setText("正在刷新命令库……");
 					CA.IntelliSense.initLibrary(function() {
+						progress.close();
 						G.ui(function() {try {
 							self.refresh();
 							self.processing = false;
@@ -6215,12 +6220,12 @@ MapScript.loadModule("Common", {
 		}
 	},
 	
-	showDialog : function(layout, width, height, onDismiss) {
+	showDialog : function(layout, width, height, onDismiss, modal) {
 		var frame, popup, trans;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(this.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN) {
+			if (e.getAction() == e.ACTION_DOWN && !modal) {
 				popup.dismiss();
 			}
 			return true;
@@ -6236,7 +6241,7 @@ MapScript.loadModule("Common", {
 		popup = new G.PopupWindow(frame, -1, -1);
 		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		popup.setFocusable(true);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		if (!modal) popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		if (onDismiss) popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			onDismiss();
 		} catch(e) {erp(e)}}}));
@@ -6492,6 +6497,78 @@ MapScript.loadModule("Common", {
 		frame.addView(list);
 		popup = Common.showDialog(frame, -1, -2, onDismiss);
 	} catch(e) {erp(e)}})},
+	
+	showProgressDialog : function self(f, onCancel) {
+		if (!self.loadAnimation) {
+			self.loadAnimation = function(prg) {
+				prg.setImageDrawable(new G.ColorDrawable(Common.theme.highlightcolor));
+				var aset = new G.AnimationSet(false);
+				var tani = new G.TranslateAnimation(-180 * G.dp, 180 * G.dp, 0, 0);
+				var sani = new G.ScaleAnimation(0.5, 0.3, 1, 1, 120 * G.dp, 0);
+				tani.setDuration(1500);
+				tani.setRepeatMode(G.Animation.RESTART);
+				tani.setRepeatCount(-1);
+				sani.setDuration(1000);
+				sani.setRepeatMode(G.Animation.REVERSE);
+				sani.setRepeatCount(-1);
+				aset.addAnimation(sani);
+				aset.addAnimation(tani);
+				prg.startAnimation(aset);
+			}
+			self.init = function(o) {G.ui(function() {try {
+				var layout, text, prg, popup;
+				layout = new G.LinearLayout(ctx);
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setBackgroundColor(Common.theme.message_bgcolor);
+				text = o.text = new G.TextView(ctx);
+				text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
+				text.setTextSize(Common.theme.textsize[2]);
+				text.setTextColor(Common.theme.textcolor);
+				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				layout.addView(text);
+				prg = new G.ImageView(ctx);
+				prg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 4 * G.dp));
+				self.loadAnimation(prg);
+				layout.addView(prg);
+				o.popup = Common.showDialog(layout, 240 * G.dp, -2, function() {
+					if (!o.closed) {
+						o.cancelled = true;
+						if (typeof o.onCancel == "function") o.onCancel();
+					}
+					o.closed = true;
+				}, !o.onCancel);
+			} catch(e) {erp(e)}})},
+			self.controller = {
+				setText : function(s) {
+					var o = this;
+					G.ui(function() {try {
+						o.text.setText(s);
+					} catch(e) {erp(e)}});
+				},
+				close : function() {
+					var o = this;
+					G.ui(function() {try {
+						if (o.closed) return;
+						o.closed = true;
+						o.popup.dismiss();
+					} catch(e) {erp(e)}});
+				},
+				async : function(f) {
+					var o = this;
+					var th = new java.lang.Thread(function() {try {
+						f(o);
+						o.close();
+					} catch(e) {erp(e)}});
+					th.start();
+				}
+			};
+		}
+		var o = Object.create(self.controller);
+		o.onCancel = onCancel;
+		self.init(o);
+		if (f) f(o);
+		return o;
+	},
 	
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
@@ -6975,7 +7052,7 @@ MapScript.loadModule("Common", {
 	
 	showDebugDialog : function self(o) {G.ui(function() {try {
 		if (!self.main) {
-			self.last = "";
+			self.history = [];
 			self.cls = function() {
 				self.prompt.setText("");
 				self.ready();
@@ -6996,7 +7073,9 @@ MapScript.loadModule("Common", {
 				self.print("\n>  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
 			self.exec = function(s) {
-				self.last = s;
+				self.history.unshift(s);
+				self.print(s);
+				self.print("\n");
 				if (s.toLowerCase() == "exit") {
 					self.popup.dismiss();
 					return;
@@ -7005,18 +7084,24 @@ MapScript.loadModule("Common", {
 					return;
 				} else if (s.toLowerCase() == "ls") {
 					JSONEdit.traceGlobal();
-					return;
 				} else if (s.toLowerCase().startsWith("ls ")) {
 					JSONEdit.trace(eval(s.slice(3)));
-					return;
-				}
-				self.print(s);
-				self.print("\n");
-				try {
-					var t = eval.call(null, s);
-					self.print(typeof t == "string" ? t : MapScript.toSource(t));
-				} catch(e) {
-					self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+				} else if (s.toLowerCase().startsWith("cp ")) {
+					try {
+						var t = MapScript.toSource(eval.call(null, s.slice(3)));
+						self.print(t);
+						Common.setClipboardText(t);
+					} catch(e) {
+						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						Common.setClipboardText(e + "\n" + e.stack);
+					}
+				} else {
+					try {
+						var t = eval.call(null, s);
+						self.print(typeof t == "string" ? t : MapScript.toSource(t));
+					} catch(e) {
+						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					}
 				}
 				self.ready();
 			}
@@ -7078,7 +7163,9 @@ MapScript.loadModule("Common", {
 			self.prompt.setTextColor(Common.theme.textcolor);
 			self.prompt.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.prompt.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
-				self.cmd.setText(self.last);
+				Common.showListChooser(self.history, function(i) {
+					self.cmd.setText(self.history[i]);
+				}, true);
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.vscr.addView(self.prompt);
@@ -9964,23 +10051,28 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	},
 	listApp : function(callback) {
-		var self = this, pm = ctx.getPackageManager();
-		var lp = pm.getInstalledPackages(0).toArray();
-		var i, r = [{
-			text : "不使用"
-		}];
-		for (i in lp) {
-			if (!lp[i].applicationInfo) continue;
-			if (!pm.getLaunchIntentForPackage(lp[i].packageName)) continue;
-			r.push({
-				text : pm.getApplicationLabel(lp[i].applicationInfo),
-				description : lp[i].versionName,
-				result : lp[i].packageName
+		Common.showProgressDialog(function(o) {o.async(function() {
+			var pm = ctx.getPackageManager();
+			o.setText("正在加载列表……");
+			var lp = pm.getInstalledPackages(0).toArray();
+			var i, r = [{
+				text : "不使用"
+			}];
+			for (i in lp) {
+				if (!lp[i].applicationInfo) continue;
+				if (!pm.getLaunchIntentForPackage(lp[i].packageName)) continue;
+				r.push({
+					text : pm.getApplicationLabel(lp[i].applicationInfo),
+					description : lp[i].versionName,
+					result : lp[i].packageName
+				});
+			}
+			o.close();
+			if (o.cancelled) return;
+			Common.showListChooser(r, function(id) {
+				callback(String(r[id].result));
 			});
-		}
-		Common.showListChooser(r, function(id) {
-			callback(String(r[id].result));
-		});
+		})}, true);
 	},
 	startActivityForResult : function(intent, callback) {
 		this.intentCallback[intent.hashCode()] = callback;
@@ -10113,65 +10205,70 @@ MapScript.loadModule("NeteaseAdapter", {
 		}
 	},
 	askPackage : function(callback, canCustomize) {
-		var pm = ctx.getPackageManager();
-		var lp = pm.getInstalledPackages(0).toArray();
-		var i, j, as, r = [], f, t;
-		for (i in lp) {
-			if (!lp[i].applicationInfo) continue;
-			f = true;
-			try { //非常神奇的Exception:Package manager has died
-				as = pm.getPackageInfo(lp[i].packageName, 1).activities;
-				for (j in as) {
-					if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
-						f = false;
-						break;
+		var self = this;
+		Common.showProgressDialog(function(o) {o.async(function() {
+			o.setText("正在加载列表……");
+			var pm = ctx.getPackageManager();
+			var lp = pm.getInstalledPackages(0).toArray();
+			var i, j, as, r = [], f, t;
+			for (i in lp) {
+				if (!lp[i].applicationInfo) continue;
+				f = true;
+				try { //非常神奇的Exception:Package manager has died
+					as = pm.getPackageInfo(lp[i].packageName, 1).activities;
+					for (j in as) {
+						if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
+							f = false;
+							break;
+						}
 					}
-				}
-				if (f) continue;
-			} catch(e) {}
-			t = {
-				text : pm.getApplicationLabel(lp[i].applicationInfo),
-				result : lp[i].packageName
-			};
-			if (t.result in this.packages) {
-				t.description = this.packages[t.result].desc + " - " + lp[i].versionName;
-				t.publisher = this.packages[t.result].publisher;
-			} else {
-				t.description = "未知的版本:" + lp[i].packageName + " - " + lp[i].versionName;
-			}
-			r.push(t);
-		}
-		if (canCustomize) {
-			r.unshift({
-				text : "自动",
-				auto : true
-			});
-			r.push({
-				text : "自定义",
-				custom : true
-			});
-		}
-		if (r.length > 0) {
-			Common.showListChooser(r, function(id) {
-				var res = r[id];
-				if (res.auto) {
-					callback(null, null);
-				} else if (res.custom) {
-					NeteaseAdapter.askCustomVersion(function(v) {
-						callback(v, "Custom");
-					});
-				} else if (res.publisher) {
-					callback(String(res.result), res.publisher);
+					if (f) continue;
+				} catch(e) {}
+				t = {
+					text : pm.getApplicationLabel(lp[i].applicationInfo),
+					result : lp[i].packageName
+				};
+				if (t.result in self.packages) {
+					t.description = self.packages[t.result].desc + " - " + lp[i].versionName;
+					t.publisher = self.packages[t.result].publisher;
 				} else {
-					Common.toast("请选择对应的发行商");
-					NeteaseAdapter.askPublisher(function(pub) {
-						callback(String(res.result), pub);
-					});
+					t.description = "未知的版本:" + lp[i].packageName + " - " + lp[i].versionName;
 				}
-			});
-		} else {
-			Common.toast("找不到可用的Minecraft版本");
-		}
+				r.push(t);
+			}
+			if (canCustomize) {
+				r.unshift({
+					text : "自动",
+					auto : true
+				});
+				r.push({
+					text : "自定义",
+					custom : true
+				});
+			}
+			if (o.cancelled) return;
+			if (r.length > 0) {
+				Common.showListChooser(r, function(id) {
+					var res = r[id];
+					if (res.auto) {
+						callback(null, null);
+					} else if (res.custom) {
+						NeteaseAdapter.askCustomVersion(function(v) {
+							callback(v, "Custom");
+						});
+					} else if (res.publisher) {
+						callback(String(res.result), res.publisher);
+					} else {
+						Common.toast("请选择对应的发行商");
+						NeteaseAdapter.askPublisher(function(pub) {
+							callback(String(res.result), pub);
+						});
+					}
+				});
+			} else {
+				Common.toast("找不到可用的Minecraft版本");
+			}
+		})}, true);
 	},
 	askPublisher : function(callback) {
 		var r = [{
