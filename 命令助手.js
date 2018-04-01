@@ -2540,8 +2540,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (!f.isFile()) return Common.toast("无错误记录");
 		Common.showOperateDialog([{
 			text : "打开",
+			intent : (function() {
+				try {
+					return new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.fromFile(f), "text/plain");
+				} catch(e) {}
+			})(),
 			onclick : function() {
-				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.fromFile(f), "text/plain"));
+				ctx.startActivity(this.intent);
+			},
+			hidden : function() {
+				return !this.intent;
 			}
 		}, {
 			text : "查看",
@@ -2550,8 +2558,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}, {
 			text : "发送",
+			intent : (function() {
+				try {
+					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(f));
+				} catch(e) {}
+			})(),
 			onclick : function() {
-				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(f)));
+				ctx.startActivity(this.intent);
+			},
+			hidden : function() {
+				return !this.intent;
 			}
 		}, {
 			text : "清空",
@@ -3719,9 +3735,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	SpecialTips : [
 		function(d) {
 			if (d.getFullYear() > 2017 && d.getMonth() == 2 && d.getDate() == 20) return "命令助手" + (d.getFullYear() - 2017) + "周年！感谢你们的支持！";
-		},
-		function(d) {
-			if (d.getMonth() == 3 && d.getDate() == 1) return "来自作者：命令助手停更了";
 		},
 		function(d) {
 			if (d.getMonth() == 4 && d.getDate() == 1) return "劳动节快乐！";
@@ -7133,7 +7146,11 @@ MapScript.loadModule("Common", {
 					var fs = new java.io.PrintWriter(new java.io.FileOutputStream(file));
 					fs.println(t);
 					fs.close();
-					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(file)));
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(file)));
+					} catch(e) {
+						Common.toast("文件已生成于" + file.getAbsolutePath());
+					}
 				} else {
 					try {
 						var t = eval.call(null, s);
@@ -10370,6 +10387,14 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.mc.aligames",
 		"com.netease.mc.bili",
 		"com.netease.mc.mi",
+		"com.netease.mc.baidu",
+		"com.tencent.tmgp.wdsj666",
+		"com.netease.mc.m4399",
+		"com.netease.mc.wdsj.yyxx.yyh",
+		"com.netease.mc.qihoo",
+		"com.netease.mc.huawei",
+		"com.netease.mc.vivo",
+		"com.netease.mc.nearme.gamecenter",
 		"com.zhekasmirnov.innercore"
 	],
 	packages : {
@@ -10386,14 +10411,46 @@ MapScript.loadModule("NeteaseAdapter", {
 			publisher : "Netease"
 		},
 		"com.netease.mc.bili" : {
-			desc : "网易-Bilibili版",
+			desc : "网易-Bilibili游戏版",
 			publisher : "Netease"
 		},
 		"com.netease.mc.mi" : {
-			desc : "网易-小米版",
+			desc : "网易-小米应用商店版",
 			publisher : "Netease"
 		},
-		//待补
+		"com.netease.mc.baidu" : {
+			desc : "网易-百度手机助手版",
+			publisher : "Netease"
+		},
+		"com.tencent.tmgp.wdsj666" : {
+			desc : "网易-腾讯应用宝版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.m4399" : {
+			desc : "网易-4399游戏盒版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.wdsj.yyxx.yyh" : {
+			desc : "网易-应用汇版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.qihoo" : {
+			desc : "网易-360手机助手版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.huawei" : {
+			desc : "网易-华为应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.vivo" : {
+			desc : "网易-vivo应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.nearme.gamecenter" : {
+			desc : "网易-OPPO应用商店版",
+			publisher : "Netease"
+		},
+		//待补，在此感谢@风铃物语 与 @绿叶 的帮助
 		"com.zhekasmirnov.innercore" : {
 			desc : "Inner Core",
 			publisher : "innercore"
