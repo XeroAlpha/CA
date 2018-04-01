@@ -2506,13 +2506,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					JSONEdit.main();
 				}
 			},{
-				name : "查看错误记录",
+				name : "错误记录",
 				type : "custom",
 				get : function() {
 					return "";
 				},
 				onclick : function() {
-					CA.showErrors();
+					CA.manageErrors();
 				}
 			},{
 				name : "命令行",
@@ -2535,9 +2535,35 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		});
 	} catch(e) {erp(e)}})},
 	
-	showErrors : function() {
+	manageErrors : function() {
+		var f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "com.xero.ca.error.log");
+		if (!f.isFile()) return Common.toast("无错误记录");
+		Common.showOperateDialog([{
+			text : "打开",
+			onclick : function() {
+				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.fromFile(f), "text/plain"));
+			}
+		}, {
+			text : "查看",
+			onclick : function() {
+				CA.listErrors();
+			}
+		}, {
+			text : "发送",
+			onclick : function() {
+				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(f)));
+			}
+		}, {
+			text : "清空",
+			onclick : function() {
+				f.delete();
+				Common.toast("错误信息已清空");
+			}
+		}]);
+	},
+	listErrors : function() {
 		var f = Common.readFile(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", "");
-		if (!f.length) return Common.toast("无错误记录");
+		if (!f.length) return;
 		var a = f.slice(9).split("\n* Error: ");
 		a.reverse();
 		Common.showListChooser(a, function(id) {
@@ -7095,6 +7121,19 @@ MapScript.loadModule("Common", {
 						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 						Common.setClipboardText(e + "\n" + e.stack);
 					}
+				} else if (s.toLowerCase().startsWith("sn ")) {
+					var t;
+					try {
+						t = MapScript.toSource(eval.call(null, s.slice(3)));
+						self.print(t);
+					} catch(e) {
+						self.print(t = e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					}
+					var file = new java.io.File(ctx.getExternalCacheDir(), "sn.txt");
+					var fs = new java.io.PrintWriter(new java.io.FileOutputStream(file));
+					fs.println(t);
+					fs.close();
+					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(file)));
 				} else {
 					try {
 						var t = eval.call(null, s);
@@ -8363,6 +8402,22 @@ MapScript.loadModule("Updater", {
 			Updater.checking = false;
 		} catch(e) {erp(e)}}}));
 		thread.start();
+	},
+	isConnected : function() {
+		var cm = ctx.getSystemService(ctx.CONNECTIVITY_SERVICE);
+		var an = cm.getActiveNetworkInfo();
+		if (an && an.isConnected()) {
+			return true;
+		} else {
+			return false;
+		}
+	},
+	initialize : function() {
+		if (Math.random() > 0.8 && this.isConnected() && !(CA.settings.nextCheckUpdate < Date.now())) {
+			this.checkUpdate(function() {
+				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600;
+			}, true);
+		}
 	},
 	latest : null,
 	lastcheck : null,
