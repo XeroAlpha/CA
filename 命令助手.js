@@ -6355,6 +6355,10 @@ MapScript.loadModule("Common", {
 				}
 			}
 		}
+		s = s.filter(function(e) {
+			if (e.hidden && e.hidden()) return false;
+			return true;
+		});
 		frame = new G.FrameLayout(ctx);
 		frame.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 		frame.setBackgroundColor(Common.theme.message_bgcolor);
