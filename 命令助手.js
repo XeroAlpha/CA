@@ -518,6 +518,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (isNaN(f.settings.nextAskSupport)) {
 				f.settings.nextAskSupport = Date.now() + 30 * 24 * 60 * 60 * 1000; //30d
 			}
+			if (f.settings.icon == undefined) f.settings.icon = "default";
 			
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
@@ -557,6 +558,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				splitScreenMode : false,
 				keepWhenIME : false,
 				topIcon : true,
+				icon : "default",
 				noWebImage : false,
 				iconAlpha : 0,
 				tipsRead : 0,
@@ -2290,6 +2292,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				name : "粘贴延迟",
+				type : "custom",
+				get : function() {
+					var v = isNaN(CA.settings.pasteDelay) ? 2 : CA.settings.pasteDelay / 20;
+					return v > 0 ? v + "秒" : "无";
+				},
+				onclick : function(fset) {
+					CA.showPasteDelaySet(fset)
+				}
+			},{
 				name : "管理历史",
 				type : "custom",
 				get : function() {
@@ -2697,26 +2709,38 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	performPaste : function(cmd) {
-		var r;
+		var r, t;
 		Common.setClipboardText(cmd);
 		if (MapScript.host == "AutoJs" || MapScript.host == "Android") {
 			try {
 				if (MapScript.host == "AutoJs") {
 					if (!editable().findOne().paste()) throw "";
 				} else if (MapScript.host == "Android") {
-					r = ScriptActivity.paste();
-					if (r < 0) throw r;
-					//0 - 成功  1 - 不是Editable对象  2 - 无法访问该Window  3 - 不存在焦点View  4 - 粘贴操作执行失败
-					//-1 - 未知错误  -2 - 未打开无障碍服务
+					t = ScriptActivity.getAccessibilitySvc();
+					if (!t) throw 1;
+					t.paste();
 				}
 			} catch(e) {
 				Common.toast("请打开无障碍服务");
 			}
 		} else {
 			try {
-				ctx.updateTextboxText(cmd);
+				if (CA.settings.pasteDelay > 0) {
+					Common.toast("请在" + (CA.settings.pasteDelay / 20) + "秒内点击需要粘贴的文本框");
+					gHandler.postDelayed(function() {try {
+						ctx.updateTextboxText(cmd);
+					} catch(e) {
+						Common.toast("当前版本暂不支持粘贴命令\n" + e);
+					}}, CA.settings.pasteDelay * 50);
+				} else if (CA.settings.pasteDelay == 0) {
+					ctx.updateTextboxText(cmd);
+				} else {
+					CA.showPasteDelaySet(function() {
+						CA.performPaste(cmd);
+					});
+				}
 			} catch(e) {
-				Common.toast("当前版本暂不支持粘贴命令");
+				Common.toast("当前版本暂不支持粘贴命令\n" + e);
 			}
 		}
 	},
@@ -2860,6 +2884,53 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	hidePaste : function() {G.ui(function() {try {
 		if (CA.paste) CA.paste.dismiss();
 		CA.paste = null;
+	} catch(e) {erp(e)}})},
+	
+	showPasteDelaySet : function self(callback) {G.ui(function() {try {
+		if (!self.getPrompt) {
+			self.getPrompt = function(progress) {
+				if (progress > 0) {
+					return "延迟" + (progress / 20).toFixed(2) + "秒后粘贴（仅适用于启动器）\n\n点击“粘贴”时将不会立即粘贴，你需要在这段延迟时间中点击需要粘贴的文本框。\n您可以在设置中修改该设置。";
+				} else {
+					return "立即粘贴\n\n点击“粘贴”时将会立即粘贴，但你只能粘贴到聊天框中。\n您可以在设置中修改该设置。";
+				}
+			}
+		}
+		var layout, seekbar, text, exit, popup;
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		layout.setBackgroundColor(Common.theme.message_bgcolor);
+		seekbar = new G.SeekBar(ctx);
+		seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
+			onProgressChanged : function(v, progress, fromUser) {try {
+				text.setText(self.getPrompt(progress));
+				CA.settings.pasteDelay = parseInt(progress);
+			} catch(e) {erp(e)}}
+		}));
+		seekbar.setMax(100);
+		layout.addView(seekbar);
+		text = new G.TextView(ctx);
+		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+		text.setTextSize(Common.theme.textsize[2]);
+		text.setTextColor(Common.theme.textcolor);
+		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		layout.addView(text);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setText("关闭");
+		exit.setTextSize(Common.theme.textsize[3]);
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setTextColor(Common.theme.criticalcolor);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			popup.dismiss();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		seekbar.setProgress(isNaN(CA.settings.pasteDelay) ? 40 : CA.settings.pasteDelay);
+		text.setText(self.getPrompt(seekbar.getProgress()));
+		popup = Common.showDialog(layout, -1, -2, callback);
 	} catch(e) {erp(e)}})},
 	
 	showLibraryMan : function self(callback) {G.ui(function() {try {
@@ -3436,9 +3507,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			self.recent = [];
 		}
-		var ci = Object.keys(CA.Icon).concat(self.recent), frame, list, popup;
-		if (!(CA.settings.icon in CA.Icon) && self.recent.indexOf(CA.settings.icon) < 0) ci.push(CA.settings.icon);
-		ci.push("");
+		var ci, frame, list, popup;
+		if (CA.settings.icon.startsWith("/") && self.recent.indexOf(CA.settings.icon) < 0) self.recent.push(CA.settings.icon);
+		ci = Object.keys(CA.Icon).concat(self.recent, "");
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(Common.theme.message_bgcolor);
 		list = new G.GridView(ctx);
