@@ -4554,8 +4554,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				uv : uv
 			}
 			if (l[n - 1].length > 0) {
-				t.input.push("  - 空格");
-				t.assist["  - 空格"] = " ";
+				if (n < 3) {
+					t.input.push("  - 空格");
+					t.assist["  - 空格"] = " ";
+				}
 			} else {
 				if (!uv) {
 					t.input.push("~ - 相对位置");
@@ -4690,23 +4692,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (self.adptcon) {
 						self.adptcon.setArray(z.input);
 					} else {
-						var a = new RhinoListAdapter(z.input, self.adapter);
-						self.adptcon = RhinoListAdapter.getController(a);
+						var a = new SimpleListAdapter(z.input, self.vmaker, self.vbinder);
+						self.adptcon = SimpleListAdapter.getController(a);
 						self.list.setAdapter(a);
 					}
 				} catch(e) {erp(e)}})}
-				self.adapter = function(s, i, a) {
+				self.vmaker = function(holder) {
 					var view = new G.TextView(ctx);
-					if (self.keep) {
-						view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-					} else {
-						view.setPadding(15 * G.dp, 2 * G.dp, 15 * G.dp, 2 * G.dp);
-					}
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					view.setText(s);
 					view.setTextSize(Common.theme.textsize[3]);
 					view.setTextColor(Common.theme.textcolor);
 					return view;
+				}
+				self.vbinder = function(holder, s, i, a) {
+					if (self.keep) {
+						holder.self.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+					} else {
+						holder.self.setPadding(15 * G.dp, 2 * G.dp, 15 * G.dp, 2 * G.dp);
+					}
+					holder.self.setText(s);
 				}
 				self.prompt = new G.TextView(ctx);
 				self.prompt.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
@@ -5534,6 +5538,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						adpt.clearFilter();
 					}
 				}
+				if (listener.getText) listener.onTextChanged(listener.getText());
 			}
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -8119,12 +8124,12 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 			getItemViewType : function(pos) {
 				return 0;
 			},
-			getView : function(pos) {
+			getView : function(pos, convert, parent) {
 				try {
 					return views[pos] ? views[pos] : (views[pos] = vmaker(src[pos], parseInt(pos), src, params));
 				} catch(e) {
 					var a = new G.TextView(ctx);
-					a.setText(e);
+					a.setText(e + "\n" + e.stack);
 					erp(e);
 					return a;
 				}
@@ -8279,7 +8284,9 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 		}
 	}
 	r.getController = function(adapter) {
-		return adapter.getItem(-1);
+		var r = adapter.getItem(-1);
+		r.self = adapter;
+		return r;
 	}
 	return r;
 })());
@@ -8376,6 +8383,123 @@ MapScript.loadModule("FilterListAdapter", (function() {
 				this._dso[i].onChanged();
 			}
 		}
+	}
+	return r;
+})());
+
+MapScript.loadModule("SimpleListAdapter", (function() {
+	var r = function(arr, maker, binder, params) {
+		//arr是列表数组，maker(holder, params)生成基础view，binder(holder, element, index, array, params)修改view使其实现指定的界面
+		var src = arr.slice(), holders = [], dso = [], controller;
+		controller = new SimpleListAdapter.Controller(src, holders, dso, maker, binder, params);
+		return new G.ListAdapter({
+			getCount : function() {
+				return src.length;
+			},
+			getItem : function(pos) {
+				if (pos == -1) return controller;
+				return src[pos];
+			},
+			getItemId : function(pos) {
+				return pos;
+			},
+			getItemViewType : function(pos) {
+				return 0;
+			},
+			getView : function(pos, convert, parent) {
+				var holder;
+				try {
+					if (!convert || !(convert.getTag() in holders)) {
+						holder = {};
+						convert = maker(holder, params);
+						holder.self = convert;
+						convert.setTag(holders.length.toString());
+						holders.push(holder);
+					}
+					holder = holders[convert.getTag()];
+					holder.pos = parseInt(pos);
+					binder(holder, src[pos], parseInt(pos), src, params);
+					return convert;
+				} catch(e) {
+					var a = new G.TextView(ctx);
+					a.setText(e + "\n" + e.stack);
+					erp(e);
+					return a;
+				}
+			},
+			getViewTypeCount : function() {
+				return 1;
+			},
+			hasStableIds : function() {
+				return true;
+			},
+			isEmpty : function() {
+				return src.length === 0;
+			},
+			areAllItemsEnabled : function() {
+				return true;
+			},
+			isEnabled : function(pos) {
+				return pos >= 0 && pos < src.length;
+			},
+			registerDataSetObserver : function(p) {
+				if (dso.indexOf(p) >= 0) return;
+				dso.push(p);
+			},
+			unregisterDataSetObserver : function(p) {
+				var i = dso.indexOf(p);
+				if (p >= 0) dso.splice(i, 1);
+			}
+		});
+	}
+	r.Controller = function(array, holders, dso, maker, binder, params) {
+		this.array = array;
+		this.holders = holders;
+		this.dso = dso;
+		this.maker = maker;
+		this.binder = binder;
+		this.params = params;
+	}
+	r.Controller.prototype = {
+		clearHolder : function() {
+			var i;
+			for (i in this.holders) {
+				this.holders[i].setTag("");
+			}
+			this.holders.length = 0;
+			this.notifyChange();
+		},
+		getHolder : function(view) { 
+			return this.holders[view.getTag()];
+		},
+		notifyChange : function() {
+			this.dso.forEach(function(e) {
+				if (e) e.onChanged();
+			});
+		},
+		notifyInvalidate : function() {
+			this.dso.forEach(function(e) {
+				if (e) e.onInvalidated();
+			});
+		},
+		rebind : function(pos) {
+			var i;
+			for (i in this.holders) {
+				if (this.holders[i].pos == pos) {
+					this.binder(this.holders[i], this.array[pos], parseInt(pos), this.array, this.params);
+				}
+			}
+		},
+		setArray : function(a) {
+			this.array.length = 0;
+			for (i in a) this.array.push(a[i]);
+			this.notifyChange();
+		}
+	}
+	r.getController = function(adapter) {
+		var r = adapter.getItem(-1);
+		r.self = adapter;
+		return r;
 	}
 	return r;
 })());
@@ -8663,7 +8787,7 @@ MapScript.loadModule("JSONEdit", {
 				text : "复制",
 				description : "复制JSON",
 				onclick : function(v, tag) {
-					Common.setClipboardText(MapScript.toSource(tag.data));
+					Common.setClipboardText(JSON.stringify(tag.data, null, "\t"));
 					Common.toast("JSON已复制至剪贴板");
 				}
 			},{
@@ -10537,18 +10661,18 @@ MapScript.loadModule("NeteaseAdapter", {
 CA.IntelliSense.inner["default"] = {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.2.6 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.2.13 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.2.6.60",
+	"targetSupportVer": "1.2.13.54",
 	"commands": {},
 	"enums": {
 		"block": {
 			"acacia_door": "金合欢木门",
 			"acacia_fence_gate": "金合欢栅栏门",
-			"acacia_stairs": "金合欢木阶梯",
+			"acacia_stairs": "金合欢木楼梯",
 			"activator_rail": "激活铁轨",
 			"air": "空气",
 			"anvil": "铁砧",
@@ -10591,7 +10715,8 @@ CA.IntelliSense.inner["default"] = {
 			"cyan_glazed_terracotta": "青色带釉陶瓦",
 			"dark_oak_door": "深色橡木门",
 			"dark_oak_fence_gate": "深色橡木栅栏门",
-			"dark_oak_stairs": "深色橡木阶梯",
+			"dark_oak_stairs": "深色橡木楼梯",
+			"dark_prismarine_stairs": "暗海晶石楼梯",
 			"daylight_detector": "阳光传感器",
 			"daylight_detector_inverted": "反向阳光传感器",
 			"deadbush": "枯死的灌木",
@@ -10610,6 +10735,8 @@ CA.IntelliSense.inner["default"] = {
 			"emerald_ore": "绿宝石矿石",
 			"enchanting_table": "附魔台",
 			"end_bricks": "末地石砖",
+			"end_gateway": "末地折跃门方块",
+			"end_portal": "末地传送门方块",
 			"end_portal_frame": "末地传送门框架",
 			"end_rod": "末地烛",
 			"end_stone": "末地石",
@@ -10636,14 +10763,14 @@ CA.IntelliSense.inner["default"] = {
 			"gravel": "沙砾",
 			"gray_glazed_terracotta": "灰色带釉陶瓦",
 			"green_glazed_terracotta": "绿色带釉陶瓦",
-			"hardened_clay": "陶瓦",
+			"hardened_clay": "硬化粘土",
 			"hay_block": "干草块",
 			"heavy_weighted_pressure_plate": "重质测重压力板",
 			"hopper": "漏斗",
 			"ice": "冰",
 			"info_update": "数据更新方块（update!）",
 			"info_update2": "数据更新方块（ate!upd）",
-			"invisiblebedrock": "隐形基岩",
+			"invisiblebedrock": "隐形的基岩",
 			"iron_bars": "铁栏杆",
 			"iron_block": "铁块",
 			"iron_door": "铁门",
@@ -10684,7 +10811,7 @@ CA.IntelliSense.inner["default"] = {
 			"nether_wart": "地狱疣",
 			"nether_wart_block": "地狱疣块",
 			"netherrack": "地狱岩",
-			"netherreactor": "地狱反应核",
+			"netherreactor": "下界反应核",
 			"noteblock": "音符盒",
 			"oak_stairs": "橡木楼梯",
 			"observer": "侦测器",
@@ -10701,6 +10828,8 @@ CA.IntelliSense.inner["default"] = {
 			"powered_comparator": "充能的红石比较器",
 			"powered_repeater": "充能的红石中继器",
 			"prismarine": "海晶石",
+			"prismarine_bricks_stairs": "海晶石砖楼梯",
+			"prismarine_stairs": "海晶石楼梯",
 			"pumpkin": "南瓜",
 			"pumpkin_stem": "南瓜梗",
 			"purple_glazed_terracotta": "紫色带釉陶瓦",
@@ -10735,7 +10864,7 @@ CA.IntelliSense.inner["default"] = {
 			"skull": "生物头颅",
 			"slime": "粘液块",
 			"snow": "雪块",
-			"snow_layer": "顶层雪",
+			"snow_layer": "雪",
 			"soul_sand": "灵魂沙",
 			"sponge": "海绵",
 			"spruce_door": "云杉木门",
@@ -10752,12 +10881,18 @@ CA.IntelliSense.inner["default"] = {
 			"stone_button": "石质按钮",
 			"stone_pressure_plate": "石质压力板",
 			"stone_slab": "石台阶",
-			"stone_slab2": "红沙石台阶",
+			"stone_slab2": "红砂岩台阶",
 			"stone_stairs": "圆石楼梯",
 			"stonebrick": "石砖",
 			"stonecutter": "切石机",
+			"stripped_acacia_log": "去皮金合欢木",
+			"stripped_birch_log": "去皮白桦木",
+			"stripped_dark_oak_log": "去皮深色橡木",
+			"stripped_jungle_log": "去皮丛林木",
+			"stripped_oak_log": "去皮橡木",
+			"stripped_spruce_log": "去皮云杉木",
 			"structure_block": "结构方块",
-			"structure_void": "结构虚空",
+			"structure_void": "结构空位",
 			"tallgrass": "草丛",
 			"tnt": "TNT",
 			"torch": "火把",
@@ -10786,21 +10921,15 @@ CA.IntelliSense.inner["default"] = {
 			"yellow_glazed_terracotta": "黄色带釉陶瓦"
 		},
 		"item": {
-			"acacia_door": "金合欢木门",
-			"anvil": "",
 			"apple": "苹果",
 			"appleenchanted": "附魔金苹果",
 			"armor_stand": "盔甲架",
 			"arrow": "箭",
 			"baked_potato": "烤马铃薯",
 			"banner": "旗帜",
-			"beacon": "",
-			"bed": "床",
 			"beef": "生牛肉",
-			"beetroot": "甜菜根",
 			"beetroot_seeds": "甜菜种子",
 			"beetroot_soup": "甜菜汤",
-			"birch_door": "白桦木门",
 			"blaze_powder": "烈焰粉",
 			"blaze_rod": "烈焰棒",
 			"board": "黑板",
@@ -10810,19 +10939,15 @@ CA.IntelliSense.inner["default"] = {
 			"bow": "弓",
 			"bowl": "碗",
 			"bread": "面包",
-			"brewing_stand": "酿造台",
 			"brick": "红砖",
 			"bucket": "桶",
-			"cake": "蛋糕",
 			"camera": "相机",
-			"carpet": "",
 			"carrot": "胡萝卜",
-			"carrotonastick": "萝卜钓竿",
-			"cauldron": "炼药锅",
-			"chainmail_boots": "链甲靴子",
-			"chainmail_chestplate": "链甲胸甲",
-			"chainmail_helmet": "链甲头盔",
-			"chainmail_leggings": "链甲护腿",
+			"carrotonastick": "胡萝卜钓竿",
+			"chainmail_boots": "锁链靴子",
+			"chainmail_chestplate": "锁链胸甲",
+			"chainmail_helmet": "锁链头盔",
+			"chainmail_leggings": "锁链护腿",
 			"chest_minecart": "运输矿车",
 			"chicken": "生鸡肉",
 			"chorus_fruit": "紫颂果",
@@ -10831,7 +10956,6 @@ CA.IntelliSense.inner["default"] = {
 			"clock": "钟",
 			"clownfish": "小丑鱼",
 			"coal": "煤炭",
-			"cobblestone_wall": "",
 			"command_block_minecart": "命令方块矿车",
 			"comparator": "红石比较器",
 			"compass": "指南针",
@@ -10842,7 +10966,6 @@ CA.IntelliSense.inner["default"] = {
 			"cooked_rabbit": "熟兔肉",
 			"cooked_salmon": "熟鲑鱼",
 			"cookie": "曲奇",
-			"dark_oak_door": "深色橡木门",
 			"diamond": "钻石",
 			"diamond_axe": "钻石斧",
 			"diamond_boots": "钻石靴子",
@@ -10853,7 +10976,6 @@ CA.IntelliSense.inner["default"] = {
 			"diamond_pickaxe": "钻石镐",
 			"diamond_shovel": "钻石锹",
 			"diamond_sword": "钻石剑",
-			"double_plant": "",
 			"dragon_breath": "龙息",
 			"dye": "染料",
 			"egg": "鸡蛋",
@@ -10866,7 +10988,6 @@ CA.IntelliSense.inner["default"] = {
 			"ender_pearl": "末影珍珠",
 			"experience_bottle": "附魔之瓶",
 			"feather": "羽毛",
-			"fence": "",
 			"fermented_spider_eye": "发酵蛛眼",
 			"fireball": "火焰弹",
 			"fireworks": "烟花火箭",
@@ -10874,8 +10995,6 @@ CA.IntelliSense.inner["default"] = {
 			"fishing_rod": "钓鱼竿",
 			"flint": "燧石",
 			"flint_and_steel": "打火石",
-			"flower_pot": "花盆",
-			"frame": "物品展示框",
 			"ghast_tear": "恶魂之泪",
 			"glass_bottle": "玻璃瓶",
 			"glowstone_dust": "荧石粉",
@@ -10893,7 +11012,6 @@ CA.IntelliSense.inner["default"] = {
 			"golden_shovel": "金锹",
 			"golden_sword": "金剑",
 			"gunpowder": "火药",
-			"hopper": "漏斗",
 			"hopper_minecart": "漏斗矿车",
 			"horsearmordiamond": "钻石马铠",
 			"horsearmorgold": "金马铠",
@@ -10902,7 +11020,6 @@ CA.IntelliSense.inner["default"] = {
 			"iron_axe": "铁斧",
 			"iron_boots": "铁靴子",
 			"iron_chestplate": "铁胸甲",
-			"iron_door": "铁门",
 			"iron_helmet": "铁头盔",
 			"iron_hoe": "铁锄",
 			"iron_ingot": "铁锭",
@@ -10911,11 +11028,10 @@ CA.IntelliSense.inner["default"] = {
 			"iron_pickaxe": "铁镐",
 			"iron_shovel": "铁锹",
 			"iron_sword": "铁剑",
-			"jungle_door": "丛林木门",
 			"lead": "拴绳",
 			"leather": "皮革",
 			"leather_boots": "皮革靴子",
-			"leather_chestplate": "皮革上衣",
+			"leather_chestplate": "皮革外套",
 			"leather_helmet": "皮革帽子",
 			"leather_leggings": "皮革裤子",
 			"lingering_potion": "滞留药水",
@@ -10927,10 +11043,9 @@ CA.IntelliSense.inner["default"] = {
 			"mushroom_stew": "蘑菇煲",
 			"muttoncooked": "熟羊肉",
 			"muttonraw": "生羊肉",
-			"nametag": "命名牌",
-			"netherstar": "地狱之星",
-			"nether_wart": "地狱疣",
-			"netherbrick": "地狱砖块",
+			"name_tag": "命名牌",
+			"netherstar": "下界之星",
+			"netherbrick": "地狱砖",
 			"painting": "画",
 			"paper": "纸",
 			"poisonous_potato": "毒马铃薯",
@@ -10960,26 +11075,20 @@ CA.IntelliSense.inner["default"] = {
 			"record_strad": "strad唱片",
 			"record_wait": "wait唱片",
 			"record_ward": "ward唱片",
-			"red_flower": "",
 			"redstone": "红石粉",
-			"reeds": "甘蔗",
 			"repeater": "红石中继器",
 			"rotten_flesh": "腐肉",
 			"saddle": "鞍",
 			"salmon": "生鲑鱼",
-			"sapling": "",
 			"shears": "剪刀",
 			"shulker_shell": "潜影壳",
 			"sign": "告示牌",
-			"skull": "生物头颅",
 			"slime_ball": "粘液球",
-			"snow_layer": "",
 			"snowball": "雪球",
 			"spawn_egg": "刷怪蛋",
 			"speckled_melon": "闪烁的西瓜",
 			"spider_eye": "蜘蛛眼",
 			"splash_potion": "喷溅药水",
-			"spruce_door": "云杉木门",
 			"stick": "木棍",
 			"stone_axe": "石斧",
 			"stone_hoe": "石锄",
@@ -10988,19 +11097,15 @@ CA.IntelliSense.inner["default"] = {
 			"stone_sword": "石剑",
 			"string": "线",
 			"sugar": "糖",
-			"tallgrass": "",
 			"tnt_minecart": "TNT矿车",
 			"totem": "不死图腾",
-			"wheat": "小麦",
-			"wheat_seeds": "种子",
+			"wheat_seeds": "小麦种子",
 			"wooden_axe": "木斧",
-			"wooden_door": "木门",
 			"wooden_hoe": "木锄",
 			"wooden_pickaxe": "木镐",
 			"wooden_shovel": "木锹",
 			"wooden_sword": "木剑",
-			"writable_book": "书与笔",
-			"yellow_flower": ""
+			"writable_book": "书与笔"
 		},
 		"sound": {
 			"ambient.weather.thunder": "打雷声",
@@ -11055,11 +11160,18 @@ CA.IntelliSense.inner["default"] = {
 			"firework.launch": "",
 			"firework.shoot": "",
 			"firework.twinkle": "",
+			"armor.equip_chain": "",
+			"armor.equip_diamond": "",
+			"armor.equip_generic": "",
+			"armor.equip_gold": "",
+			"armor.equip_iron": "",
+			"armor.equip_leather": "",
 			"liquid.lava": "流动岩浆声",
 			"liquid.lavapop": "流动岩浆产生声",
 			"liquid.water": "流动水声",
 			"minecart.base": "",
 			"minecart.inside": "",
+			"furnace.lit": "",
 			"mob.armor_stand.break": "",
 			"mob.armor_stand.hit": "",
 			"mob.armor_stand.land": "",
@@ -11231,6 +11343,14 @@ CA.IntelliSense.inner["default"] = {
 			"mob.vex.death": "",
 			"mob.vex.hurt": "",
 			"mob.vex.charge": "",
+			"item.trident.hit_ground": "",
+			"item.trident.hit": "",
+			"item.trident.return": "",
+			"item.trident.riptide_1": "",
+			"item.trident.riptide_2": "",
+			"item.trident.riptide_3": "",
+			"item.trident.throw": "",
+			"item.trident.thunder": "",
 			"mob.witch.ambient": "女巫讥笑声",
 			"mob.witch.death": "女巫死亡声",
 			"mob.witch.hurt": "女巫受伤声",
@@ -11297,6 +11417,9 @@ CA.IntelliSense.inner["default"] = {
 			"random.chestopen": "随机打开箱子声",
 			"random.shulkerboxclosed": "",
 			"random.shulkerboxopen": "",
+			"random.enderchestopen": "",
+			"random.enderchestclosed": "",
+			"random.potion.brewed": "",
 			"random.click": "随机按纽状态更新/投掷器或发射器或红石中继器激活/两个绊线钩连接声",
 			"random.door_close": "随机关门声",
 			"random.door_open": "随机开门声",
@@ -11405,6 +11528,7 @@ CA.IntelliSense.inner["default"] = {
 			"creeper": "爬行者",
 			"donkey": "驴",
 			"dragon_fireball": "末影龙火球",
+			"drowned": "溺尸",
 			"egg": "丢出的鸡蛋",
 			"elder_guardian": "远古守卫者",
 			"ender_crystal": "末影水晶",
@@ -11457,6 +11581,7 @@ CA.IntelliSense.inner["default"] = {
 			"splash_potion": "丢出的喷溅药水",
 			"squid": "鱿鱼",
 			"stray": "流髑",
+			"thrown_trident": "掷出的三叉戟",
 			"tnt": "已激活的TNT",
 			"tnt_minecart": "TNT矿车",
 			"vex": "恼鬼",
