@@ -4106,11 +4106,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		matchParam : function(cp, ps) {
 			var i, r, t, t2, t3, t4;
 			switch (cp.type) {
-				case "nbt":
-				case "rawjson":
 				case "text":
+				case "rawjson":
+				r = {
+					length : ps.length,
+					canFinish : true
+				};
+				break;
+				
+				case "nbt":
 				case "json":
 				r = {
+					input : ["插入JSON"],
+					menu : {
+						"插入JSON" : function() {
+							CA.IntelliSense.assistJSON(cp);
+						}
+					},
 					length : ps.length,
 					canFinish : true
 				};
@@ -4623,6 +4635,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			return r;
 		},
+		assistJSON : function(param) {
+			CA.Assist.editParamJSON({
+				param : param
+			}, function(text) {
+				CA.cmd.getText().append(text);
+			});
+		},
 		showHelp : function() {
 			var pp = new G.SpannableStringBuilder();
 			this.source = "/help";
@@ -4792,6 +4811,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				command_snap : {},
 				enums : {},
 				selectors : {},
+				json : {},
 				help : {},
 				tutorials : [],
 				info : info = []
@@ -5142,6 +5162,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						cur.selectors[i] = l.selectors[i];
 					}
 				}
+				for (i in l.json) {
+					if (l.mode == "remove") {
+						delete cur.json[i];
+					} else {
+						cur.json[i] = l.json[i];
+					}
+				}
 				for (i in l.help) {
 					if (l.mode == "remove") {
 						delete cur.help[i];
@@ -5386,7 +5413,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				this.editParamEnum(e, callback, onReset);
 				break;
 				case "nbt":
-				case "rawjson":
 				case "json":
 				this.editParamJSON(e, callback, onReset);
 				break;
@@ -5402,6 +5428,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				case "relative":
 				case "custom":
 				case "command":
+				case "rawjson":
 				case "text":
 				default:
 				this.editParamDialog(e, callback, onReset);
@@ -5542,7 +5569,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			if (listener.setText) {
-				var sugg = new G.ListView(ctx), adpt = new FilterListAdapter(new RhinoListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker));
+				var sugg = new G.ListView(ctx), adpt = new FilterListAdapter(new SimpleListAdapter(Object.keys(suggestion), CA.Assist.smallVMaker, CA.Assist.smallVBinder));
 				sugg.setBackgroundColor(G.Color.TRANSPARENT);
 				sugg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 				sugg.setAdapter(adpt.build());
@@ -5623,12 +5650,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		editParamJSON : function self(e, callback, onReset) {
 			if (!self.refresh) {
 				self.refresh = function(e, data, callback) {
-					e.jsondata = data;
+					e.jsonData = data;
 					callback(MapScript.toSource(data));
 				}
 				self.modify = function(e, callback) {
 					JSONEdit.show({
-						source : e.jsondata,
+						source : e.jsonData,
 						rootname : e.param.name,
 						update : function() {
 							self.refresh(e, this.source, callback);
@@ -5663,7 +5690,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					onclick : function(v) {}
 				}]
 			}
-			if ("jsondata" in e) {
+			if (e.param.component) return this.editComponent(e, callback, onReset);
+			if ("jsonData" in e) {
 				Common.showOperateDialog(self.editmenu, {
 					e : e,
 					callback : callback,
@@ -5847,7 +5875,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						var p = {
 							name : a[pos].name,
 							param : a[pos].par,
-							isInverted : a[pos].inverted,
+							isInverted : a[pos].inverted
 						};
 						CA.Assist.editParam(p, function(text) {
 							p.text = text;
@@ -5977,14 +6005,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.refresh(e, list);
 			popup = Common.showDialog(layout, -1, -2);
 		} catch(e) {erp(e)}})},
-		smallVMaker : function(s) {
-			var view = new G.TextView(ctx);
+		smallVMaker : function(holder) {
+			var view = holder.view = new G.TextView(ctx);
 			view.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			view.setText(s);
 			view.setTextSize(Common.theme.textsize[2]);
 			view.setTextColor(Common.theme.textcolor);
 			return view;
+		},
+		smallVBinder : function(holder, s) {
+			holder.view.setText(s);
 		},
 		getParamType : function(cp) {
 			switch (cp.type) {
@@ -6079,7 +6109,200 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}), function(id) {
 				callback(ps[id]);
 			}, optional);
-		}
+		},
+		editComponent : function self(e, callback, onReset) {G.ui(function() {try {
+			var layout, title, i, adpt, list, add, reset, exit, popup;
+			if (!self.selectors) {
+				self.refresh = function(e, adpt) {
+					adpt.setArray(e.components);
+				}
+				self.addParam = function(e, adpt) {
+					var i, a = [], c, cs = e.current_component;
+					if (cs.type == "object") {
+						for (i in cs.children) {
+							c = self.extendComponent(cs.children[i]);
+							a.push({
+								text : c.name,
+								description : c.description || i,
+								data : c,
+								id : i
+							});
+						}
+					} else if (cs.type == "array") {
+						c = self.extendComponent(cs.children);
+						a.push({
+							text : c.name || "元素",
+							description : c.description,
+							data : c
+						});
+					}
+					Common.showListChooser(a, function(pos) {
+						var p = {
+							_id : a[pos].id,
+							param : a[pos].data
+						};
+						if (p.param.type == "object" || p.param.type == "array") {
+							p.param = {
+								type : "json",
+								name : a[pos].text,
+								component : p.param
+							}
+						}
+						CA.Assist.editParam(p, function(text) {
+							p.text = text;
+							p.jsonData = self.getJSON(p);
+							e.components.push(p);
+							self.refresh(e, adpt);
+						});
+					}, true);
+				}
+				self.editParam = function(e, i, adpt) {
+					CA.Assist.editParam(e.components[i], function(text) {
+						var p = e.components[i];
+						p.text = text;
+						p.jsonData = self.getJSON(p);
+						self.refresh(e, adpt);
+					});
+				}
+				self.extendComponent = function(c) {
+					var i, o;
+					if (!c) return null;
+					if (c instanceof Object) {
+						o = c.extends ? self.extendComponent(c.extends) : {};
+						for (i in c) o[i] = c[i];
+						return o;
+					} else {
+						return self.extendComponent(CA.IntelliSense.library.json[c]);
+					}
+				}
+				self.getJSON = function(e) {
+					switch (e.param.type) {
+						case "nbt":
+						case "json":
+						return e.jsonData;
+						break;
+						case "int":
+						case "uint":
+						case "float":
+						return Number(e.text);
+						break;
+						case "plain":
+						case "enum":
+						case "custom":
+						case "command":
+						case "rawjson":
+						case "text":
+						default:
+						return e.text;
+					}
+				}
+				self.adapter = function(e, i, a, tag) {
+					var view = new G.LinearLayout(ctx),
+						text = new G.TextView(ctx),
+						del = new G.TextView(ctx);
+					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+					view.setOrientation(G.LinearLayout.HORIZONTAL);
+					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+					text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
+					text.setText((e._id ? e.param.name + "：" : "") + e.text);
+					text.setTextSize(Common.theme.textsize[2]);
+					text.setSingleLine(true);
+					text.setTextColor(Common.theme.textcolor);
+					text.setEllipsize(G.TextUtils.TruncateAt.END);
+					text.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
+					view.addView(text);
+					del.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+					del.setText("×");
+					del.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+					del.setTextSize(Common.theme.textsize[2]);
+					del.setTextColor(Common.theme.textcolor);
+					del.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+						tag.delete(i);
+					} catch(e) {erp(e)}}}));
+					view.addView(del);
+					return view;
+				}
+			}
+			layout = new G.LinearLayout(ctx);
+			layout.setBackgroundColor(Common.theme.message_bgcolor);
+			layout.setOrientation(G.LinearLayout.VERTICAL);
+			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			title = new G.TextView(ctx);
+			title.setTextSize(Common.theme.textsize[4]);
+			title.setTextColor(Common.theme.textcolor);
+			title.setText("编辑“" + e.param.name + "”");
+			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			title.setPadding(0, 0, 0, 10 * G.dp);
+			layout.addView(title);
+			add = new G.TextView(ctx);
+			add.setText("+ 添加组件");
+			add.setSingleLine(true);
+			add.setTextColor(Common.theme.textcolor);
+			add.setTextSize(Common.theme.textsize[2]);
+			add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			add.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			list = new G.ListView(ctx);
+			list.setBackgroundColor(Common.theme.message_bgcolor);
+			list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+			list.addFooterView(add);
+			list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == add) {
+					self.addParam(e, adpt);
+				} else {
+					self.editParam(e, pos, adpt);
+				}
+			} catch(e) {erp(e)}}}));
+			layout.addView(list);
+			if (onReset) {
+				reset = new G.TextView(ctx);
+				reset.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
+				reset.setText("重置参数");
+				reset.setTextSize(Common.theme.textsize[3]);
+				reset.setGravity(G.Gravity.CENTER);
+				reset.setTextColor(Common.theme.criticalcolor);
+				reset.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					onReset();
+					popup.dismiss();
+				} catch(e) {erp(e)}}}));
+				layout.addView(reset);
+			}
+			exit = new G.TextView(ctx);
+			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			exit.setText("确定");
+			exit.setTextSize(Common.theme.textsize[3]);
+			exit.setGravity(G.Gravity.CENTER);
+			exit.setTextColor(Common.theme.criticalcolor);
+			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				var i, o;
+				if (e.current_component.type == "object") {
+					o = {};
+					for (i in e.components) {
+						o[e.components[i]._id] = e.components[i].jsonData;
+					}
+				} else if (e.current_component.type == "array") {
+					o = [];
+					for (i in e.components) {
+						o.push(e.components[i].jsonData);
+					}
+				}
+				callback(JSON.stringify(e.jsonData = o));
+				popup.dismiss();
+			} catch(e) {erp(e)}}}));
+			layout.addView(exit);
+			if (!e.components) e.components = [];
+			list.setAdapter(adpt = new RhinoListAdapter(e.components, self.adapter, {
+				delete : function(i) {
+					e.components.splice(i, 1);
+					self.refresh(e, adpt);
+				}
+			}));
+			e.current_component = self.extendComponent(e.param.component);
+			adpt = RhinoListAdapter.getController(adpt);
+			self.refresh(e, adpt);
+			popup = Common.showDialog(layout, -1, -2);
+		} catch(e) {erp(e)}})}
 	}
 });
 
@@ -6101,8 +6324,7 @@ MapScript.loadModule("PWM", {
 	},
 	add : function(w) {
 		var v, wp;
-		if (this.windows.indexOf(w) >= 0) return;
-		this.windows.push(w);
+		if (this.windows.indexOf(w) < 0) this.windows.push(w);
 		this.floats.forEach(function(e) {
 			if (!e.isShowing()) return;
 			v = e.getContentView();
@@ -6115,13 +6337,11 @@ MapScript.loadModule("PWM", {
 		this._notifyListeners("add", w);
 	},
 	addFloat : function(w) {
-		if (this.floats.indexOf(w) >= 0) return;
-		this.floats.push(w);
+		if (this.floats.indexOf(w) < 0) this.floats.push(w);
 		this._notifyListeners("addFloat", w);
 	},
 	addPopup : function(w) {
-		if (this.popups.indexOf(w) >= 0) return;
-		this.popups.push(w);
+		if (this.popups.indexOf(w) < 0) this.popups.push(w);
 		this._notifyListeners("addPopup", w);
 	},
 	hideAll : function() {
@@ -11872,6 +12092,35 @@ CA.IntelliSense.inner["default"] = {
 			"hasInverted": true
 		}
 	},
+	"json": {
+		"block_selector": {
+			"type": "object",
+			"children": {
+				"blocks": {
+					"type": "array",
+					"name": "方块列表",
+					"children": {
+						"type": "string",
+						"suggestion": "block"
+					}
+				}
+			}
+		},
+		"item_component": {
+			"type": "object",
+			"name": "物品组件",
+			"children": {
+				"minecraft:can_place_on": {
+					"name": "冒险模式下仅能放置于……方块上",
+					"extends": "block_selector"
+				},
+				"minecraft:can_destroy": {
+					"name": "冒险模式下仅能破坏……方块",
+					"extends": "block_selector"
+				}
+			}
+		}
+	},
 	"help": {
 		"command": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4",
 		"tilder": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
@@ -12132,6 +12381,7 @@ CA.IntelliSense.inner["default"] = {
 								{
 									"type": "json",
 									"name": "数据标签",
+									"component": "item_component",
 									"optional": true
 								}
 							]
@@ -12929,6 +13179,7 @@ CA.IntelliSense.inner["default"] = {
 								{
 									"type": "json",
 									"name": "数据标签",
+									"component": "item_component",
 									"optional": true
 								}
 							]
@@ -12986,6 +13237,7 @@ CA.IntelliSense.inner["default"] = {
 								{
 									"type": "json",
 									"name": "数据标签",
+									"component": "item_component",
 									"optional": true
 								}
 							]
