@@ -2212,7 +2212,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return CA.version;
 				},
 				onclick : function(fset) {
-					CA.showSupportDialog(false);
+					CA.showAboutDialog();
 				}
 			},{
 				name : "检查更新",
@@ -2541,9 +2541,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.refreshed = false;
 		Common.showSettings(self.data, function() {
 			CA.trySave();
-			if (CA.settings.firstUse < Date.now() - 180 * 24 * 60 * 60 * 1000) return;
-			if (CA.settings.nextAskSupport > Date.now()) return;
-			CA.showSupportDialog(true);
 		});
 	} catch(e) {erp(e)}})},
 	
@@ -3692,21 +3689,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			minSupportVer : "1.2"
 		}
 	},
-	showSupportDialog : function(auto) {
-		var offset = 10 * 24 * 60 * 60 * 1000; //10d
+	showAboutDialog : function() {
 		Common.showConfirmDialog({
-			title : "喜欢使用命令助手吗？\n喜欢的话请选择一项来帮助我们",
+			title : ISegment.rawJson([{
+				text : "命令助手",
+				bold : true
+			},
+			" - ", CA.publishDate, " (", CA.version, ")\n\n", {
+				text : "Copyright ProjectXero 2017 - 2018",
+				bold : true
+			}]),
 			buttons : [
-				"残忍拒绝",
-				"加入交流群（207913610）",
+				"分享链接",
+				"加入交流群",
 				"提出意见/反馈bug",
 				"向作者捐助"
 			],
 			callback : function(id) {
+				var t;
 				switch (id) {
 					case 0:
-					Common.toast("是我们做的不够好吗？请告诉我们需要改进的地方吧");
-					return;
+					t = "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919";
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t)));
+					} catch(e) {
+						Common.setClipboardText(t);
+						Common.toast("下载链接已复制到剪贴板");
+					}
+					break;
 					case 1:
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D")));
@@ -3729,9 +3739,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				offset = 30 * 24 * 60 * 60 * 1000; //30d
 			},
-			onDismiss : function() {
-				if (auto) CA.settings.nextAskSupport = Date.now() + offset;
-			}
 		});
 	},
 	getQRCode : function(w, size, code) {
@@ -3803,6 +3810,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		scr.addView(layout);
 		popup = Common.showDialog(scr, -2, -2);
 	} catch(e) {erp(e)}})},
+	
 	SpecialTips : [
 		function(d) {
 			if (d.getFullYear() > 2017 && d.getMonth() == 2 && d.getDate() == 20) return "命令助手" + (d.getFullYear() - 2017) + "周年！感谢你们的支持！";
@@ -6352,6 +6360,7 @@ MapScript.loadModule("PWM", {
 			if (!v) return;
 			v.getRootView().setVisibility(G.View.GONE);
 		});
+		Common.hideIME();
 		this._notifyListeners("hideAll");
 	},
 	showAll : function() {
@@ -6860,33 +6869,39 @@ MapScript.loadModule("Common", {
 	
 	showListChooser : function self(l, callback, optional, onDismiss) {G.ui(function() {try {
 		var frame, list, popup;
-		if (!self.adapter) {
-			self.adapter = function(e) {
+		if (!self.vmaker) {
+			self.vmaker = function(holder) {
 				var view = new G.LinearLayout(ctx);
 				view.setOrientation(G.LinearLayout.VERTICAL);
 				view.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				var title = new G.TextView(ctx);
+				var title = holder.title = new G.TextView(ctx);
 				title.setTextSize(Common.theme.textsize[2]);
 				title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
 				title.setTextColor(Common.theme.textcolor);
 				title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				view.addView(title);
+				var desp = holder.desp = new G.TextView(ctx);
+				desp.setTextColor(Common.theme.promptcolor);
+				desp.setTextSize(Common.theme.textsize[1]);
+				desp.setPadding(0, 3 * G.dp, 0, 0);
+				desp.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+				view.addView(desp);
+				return view;
+			}
+			self.vbinder = function(holder, e) {
 				if (e instanceof Object) {
-					title.setText(String(e.text));
+					holder.title.setText(String(e.text));
 					if (e.description) {
-						var description = new G.TextView(ctx);
-						description.setText(String(e.description));
-						description.setTextColor(Common.theme.promptcolor);
-						description.setTextSize(Common.theme.textsize[1]);
-						description.setPadding(0, 3 * G.dp, 0, 0);
-						description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
-						view.addView(description);
+						holder.desp.setText(String(e.description));
+						holder.desp.setVisibility(G.View.VISIBLE);
+					} else {
+						holder.desp.setVisibility(G.View.GONE);
 					}
 				} else {
-					title.setText(String(e));
+					holder.title.setText(String(e));
+					holder.desp.setVisibility(G.View.GONE);
 				}
-				return view;
 			}
 		}
 		if (l.length == 0) {
@@ -6899,7 +6914,7 @@ MapScript.loadModule("Common", {
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		list.setBackgroundColor(G.Color.TRANSPARENT);
-		list.setAdapter(new RhinoListAdapter(l, self.adapter));
+		list.setAdapter(new SimpleListAdapter(l, self.vmaker, self.vbinder));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 			if (!callback(pos)) popup.dismiss();
 			return true;
@@ -7205,22 +7220,23 @@ MapScript.loadModule("Common", {
 	
 	showFileDialog : function self(o) {G.ui(function() {try {
 		if (!self.linear) {
-			self.adapter = function(e) {
-				var name;
-				name = new G.TextView(ctx);
-				if (e) {
-					name.setText((e.isDirectory() ? "📁 " : "📄 ") + String(e.getName()));
-					name.setTextColor(e.isHidden() ? Common.theme.promptcolor : Common.theme.textcolor);
-				} else {
-					name.setText("📂 .. (上一级目录)");
-					name.setTextColor(Common.theme.textcolor);
-				}
+			self.vmaker = function() {
+				var name = new G.TextView(ctx);
 				name.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				name.setSingleLine(true);
 				name.setEllipsize(G.TextUtils.TruncateAt.END);
 				name.setTextSize(Common.theme.textsize[3]);
 				name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
 				return name;
+			}
+			self.vbinder = function(holder, e) {
+				if (e) {
+					holder.self.setText((e.isDirectory() ? "📁 " : "📄 ") + String(e.getName()));
+					holder.self.setTextColor(e.isHidden() ? Common.theme.promptcolor : Common.theme.textcolor);
+				} else {
+					holder.self.setText("📂 .. (上一级目录)");
+					holder.self.setTextColor(Common.theme.textcolor);
+				}
 			}
 			self.compare = function(a, b) {
 				return a.getName().compareToIgnoreCase(b.getName());
@@ -7255,7 +7271,7 @@ MapScript.loadModule("Common", {
 				}
 				var a = o.fileFirst ? fi.concat(dir) : dir.concat(fi);
 				if (o.curdir.getParent()) a.unshift(null);
-				self.list.setAdapter(self.curadp = new RhinoListAdapter(a, self.adapter));
+				self.list.setAdapter(self.curadp = new SimpleListAdapter(a, self.vmaker, self.vbinder));
 			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
@@ -7752,7 +7768,12 @@ MapScript.loadModule("Common", {
 	},
 	
 	hideIME : function(v) {
-		ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).hideSoftInputFromWindow(v.getWindowToken(), 0);
+		var imm = ctx.getSystemService(ctx.INPUT_METHOD_SERVICE);
+		if (v) {
+			imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+		} else {
+			if (imm.isActive()) imm.toggleSoftInput(0, imm.HIDE_NOT_ALWAYS);
+		}
 	},
 	
 	hasClipboardText : function() {
@@ -11406,27 +11427,27 @@ CA.IntelliSense.inner["default"] = {
 		},
 		"sound": {
 			"ambient.weather.thunder": "打雷声",
-			"ambient.weather.lightning.impact": "",
+			"ambient.weather.lightning.impact": "打雷声（爆炸）",
 			"ambient.weather.rain": "雨声",
-			"block.false_permissions": "",
-			"block.end_portal.spawn": "",
-			"block.end_portal_frame.fill": "",
+			"block.false_permissions": "禁止方块效果声",
+			"block.end_portal.spawn": "生成末地传送门声",
+			"block.end_portal_frame.fill": "填充末地传送门框架声",
 			"block.itemframe.add_item": "展示框放上物品声",
 			"block.itemframe.break": "破坏展示框声",
 			"block.itemframe.place": "放置展示框声",
 			"block.itemframe.remove_item": "拿取展示框中的展示物品声",
 			"block.itemframe.rotate_item": "转动展示框中的展示物品声",
-			"block.chorusflower.death": "",
-			"block.chorusflower.grow": "",
-			"bucket.empty_lava": "",
-			"bucket.empty_water": "",
-			"bucket.fill_lava": "",
-			"bucket.fill_water": "",
-			"bottle.dragonbreath": "",
+			"block.chorusflower.death": "紫颂花死亡声",
+			"block.chorusflower.grow": "紫颂花长高声",
+			"bucket.empty_lava": "桶放置岩浆声",
+			"bucket.empty_water": "桶放置水声",
+			"bucket.fill_lava": "桶装岩浆声",
+			"bucket.fill_water": "桶装水声",
+			"bottle.dragonbreath": "获取龙息声",
 			"cauldron.explode": "炼药锅爆炸声",
 			"cauldron.dyearmor": "炼药锅着色装备声",
 			"cauldron.cleanarmor": "炼药锅洗清装备声",
-			"cauldron.cleanbanner": "",
+			"cauldron.cleanbanner": "炼药锅清洗旗帜声",
 			"cauldron.fillpotion": "炼药锅放满药水声",
 			"cauldron.takepotion": "炼药锅拿取药水声",
 			"cauldron.fillwater": "炼药锅放满水声",
@@ -11434,9 +11455,9 @@ CA.IntelliSense.inner["default"] = {
 			"cauldron.adddye": "炼药锅染色水声",
 			"damage.fallbig": "长高度落伤害声",
 			"damage.fallsmall": "短高度掉落伤害",
-			"elytra.loop": "",
-			"game.player.attack.nodamage": "",
-			"game.player.attack.strong": "",
+			"elytra.loop": "鞘翅飞翔声",
+			"game.player.attack.nodamage": "玩家无伤害攻击声",
+			"game.player.attack.strong": "玩家暴击声",
 			"game.player.hurt": "玩家受伤声",
 			"game.player.die": "玩家死亡声",
 			"dig.cloth": "挖掘羊毛声",
@@ -11450,29 +11471,29 @@ CA.IntelliSense.inner["default"] = {
 			"tile.piston.out": "活塞推出声",
 			"fire.fire": "着火声",
 			"fire.ignite": "点火声/点燃苦力怕声",
-			"leashknot.break": "",
-			"leashknot.place": "",
-			"firework.blast": "",
-			"firework.large_blast": "",
-			"firework.launch": "",
-			"firework.shoot": "",
-			"firework.twinkle": "",
-			"armor.equip_chain": "",
-			"armor.equip_diamond": "",
-			"armor.equip_generic": "",
-			"armor.equip_gold": "",
-			"armor.equip_iron": "",
-			"armor.equip_leather": "",
+			"leashknot.break": "拴绳结破坏声",
+			"leashknot.place": "拴绳结放置声",
+			"firework.blast": "烟花爆炸声",
+			"firework.large_blast": "烟花爆炸声（大型）",
+			"firework.launch": "烟花发射声",
+			"firework.shoot": "发射烟花声（发射器）",
+			"firework.twinkle": "烟花闪烁声",
+			"armor.equip_chain": "装备锁链盔甲声",
+			"armor.equip_diamond": "装备钻石盔甲声",
+			"armor.equip_generic": "装备盔甲声",
+			"armor.equip_gold": "装备金甲声",
+			"armor.equip_iron": "装备铁甲声",
+			"armor.equip_leather": "装备皮革盔甲声",
 			"liquid.lava": "流动岩浆声",
 			"liquid.lavapop": "流动岩浆产生声",
 			"liquid.water": "流动水声",
-			"minecart.base": "",
-			"minecart.inside": "",
-			"furnace.lit": "",
-			"mob.armor_stand.break": "",
-			"mob.armor_stand.hit": "",
-			"mob.armor_stand.land": "",
-			"mob.armor_stand.place": "",
+			"minecart.base": "矿车行驶声",
+			"minecart.inside": "矿车驾驶声",
+			"furnace.lit": "熔炉点燃声",
+			"mob.armor_stand.break": "盔甲架破坏声",
+			"mob.armor_stand.hit": "盔甲架破坏声",
+			"mob.armor_stand.land": "盔甲架落地声",
+			"mob.armor_stand.place": "盔甲架放置声",
 			"mob.bat.death": "蝙蝠死亡声",
 			"mob.bat.hurt": "蝙蝠受伤声",
 			"mob.bat.idle": "蝙蝠叫声",
@@ -11480,7 +11501,7 @@ CA.IntelliSense.inner["default"] = {
 			"mob.blaze.breathe": "烈焰人叫声",
 			"mob.blaze.death": "烈焰人死亡声",
 			"mob.blaze.hit": "烈焰人受伤声",
-			"mob.blaze.shoot": "",
+			"mob.blaze.shoot": "烈焰人发射声",
 			"mob.chicken.hurt": "鸡受伤声",
 			"mob.chicken.plop": "鸡下蛋声",
 			"mob.chicken.say": "鸡叫声",
@@ -11488,7 +11509,7 @@ CA.IntelliSense.inner["default"] = {
 			"mob.cow.hurt": "牛受伤声",
 			"mob.cow.say": "牛叫声",
 			"mob.cow.step": "牛走路声",
-			"mob.cow.milk": "",
+			"mob.cow.milk": "牛挤奶声",
 			"mob.creeper.death": "苦力怕死亡声",
 			"mob.creeper.say": "苦力怕叫/受伤声",
 			"mob.endermen.death": "末影人死亡声",
@@ -11497,35 +11518,35 @@ CA.IntelliSense.inner["default"] = {
 			"mob.endermen.portal": "末影人传送声",
 			"mob.endermen.scream": "末影人愤怒声",
 			"mob.endermen.stare": "末影人激怒声",
-			"mob.enderdragon.death": "",
-			"mob.enderdragon.hit": "",
-			"mob.enderdragon.flap": "",
-			"mob.enderdragon.growl": "",
+			"mob.enderdragon.death": "末影龙死亡声",
+			"mob.enderdragon.hit": "末影龙受伤声",
+			"mob.enderdragon.flap": "末影龙扇翅声",
+			"mob.enderdragon.growl": "末影龙嘶吼声",
 			"mob.ghast.affectionate_scream": "恶魂深情的呐喊声",
 			"mob.ghast.charge": "恶魂将要发射火球声",
 			"mob.ghast.death": "恶魂死亡声",
-			"mob.ghast.fireball": "恶魂/发射器/烈焰人发射火球声",
+			"mob.ghast.fireball": "恶魂/发射器发射火球声",
 			"mob.ghast.moan": "恶魂叫声",
 			"mob.ghast.scream": "恶魂受伤声",
 			"mob.guardian.ambient": "",
-			"mob.guardian.attack_loop": "",
-			"mob.elderguardian.curse": "",
-			"mob.elderguardian.death": "",
+			"mob.guardian.attack_loop": "守卫者攻击声",
+			"mob.elderguardian.curse": "远古守卫者诅咒声",
+			"mob.elderguardian.death": "远古守卫者死亡声",
 			"mob.elderguardian.hit": "",
-			"mob.elderguardian.idle": "",
-			"mob.guardian.flop": "",
-			"mob.guardian.death": "",
+			"mob.elderguardian.idle": "远古守卫者叫声",
+			"mob.guardian.flop": "守卫者扑通声",
+			"mob.guardian.death": "守卫者死亡声（海里）",
 			"mob.guardian.hit": "",
-			"mob.guardian.land_death": "",
+			"mob.guardian.land_death": "守卫者死亡声（陆地上）",
 			"mob.guardian.land_hit": "",
-			"mob.guardian.land_idle": "",
-			"mob.llama.angry": "",
-			"mob.llama.death": "",
-			"mob.llama.idle": "",
-			"mob.llama.spit": "",
-			"mob.llama.hurt": "",
-			"mob.llama.eat": "",
-			"mob.llama.step": "",
+			"mob.guardian.land_idle": "守卫者叫声（陆地）",
+			"mob.llama.angry": "羊驼愤怒声",
+			"mob.llama.death": "羊驼死亡声",
+			"mob.llama.idle": "羊驼叫声",
+			"mob.llama.spit": "羊驼吐唾沫声",
+			"mob.llama.hurt": "羊驼受伤声",
+			"mob.llama.eat": "羊驼吃东西声",
+			"mob.llama.step": "羊驼走路声",
 			"mob.llama.swag": "",
 			"mob.horse.angry": "马生气声",
 			"mob.horse.armor": "替马上装备声",
@@ -11535,7 +11556,7 @@ CA.IntelliSense.inner["default"] = {
 			"mob.horse.donkey.death": "驴死亡声",
 			"mob.horse.donkey.hit": "驴受伤声",
 			"mob.horse.donkey.idle": "驴叫声",
-			"mob.horse.eat": "",
+			"mob.horse.eat": "马吃东西声",
 			"mob.horse.gallop": "马飞奔声",
 			"mob.horse.hit": "马受伤声",
 			"mob.horse.idle": "马叫声",
@@ -11551,31 +11572,31 @@ CA.IntelliSense.inner["default"] = {
 			"mob.horse.zombie.hit": "僵尸马受伤声",
 			"mob.horse.zombie.idle": "僵尸马叫声",
 			"mob.husk.ambient": "",
-			"mob.husk.death": "",
-			"mob.husk.hurt": "",
-			"mob.husk.step": "",
+			"mob.husk.death": "尸壳死亡声",
+			"mob.husk.hurt": "尸壳受伤声",
+			"mob.husk.step": "尸壳走路声",
 			"mob.irongolem.throw": "铁傀儡攻击声",
 			"mob.irongolem.death": "铁傀儡死亡声",
 			"mob.irongolem.hit": "铁傀儡受伤声",
 			"mob.irongolem.walk": "铁傀儡走路声",
 			"mob.shulker.ambient": "",
-			"mob.shulker.close": "",
-			"mob.shulker.death": "",
-			"mob.shulker.close.hurt": "",
-			"mob.shulker.hurt": "",
-			"mob.shulker.open": "",
-			"mob.shulker.shoot": "",
-			"mob.shulker.teleport": "",
-			"mob.shulker.bullet.hit": "",
-			"mob.magmacube.big": "大地狱史莱姆死亡声",
-			"mob.magmacube.jump": "地狱史莱姆跳动声",
-			"mob.magmacube.small": "小地狱史莱姆声死亡声",
-			"mob.parrot.idle": "",
-			"mob.parrot.hurt": "",
-			"mob.parrot.death": "",
-			"mob.parrot.step": "",
-			"mob.parrot.eat": "",
-			"mob.parrot.fly": "",
+			"mob.shulker.close": "潜影贝外壳关闭声",
+			"mob.shulker.death": "潜影贝死亡声",
+			"mob.shulker.close.hurt": "潜影贝受伤声（外壳）",
+			"mob.shulker.hurt": "潜影贝受伤声（核心）",
+			"mob.shulker.open": "潜影贝外壳打开声",
+			"mob.shulker.shoot": "潜影贝射击声",
+			"mob.shulker.teleport": "潜影贝传送声",
+			"mob.shulker.bullet.hit": "潜影贝导弹击中声",
+			"mob.magmacube.big": "大型岩浆怪死亡声",
+			"mob.magmacube.jump": "岩浆怪跳动声",
+			"mob.magmacube.small": "小型岩浆怪死亡声",
+			"mob.parrot.idle": "鹦鹉叫声",
+			"mob.parrot.hurt": "鹦鹉受伤声",
+			"mob.parrot.death": "鹦鹉死亡声",
+			"mob.parrot.step": "鹦鹉走路声",
+			"mob.parrot.eat": "鹦鹉吃东西声",
+			"mob.parrot.fly": "鹦鹉飞翔声",
 			"mob.pig.death": "猪死亡声",
 			"mob.pig.boost": "猪加速声",
 			"mob.pig.say": "猪叫声",
@@ -11591,74 +11612,74 @@ CA.IntelliSense.inner["default"] = {
 			"mob.silverfish.kill": "蠹虫攻击声",
 			"mob.silverfish.say": "蠹虫叫声",
 			"mob.silverfish.step": "蠹虫走路声",
-			"mob.endermite.hit": "",
-			"mob.endermite.kill": "",
-			"mob.endermite.say": "",
-			"mob.endermite.step": "",
+			"mob.endermite.hit": "末影螨受伤声",
+			"mob.endermite.kill": "末影螨死亡声",
+			"mob.endermite.say": "末影螨叫声",
+			"mob.endermite.step": "末影螨走路声",
 			"mob.skeleton.death": "骷髅死亡声",
 			"mob.skeleton.hurt": "骷髅受伤声",
 			"mob.skeleton.say": "骷髅叫声",
 			"mob.skeleton.step": "骷髅走路声",
-			"mob.slime.big": "大史莱姆受伤/跳跃/死亡声",
-			"mob.slime.small": "小史莱姆受伤/跳跃/死亡声",
-			"mob.slime.attack": "",
-			"mob.slime.death": "",
-			"mob.slime.hurt": "",
-			"mob.slime.jump": "",
-			"mob.slime.squish": "",
-			"mob.snowgolem.death": "",
-			"mob.snowgolem.hurt": "",
-			"mob.snowgolem.shoot": "",
+			"mob.slime.big": "大型史莱姆跳跃声",
+			"mob.slime.small": "小型史莱姆跳跃声",
+			"mob.slime.attack": "史莱姆攻击声",
+			"mob.slime.death": "史莱姆死亡声",
+			"mob.slime.hurt": "史莱姆受伤声",
+			"mob.slime.jump": "史莱姆跳跃声",
+			"mob.slime.squish": "史莱姆落地声",
+			"mob.snowgolem.death": "雪傀儡死亡声",
+			"mob.snowgolem.hurt": "雪傀儡受伤声",
+			"mob.snowgolem.shoot": "雪傀儡射击声",
 			"mob.spider.death": "蜘蛛死亡声",
 			"mob.spider.say": "蜘蛛叫声",
 			"mob.spider.step": "蜘蛛走路声",
 			"mob.squid.ambient": "",
-			"mob.squid.death": "",
-			"mob.squid.hurt": "",
+			"mob.squid.death": "鱿鱼死亡声",
+			"mob.squid.hurt": "鱿鱼受伤声",
 			"mob.stray.ambient": "",
-			"mob.stray.death": "",
-			"mob.stray.hurt": "",
-			"mob.stray.step": "",
+			"mob.stray.death": "尸壳死亡声",
+			"mob.stray.hurt": "流髑受伤声",
+			"mob.stray.step": "流髑走路声",
 			"mob.villager.death": "村民死亡声",
-			"mob.villager.haggle": "",
+			"mob.villager.haggle": "村民争论声",
 			"mob.villager.hit": "村民受伤声",
 			"mob.villager.idle": "村民叫声",
-			"mob.villager.no": "",
-			"mob.villager.yes": "",
-			"mob.vindicator.death": "",
-			"mob.vindicator.hurt": "",
-			"mob.vindicator.idle": "",
-			"mob.evocation_fangs.attack": "",
+			"mob.villager.no": "村民否定声",
+			"mob.villager.yes": "村民肯定声",
+			"mob.vindicator.death": "卫道士死亡声",
+			"mob.vindicator.hurt": "卫道士受伤声",
+			"mob.vindicator.idle": "卫道士叫声",
+			"mob.evocation_fangs.attack": "尖牙咬合声",
 			"mob.evocation_illager.ambient": "",
-			"mob.evocation_illager.cast_spell": "",
-			"mob.evocation_illager.death": "",
-			"mob.evocation_illager.hurt": "",
-			"mob.evocation_illager.prepare_attack": "",
-			"mob.evocation_illager.prepare_summon": "",
-			"mob.evocation_illager.prepare_wololo": "",
+			"mob.evocation_illager.cast_spell": "唤魔者施法声",
+			"mob.evocation_illager.death": "唤魔者死亡声",
+			"mob.evocation_illager.hurt": "唤魔者受伤声",
+			"mob.evocation_illager.prepare_attack": "唤魔者召唤尖牙声",
+			"mob.evocation_illager.prepare_summon": "唤魔者召唤恼鬼声",
+			"mob.evocation_illager.prepare_wololo": "唤魔者呜噜噜声",
 			"mob.vex.ambient": "",
-			"mob.vex.death": "",
-			"mob.vex.hurt": "",
-			"mob.vex.charge": "",
-			"item.trident.hit_ground": "",
-			"item.trident.hit": "",
-			"item.trident.return": "",
-			"item.trident.riptide_1": "",
-			"item.trident.riptide_2": "",
-			"item.trident.riptide_3": "",
-			"item.trident.throw": "",
-			"item.trident.thunder": "",
+			"mob.vex.death": "恼鬼死亡声",
+			"mob.vex.hurt": "恼鬼受伤声",
+			"mob.vex.charge": "恼鬼冲刺声",
+			"item.trident.hit_ground": "三叉戟击中方块声",
+			"item.trident.hit": "三叉戟击中实体声",
+			"item.trident.return": "三叉戟返回声",
+			"item.trident.riptide_1": "三叉戟激流I效果声",
+			"item.trident.riptide_2": "三叉戟激流II效果声",
+			"item.trident.riptide_3": "三叉戟激流III效果声",
+			"item.trident.throw": "三叉戟掷出声",
+			"item.trident.thunder": "三叉戟引雷效果声",
 			"mob.witch.ambient": "女巫讥笑声",
 			"mob.witch.death": "女巫死亡声",
 			"mob.witch.hurt": "女巫受伤声",
 			"mob.witch.drink": "女巫喝药水声",
 			"mob.witch.throw": "女巫丢掷药水声",
 			"mob.wither.ambient": "",
-			"mob.wither.break_block": "",
-			"mob.wither.death": "",
-			"mob.wither.hurt": "",
-			"mob.wither.shoot": "",
-			"mob.wither.spawn": "",
+			"mob.wither.break_block": "凋灵破坏方块声",
+			"mob.wither.death": "凋灵死亡声",
+			"mob.wither.hurt": "凋灵受伤声",
+			"mob.wither.shoot": "凋灵射击声",
+			"mob.wither.spawn": "凋灵生成声",
 			"mob.wolf.bark": "狼叫声",
 			"mob.wolf.death": "狼死亡声",
 			"mob.wolf.growl": "狼嘶吼声",
@@ -11672,12 +11693,12 @@ CA.IntelliSense.inner["default"] = {
 			"mob.cat.meow": "猫叫声",
 			"mob.cat.purr": "猫驯服声",
 			"mob.cat.purreow": "被驯服的猫叫声",
-			"mob.polarbear_baby.idle": "",
-			"mob.polarbear.idle": "",
-			"mob.polarbear.step": "",
-			"mob.polarbear.warning": "",
-			"mob.polarbear.hurt": "",
-			"mob.polarbear.death": "",
+			"mob.polarbear_baby.idle": "北极熊崽叫声",
+			"mob.polarbear.idle": "北极熊叫声",
+			"mob.polarbear.step": "北极熊走路声",
+			"mob.polarbear.warning": "北极熊愤怒声",
+			"mob.polarbear.hurt": "北极熊受伤声",
+			"mob.polarbear.death": "北极熊死亡声",
 			"mob.zombie.death": "僵尸死亡声",
 			"mob.zombie.hurt": "僵尸受伤声",
 			"mob.zombie.remedy": "喂食虚弱僵尸村民金苹果声",
@@ -11690,9 +11711,9 @@ CA.IntelliSense.inner["default"] = {
 			"mob.zombiepig.zpigangry": "僵尸猪人生气声",
 			"mob.zombiepig.zpigdeath": "僵尸猪人死亡声",
 			"mob.zombiepig.zpighurt": "僵尸猪人受伤声",
-			"mob.zombie_villager.say": "",
-			"mob.zombie_villager.death": "",
-			"mob.zombie_villager.hurt": "",
+			"mob.zombie_villager.say": "僵尸村民叫声",
+			"mob.zombie_villager.death": "僵尸村民死亡声",
+			"mob.zombie_villager.hurt": "僵尸村民受伤声",
 			"note.bass": "音符盒低音声",
 			"note.bassattack": "音符盒木质音调声",
 			"note.bd": "音符盒石质音调声",
@@ -11700,42 +11721,42 @@ CA.IntelliSense.inner["default"] = {
 			"note.hat": "音符盒玻璃质音调声",
 			"note.pling": "音符盒未知声(未确认)",
 			"note.snare": "音符盒沙质音调声",
-			"portal.portal": "地狱传送门噪音声",
-			"portal.travel": "",
-			"portal.trigger": "地狱传送门方块穿过/传送/离开声",
-			"random.anvil_break": "随机铁砧破坏声",
-			"random.anvil_land": "随机铁砧放置声",
-			"random.anvil_use": "随机铁砧使用声",
-			"random.bow": "随机实体抛掷/发射声",
-			"random.bowhit": "随机箭射中方块或实体/随机剪刀剪掉绊线/随机激活的绊线钩破坏声",
-			"random.break": "随机玩家工具坏掉声",
-			"random.burp": "随机玩家喝完或吃完声",
-			"random.chestclosed": "随机关闭箱子声",
-			"random.chestopen": "随机打开箱子声",
-			"random.shulkerboxclosed": "",
-			"random.shulkerboxopen": "",
-			"random.enderchestopen": "",
-			"random.enderchestclosed": "",
-			"random.potion.brewed": "",
-			"random.click": "随机按纽状态更新/投掷器或发射器或红石中继器激活/两个绊线钩连接声",
-			"random.door_close": "随机关门声",
-			"random.door_open": "随机开门声",
-			"random.drink": "随机持续喝东西声",
-			"random.eat": "随机持续吃东西声",
-			"random.explode": "随机爆炸声",
-			"random.fizz": "随机火扑灭/物品或经验球被烧毁/岩浆被水扑灭变成黑曜石/岩浆摧毁非固体方块/红石火把破坏声",
-			"random.fuse": "随机炼制声(未确认)",
-			"random.glass": "随机玻璃声(未确认)",
-			"random.levelup": "随机升级声",
-			"random.orb": "随机获得经验声",
-			"random.pop": "随机捡起物品声",
-			"random.pop2": "随机捡起未知声(未确认)",
-			"random.screenshot": "",
-			"random.splash": "随机捕鱼声",
-			"random.swim": "随机游泳声",
-			"random.hurt": "随机受伤声",
-			"random.toast": "随机提示栏声",
-			"random.totem": "",
+			"portal.portal": "下界传送门噪音声",
+			"portal.travel": "下界/末地传送门传送声",
+			"portal.trigger": "下界传送门方块穿过/离开声",
+			"random.anvil_break": "铁砧破坏声",
+			"random.anvil_land": "铁砧放置声",
+			"random.anvil_use": "铁砧使用声",
+			"random.bow": "投掷器投掷声/发射器发射声/射箭声",
+			"random.bowhit": "箭射中方块或实体/剪刀剪掉绊线/激活的绊线钩破坏声",
+			"random.break": "玩家工具用坏声",
+			"random.burp": "玩家吃喝完声",
+			"random.chestclosed": "箱子关闭声",
+			"random.chestopen": "箱子打开声",
+			"random.shulkerboxclosed": "潜影箱关闭声",
+			"random.shulkerboxopen": "潜影箱打开声",
+			"random.enderchestopen": "末影箱打开声",
+			"random.enderchestclosed": "末影箱关闭声",
+			"random.potion.brewed": "药水酿造声",
+			"random.click": "按纽状态更新/投掷器或发射器或红石中继器激活/两个绊线钩连接声",
+			"random.door_close": "关门声",
+			"random.door_open": "开门声",
+			"random.drink": "持续喝东西声",
+			"random.eat": "持续吃东西声",
+			"random.explode": "爆炸声",
+			"random.fizz": "火扑灭/物品或经验球被烧毁/岩浆被水扑灭变成黑曜石/岩浆摧毁非固体方块/红石火把破坏声",
+			"random.fuse": "融化声(未确认)",
+			"random.glass": "玻璃声(未确认)",
+			"random.levelup": "玩家升级声",
+			"random.orb": "获得经验声",
+			"random.pop": "捡起物品声",
+			"random.pop2": "捡起物品声",
+			"random.screenshot": "截屏声",
+			"random.splash": "水花声",
+			"random.swim": "游泳声",
+			"random.hurt": "受伤声",
+			"random.toast": "提示栏声",
+			"random.totem": "不死图腾生效声",
 			"camera.take_picture": "照相机拍照声",
 			"use.ladder": "",
 			"hit.ladder": "",
@@ -11780,35 +11801,35 @@ CA.IntelliSense.inner["default"] = {
 			"jump.snow": "跳动雪地声",
 			"jump.stone": "跳动石头声",
 			"jump.wood": "跳动木头声",
-			"jump.slime": "",
-			"land.cloth": "",
-			"land.grass": "",
-			"land.gravel": "",
-			"land.sand": "",
-			"land.snow": "",
-			"land.stone": "",
-			"land.wood": "",
-			"land.slime": "",
+			"jump.slime": "粘液块跳跃声",
+			"land.cloth": "鞘翅着陆在羊毛声",
+			"land.grass": "鞘翅着陆在草地声",
+			"land.gravel": "鞘翅着陆在沙砾声",
+			"land.sand": "鞘翅着陆在沙子声",
+			"land.snow": "鞘翅着陆在雪地声",
+			"land.stone": "鞘翅着陆在石头声",
+			"land.wood": "鞘翅着陆在木头声",
+			"land.slime": "鞘翅着陆在粘液块声",
 			"vr.stutterturn": "虚拟现实未知声(未确认)",
-			"record.13": "",
-			"record.cat": "",
-			"record.blocks": "",
-			"record.chirp": "",
-			"record.far": "",
-			"record.mall": "",
-			"record.mellohi": "",
-			"record.stal": "",
-			"record.strad": "",
-			"record.ward": "",
-			"record.11": "",
-			"record.wait": "",
-			"music.menu": "主界面背景",
+			"record.13": "13唱片音乐",
+			"record.cat": "cat唱片音乐",
+			"record.blocks": "blocks唱片音乐",
+			"record.chirp": "chirp唱片音乐",
+			"record.far": "far唱片音乐",
+			"record.mall": "mall唱片音乐",
+			"record.mellohi": "mellohi唱片音乐",
+			"record.stal": "stal唱片音乐",
+			"record.strad": "strad唱片音乐",
+			"record.ward": "ward唱片音乐",
+			"record.11": "11唱片音乐",
+			"record.wait": "wait唱片音乐",
+			"music.menu": "主界面背景音乐",
 			"music.game": "生存模式背景音乐",
 			"music.game.creative": "创造模式背景音乐",
-			"music.game.end": "",
-			"music.game.endboss": "",
-			"music.game.nether": "地狱世界背景音乐",
-			"music.game.credits": ""
+			"music.game.end": "末地背景音乐",
+			"music.game.endboss": "末影龙主题乐",
+			"music.game.nether": "下界背景音乐",
+			"music.game.credits": "制作人员名单背景音乐"
 		},
 		"entity": {
 			"area_effect_cloud": "效果区域云",
