@@ -445,9 +445,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		this.load();
 		this.checkFeatures();
 		if (!this.hasFeature("enableCommand")) {
-			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本过低（" + getMinecraftVersion() + "），没有命令和命令方块等功能，无法正常使用命令助手。请升级您的Minecraft PE至alpha 0.16.0及以上。");
+			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本过低（" + getMinecraftVersion() + "），没有命令和命令方块等功能，无法正常使用命令助手。请升级您的Minecraft PE至1.2及以上。");
 		} else if (!this.hasFeature("enableCommandBlock")) {
-			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有命令方块等功能，部分命令助手的功能可能无法使用。推荐升级您的Minecraft PE至1.0.5及以上。");
+			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有命令方块等功能，部分命令助手的功能可能无法使用。推荐升级您的Minecraft PE至1.2及以上。");
+		} else if (this.hasFeature("version_1_1")) {
+			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有ID表，且选择器部分有bug。推荐升级您的Minecraft PE至1.2及以上。");
 		}
 		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.getTip(), 1);
 		this.fine = true;
@@ -759,6 +761,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.refreshPos();
 			}
 			self.lastState = true;
+			PWM.registerResetFlag(CA, "icon");
+			PWM.registerResetFlag(self, "view");
 		}
 		if (CA.icon) return self.refreshAlpha();
 		self.updateScreenInfo();
@@ -959,7 +963,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			self.pointerChanged = function(p) {
 				//即将支持
-				//Common.toast(p);
 			}
 			self.spanWatcher = new G.SpanWatcher({
 				//onSpanAdded : function(text, what, start, end) {},
@@ -973,20 +976,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			self.main.setBackgroundColor(G.Color.TRANSPARENT);
 			
 			self.bar = new G.LinearLayout(ctx);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
-			self.bar.setBackgroundColor(Common.theme.float_bgcolor);
+			Common.applyStyle(self.bar, "bar_float");
 			
 			self.add = new G.TextView(ctx);
 			self.add.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.add.setText("╋");
-			self.add.setTextSize(Common.theme.textsize[3]);
-			self.add.setTextColor(Common.theme.textcolor);
 			self.add.setGravity(G.Gravity.CENTER);
 			self.add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.add, "textview_default", 3);
 			self.add.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (CA.settings.iiMode == 1) {
 					CA.Assist.active = true;
@@ -1006,10 +1007,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} else {
 				CA.cmd.setHint("在此输入命令|长按打开菜单");
 			}
-			CA.cmd.setBackgroundColor(G.Color.TRANSPARENT);
-			CA.cmd.setTextSize(Common.theme.textsize[3]);
-			CA.cmd.setTextColor(Common.theme.textcolor);
-			CA.cmd.setHintTextColor(Common.theme.promptcolor);
+			Common.applyStyle(CA.cmd, "edittext_default", 3);
 			CA.cmd.setInputType(G.InputType.TYPE_CLASS_TEXT | G.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
 			CA.cmd.setFocusableInTouchMode(true);
 			CA.cmd.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
@@ -1176,10 +1174,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.clear = new G.TextView(ctx);
 			self.clear.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.clear.setText("×");
-			self.clear.setTextSize(Common.theme.textsize[3]);
-			self.clear.setTextColor(Common.theme.promptcolor);
 			self.clear.setGravity(G.Gravity.CENTER);
 			self.clear.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.clear, "button_secondary", 3);
 			self.clear.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				CA.cmd.setText("");
 				self.activate(false);
@@ -1189,10 +1186,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.copy = new G.TextView(ctx);
 			self.copy.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.copy.setGravity(G.Gravity.CENTER);
-			self.copy.setBackgroundColor(Common.theme.go_bgcolor);
-			self.copy.setTextSize(Common.theme.textsize[3]);
-			self.copy.setTextColor(Common.theme.go_textcolor);
 			self.copy.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.copy, "button_reactive", 3);
 			self.copy.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var t = CA.cmd.getText(), i, s = v.getText();
 				if (s == "复制" || s == "粘贴") {
@@ -1205,13 +1200,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.copy.setOnTouchListener(new G.View.OnTouchListener({onTouch : function(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_DOWN:
-					v.setBackgroundColor(Common.theme.go_touchbgcolor);
-					v.setTextColor(Common.theme.go_touchtextcolor);
+					Common.applyStyle(v, "button_reactive_pressed", 3);
 					break;
 					case e.ACTION_CANCEL:
 					case e.ACTION_UP:
-					v.setBackgroundColor(Common.theme.go_bgcolor);
-					v.setTextColor(Common.theme.go_textcolor);
+					Common.applyStyle(v, "button_reactive", 3);
 				}
 				return false;
 			} catch(e) {return erp(e), false}}}));
@@ -1222,8 +1215,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.bar.addView(self.copy);
 			
 			CA.con = new G.FrameLayout(ctx);
-			CA.con.setBackgroundColor(Common.theme.bgcolor);
 			CA.con.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+			Common.applyStyle(CA.con, "container_default")
 			
 			if (CA.settings.barTop) {
 				self.main.addView(self.bar);
@@ -1232,9 +1225,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.main.addView(CA.con);
 				self.main.addView(self.bar);
 			}
-			if (G.style == "Material") {
-				self.bar.setElevation(8 * G.dp);
-			}
+			
+			PWM.registerResetFlag(CA, "con");
+			PWM.registerResetFlag(CA, "cmd");
+			PWM.registerResetFlag(self, "main");
 		}
 		CA.gen = new G.PopupWindow(self.main, -1, -1);
 		if (CA.supportFloat) CA.gen.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
@@ -1363,18 +1357,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}];
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setBackgroundColor(G.Color.TRANSPARENT);
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.tag1 = new G.TextView(ctx);
 			self.tag1.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			self.tag1.setText("历史");
-			self.tag1.setTextSize(Common.theme.textsize[1]);
-			self.tag1.setTextColor(Common.theme.promptcolor);
 			self.tag1.setGravity(G.Gravity.LEFT);
 			self.tag1.setPadding(10 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			self.tag1.setFocusable(true);
+			Common.applyStyle(self.tag1, "textview_prompt", 1);
 			self.history = new G.ListView(ctx);
-			self.history.setBackgroundColor(G.Color.TRANSPARENT);
 			self.history.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (pos < 1 || !parent.getItemAtPosition(pos)) return;
 				pos -= 1;
@@ -1395,13 +1386,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.tag2 = new G.TextView(ctx);
 			self.tag2.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			self.tag2.setText("收藏");
-			self.tag2.setTextSize(Common.theme.textsize[1]);
-			self.tag2.setTextColor(Common.theme.promptcolor);
 			self.tag2.setGravity(G.Gravity.LEFT);
 			self.tag2.setPadding(10 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			self.tag2.setFocusable(true);
+			Common.applyStyle(self.tag2, "textview_prompt", 1);
 			self.favorite = new G.ListView(ctx);
-			self.favorite.setBackgroundColor(G.Color.TRANSPARENT);
 			self.favorite.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var t;
 				if (pos < 1 || !(t = parent.getItemAtPosition(pos))) return;
@@ -1446,15 +1435,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text1.setText(s);
 				text1.setMaxLines(2);
 				text1.setEllipsize(G.TextUtils.TruncateAt.END);
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(Common.theme.textcolor);
+				Common.applyStyle(text1, "textview_default", 3);
 				layout.addView(text1);
 				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 				text2.setText("📋");
 				text2.setGravity(G.Gravity.CENTER);
-				text2.setTextSize(Common.theme.textsize[3]);
-				text2.setTextColor(Common.theme.promptcolor);
+				Common.applyStyle(text2, "textview_prompt", 3);
 				text2.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					CA.showGen.performCopy(s);
 					return true;
@@ -1471,16 +1458,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text1.setText(s);
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(Common.theme.textcolor);
+				Common.applyStyle(text1, "textview_default", 3);
 				layout.addView(text1);
 				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 15 * G.dp);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text2.setText(CA.fav[s]);
 				text2.setEllipsize(G.TextUtils.TruncateAt.END);
 				text2.setSingleLine(true);
-				text2.setTextSize(Common.theme.textsize[1]);
-				text2.setTextColor(Common.theme.promptcolor);
+				Common.applyStyle(text2, "textview_prompt", 1);
 				layout.addView(text2);
 				return layout;
 			}
@@ -1489,10 +1474,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				text.setText("空空如也");
 				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setTextSize(Common.theme.textsize[4]);
-				text.setTextColor(Common.theme.promptcolor);
 				text.setGravity(G.Gravity.CENTER);
 				text.setFocusable(true);
+				Common.applyStyle(text, "textview_prompt", 4);
 				return text;
 			}
 			if (!CA.settings.splitScreenMode) {
@@ -1550,6 +1534,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.history.setOnTouchListener(self.scroller);
 				self.favorite.setOnTouchListener(self.scroller);
 			}
+			PWM.registerResetFlag(CA, "history");
+			PWM.registerResetFlag(self, "history");
 		}
 		t = Object.keys(CA.fav);
 		if (CA.his.length == 0) {
@@ -1628,7 +1614,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setBackgroundColor(G.Color.TRANSPARENT);
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.con = new G.FrameLayout(ctx);
 			self.linear.addView(self.con);
@@ -1703,6 +1688,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} catch(e) {return erp(e), true}}});
 				self.help.setOnTouchListener(self.scroller);
 			}
+			PWM.registerResetFlag(CA, "assist");
+			PWM.registerResetFlag(self, "con");
 		}
 		self.linear.setTranslationX(self.tx = self.lx = 0);
 		CA.assist = self.linear;
@@ -1829,19 +1816,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}];
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setBackgroundColor(Common.theme.bgcolor);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
 			self.header = new G.LinearLayout(ctx);
-			self.header.setBackgroundColor(Common.theme.message_bgcolor);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			Common.applyStyle(self.header, "bar_float");
 			self.title = new G.TextView(ctx);
-			self.title.setBackgroundColor(Common.theme.message_bgcolor);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
 			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
 			
 			self.hscr = new G.HorizontalScrollView(ctx);
@@ -1857,10 +1841,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var b = new G.TextView(ctx);
 				b.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 				b.setText(o.text);
-				b.setTextSize(Common.theme.textsize[2]);
 				b.setGravity(G.Gravity.CENTER);
-				b.setTextColor(Common.theme.highlightcolor);
 				b.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				Common.applyStyle(b, "button_highlight", 2);
 				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					o.action();
 				} catch(e) {erp(e)}}}));
@@ -1871,7 +1854,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.header);
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				view.getChildAt(0).performClick();
 			} catch(e) {erp(e)}}}));
@@ -1895,8 +1877,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text.setText(e);
 				text.setMaxLines(2);
 				text.setEllipsize(G.TextUtils.TruncateAt.END);
-				text.setTextSize(Common.theme.textsize[3]);
-				text.setTextColor(Common.theme.textcolor);
+				Common.applyStyle(text, "textview_default", 3);
 				layout.addView(text);
 				return layout;
 			}
@@ -1905,12 +1886,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				text.setText("空空如也");
 				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setTextSize(Common.theme.textsize[4]);
-				text.setTextColor(Common.theme.promptcolor);
 				text.setGravity(G.Gravity.CENTER);
 				text.setFocusable(true);
+				Common.applyStyle(text, "textview_prompt", 4);
 				return text;
 			}
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		self.refresh(pos);
@@ -2040,19 +2021,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}];
 			self.linear = new G.LinearLayout(ctx);
-			self.linear.setBackgroundColor(Common.theme.bgcolor);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
 			self.header = new G.LinearLayout(ctx);
-			self.header.setBackgroundColor(Common.theme.message_bgcolor);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			Common.applyStyle(self.header, "bar_float");
 			self.title = new G.TextView(ctx);
-			self.title.setBackgroundColor(Common.theme.message_bgcolor);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
 			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
 			
 			self.hscr = new G.HorizontalScrollView(ctx);
@@ -2068,10 +2046,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var b = new G.TextView(ctx);
 				b.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 				b.setText(o.text);
-				b.setTextSize(Common.theme.textsize[2]);
 				b.setGravity(G.Gravity.CENTER);
-				b.setTextColor(Common.theme.highlightcolor);
 				b.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				Common.applyStyle(b, "button_highlight", 2);
 				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					o.action();
 				} catch(e) {erp(e)}}}));
@@ -2082,7 +2059,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.header);
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				view.getChildAt(0).performClick();
 			} catch(e) {erp(e)}}}));
@@ -2108,16 +2084,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text1.setPadding(10 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text1.setText(e);
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(Common.theme.textcolor);
+				Common.applyStyle(text1, "textview_default", 3);
 				linear.addView(text1);
 				text2.setPadding(10 * G.dp, 0, 15 * G.dp, 15 * G.dp);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text2.setText(CA.fav[e]);
 				text2.setEllipsize(G.TextUtils.TruncateAt.END);
 				text2.setSingleLine(true);
-				text2.setTextSize(Common.theme.textsize[1]);
-				text2.setTextColor(Common.theme.promptcolor);
+				Common.applyStyle(text2, "textview_prompt", 1);
 				linear.addView(text2);
 				layout.addView(linear);
 				return layout;
@@ -2127,12 +2101,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				text.setText("空空如也");
 				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setTextSize(Common.theme.textsize[4]);
-				text.setTextColor(Common.theme.promptcolor);
 				text.setGravity(G.Gravity.CENTER);
 				text.setFocusable(true);
+				Common.applyStyle(text, "textview_prompt", 4);
 				return text;
 			}
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		self.refresh(key);
@@ -2527,10 +2501,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.manageErrors();
 				}
 			},{
-				name : "命令行",
+				name : "控制台",
 				type : "custom",
 				get : function() {
-					return "仅供测试使用，非专业人员请勿打开";
+					return "开发者专用";
 				},
 				onclick : function(fset) {
 					Common.showDebugDialog();
@@ -2602,31 +2576,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		PWM.dismissFloat();
 		PWM.dismissPopup();
 		PWM.reset();
-		CA.icon = null;
-		CA.con = null;
-		CA.cmd = null;
-		CA.history = null;
-		CA.assist = null;
-		CA.fcs = null;
-		CA.paste = null;
-		CA.IntelliSense.ui = null;
-		CA.Assist.ui = null;
-		CA.showIcon.view = null;
-		CA.showGen.main = null;
-		CA.showHistory.history = null;
-		CA.showAssist.con = null;
-		CA.showFCS.prompt = null;
-		CA.showPaste.bar = null;
-		CA.showLibraryMan.linear = null;
-		CA.IntelliSense.show.prompt = null;
-		CA.Assist.show.head = null;
-		Common.showChangeTheme.linear = null;
-		Common.showFileDialog.linear = null;
-		Common.showDebugDialog.main = null;
-		Common.showSettings.linear = null;
-		Tutorial.showList.linear = null;
-		Tutorial.showTutorial.linear = null;
-		JSONEdit.showEdit.main = null;
+		PWM.resetUICache();
 	},
 	
 	showFCS : function self(v) {G.ui(function() {try {
@@ -2642,7 +2592,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.scr = new G.ScrollView(ctx);
 			self.scr.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
 			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, CA.settings.barTop ? G.Gravity.TOP : G.Gravity.BOTTOM));
-			if (G.style == "Material") self.scr.setElevation(10 * G.dp);
 			
 			self.line = new G.LinearLayout(ctx);
 			self.line.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
@@ -2693,6 +2642,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			self.scr.addView(self.line);
 			self.frame.addView(self.scr);
+			
+			PWM.registerResetFlag(CA, "fcs");
+			PWM.registerResetFlag(self, "prompt");
 		}
 		if (v) self.prompt.setText(FCString.parseFC(v));
 		if (CA.fcs) return CA.fcs.bringToFront();
@@ -2748,18 +2700,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.bar.setAlpha(0.8);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
-			self.bar.setBackgroundColor(Common.theme.float_bgcolor);
+			Common.applyStyle(self.bar, "bar_float");
 			
 			self.buttonlis = new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_DOWN:
-					v.setBackgroundColor(Common.theme.go_touchbgcolor);
-					v.setTextColor(Common.theme.go_touchtextcolor);
+					Common.applyStyle(v, "button_reactive_pressed", 3);
 					break;
 					case e.ACTION_CANCEL:
 					case e.ACTION_UP:
-					v.setBackgroundColor(Common.theme.go_bgcolor);
-					v.setTextColor(Common.theme.go_textcolor);
+					Common.applyStyle(v, "button_reactive", 3);
 				}
 				return false;
 			} catch(e) {return erp(e), true}}});
@@ -2772,11 +2722,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.prev = new G.TextView(ctx);
 			self.prev.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.prev.setText("<");
-			self.prev.setBackgroundColor(Common.theme.go_bgcolor);
-			self.prev.setTextSize(Common.theme.textsize[3]);
-			self.prev.setTextColor(Common.theme.go_textcolor);
 			self.prev.setGravity(G.Gravity.CENTER);
 			self.prev.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.prev, "button_reactive", 3);
 			self.prev.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var t = CA.his.length;
 				if (t == 0) return true;
@@ -2790,11 +2738,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.next = new G.TextView(ctx);
 			self.next.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.next.setText(">");
-			self.next.setBackgroundColor(Common.theme.go_bgcolor);
-			self.next.setTextSize(Common.theme.textsize[3]);
-			self.next.setTextColor(Common.theme.go_textcolor);
 			self.next.setGravity(G.Gravity.CENTER);
 			self.next.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.next, "button_reactive", 3);
 			self.next.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var t = CA.his.length;
 				if (t == 0) return true;
@@ -2807,14 +2753,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			self.cmd = new G.TextView(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
-			self.cmd.setBackgroundColor(G.Color.TRANSPARENT);
-			self.cmd.setTextSize(Common.theme.textsize[3]);
-			self.cmd.setTextColor(Common.theme.textcolor);
 			self.cmd.setSingleLine(true);
 			self.cmd.setFocusable(false);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
 			self.cmd.setTypeface(G.Typeface.MONOSPACE);
 			self.cmd.setMovementMethod(G.ScrollingMovementMethod.getInstance());
+			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.cmd.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_UP && e.getEventTime() - e.getDownTime() < 100) {
 					self.exit.performClick();
@@ -2831,10 +2775,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.paste = new G.TextView(ctx);
 			self.paste.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.paste.setText("📋");
-			self.paste.setTextSize(Common.theme.textsize[3]);
-			self.paste.setTextColor(Common.theme.promptcolor);
 			self.paste.setGravity(G.Gravity.CENTER);
 			self.paste.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.paste, "button_secondary", 3);
 			self.paste.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				CA.performPaste(self.cmd.getText().toString());
 			} catch(e) {erp(e)}}}));
@@ -2843,11 +2786,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit = new G.TextView(ctx);
 			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setBackgroundColor(Common.theme.go_bgcolor);
 			self.exit.setText("关闭");
-			self.exit.setTextSize(Common.theme.textsize[3]);
-			self.exit.setTextColor(Common.theme.go_textcolor);
 			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.exit, "button_reactive", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (!CA.settings.askedPaste) {
 					Common.showConfirmDialog({
@@ -2869,6 +2810,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {erp(e)}}}));
 			self.exit.setOnTouchListener(self.buttonlis);
 			self.bar.addView(self.exit);
+			PWM.registerResetFlag(CA, "paste");
+			PWM.registerResetFlag(self, "bar");
 		}
 		self.cur = index;
 		self.refresh();
@@ -2897,7 +2840,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(layout, "message_bg");
 		seekbar = new G.SeekBar(ctx);
 		seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
 		seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
@@ -2910,17 +2853,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		layout.addView(seekbar);
 		text = new G.TextView(ctx);
 		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-		text.setTextSize(Common.theme.textsize[2]);
-		text.setTextColor(Common.theme.textcolor);
 		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		Common.applyStyle(text, "textview_default", 2);
 		layout.addView(text);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("关闭");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 		} catch(e) {erp(e)}}}));
@@ -3303,16 +3244,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : "") + e.name + (e.disabled || e.hasError ? "" : " (已启用)"));
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(e.disabled ? Common.theme.promptcolor : e.hasError ? Common.theme.criticalcolor : Common.theme.textcolor);
 				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
 				text1.setSingleLine(true);
+				Common.applyStyle(text1, e.disabled ? "item_disabled" : e.hasError ? "item_critical" : "item_default", 3);
 				layout.addView(text1);
 				text2.setPadding(0, 5 * G.dp, 0, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
-				text2.setTextSize(Common.theme.textsize[1]);
-				text2.setTextColor(Common.theme.promptcolor);
+				Common.applyStyle(text2, "textview_prompt", 1);
 				layout.addView(text2);
 				return layout;
 			}
@@ -3355,7 +3294,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
+			Common.applyStyle(self.linear, "message_bg");
 			
 			self.header = new G.LinearLayout(ctx);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
@@ -3373,21 +3312,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.title.setText("管理拓展包");
 			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
 			
 			self.menu = new G.TextView(ctx);
 			self.menu.setText("▼");
 			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
 			self.menu.setGravity(G.Gravity.CENTER);
-			self.menu.setTextSize(Common.theme.textsize[3]);
-			self.menu.setTextColor(Common.theme.highlightcolor);
+			Common.applyStyle(self.menu, "button_highlight", 3);
 			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var data = parent.getAdapter().getItem(pos);
 				var mnu = data.disabled ? self.disabledMenu : data.hasError ? self.errMenu : self.enabledMenu;
@@ -3408,12 +3344,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-			self.exit.setTextSize(Common.theme.textsize[3]);
-			self.exit.setTextColor(Common.theme.criticalcolor);
+			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.popup.dismiss();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
@@ -3469,9 +3405,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var view = new G.TextView(ctx);
 				view.setText("自定义图标");
 				view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-				view.setTextSize(Common.theme.textsize[2]);
-				view.setBackgroundColor(Common.theme.go_bgcolor);
-				view.setTextColor(Common.theme.go_textcolor);
+				Common.applyStyle(view, "button_reactive", 2);
 				return view;
 			}
 			self.selectIcon = function(callback) {
@@ -3508,10 +3442,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.settings.icon.startsWith("/") && self.recent.indexOf(CA.settings.icon) < 0) self.recent.push(CA.settings.icon);
 		ci = Object.keys(CA.Icon).concat(self.recent, "");
 		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(frame, "message_bg");
 		list = new G.GridView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
-		list.setBackgroundColor(G.Color.TRANSPARENT);
 		list.setHorizontalSpacing(20 * G.dp);
 		list.setVerticalSpacing(20 * G.dp);
 		list.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
@@ -3687,6 +3620,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		},
 		enableLocalCoord : {
 			minSupportVer : "1.2"
+		},
+		version_1_1 : {
+			minSupportVer : "1.1",
+			maxSupportVer : "1.1.*",
 		}
 	},
 	showAboutDialog : function() {
@@ -3768,15 +3705,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
+		Common.applyStyle(layout, "message_bg");
 		text = new G.TextView(ctx);
 		text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		text.setText("捐助通道（微信支付)\n\n命令助手捐助\n2.99元");
 		text.setGravity(G.Gravity.CENTER);
-		text.setTextSize(Common.theme.textsize[4]);
-		text.setTextColor(Common.theme.textcolor);
 		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		Common.applyStyle(text, "textview_default", 4);
 		layout.addView(text);
 		img = new G.ImageView(ctx);
 		img.setImageBitmap(bmp = CA.getQRCode(240 * G.dp, 37, "f14l0z9I5TYKdmlZGN0u/Fqj23XvNXSDsjOw4F9VVfUHyOz0AOLWOvZhY0LFaqU5K4ae3tR7QsN1ohFOM+T/sdDdGmA6z4wzpGj+UIJ3zPZMdJtCMYGq25wk00tBnyRrXC/gBPP2NvS/IVGoqmhh9vOqg6r3/O3sZJ+d5TUcEhEzZH1mj/8BBAsu+t9uZlYJOv+vGF1mVPa1S9lj5nRBFDaWoDvEzvsHu9S5AQ=="));
@@ -3797,10 +3733,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("关闭");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 			bmp.recycle();
@@ -4278,10 +4213,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				r = {
 					length : t.mode < 0 ? -1 :  t.source.length,
 					input : t.input,
-					output : t.output,
+					output : {},
+					menu : {},
 					canFinish : t.canFinish,
 					description : String(t2.subSequence(t3 + 1, t2.length())),
 					tag : t2.subSequence(0, t3)
+				}
+				for (i in t.output) {
+					if (t.output[i] instanceof Function) {
+						r.menu[i] = t.output[i];
+					} else {
+						r.output[i] = t.output[i];
+					}
 				}
 				break;
 				
@@ -4452,6 +4395,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					length : 3 + c[3].length,
 					recommend : {},
 					output : {},
+					menu : {},
 					input : [],
 					canFinish : false
 				};
@@ -4524,6 +4468,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						for (i in mr.assist) if (!(i in t.recommend)) t.recommend[i] = ps + mr.assist[i];
 						for (i in mr.recommend) if (!(i in t.recommend)) t.recommend[i] = bb + mr.recommend[i];
 						for (i in mr.output) if (!(i in t.recommend)) t.recommend[i] = bb + mr.output[i];
+						for (i in mr.menu) if (!(i in t.menu)) t.menu[i] = mr.menu[i];
 						for (i in mr.input) if (t.input.indexOf(mr.input[i]) < 0) t.input.push(mr.input[i]);
 					} else {
 						t.recommend[", - 下一个参数"] = bb + ms[3] + ",";
@@ -4727,8 +4672,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.vmaker = function(holder) {
 					var view = new G.TextView(ctx);
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					view.setTextSize(Common.theme.textsize[3]);
-					view.setTextColor(Common.theme.textcolor);
+					Common.applyStyle(view, "textview_default", 3);
 					return view;
 				}
 				self.vbinder = function(holder, s, i, a) {
@@ -4742,12 +4686,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.prompt = new G.TextView(ctx);
 				self.prompt.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				self.prompt.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-				self.prompt.setTextColor(Common.theme.textcolor);
-				self.prompt.setTextSize(Common.theme.textsize[2]);
 				self.prompt.setTypeface(G.Typeface.MONOSPACE);
 				self.prompt.setLineSpacing(10, 1);
+				Common.applyStyle(self.prompt, "textview_default", 2);
 				self.list = new G.ListView(ctx);
-				self.list.setBackgroundColor(G.Color.TRANSPARENT);
 				self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					if (pos == 0) {
 						CA.IntelliSense.showMoreUsage();
@@ -4790,11 +4732,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} catch(e) {erp(e)}}}));
 				self.list.addHeaderView(self.prompt);
 				self.list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
-				if (G.style == "Material") { //已修复：Android 5.0以下FastScroller会尝试将RhinoListAdapter强转为BaseAdapter
+				if (G.style == "Material") { //Fixed：Android 5.0以下FastScroller会尝试将RhinoListAdapter强转为BaseAdapter
 					self.list.setFastScrollEnabled(true);
 					self.list.setFastScrollAlwaysVisible(false);
 				}
 				CA.showAssist.initContent(self.list);
+				PWM.registerResetFlag(CA.IntelliSense, "ui");
+				PWM.registerResetFlag(self, "prompt");
 			}
 			CA.showAssist.con.addView(CA.IntelliSense.ui = self.list);
 		} catch(e) {erp(e)}})},
@@ -5311,12 +5255,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.head = new G.TextView(ctx);
 				self.head.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				self.head.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-				self.head.setTextColor(Common.theme.textcolor);
-				self.head.setTextSize(Common.theme.textsize[2]);
 				self.head.setTypeface(G.Typeface.MONOSPACE);
 				self.head.setLineSpacing(10, 1);
+				Common.applyStyle(self.head, "textview_default", 2);
 				self.list = new G.ListView(ctx);
-				self.list.setBackgroundColor(G.Color.TRANSPARENT);
 				self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 					var e;
 					if (pos == 0) {
@@ -5338,6 +5280,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.addHeaderView(self.head);
 				self.list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
 				CA.showAssist.initContent(self.list);
+				PWM.registerResetFlag(CA.Assist, "ui");
+				PWM.registerResetFlag(self, "head");
 			}
 			self.init();
 			if (CA.Assist.ui) return;
@@ -5361,29 +5305,26 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			vl.getLayoutParams().gravity = G.Gravity.CENTER;
 			name = new G.TextView(ctx);
 			name.setText(String(p.name) + (p.optional || p.canIgnore || p.chainOptional ? " (可选)" : ""));
-			name.setTextColor(Common.theme.textcolor);
-			name.setTextSize(Common.theme.textsize[3]);
 			name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(name, "textview_default", 3);
 			vl.addView(name);
 			desp = new G.TextView(ctx);
 			desp.setText(p.description ? String(p.description) : CA.Assist.getParamType(p));
-			desp.setTextColor(Common.theme.promptcolor);
-			desp.setTextSize(Common.theme.textsize[1]);
 			desp.setSingleLine(true);
 			desp.setEllipsize(G.TextUtils.TruncateAt.END);
 			desp.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(desp, "textview_prompt", 1);
 			vl.addView(desp);
 			hl.addView(vl);
 			e._text = new G.TextView(ctx);
 			e._text.setText("点击以编辑");
-			e._text.setTextColor(Common.theme.promptcolor);
-			e._text.setTextSize(Common.theme.textsize[2]);
 			e._text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			e._text.setMaxEms(10);
 			e._text.setSingleLine(true);
 			e._text.setEllipsize(G.TextUtils.TruncateAt.END);
 			e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
 			e._text.getLayoutParams().gravity = G.Gravity.CENTER;
+			Common.applyStyle(e._text, "textview_prompt", 2);
 			hl.addView(e._text);
 			return hl;
 		},
@@ -5449,13 +5390,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					var ret = new G.EditText(ctx);
 					ret.setText(defVal ? String(defVal) : e.text ? e.text : "");
 					ret.setSingleLine(true);
-					ret.setTextSize(Common.theme.textsize[2]);
-					ret.setTextColor(Common.theme.textcolor);
 					ret.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
-					ret.setBackgroundColor(G.Color.TRANSPARENT);
 					ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 					ret.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 					ret.setSelection(ret.length());
+					Common.applyStyle(ret, "edittext_default", 2);
 					return ret;
 				}
 				self.initListener = function(ret, l, gText) {
@@ -5474,15 +5413,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			layout = new G.LinearLayout(ctx);
-			layout.setBackgroundColor(Common.theme.message_bgcolor);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(layout, "message_bg");
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText("编辑“" + e.param.name + "”");
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 			switch (p = e.param.type) {
 				case "int":
@@ -5604,10 +5542,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			exit.setText("确定");
-			exit.setTextSize(Common.theme.textsize[3]);
 			exit.setGravity(G.Gravity.CENTER);
-			exit.setTextColor(Common.theme.criticalcolor);
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+			Common.applyStyle(exit, "button_critical", 3);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var t = listener.getText();
 				if (typeof t == "undefined" && onReset) {
@@ -5712,14 +5649,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		editParamPosition : function self(e, callback, onReset) {G.ui(function() {try {
 			var layout, title, i, row, label, ret = [], rela = [], screla, posp = ["X", "Y", "Z"], reset, exit, popup;
 			layout = new G.TableLayout(ctx);
-			layout.setBackgroundColor(Common.theme.message_bgcolor);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(layout, "message_bg");
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText("编辑“" + e.param.name + "”");
 			title.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 			if (!e.pos) {
 				e.pos = [];
@@ -5730,28 +5666,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				row.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 				row.setGravity(G.Gravity.CENTER);
 				label = new G.TextView(ctx);
-				label.setTextSize(Common.theme.textsize[2]);
-				label.setTextColor(Common.theme.textcolor);
 				label.setText(posp[i]);
 				label.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 				label.setLayoutParams(new G.TableRow.LayoutParams(-1, -2));
+				Common.applyStyle(label, "textview_default", 2);
 				row.addView(label);
 				ret[i] = new G.EditText(ctx);
 				ret[i].setText(isNaN(e.pos[i]) ? "" : String(e.pos[i]));
 				ret[i].setSingleLine(true);
-				ret[i].setTextSize(Common.theme.textsize[2]);
-				ret[i].setTextColor(Common.theme.textcolor);
-				ret[i].setBackgroundColor(G.Color.TRANSPARENT);
 				ret[i].setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 				ret[i].setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 				ret[i].setLayoutParams(new G.TableRow.LayoutParams(0, -2, 1));
 				ret[i].setSelection(ret[i].length());
+				Common.applyStyle(ret[i], "edittext_default", 2);
 				row.addView(ret[i]);
 				rela[i] = new G.CheckBox(ctx);
 				rela[i].setChecked(Boolean(e.rela[i]));
 				rela[i].setLayoutParams(G.TableRow.LayoutParams(-2, -2));
 				rela[i].getLayoutParams().setMargins(0, 0, 10 * G.dp, 0)
-				rela[i].setText("~");
+				rela[i].setText("~"); //BUG：CheckBox需重新着色
 				row.addView(rela[i]);
 				layout.addView(row);
 			}
@@ -5771,10 +5704,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				reset = new G.TextView(ctx);
 				reset.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 				reset.setText("重置参数");
-				reset.setTextSize(Common.theme.textsize[3]);
 				reset.setGravity(G.Gravity.CENTER);
-				reset.setTextColor(Common.theme.criticalcolor);
 				reset.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
 					popup.dismiss();
@@ -5784,10 +5716,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 			exit.setText("确定");
-			exit.setTextSize(Common.theme.textsize[3]);
 			exit.setGravity(G.Gravity.CENTER);
-			exit.setTextColor(Common.theme.criticalcolor);
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+			Common.applyStyle(exit, "button_critical", 3);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var r = [];
 				e.screla = CA.hasFeature("enableLocalCoord") && screla.isChecked();
@@ -5907,17 +5838,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
 					text.setText((e.isInverted ? "(不满足)" : "") + e.param.name + "：" + e.text);
-					text.setTextSize(Common.theme.textsize[2]);
 					text.setSingleLine(true);
-					text.setTextColor(Common.theme.textcolor);
 					text.setEllipsize(G.TextUtils.TruncateAt.END);
 					text.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
+					Common.applyStyle(name, "textview_default", 2);
 					view.addView(text);
 					del.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 					del.setText("×");
 					del.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-					del.setTextSize(Common.theme.textsize[2]);
-					del.setTextColor(Common.theme.textcolor);
+					Common.applyStyle(del, "textview_default", 2);
 					del.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 						tag.delete(i);
 					} catch(e) {erp(e)}}}));
@@ -5926,27 +5855,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			layout = new G.LinearLayout(ctx);
-			layout.setBackgroundColor(Common.theme.message_bgcolor);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(layout, "message_bg");
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText("编辑“" + e.param.name + "”");
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 			if (!e.selpar) e.selpar = [];
 			label = new G.EditText(ctx);
 			label.setHint("点击以选择");
 			label.setSingleLine(true);
-			label.setTextSize(Common.theme.textsize[2]);
-			label.setTextColor(Common.theme.textcolor);
-			label.setHintTextColor(Common.theme.promptcolor);
 			label.setPadding(0, 0, 0, 10 * G.dp);
 			label.setInputType(G.InputType.TYPE_NULL);
-			label.setBackgroundColor(G.Color.TRANSPARENT);
 			label.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(label, "edittext_default", 2);
 			label.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.editLabel(e, function(text) {G.ui(function() {try {
 					v.setText(text);
@@ -5964,12 +5889,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			add = new G.TextView(ctx);
 			add.setText("+ 添加选择器参数");
 			add.setSingleLine(true);
-			add.setTextColor(Common.theme.textcolor);
-			add.setTextSize(Common.theme.textsize[2]);
 			add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			add.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(add, "textview_default", 2);
 			list = new G.ListView(ctx);
-			list.setBackgroundColor(Common.theme.message_bgcolor);
 			list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 			list.addFooterView(add);
 			list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -5984,10 +5907,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				reset = new G.TextView(ctx);
 				reset.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 				reset.setText("重置参数");
-				reset.setTextSize(Common.theme.textsize[3]);
 				reset.setGravity(G.Gravity.CENTER);
-				reset.setTextColor(Common.theme.criticalcolor);
 				reset.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
 					popup.dismiss();
@@ -5997,10 +5919,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			exit.setText("确定");
-			exit.setTextSize(Common.theme.textsize[3]);
 			exit.setGravity(G.Gravity.CENTER);
-			exit.setTextColor(Common.theme.criticalcolor);
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+			Common.applyStyle(exit, "button_critical", 3);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (!(e.label = String(label.getText()))) return Common.toast("选择器不可为空！")
 				callback(e.label + (e.label in self.selectors && e.selpar.length ? "[" + e.selpar.map(function(e) {
@@ -6017,8 +5938,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var view = holder.view = new G.TextView(ctx);
 			view.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			view.setTextSize(Common.theme.textsize[2]);
-			view.setTextColor(Common.theme.textcolor);
+			Common.applyStyle(view, "textview_default", 2);
 			return view;
 		},
 		smallVBinder : function(holder, s) {
@@ -6213,17 +6133,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
 					text.setText((e._id ? e.param.name + "：" : "") + e.text);
-					text.setTextSize(Common.theme.textsize[2]);
 					text.setSingleLine(true);
-					text.setTextColor(Common.theme.textcolor);
 					text.setEllipsize(G.TextUtils.TruncateAt.END);
 					text.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
+					Common.applyStyle(text, "textview_default", 2);
 					view.addView(text);
 					del.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 					del.setText("×");
 					del.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-					del.setTextSize(Common.theme.textsize[2]);
-					del.setTextColor(Common.theme.textcolor);
+					Common.applyStyle(del, "textview_default", 2);
 					del.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 						tag.delete(i);
 					} catch(e) {erp(e)}}}));
@@ -6232,25 +6150,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}
 			layout = new G.LinearLayout(ctx);
-			layout.setBackgroundColor(Common.theme.message_bgcolor);
 			layout.setOrientation(G.LinearLayout.VERTICAL);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(layout, "message_bg");
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText("编辑“" + e.param.name + "”");
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 			add = new G.TextView(ctx);
 			add.setText("+ 添加组件");
 			add.setSingleLine(true);
-			add.setTextColor(Common.theme.textcolor);
-			add.setTextSize(Common.theme.textsize[2]);
 			add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			add.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(add, "button_default", 2);
 			list = new G.ListView(ctx);
-			list.setBackgroundColor(Common.theme.message_bgcolor);
 			list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 			list.addFooterView(add);
 			list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -6265,10 +6180,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				reset = new G.TextView(ctx);
 				reset.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 				reset.setText("重置参数");
-				reset.setTextSize(Common.theme.textsize[3]);
 				reset.setGravity(G.Gravity.CENTER);
-				reset.setTextColor(Common.theme.criticalcolor);
 				reset.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
 					popup.dismiss();
@@ -6278,10 +6192,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			exit = new G.TextView(ctx);
 			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			exit.setText("确定");
-			exit.setTextSize(Common.theme.textsize[3]);
 			exit.setGravity(G.Gravity.CENTER);
-			exit.setTextColor(Common.theme.criticalcolor);
 			exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 15 * G.dp);
+			Common.applyStyle(exit, "button_critical", 3);
 			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var i, o;
 				if (e.current_component.type == "object") {
@@ -6319,6 +6232,7 @@ MapScript.loadModule("PWM", {
 	floats : [],
 	popups : [],
 	listeners : [],
+	resetFlags : [],
 	intentBack : false,
 	busy : false,
 	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
@@ -6411,7 +6325,28 @@ MapScript.loadModule("PWM", {
 		return s;
 	},
 	reset : function() {
+		this._notifyListeners("reset");
 		this.windows.length = this.floats.length = this.popups.length = this.listeners.length = 0;
+	},
+	resetUICache : function() {
+		this.resetFlags.forEach(function(e) {
+			e.obj[e.prop] = e.value;
+		});
+	},
+	registerResetFlag : function(obj, prop, value) {
+		var i, e;
+		for (i in this.resetFlags) {
+			e = this.resetFlags[i];
+			if (e.obj == obj && e.prop == prop) {
+				e.value = value;
+				return;
+			}
+		}
+		this.resetFlags.push({
+			obj : obj,
+			prop : prop,
+			value : value
+		});
 	},
 	observe : function(f) {
 		this.unobserve(f);
@@ -6496,6 +6431,60 @@ MapScript.loadModule("Common", {
 		r.textsize = [Math.ceil(10 * i), Math.ceil(12 * i), Math.ceil(14 * i), Math.ceil(16 * i), Math.ceil(18 * i)];
 		this.theme = r;
 	},
+	applyStyle : function(v, style, size) {
+		switch (style) {
+			case "bar_float":
+			v.setBackgroundColor(this.theme.float_bgcolor);
+			if (G.style == "Material") v.setElevation(8 * G.dp);
+			break;
+			case "container_default":
+			v.setBackgroundColor(Common.theme.bgcolor);
+			break;
+			case "message_bg":
+			v.setBackgroundColor(Common.theme.message_bgcolor);
+			break;
+			case "textview_default":
+			case "button_default":
+			case "item_default":
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.textcolor);
+			break;
+			case "textview_prompt":
+			case "button_secondary":
+			case "item_disabled":
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.promptcolor);
+			break;
+			case "textview_critial":
+			case "button_critical":
+			case "item_critical":
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.criticalcolor);
+			break;
+			case "textview_highlight":
+			case "button_highlight":
+			case "item_highlight":
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.highlightcolor);
+			break;
+			case "button_reactive":
+			v.setBackgroundColor(Common.theme.go_bgcolor);
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.go_textcolor);
+			break;
+			case "button_reactive_pressed":
+			v.setBackgroundColor(Common.theme.go_touchbgcolor);
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.go_touchtextcolor);
+			break;
+			case "edittext_default":
+			v.setBackgroundColor(G.Color.TRANSPARENT);
+			v.setTextSize(Common.theme.textsize[size]);
+			v.setTextColor(Common.theme.textcolor);
+			v.setHintTextColor(Common.theme.promptcolor);
+			break;
+		}
+	},
 	
 	showChangeTheme : function self(update, dismiss) {G.ui(function() {try {
 		if (!self.linear) {
@@ -6538,7 +6527,6 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setDividerHeight(0);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				Common.loadTheme(parent.getAdapter().getItem(pos));
@@ -6593,6 +6581,8 @@ MapScript.loadModule("Common", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		self.update = update;
@@ -6621,8 +6611,7 @@ MapScript.loadModule("Common", {
 		view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 		view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 		view.setText(s);
-		view.setTextSize(Common.theme.textsize[3]);
-		view.setTextColor(Common.theme.textcolor);
+		Common.applyStyle(view, "textview_default", 3);
 		return view;
 	},
 	
@@ -6670,25 +6659,23 @@ MapScript.loadModule("Common", {
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(layout, "message_bg");
 		scr = new G.ScrollView(ctx);
 		scr.setLayoutParams(new G.LinearLayout.LayoutParams(-2, 0, 1));
 		text = new G.TextView(ctx);
 		text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
 		text.setText(s);
-		text.setTextSize(Common.theme.textsize[2]);
-		text.setTextColor(Common.theme.textcolor);
 		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		text.setMovementMethod(G.LinkMovementMethod.getInstance());
+		Common.applyStyle(text, "textview_default", 2);
 		scr.addView(text);
 		layout.addView(scr);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("关闭");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 		} catch(e) {erp(e)}}}));
@@ -6712,19 +6699,17 @@ MapScript.loadModule("Common", {
 					e.view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					e._title = new G.TextView(ctx);
 					e._title.setText(String(e.text));
-					e._title.setTextSize(Common.theme.textsize[2]);
 					e._title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
-					e._title.setTextColor(Common.theme.textcolor);
 					e._title.setFocusable(false);
 					e._title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(e._title, "textview_default", 2);
 					e.view.addView(e._title);
 					if (e.description) {
 						e._description = new G.TextView(ctx);
 						e._description.setText(String(e.description));
-						e._description.setTextColor(Common.theme.promptcolor);
-						e._description.setTextSize(Common.theme.textsize[1]);
 						e._description.setPadding(0, 3 * G.dp, 0, 0);
 						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+						Common.applyStyle(e._description, "textview_prompt", 1);
 						e.view.addView(e._description);
 					}
 					return e.view;
@@ -6737,10 +6722,9 @@ MapScript.loadModule("Common", {
 		});
 		frame = new G.FrameLayout(ctx);
 		frame.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-		frame.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(frame, "message_bg");
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
-		list.setBackgroundColor(G.Color.TRANSPARENT);
 		list.setDividerHeight(0);
 		list.setAdapter(new RhinoListAdapter(s, self.adapter));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -6755,25 +6739,23 @@ MapScript.loadModule("Common", {
 	showInputDialog : function(s) {G.ui(function() {try {
 		var layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		Common.applyStyle(layout, "message_bg");
 		if (s.title) {
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText(s.title);
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 		}
 		if (s.description) {
 			text = new G.TextView(ctx);
-			text.setTextSize(Common.theme.textsize[2]);
 			text.setText(s.description);
-			text.setTextColor(Common.theme.promptcolor);
 			text.setPadding(0, 0, 0, 10 * G.dp);
 			text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(text, "textview_prompt", 2);
 			layout.addView(text);
 		}
 		ret = new G.EditText(ctx);
@@ -6782,21 +6764,18 @@ MapScript.loadModule("Common", {
 		if (s.inputType) ret.setInputType(s.inputType);
 		if (s.keyListener) ret.setKeyListener(s.keyListener);
 		if (s.transformationMethod) ret.setTransformationMethod(s.transformationMethod);
-		ret.setTextSize(Common.theme.textsize[2]);
-		ret.setTextColor(Common.theme.textcolor);
-		ret.setBackgroundColor(G.Color.TRANSPARENT);
 		ret.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 		ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 		ret.setSelection(ret.length());
+		Common.applyStyle(ret, "edittext_default", 2);
 		layout.addView(ret);
 		Common.postIME(ret);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("确定");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			if (s.callback && s.callback(s.text = String(ret.getText()))) return true;
 			popup.dismiss();
@@ -6813,27 +6792,25 @@ MapScript.loadModule("Common", {
 	showConfirmDialog : function(s) {G.ui(function() {try {
 		var scr, layout, title, text, skip, onClick, popup;
 		scr = new G.ScrollView(ctx);
-		scr.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 		if (s.title) {
 			title = new G.TextView(ctx);
-			title.setTextSize(Common.theme.textsize[4]);
-			title.setTextColor(Common.theme.textcolor);
 			title.setText(s.title);
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
+			Common.applyStyle(title, "textview_default", 4);
 			layout.addView(title);
 		}
 		if (s.description) {
 			text = new G.TextView(ctx);
-			text.setTextSize(Common.theme.textsize[2]);
 			text.setText(s.description);
-			text.setTextColor(Common.theme.promptcolor);
 			text.setPadding(0, 0, 0, 10 * G.dp);
 			text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			Common.applyStyle(text, "textview_prompt", 2);
 			layout.addView(text);
 		}
 		if (s.skip) {
@@ -6853,10 +6830,9 @@ MapScript.loadModule("Common", {
 			var b = new G.TextView(ctx);
 			b.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			b.setText(String(e));
-			b.setTextSize(Common.theme.textsize[3]);
 			b.setGravity(G.Gravity.CENTER);
-			b.setTextColor(Common.theme.criticalcolor);
 			b.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(b, "button_critical", 3);
 			b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				onClick(i);
 			} catch(e) {erp(e)}}}));
@@ -6876,16 +6852,14 @@ MapScript.loadModule("Common", {
 				view.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				var title = holder.title = new G.TextView(ctx);
-				title.setTextSize(Common.theme.textsize[2]);
 				title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
-				title.setTextColor(Common.theme.textcolor);
 				title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(title, "textview_default", 2);
 				view.addView(title);
 				var desp = holder.desp = new G.TextView(ctx);
-				desp.setTextColor(Common.theme.promptcolor);
-				desp.setTextSize(Common.theme.textsize[1]);
 				desp.setPadding(0, 3 * G.dp, 0, 0);
 				desp.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(desp, "textview_prompt", 1);
 				view.addView(desp);
 				return view;
 			}
@@ -6910,10 +6884,9 @@ MapScript.loadModule("Common", {
 		}
 		if (optional && l.length == 1 && !callback(0)) return;
 		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(frame, "message_bg");
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
-		list.setBackgroundColor(G.Color.TRANSPARENT);
 		list.setAdapter(new SimpleListAdapter(l, self.vmaker, self.vbinder));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 			if (!callback(pos)) popup.dismiss();
@@ -6944,12 +6917,11 @@ MapScript.loadModule("Common", {
 				var layout, text, prg, popup;
 				layout = new G.LinearLayout(ctx);
 				layout.setOrientation(G.LinearLayout.VERTICAL);
-				layout.setBackgroundColor(Common.theme.message_bgcolor);
+				Common.applyStyle(layout, "message_bg");
 				text = o.text = new G.TextView(ctx);
 				text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
-				text.setTextSize(Common.theme.textsize[2]);
-				text.setTextColor(Common.theme.textcolor);
 				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				Common.applyStyle(text, "textview_default", 2);
 				layout.addView(text);
 				prg = new G.ImageView(ctx);
 				prg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 4 * G.dp));
@@ -7029,27 +7001,24 @@ MapScript.loadModule("Common", {
 					vl.getLayoutParams().gravity = G.Gravity.CENTER;
 					e._name = new G.TextView(ctx);
 					e._name.setText(String(e.name));
-					e._name.setTextColor(Common.theme.textcolor);
-					e._name.setTextSize(Common.theme.textsize[3]);
 					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(e._name, "textview_default", 3);
 					vl.addView(e._name);
 					if (e.description) {
 						e._description = new G.TextView(ctx);
 						e._description.setText(String(e.description));
-						e._description.setTextColor(Common.theme.promptcolor);
-						e._description.setTextSize(Common.theme.textsize[1]);
 						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+						Common.applyStyle(e._description, "textview_prompt", 1);
 						vl.addView(e._description);
 					}
 					hl.addView(vl);
 					if (e.type == "custom") {
 						e._text = new G.TextView(ctx);
 						e._text.setText(e.get ? String(e.get()) : "");
-						e._text.setTextColor(Common.theme.promptcolor);
-						e._text.setTextSize(Common.theme.textsize[2]);
 						e._text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 						e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
 						e._text.getLayoutParams().gravity = G.Gravity.CENTER;
+						Common.applyStyle(e._text, "textview_prompt", 2);
 						hl.addView(e._text);
 					} else {
 						e._box = new G.CheckBox(ctx);
@@ -7075,20 +7044,18 @@ MapScript.loadModule("Common", {
 					case "tag":
 					e._tag = new G.TextView(ctx);
 					e._tag.setText(String(e.name));
-					e._tag.setTextColor(Common.theme.highlightcolor);
-					e._tag.setTextSize(Common.theme.textsize[2]);
 					e._tag.setPadding(20 * G.dp, 25 * G.dp, 0, 0);
 					e._tag.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
 					e._tag.setFocusable(true);
+					Common.applyStyle(e._tag, "textview_highlight", 2);
 					return e._view = e._tag;
 					case "text":
 					e._text = new G.TextView(ctx);
 					e._text.setText(String(e.get ? e.get() : e.text));
-					e._text.setTextColor(Common.theme.promptcolor);
-					e._text.setTextSize(Common.theme.textsize[2]);
 					e._text.setPadding(20 * G.dp, 0, 20 * G.dp, 10 * G.dp);
 					e._text.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
 					e._text.setFocusable(true);
+					Common.applyStyle(e._text, "textview_prompt", 2);
 					return e._view = e._text;
 					case "seekbar":
 					vl = new G.LinearLayout(ctx);
@@ -7102,16 +7069,14 @@ MapScript.loadModule("Common", {
 					hl.getLayoutParams().gravity = G.Gravity.CENTER;
 					e._name = new G.TextView(ctx);
 					e._name.setText(String(e.name));
-					e._name.setTextColor(Common.theme.textcolor);
-					e._name.setTextSize(Common.theme.textsize[3]);
 					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
+					Common.applyStyle(e._name, "textview_default", 3);
 					hl.addView(e._name);
 					e._progress = new G.TextView(ctx);
-					e._progress.setTextColor(Common.theme.promptcolor);
-					e._progress.setTextSize(Common.theme.textsize[2]);
 					e._progress.setLayoutParams(G.LinearLayout.LayoutParams(-1, -1));
 					e._progress.setGravity(G.Gravity.CENTER | G.Gravity.RIGHT);
 					e._progress.setPadding(0, 0, 10 * G.dp, 0);
+					Common.applyStyle(e._progress, "textview_prompt", 2);
 					hl.addView(e._progress);
 					vl.addView(hl);
 					e._seekbar = new G.SeekBar(ctx);
@@ -7134,18 +7099,16 @@ MapScript.loadModule("Common", {
 			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "message_bg");
 			
 			self.title = new G.TextView(ctx);
-			self.title.setBackgroundColor(Common.theme.message_bgcolor);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
 			self.title.setText("设置");
 			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
-			if (G.style == "Material") self.title.setElevation(8 * G.dp);
+			Common.applyStyle(self.title, "bar_float");
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.title.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(Common.theme.message_bgcolor);
 			self.list.setDividerHeight(0);
 			self.list.addHeaderView(self.title);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -7163,18 +7126,18 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			
 			self.exit = new G.TextView(ctx);
-			self.exit.setBackgroundColor(Common.theme.message_bgcolor);
 			self.exit.setText("确定");
-			self.exit.setTextSize(Common.theme.textsize[3]);
 			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setTextColor(Common.theme.criticalcolor);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-			if (G.style == "Material") self.exit.setElevation(8 * G.dp);
+			Common.applyStyle(self.exit, "bar_float");
+			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.popup.dismiss();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
@@ -7225,17 +7188,16 @@ MapScript.loadModule("Common", {
 				name.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				name.setSingleLine(true);
 				name.setEllipsize(G.TextUtils.TruncateAt.END);
-				name.setTextSize(Common.theme.textsize[3]);
 				name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
 				return name;
 			}
 			self.vbinder = function(holder, e) {
 				if (e) {
 					holder.self.setText((e.isDirectory() ? "📁 " : "📄 ") + String(e.getName()));
-					holder.self.setTextColor(e.isHidden() ? Common.theme.promptcolor : Common.theme.textcolor);
+					Common.applyStyle(holder.self, e.isHidden() ? "item_disabled" : "item_default", 3);
 				} else {
 					holder.self.setText("📂 .. (上一级目录)");
-					holder.self.setTextColor(Common.theme.textcolor);
+					Common.applyStyle(holder.self, "item_default", 3);
 				}
 			}
 			self.compare = function(a, b) {
@@ -7277,16 +7239,14 @@ MapScript.loadModule("Common", {
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			
 			self.header = new G.LinearLayout(ctx);
-			self.header.setBackgroundColor(Common.theme.message_bgcolor);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
-			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			Common.applyStyle(self.header, "bar_float");
 			
 			self.back = new G.TextView(ctx);
-			self.back.setTextSize(Common.theme.textsize[2]);
-			self.back.setTextColor(Common.theme.highlightcolor);
 			self.back.setText("< 返回");
 			self.back.setGravity(G.Gravity.CENTER);
 			self.back.setPadding(20 * G.dp, 0, 20 * G.dp, 0);
+			Common.applyStyle(self.back, "button_highlight", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.popup.dismiss();
 				return true;
@@ -7294,18 +7254,16 @@ MapScript.loadModule("Common", {
 			self.header.addView(self.back, new G.LinearLayout.LayoutParams(-2, -1));
 			
 			self.title = new G.TextView(ctx);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
 			self.title.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title, new G.LinearLayout.LayoutParams(-2, -2));
 			
 			self.path = new G.TextView(ctx);
-			self.path.setTextSize(Common.theme.textsize[2]);
-			self.path.setTextColor(Common.theme.promptcolor);
 			self.path.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
 			self.path.setPadding(15 * G.dp, 0, 5 * G.dp, 0);
 			self.path.setSingleLine(true);
 			self.path.setEllipsize(G.TextUtils.TruncateAt.START);
+			Common.applyStyle(self.path, "textview_prompt", 2);
 			self.path.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var o = self.sets;
 				Common.showInputDialog({
@@ -7330,15 +7288,14 @@ MapScript.loadModule("Common", {
 					defaultValue : o.curdir.getAbsolutePath()
 				});
 				return true;
-			} catch(e) {MapScript.error(e)}}}));
+			} catch(e) {erp(e)}}}));
 			self.header.addView(self.path, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 			
 			self.newDir = new G.TextView(ctx);
-			self.newDir.setTextSize(Common.theme.textsize[2]);
-			self.newDir.setTextColor(Common.theme.textcolor);
 			self.newDir.setText("📁+");
 			self.newDir.setGravity(G.Gravity.CENTER);
 			self.newDir.setPadding(20 * G.dp, 0, 20 * G.dp, 0);
+			Common.applyStyle(self.newDir, "button_default", 2);
 			self.newDir.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var a = {
 					title : "新建文件夹",
@@ -7363,7 +7320,7 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
 			
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(Common.theme.message_bgcolor);
+			Common.applyStyle(self.list, "message_bg");
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var o = self.sets;
 				var e = self.curadp.getItem(pos);
@@ -7388,28 +7345,23 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			
 			self.inputbar = new G.LinearLayout(ctx);
-			self.inputbar.setBackgroundColor(Common.theme.message_bgcolor);
 			self.inputbar.setOrientation(G.LinearLayout.HORIZONTAL);
-			if (G.style == "Material") self.inputbar.setElevation(8 * G.dp);
+			Common.applyStyle(self.inputbar, "bar_float");
 			
 			self.fname = new G.EditText(ctx);
 			self.fname.setHint("文件名");
-			self.fname.setBackgroundColor(G.Color.TRANSPARENT);
-			self.fname.setHintTextColor(Common.theme.promptcolor);
-			self.fname.setTextSize(Common.theme.textsize[3]);
 			self.fname.setSingleLine(true);
 			self.fname.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.fname.setInputType(G.InputType.TYPE_CLASS_TEXT);
-			self.fname.setTextColor(Common.theme.textcolor);
 			self.fname.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.fname, "edittext_default", 3);
 			self.inputbar.addView(self.fname, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 			
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
-			self.exit.setTextSize(Common.theme.textsize[3]);
 			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setTextColor(Common.theme.criticalcolor);
 			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var o = self.sets, e;
 				if (o.type == 1) {
@@ -7437,6 +7389,8 @@ MapScript.loadModule("Common", {
 			} catch(e) {erp(e)}}}));
 			self.inputbar.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -2));
 			self.linear.addView(self.inputbar, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
@@ -7553,41 +7507,35 @@ MapScript.loadModule("Common", {
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			self.main.setBackgroundColor(G.Color.TRANSPARENT);
 			
 			self.bar = new G.LinearLayout(ctx);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
-			self.bar.setBackgroundColor(Common.theme.float_bgcolor);
+			Common.applyStyle(self.bar, "bar_float");
 			
 			self.cmd = new G.EditText(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
-			self.cmd.setBackgroundColor(G.Color.TRANSPARENT);
-			self.cmd.setTextSize(Common.theme.textsize[3]);
-			self.cmd.setTextColor(Common.theme.textcolor);
 			self.cmd.setFocusableInTouchMode(true);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
 			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.bar.addView(self.cmd);
 			Common.postIME(self.cmd);
 			
 			self.eval = new G.TextView(ctx);
 			self.eval.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.eval.setGravity(G.Gravity.CENTER);
-			self.eval.setBackgroundColor(Common.theme.go_bgcolor);
 			self.eval.setText(">");
-			self.eval.setTextSize(Common.theme.textsize[3]);
-			self.eval.setTextColor(Common.theme.go_textcolor);
 			self.eval.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.eval, "button_reactive", 3);
 			self.eval.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_DOWN:
-					v.setBackgroundColor(Common.theme.go_touchbgcolor);
-					v.setTextColor(Common.theme.go_touchtextcolor);
+					Common.applyStyle(v, "button_reactive_pressed", 3);
 					break;
+					case e.ACTION_CANCEL:
 					case e.ACTION_UP:
-					v.setBackgroundColor(Common.theme.go_bgcolor);
-					v.setTextColor(Common.theme.go_textcolor);
+					Common.applyStyle(v, "button_reactive", 3);
 				}
 				return false;
 			} catch(e) {return erp(e), true}}}));
@@ -7601,12 +7549,11 @@ MapScript.loadModule("Common", {
 			
 			self.vscr = new G.ScrollView(ctx);
 			self.vscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			self.vscr.setBackgroundColor(Common.theme.message_bgcolor);
+			Common.applyStyle(self.vscr, "message_bg");
 			self.prompt = new G.TextView(ctx);
 			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			self.prompt.setTextSize(Common.theme.textsize[2]);
-			self.prompt.setTextColor(Common.theme.textcolor);
 			self.prompt.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.prompt, "textview_default", 2);
 			self.prompt.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
 				Common.showListChooser(self.history, function(i) {
 					self.cmd.setText(self.history[i]);
@@ -7618,9 +7565,10 @@ MapScript.loadModule("Common", {
 			self.main.addView(self.vscr);
 			self.main.addView(self.bar);
 			
-			self.print("命令行 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+			self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
 			self.print("\n想接这坑的请联系我，联系方式在关于里面");
 			self.ready();
+			PWM.registerResetFlag(self, "main");
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.main, -1, -1);
@@ -7638,8 +7586,8 @@ MapScript.loadModule("Common", {
 		var layout, wv, ws, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		Common.applyStyle(layout, "message_bg");
 		wv = new G.WebView(ctx);
 		wv.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 		if (s.url && s.code) {
@@ -7668,10 +7616,9 @@ MapScript.loadModule("Common", {
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("关闭");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 			return true;
@@ -8108,17 +8055,15 @@ MapScript.loadModule("Tutorial", {
 				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				text1.setText(e.title);
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(e.state == 2 ? Common.theme.promptcolor : Common.theme.textcolor);
 				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
 				text1.setSingleLine(true);
+				Common.applyStyle(text1, e.state == 2 ? "item_disabled" : "item_default", 3);
 				layout.addView(text1);
 				if (e.description) {
 					text2.setPadding(0, 5 * G.dp, 0, 0);
 					text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 					text2.setText(e.description);
-					text2.setTextSize(Common.theme.textsize[1]);
-					text2.setTextColor(Common.theme.promptcolor);
+					Common.applyStyle(text2, "textview_prompt", 1);
 					layout.addView(text2);
 				}
 				return layout;
@@ -8156,16 +8101,14 @@ MapScript.loadModule("Tutorial", {
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
+			Common.applyStyle(self.linear, "message_bg");
 			self.title = new G.TextView(ctx);
 			self.title.setText("教程");
 			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 10 * G.dp);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(G.Color.TRANSPARENT);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var data = parent.getAdapter().getItem(pos);
 				Tutorial.showIntro(data.source, function() {
@@ -8177,12 +8120,13 @@ MapScript.loadModule("Tutorial", {
 			self.exit.setText("关闭");
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-			self.exit.setTextSize(Common.theme.textsize[3]);
-			self.exit.setTextColor(Common.theme.criticalcolor);
+			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.popup.dismiss();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
@@ -8206,26 +8150,23 @@ MapScript.loadModule("Tutorial", {
 		linear = new G.LinearLayout(ctx);
 		linear.setOrientation(G.LinearLayout.VERTICAL);
 		linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		linear.setBackgroundColor(Common.theme.message_bgcolor);
+		Common.applyStyle(linear, "message_bg");
 		title = new G.TextView(ctx);
 		title.setText(o.name);
 		title.setPadding(0, 0, 0, 10 * G.dp);
-		title.setTextSize(Common.theme.textsize[4]);
-		title.setTextColor(Common.theme.textcolor);
+		Common.applyStyle(title, "textview_default", 4);
 		linear.addView(title, new G.LinearLayout.LayoutParams(-1, -2));
 		scr = new G.ScrollView(ctx);
 		desc = new G.TextView(ctx);
 		desc.setText(ISegment.rawJson(o.intro || o.description || "暂无简介"));
-		desc.setTextSize(Common.theme.textsize[3]);
-		desc.setTextColor(Common.theme.textcolor);
+		Common.applyStyle(desc, "textview_default", 3);
 		scr.addView(desc, new G.FrameLayout.LayoutParams(-1, -2));
 		linear.addView(scr, new G.LinearLayout.LayoutParams(-1, 0, 1));
 		enter = new G.TextView(ctx);
 		enter.setText("进入");
 		enter.setGravity(G.Gravity.RIGHT);
 		enter.setPadding(0, 10 * G.dp, 20 * G.dp, 20 * G.dp);
-		enter.setTextSize(Common.theme.textsize[3]);
-		enter.setTextColor(Common.theme.criticalcolor);
+		Common.applyStyle(enter, "button_critical", 3);
 		enter.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.dismiss();
 			if (o.type == "tutorial") {
@@ -8314,9 +8255,8 @@ MapScript.loadModule("Tutorial", {
 				text.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				text.setText(str);
-				text.setTextSize(Common.theme.textsize[3]);
-				text.setTextColor(Common.theme.textcolor);
 				text.setFocusable(focusable);
+				Common.applyStyle(text, "textview_default", 3);
 				return text;
 			}
 			self.generateCopyable = function(str) {
@@ -8328,41 +8268,36 @@ MapScript.loadModule("Tutorial", {
 				text1.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
 				text1.setText(str);
-				text1.setTextSize(Common.theme.textsize[3]);
-				text1.setTextColor(Common.theme.textcolor);
+				Common.applyStyle(text1, "textview_default", 3);
 				layout.addView(text1);
 				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 				text2.setText("📋");
 				text2.setGravity(G.Gravity.CENTER);
-				text2.setTextSize(Common.theme.textsize[3]);
-				text2.setTextColor(Common.theme.promptcolor);
+				Common.applyStyle(text2, "button_default", 3);
 				layout.addView(text2);
 				return layout;
 			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
-			self.linear.setBackgroundColor(Common.theme.message_bgcolor);
-			if (G.style == "Material") self.linear.setElevation(8 * G.dp);
+			Common.applyStyle(self.linear, "bar_float");
 			self.linear.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			self.title = new G.TextView(ctx);
 			self.title.setPadding(20 * G.dp, 20 * G.dp, 0, 20 * G.dp);
-			self.title.setTextSize(Common.theme.textsize[4]);
-			self.title.setTextColor(Common.theme.textcolor);
+			Common.applyStyle(self.title, "textview_default", 4);
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("关闭");
 			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setTextSize(Common.theme.textsize[3]);
-			self.exit.setTextColor(Common.theme.criticalcolor);
 			self.exit.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (self.popup) self.popup.dismiss();
 				//BUG: View显示卡顿，导致可以在dismissed的状态下点击按钮
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -1));
 			self.list = new G.ListView(ctx);
-			self.list.setBackgroundColor(Common.theme.message_bgcolor);
+			Common.applyStyle(self.list, "message_bg");
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var e = parent.getAdapter().getItem(pos);
 				if (!e) return;
@@ -8381,6 +8316,8 @@ MapScript.loadModule("Tutorial", {
 					break;
 				}
 			} catch(e) {erp(e)}}}));
+			
+			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
@@ -9226,17 +9163,15 @@ MapScript.loadModule("JSONEdit", {
 			} catch(e) {return erp(e), true}}}));
 			
 			self.header = new G.LinearLayout(ctx);
-			self.header.setBackgroundColor(Common.theme.float_bgcolor);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
-			if (G.style == "Material") self.header.setElevation(8 * G.dp);
+			Common.applyStyle(self.header, "bar_float");
 			
 			self.back = new G.TextView(ctx);
-			self.back.setTextSize(Common.theme.textsize[2]);
-			self.back.setTextColor(Common.theme.criticalcolor);
 			self.back.setText("< 返回");
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			self.back.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.back, "button_critical", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.dismiss();
 				return true;
@@ -9259,16 +9194,15 @@ MapScript.loadModule("JSONEdit", {
 			
 			self.create = new G.TextView(ctx);
 			self.create.setText("添加 / 粘贴 ...");
-			self.create.setTextColor(Common.theme.textcolor);
-			self.create.setTextSize(Common.theme.textsize[3]);
 			self.create.setGravity(G.Gravity.CENTER);
 			self.create.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			self.create.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.create, "textview_default", 3);
 			
 			JSONEdit.list = new G.ListView(ctx);
-			JSONEdit.list.setBackgroundColor(Common.theme.message_bgcolor);
 			JSONEdit.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			JSONEdit.list.addHeaderView(self.create);
+			Common.applyStyle(JSONEdit.list, "message_bg");
 			JSONEdit.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (view == self.create) {
 					JSONEdit.showNewItem(function(newItem) {
@@ -9355,6 +9289,8 @@ MapScript.loadModule("JSONEdit", {
 				if (JSONEdit.updateListener) JSONEdit.updateListener();
 				PWM.wm.removeViewImmediate(self.main);
 			}
+			
+			PWM.registerResetFlag(self, "main");
 		}
 		Common.initEnterAnimation(self.main);
 		self.show();
@@ -9366,15 +9302,14 @@ MapScript.loadModule("JSONEdit", {
 	showData : function(msg, data, callback) {G.ui(function() {try {
 		var layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		Common.applyStyle(layout, "message_bg");
 		title = new G.TextView(ctx);
-		title.setTextSize(Common.theme.textsize[4]);
-		title.setTextColor(Common.theme.textcolor);
 		title.setText(msg);
 		title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 		title.setPadding(0, 0, 0, 10 * G.dp);
+		Common.applyStyle(title, "textview_default", 4);
 		layout.addView(title);
 		if (typeof data == "boolean") {
 			ret = new G.CheckBox(ctx);
@@ -9386,24 +9321,21 @@ MapScript.loadModule("JSONEdit", {
 			ret = new G.EditText(ctx);
 			ret.setText(String(data));
 			ret.setSingleLine(false);
-			ret.setTextSize(Common.theme.textsize[2]);
-			ret.setTextColor(Common.theme.textcolor);
 			ret.setMinWidth(0.5 * Common.getScreenWidth());
-			ret.setBackgroundColor(G.Color.TRANSPARENT);
 			ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			ret.setLayoutParams(new G.LinearLayout.LayoutParams(-2, 0, 1.0));
 			if (typeof data == "number") ret.setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 			ret.setSelection(ret.length());
+			Common.applyStyle(ret, "edittext_default", 2);
 			Common.postIME(ret);
 		}
 		layout.addView(ret);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("确定");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			var t;
 			if (callback) {
@@ -9429,29 +9361,26 @@ MapScript.loadModule("JSONEdit", {
 	showBatchEdit : function(data, callback) {G.ui(function() {try {
 		var frame, layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
-		layout.setBackgroundColor(Common.theme.message_bgcolor);
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1, G.Gravity.CENTER));
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		Common.applyStyle(layout, "message_bg");
 		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {
 			return true;
 		}}));
 		ret = new G.EditText(ctx);
 		ret.setText(JSONEdit.showAll ? MapScript.toSource(data) : JSON.stringify(data, null, 4) || "<非法JSON>");
 		ret.setSingleLine(false);
-		ret.setTextSize(Common.theme.textsize[2]);
-		ret.setTextColor(Common.theme.textcolor);
-		ret.setBackgroundColor(G.Color.TRANSPARENT);
 		ret.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
 		ret.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+		Common.applyStyle(ret, "edittext_default", 2);
 		layout.addView(ret);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		exit.setText("保存");
-		exit.setTextSize(Common.theme.textsize[3]);
 		exit.setGravity(G.Gravity.CENTER);
-		exit.setTextColor(Common.theme.criticalcolor);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			var t;
 			if (callback) {
@@ -9645,25 +9574,22 @@ MapScript.loadModule("JSONEdit", {
 		vl.getLayoutParams().gravity = G.Gravity.CENTER;
 		name = holder.name = new G.TextView(ctx);
 		name.setEllipsize(G.TextUtils.TruncateAt.END);
-		name.setTextColor(Common.theme.textcolor);
-		name.setTextSize(Common.theme.textsize[3]);
 		name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		Common.applyStyle(name, "textview_default", 3);
 		vl.addView(name);
 		data = holder.data = new G.TextView(ctx);
 		data.setMaxLines(2);
 		data.setEllipsize(G.TextUtils.TruncateAt.END);
-		data.setTextColor(Common.theme.promptcolor);
-		data.setTextSize(Common.theme.textsize[1]);
 		data.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		Common.applyStyle(data, "textview_prompt", 1);
 		vl.addView(data);
 		hl.addView(vl);
 		more = new G.TextView(ctx);
 		more.setText(">");
-		more.setTextColor(Common.theme.promptcolor);
-		more.setTextSize(Common.theme.textsize[4]);
 		more.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 		more.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
 		more.getLayoutParams().gravity = G.Gravity.CENTER;
+		Common.applyStyle(more, "button_secondary", 4);
 		more.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			JSONEdit.showItemAction(holder.e);
 		} catch(e) {erp(e)}}}));
@@ -9694,12 +9620,11 @@ MapScript.loadModule("JSONEdit", {
 		for (i in JSONEdit.path) {
 			e = JSONEdit.path[i];
 			lbl = new G.TextView(ctx);
-			lbl.setTextSize(Common.theme.textsize[2]);
-			lbl.setTextColor(Common.theme.textcolor);
 			lbl.setText(String(e.name));
 			lbl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			lbl.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			lbl.setOnClickListener(JSONEdit.pathClick);
+			Common.applyStyle(lbl, "item_default", 2);
 			JSONEdit.pathbar.addView(lbl);
 		}
 		items =  JSONEdit.listItems(cd);
@@ -10983,7 +10908,7 @@ CA.IntelliSense.inner["default"] = {
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
-	"minSupportVer": "0.16.0",
+	"minSupportVer": "0.7.4",
 	"targetSupportVer": "1.2.13.54",
 	"commands": {},
 	"enums": {
@@ -11841,9 +11766,11 @@ CA.IntelliSense.inner["default"] = {
 			"cave_spider": "洞穴蜘蛛",
 			"chest_minecart": "运输矿车",
 			"chicken": "鸡",
+			"cod": "鳕鱼",
 			"command_block_minecart": "命令方块矿车",
 			"cow": "牛",
 			"creeper": "爬行者",
+			"dolphin": "海豚",
 			"donkey": "驴",
 			"dragon_fireball": "末影龙火球",
 			"drowned": "溺尸",
@@ -11854,7 +11781,7 @@ CA.IntelliSense.inner["default"] = {
 			"ender_pearl": "丢出的末影珍珠",
 			"enderman": "末影人",
 			"endermite": "末影螨",
-			"evocation_fang": "尖牙",
+			"evocation_fang": "唤魔者尖牙",
 			"evocation_illager": "唤魔者",
 			"eye_of_ender_signal": "丢出的末影之眼",
 			"falling_block": "掉落中的方块",
@@ -11884,7 +11811,9 @@ CA.IntelliSense.inner["default"] = {
 			"pig": "猪",
 			"player": "玩家",
 			"polar_bear": "北极熊",
+			"pufferfish": "河豚",
 			"rabbit": "兔子",
+			"salmon": "鲑鱼",
 			"sheep": "羊",
 			"shulker": "潜影贝",
 			"shulker_bullet": "潜影贝导弹",
@@ -11902,6 +11831,7 @@ CA.IntelliSense.inner["default"] = {
 			"thrown_trident": "掷出的三叉戟",
 			"tnt": "已激活的TNT",
 			"tnt_minecart": "TNT矿车",
+			"tropicalfish": "热带鱼",
 			"vex": "恼鬼",
 			"villager": "村民",
 			"vindicator": "卫道士",
@@ -11947,33 +11877,37 @@ CA.IntelliSense.inner["default"] = {
 			"fatal_poison": "剧毒"
 		},
 		"enchant_type": {
-			"protection": "保护",
-			"fire_protection": "火焰保护",
-			"feather_falling": "摔落保护",
-			"blast_protection": "爆炸保护",
-			"projectile_protection": "弹射物保护",
-			"respiration": "水下呼吸",
 			"aqua_affinity": "水下速掘",
-			"thorns": "荆棘",
-			"depth_strider": "深海探索者",
-			"frost_walker": "冰霜行者",
-			"sharpness": "锋利",
-			"smite": "亡灵杀手",
 			"bane_of_arthropods": "节肢杀手",
-			"knockback": "击退",
-			"fire_aspect": "火焰附加",
-			"looting": "抢夺",
+			"blast_protection": "爆炸保护",
+			"channeling": "引雷",
+			"depth_strider": "深海探索者",
 			"efficiency": "效率",
-			"silk_touch": "精准采集",
-			"unbreaking": "耐久",
-			"fortune": "时运",
-			"power": "力量",
-			"punch": "冲击",
+			"feather_falling": "摔落保护",
+			"fire_aspect": "火焰附加",
+			"fire_protection": "火焰保护",
 			"flame": "火矢",
+			"fortune": "时运",
+			"frost_walker": "冰霜行者",
+			"impaling": "穿刺",
 			"infinity": "无限",
+			"knockback": "击退",
+			"looting": "抢夺",
+			"loyalty": "忠诚",
 			"luck_of_the_sea": "海之眷顾",
 			"lure": "饵钓",
-			"mending": "经验修补"
+			"mending": "经验修补",
+			"power": "力量",
+			"projectile_protection": "弹射物保护",
+			"protection": "保护",
+			"punch": "冲击",
+			"respiration": "水下呼吸",
+			"riptide": "激流",
+			"sharpness": "锋利",
+			"silk_touch": "精准采集",
+			"smite": "亡灵杀手",
+			"thorns": "荆棘",
+			"unbreaking": "耐久"
 		},
 		"gamerule_string": {},
 		"gamerule_int": {},
@@ -12151,9 +12085,18 @@ CA.IntelliSense.inner["default"] = {
 	},
 	"versionPack": {
 		"base": {
-			"minSupportVer": "0.7.4",
+			"minSupportVer": "1.2",
 			"enums": {
 				"item": "block"
+			}
+		},
+		"idtable": {
+			"mode": "overwrite",
+			"maxSupportVer": "1.1.*",
+			"enums": {
+				"item": {},
+				"block": {},
+				"entity": {}
 			}
 		},
 		"0.16.0": {
