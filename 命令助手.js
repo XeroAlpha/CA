@@ -829,36 +829,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (!self.main) {
 			self.cmdEdit = [{
 				text : "粘贴",
-				description : "将剪贴板中的文本粘贴到文本框中",
 				onclick : function(v) {
 					if (!Common.hasClipboardText()) return;
-					var s = CA.cmd.getText(), start, cp;
-					var r = new G.SpannableStringBuilder(s);
-					r.replace(start = G.Selection.getSelectionStart(s), G.Selection.getSelectionEnd(s), cp = Common.getClipboardText());
-					CA.cmd.setText(r);
-					CA.cmd.setSelection(start + cp.length());
+					Common.replaceSelection(CA.cmd.getText(), Common.getClipboardText());
 				}
 			},{
-				text : "直接编辑",
-				description : "直接输入命令，避免IntelliSense带来的延迟",
-				onclick : function(v, tag) {
-					Common.showInputDialog({
-						title : "直接编辑",
-						callback : function(s) {
-							CA.cmd.setText(String(s).replace(/\n/g, " "));
-						},
-						defaultValue : tag.cmd
-					});
-				}
-			},{
-				text : "编辑样式代码",
-				description : "显示样式代码辅助输入框",
+				text : "显示样式代码栏",
 				onclick : function(v) {
 					CA.showFCS(CA.cmd.getText());
 				}
 			},{
-				text : "插入JSON",
-				description : "在命令尾部插入JSON",
+				text : "插入JSON/组件",
 				onclick : function(v) {
 					JSONEdit.create(function(data) {
 						var showMenu = function() {
@@ -892,8 +873,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				text : "创建批量生成模板",
+				onclick : function(v, tag) {
+					CA.showBatchBuilder(tag.cmd);
+				}
+			},{
 				text : "清空",
-				description : "清空文本，等效于点击输入框右侧的“×”",
 				onclick : function(v) {
 					CA.cmd.setText("");
 				}
@@ -1308,6 +1293,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				onclick : function(v, tag) {
 					Common.setClipboardText(tag.cmd);
 					Common.toast("已复制到您的剪贴板～");
+				}
+			},{
+				text : "从模板创建",
+				onclick : function(v, tag) {
+					CA.showBatchBuilder(tag.cmd, true);
 				}
 			},{
 				text : "编辑名称",
@@ -2609,7 +2599,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			lp2 = new G.LinearLayout.LayoutParams(0, -2, 1);
 			onclick = new G.View.OnClickListener({onClick : function(v) {try {
-				CA.cmd.getText().replace(G.Selection.getSelectionStart(CA.cmd.getText()), G.Selection.getSelectionEnd(CA.cmd.getText()), v.getText().toString());
+				Common.replaceSelection(CA.cmd.getText(), v.getText().toString());
 			} catch(e) {erp(e)}}});
 			
 			for (i = 0; i < data.length; i++) {
@@ -3769,6 +3759,416 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
 		return this.tips[this.settings.tipsRead];
 	},
+	
+	showBatchBuilder : function self(text, reset) {G.ui(function() {try {
+		if (!self.linear) {
+			self.variables = [];
+			self.bmpcache = [];
+			self.init = function(s) {
+				self.variables.length = 0;
+				self.spanNo = {};
+				self.edit.setText(self.unflatten(s));
+				self.edit.setSelection(self.edit.length());
+				self.setContent(self.getDefaultContent());
+			}
+			self.setContent = function(v) {
+				if (self.container.getChildAt(0) != v) {
+					self.container.removeAllViews();
+					self.container.addView(v, new G.FrameLayout.LayoutParams(-1, -1));
+				}
+			}
+			self.unflatten = function(str) {
+				var start = 0, r = new G.SpannableStringBuilder();
+				var pos_start, pos_type, pos_param, pos_end;
+				var cur, match, has_param, error = [];
+				while ((pos_start = str.indexOf("${", start)) >= 0) {
+					r.append(str.slice(start, pos_start).replace(/\$ /g, "$"));
+					try {
+						pos_type = str.indexOf(":", pos_start + 2);
+						if (pos_type < 0) throw "找不到变量类型";
+						pos_param = str.indexOf("(", pos_type + 1);
+						pos_end = str.indexOf("}", pos_type + 1);
+						if (pos_end < 0) throw "找不到变量结束符";
+						has_param = pos_param >= 0 && pos_end > pos_param;
+						cur = {
+							label : str.slice(pos_start + 2, pos_type),
+							type : str.slice(pos_type + 1, has_param ? pos_param : pos_end)
+						};
+						if (cur.label.length == 0) throw "变量名称不能为空";
+						if (!(cur.type in CA.BatchPattern)) throw "不存在的变量类型：" + cur.type;
+						if (has_param) {
+							match = CA.BatchPattern[cur.type].parse(str.slice(pos_param));
+							if (!match) throw "变量参数格式错误";
+							start = pos_param + match.length;
+							cur.data = match.data;
+						} else {
+							cur = self.createVariable(cur.label, cur.type);
+							start = pos_end;
+						}
+						if (str.slice(start, ++start) != "}") throw "找不到变量结束符";
+						r.append(self.buildSpan(cur));
+						self.variables.push(cur);
+					} catch(e) {
+						error.push(e + "(位置：" + pos_start + ")");
+						r.append("${");
+						start = pos_start + 2;
+						continue;
+					}
+				}
+				r.append(str.slice(start).replace(/\$ /g, "$"));
+				if (error.length) {
+					Common.showTextDialog(error.join("\n"));
+				}
+				return r;
+			}
+			self.addVariable = function() {
+				var i, r = [], a = CA.BatchPattern;
+				for (i in a) {
+					r.push({
+						text : a[i].name,
+						description : a[i].description,
+						obj : a[i],
+						id : i
+					});
+				}
+				Common.showListChooser(r, function(pos) {
+					var e = r[pos];
+					if (!self.spanNo[e.id]) self.spanNo[e.id] = 0;
+					self.insertVariable(self.createVariable(e.text + (++self.spanNo[e.id]), e.id), true);
+				}, true);
+			}
+			self.createImageSpan = function(bgcolor, frcolor, fontsize, text) {
+				var margin = 2 * G.dp, padding = 4 * G.dp;
+				var offset = margin + padding;
+				var pt = new G.Paint();
+				fontsize *= G.sp;
+				pt.setAntiAlias(true);
+				pt.setTextSize(fontsize);
+				pt.setTypeface(G.Typeface.MONOSPACE);
+				var fb = new G.Rect(), fm = pt.getFontMetrics();
+				fontsize -= 2 * offset / (fm.descent - fm.ascent);
+				pt.setTextSize(fontsize);
+				pt.getFontMetrics(fm);
+				pt.getTextBounds(text, 0, text.length, fb);
+				fb.top = fm.ascent; fb.bottom = fm.descent;
+				var bmp = G.Bitmap.createBitmap(fb.width() + 2 * offset, fb.height() + 2 * offset, G.Bitmap.Config.ARGB_8888);
+				var cv = new G.Canvas(bmp);
+				var ox = -fb.left, oy = -fb.top;
+				pt.setColor(bgcolor);
+				fb.inset(-padding, -padding);
+				fb.offsetTo(margin, margin);
+				cv.drawRect(fb, pt);
+				pt.setColor(frcolor);
+				cv.drawText(text, offset + ox, offset + oy , pt);
+				self.bmpcache.push(bmp);
+				return new G.ImageSpan(ctx, bmp, 0); //0 = ALIGN_BOTTOM
+			}
+			self.createVariable = function(label, type) {
+				var o = {
+					label : label,
+					type : type,
+					data : CA.BatchPattern[type].create()
+				};
+				return o;
+			}
+			self.insertVariable = function(o, notify) {
+				self.variables.push(o);
+				Common.replaceSelection(self.edit.getText(), self.buildSpan(o));
+				if (notify) self.clickSpan(o.span);
+			}
+			self.buildSpan = function(o) {
+				var ss = new G.SpannableString("${" + o.label + ":" + o.type + "}");
+				var span = self.createImageSpan(Common.theme.highlightcolor, Common.theme.bgcolor, Common.theme.textsize[3], o.label);
+				ss.setSpan(span, 0, ss.length(), G.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				o.span = span;
+				return ss;
+			}
+			self.findVariableBySpan = function(span) {
+				var i, e;
+				for (i in self.variables) {
+					e = self.variables[i];
+					if (e.span == span) return e;
+				}
+				return null;
+			}
+			self.clickSpan = function(span) {
+				var e = self.findVariableBySpan(span);
+				if (!e) return;
+				if (e.data.onClick) e.data.onClick();
+				if (e.data.layout) {
+					self.setContent(e.data.layout);
+				} else {
+					self.setContent(self.getDefaultContent());
+				}
+			}
+			self.endSpanEdit = function() {
+				self.setContent(self.getDefaultContent());
+			}
+			self.getVariables = function() {
+				var template = self.edit.getText();
+				var spans = template.getSpans(0, template.length(), G.ImageSpan);
+				var i, variables = [], e;
+				for (i in spans) {
+					e = self.findVariableBySpan(spans[i]);
+					if (!e) continue;
+					e.start = template.getSpanStart(spans[i]);
+					e.end = template.getSpanEnd(spans[i]);
+					variables.push(e);
+				}
+				variables.sort(function(a, b) {
+					return a.start - b.start;
+				});
+				return variables;
+			}
+			self.flatten = function() {
+				var template = String(self.edit.getText());
+				var vars = self.getVariables();
+				var i, r = [], pos = 0;
+				for (i in vars) {
+					r.push(template.slice(pos, vars[i].start));
+					r.push("${", vars[i].label, ":", vars[i].type);
+					r.push(CA.BatchPattern[vars[i].type].stringify(vars[i].data));
+					r.push("}");
+					pos = vars[i].end;
+				}
+				r.push(template.slice(pos, template.length));
+				return r.join("");
+			}
+			self.concatStrBundle = function(target, string) {
+				var i, j, dstLen, strLen;
+				if (!target.length) target.push("");
+				if (!Array.isArray(string)) string = [string];
+				dstLen = target.length;
+				strLen = string.length;
+				if (strLen > 1) {
+					target.length *= strLen;
+					for (i = dstLen - 1; i >= 0; i--) {
+						for (j = 0; j < strLen; j++) {
+							target[i * strLen + j] = target[i];
+						}
+					}
+				}
+				for (i = 0; i < dstLen; i++) {
+					for (j = 0; j < strLen; j++) {
+						target[i * strLen + j] += string[j];
+					}
+				}
+				return target;
+			}
+			self.export = function() {
+				var template = String(self.edit.getText());
+				var vars = self.getVariables();
+				var i, r = [], pos = 0;
+				for (i in vars) {
+					self.concatStrBundle(r, template.slice(pos, vars[i].start));
+					self.concatStrBundle(r, CA.BatchPattern[vars[i].type].export(vars[i].data));
+					pos = vars[i].end;
+				}
+				self.concatStrBundle(r, template.slice(pos, template.length));
+				return r;
+			}
+			self.touchEvent = function(event) {
+				var widget = self.edit, buffer = self.edit.getText();
+				var action = event.getAction(), x = event.getX(), y = event.getY();
+				var layout, linear, line, off, links;
+				x -= widget.getTotalPaddingLeft();
+				y -= widget.getTotalPaddingTop();
+				x += widget.getScrollX();
+				y += widget.getScrollY();
+				layout = widget.getLayout();
+				line = layout.getLineForVertical(y);
+				off = layout.getOffsetForHorizontal(line, x);
+				links = buffer.getSpans(off, off, G.ImageSpan);
+				if (x < layout.getLineMax(line) && links.length != 0) {
+					if (action == event.ACTION_UP) {
+						self.clickSpan(links[0]);
+					} else if (action == event.ACTION_DOWN) {
+						G.Selection.setSelection(buffer,
+							buffer.getSpanStart(links[0]),
+							buffer.getSpanEnd(links[0]));
+					}
+					return true;
+				} else {
+					self.endSpanEdit();
+				}
+				return false;
+			}
+			self.menuVMaker = function(holder) {
+				var view = new G.TextView(ctx);
+				view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				Common.applyStyle(view, "textview_default", 3);
+				return holder.text = view;
+			}
+			self.menuVBinder = function(holder, e) {
+				holder.text.setText(e.text);
+			}
+			self.buildMenuView = function(arr) {
+				var list = new G.ListView(ctx);
+				list.setAdapter(new SimpleListAdapter(arr, self.menuVMaker, self.menuVBinder));
+				list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+					parent.getItemAtPosition(pos).onclick();
+				} catch(e) {erp(e)}}}));
+				return list;
+			}
+			self.getDefaultContent = function() {
+				if (self.content_default) return self.content_default;
+				var view = self.buildMenuView([{
+					text : "添加变量……",
+					onclick : function() {
+						self.addVariable();
+					}
+				}, {
+					text : "预览",
+					onclick : function() {
+						if (!self.edit.length()) {
+							Common.toast("模板为空");
+							return;
+						}
+						Common.showTextDialog(self.export().join("\n"));
+					}
+				}, {
+					text : "保存至历史",
+					onclick : function() {
+						if (!self.edit.length()) {
+							Common.toast("模板为空");
+							return;
+						}
+						self.export().forEach(function(e) {
+							if (e.length) CA.addHistory(e);
+						});
+						if (CA.history) CA.showHistory();
+						self.popup.dismiss();
+						Common.toast("已保存至历史");
+					}
+				}, {
+					text : "收藏模板",
+					onclick : function() {
+						if (!self.edit.length()) {
+							Common.toast("模板为空");
+							return;
+						}
+						var cmd = self.flatten();
+						Common.showInputDialog({
+							title : "名称",
+							callback : function(s) {
+								if (s in CA.fav) {
+									Common.toast("名称已存在");
+								} else {
+									if (!s) s = cmd;
+									CA.fav[s] = cmd;
+									if (CA.history) CA.showHistory();
+									Common.toast("模板已收藏");
+								}
+							},
+							singleLine : true
+						});
+					}
+				}, {
+					text : "清空并关闭",
+					onclick : function() {
+						self.edit.setText("");
+						self.popup.dismiss();
+					}
+				}]);
+				self.content_default = view;
+				PWM.registerResetFlag(self, "content_default");
+				return view;
+			}
+			
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(5 * G.dp, 0, 0, 0)
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(self.header, "bar_float");
+			self.edit = new G.EditText(ctx);
+			self.edit.setSingleLine(true);
+			self.edit.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+			self.edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+			self.edit.setTypeface(G.Typeface.MONOSPACE);
+			Common.applyStyle(self.edit, "edittext_default", 3);
+			self.edit.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				var action = e.getAction();
+				if (action == e.ACTION_DOWN || action == e.ACTION_UP) self.touchEvent(e);
+				return false;
+			} catch(e) {return erp(e), true}}}));
+			self.header.addView(self.edit);
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("×");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 0, 10 * G.dp, 0)
+			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.dismiss();
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.exit);
+			self.linear.addView(self.header);
+			self.container = new G.FrameLayout(ctx);
+			self.container.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.linear.addView(self.container);
+			
+			PWM.registerResetFlag(self, "linear");
+		}
+		if (self.popup) self.popup.dismiss();
+		Common.initEnterAnimation(self.linear);
+		self.popup = new G.PopupWindow(self.linear, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			self.popup = null;
+		} catch(e) {erp(e)}}}));
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup);
+		if (reset || !self.edit.length()) self.init(text || "");
+	} catch(e) {erp(e)}})},
+	BatchPattern : {
+		list : {
+			name : "列表",
+			create : function() {
+				return this.buildLayout({
+					list : []
+				});
+			},
+			parse : function(s) {
+				var z = s.indexOf("|)");
+				if (z < 0) return;
+				return {
+					length : z + 2,
+					data : this.buildLayout({
+						list : s.slice(1, z).split("|")
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + o.list.join("|") + "|)";
+			},
+			export : function(o) {
+				this.update(o);
+				return o.list;
+			},
+			buildLayout : function(o) {
+				var text = new G.EditText(ctx);
+				text.setText(o.list.join("\n"));
+				text.setHint("每一行为列表的一个条目");
+				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
+				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+				Common.applyStyle(text, "edittext_default", 3);
+				o.layout = o.edittext = text;
+				return o;
+			},
+			update : function(o) {
+				o.list = String(o.edittext.getText()).split("\n");
+			}
+		}
+	},
+	
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -6606,11 +7006,10 @@ MapScript.loadModule("Common", {
 		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
-	customVMaker : function(s) {
+	customVMaker : function(holder) {
 		var view = new G.TextView(ctx);
 		view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 		view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-		view.setText(s);
 		Common.applyStyle(view, "textview_default", 3);
 		return view;
 	},
@@ -7752,6 +8151,17 @@ MapScript.loadModule("Common", {
 	},
 	getScreenWidth : function() {
 		return ctx.getResources().getDisplayMetrics().widthPixels;
+	},
+	
+	replaceSelection : function(s, text) {
+		var start = G.Selection.getSelectionStart(s);
+		var end = G.Selection.getSelectionEnd(s);
+		var t;
+		if (start > end) {
+			t = start; start = end; end = t;
+		}
+		if (start < 0) return;
+		s.replace(start, end, text);
 	}
 });
 
@@ -10336,7 +10746,7 @@ MapScript.loadModule("AndroidBridge", {
 		if (!intent) return;
 		switch (intent.getAction()) {
 			case ScriptActivity.ACTION_ADD_LIBRARY:
-			t = intent.getData().getPath();
+			t = AndroidBridge.uriToFile(intent.getData());
 			Common.showConfirmDialog({
 				title : "确定加载拓展包“" + t + "”？",
 				callback : function(id) {
