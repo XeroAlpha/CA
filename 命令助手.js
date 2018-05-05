@@ -993,7 +993,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.cmd.setHint("在此输入命令|长按打开菜单");
 			}
 			Common.applyStyle(CA.cmd, "edittext_default", 3);
-			CA.cmd.setInputType(G.InputType.TYPE_CLASS_TEXT | G.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+			CA.cmd.setInputType(G.InputType.TYPE_CLASS_TEXT | G.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
 			CA.cmd.setFocusableInTouchMode(true);
 			CA.cmd.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			CA.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
@@ -1007,7 +1007,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						var start = G.Selection.getSelectionStart(s);
 						var end = G.Selection.getSelectionEnd(s);
 						s.clearSpans();
-						FCString.parseFC_(s, Common.theme.textcolor);
+						FCString.colorFC(s, Common.theme.textcolor);
 						skip = true;
 						CA.cmd.setText(s);
 						skip = false;
@@ -8230,102 +8230,106 @@ MapScript.loadModule("FCString", {
 	ITALIC : "o",
 	RANDOMCHAR : "k",
 	RESET : "r",
-	parseFC : function(s, defaultcolor) {
-		var self = this;
-		var color = defaultcolor;
-		var cs = 0;
-		var style = {
-			"l" : null,
-			"m" : null,
-			"n" : null,
-			"o" : null,
-			"k" : null
-		};
-		var span = [];
-		s = String(s);
-		var d = [], c, i, f = false, r;
-		function startColor(c) {
-			if (color != null) endColor();
-			reset();
-			color = self.COLOR[c];
-			cs = d.length;
-		}
-		function endColor() {
-			if (color == null) return;
-			span.push({
-				type : "c",
-				color : color,
-				start : cs,
-				end : d.length
-			});
-			color = defaultcolor;
-		}
-		function startStyle(c) {
-			if (style[c] != null) endStyle(c);
-			style[c] = d.length;
-		}
-		function endStyle(c) {
-			if (style[c] == null) return;
-			span.push({
-				type : c,
-				start : style[c],
-				end : d.length
-			});
-			style[c] = null;
-		}
-		function reset() {
-			for (c in style) endStyle(c);
-			endColor();
-		}
-		for (i = 0; i < s.length; i++) {
-			c = s.slice(i, i + 1);
-			if (f) {
-				if (c in self.COLOR) {
-					startColor(c);
-				} else if (c in style) {
-					startStyle(c);
-				} else if (c == self.RESET) {
-					reset();
-				} else if (c == self.BEGIN) {
-					d.push(self.BEGIN);
-				} else {
-					d.push(self.BEGIN, c);
+	parseFC : function self(s, defaultcolor) {
+		if (!self.tokenize) {
+			self.tokenize = function(o, s) {
+				var c, i, f = false;
+				for (i = 0; i < s.length; i++) {
+					c = s.slice(i, i + 1);
+					if (f) {
+						if (c in FCString.COLOR) {
+							self.startColor(o, c);
+						} else if (c in o.style) {
+							self.startStyle(o, c);
+						} else if (c == FCString.RESET) {
+							self.reset(o);
+						} else if (c == FCString.BEGIN) {
+							o.result.push(FCString.BEGIN);
+							o.index += 1;
+						} else {
+							o.result.push(FCString.BEGIN, c);
+							o.index += 2;
+						}
+						f = false;
+					} else if (c == FCString.BEGIN){
+						f = true;
+					} else {
+						o.result.push(c);
+						o.index += 1;
+					}
 				}
-				f = false;
-			} else if (c == self.BEGIN){
-				f = true;
-			} else {
-				d.push(c);
+				self.reset(o);
+				if (f) o.result.push(FCString.BEGIN);
+			}
+			self.startColor = function(o, char) {
+				if (!isNaN(o.color)) self.endColor(o);
+				self.reset(o);
+				o.color = FCString.COLOR[char];
+				o.colorStart = o.index;
+			}
+			self.endColor = function(o) {
+				if (isNaN(o.color)) return;
+				o.spans.push({
+					span : new G.ForegroundColorSpan(o.color),
+					start : o.colorStart,
+					end : o.index
+				});
+				o.color = o.defaultcolor;
+			}
+			self.startStyle = function(o, char) {
+				if (!isNaN(o.style[char])) self.endStyle(o, char);
+				o.style[char] = o.index;
+			}
+			self.endStyle = function(o, char) {
+				if (isNaN(o.style[char])) return;
+				o.spans.push({
+					span : self.buildStyleSpan(char),
+					start : o.style[char],
+					end : o.index
+				});
+				o.style[char] = NaN;
+			}
+			self.reset = function(o) {
+				var char;
+				for (char in o.style) self.endStyle(o, char);
+				self.endColor(o);
+			}
+			self.buildStyleSpan = function(ch) {
+				switch (ch) {
+					case FCString.BOLD:
+					return new G.StyleSpan(G.Typeface.BOLD);
+					case FCString.STRIKETHROUGH:
+					return new G.StrikethroughSpan();
+					case FCString.UNDERLINE:
+					return new G.UnderlineSpan();
+					case FCString.ITALIC:
+					return new G.StyleSpan(G.Typeface.ITALIC);
+					case FCString.RANDOMCHAR:
+					return new G.StyleSpan(0); //Unknown
+				}
 			}
 		}
-		reset();
-		if (f) d.push(self.BEGIN);
-		r = new G.SpannableString(d.join(""));
-		span.forEach(function(e, i, a) {
-			switch (e.type) {
-				case "c":
-				r.setSpan(new G.ForegroundColorSpan(e.color), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.BOLD:
-				r.setSpan(new G.StyleSpan(G.Typeface.BOLD), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.STRIKETHROUGH:
-				r.setSpan(new G.StrikethroughSpan(), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.UNDERLINE:
-				r.setSpan(new G.UnderlineSpan(), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.ITALIC:
-				r.setSpan(new G.StyleSpan(G.Typeface.ITALIC), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			}
+		var o = {
+			color : defaultcolor,
+			colorStart : 0,
+			style : {},
+			spans : [],
+			result : [],
+			index : 0
+		};
+		o.style[this.BOLD] = NaN;
+		o.style[this.STRIKETHROUGH] = NaN;
+		o.style[this.UNDERLINE] = NaN;
+		o.style[this.ITALIC] = NaN;
+		o.style[this.RANDOMCHAR] = NaN;
+		self.tokenize(o, String(s));
+		var r = new G.SpannableString(o.result.join(""));
+		o.spans.forEach(function(e) {
+			r.setSpan(e.span, e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 		});
 		return r;
 	},
-	parseFC_ : function(ss, defaultcolor) {
+	colorFC : function(ss, defaultcolor) {
 		var self = this;
 		var color = defaultcolor;
 		var cs = 0;
@@ -10776,6 +10780,9 @@ MapScript.loadModule("AndroidBridge", {
 				ctx.startActivity(t);
 			}
 			break;
+			case ScriptActivity.ACTION_SCRIPT_ACTION:
+			AndroidBridge.scriptAction();
+			break;
 			case ScriptActivity.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			Common.showDebugDialog();
@@ -10818,6 +10825,18 @@ MapScript.loadModule("AndroidBridge", {
 			PWM.hideAll();
 			PWM.intentBack = true;
 		}
+	},
+	scriptAction : function() {
+		Common.showOperateDialog([{
+			text : "显示/隐藏图标",
+			onclick : function() {
+				if (CA.icon) {
+					CA.hideIcon();
+				} else {
+					CA.showIcon();
+				}
+			}
+		}]);
 	},
 	notifySettings : function() {
 		G.ui(function() {try {
