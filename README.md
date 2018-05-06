@@ -28,14 +28,6 @@
 * 宣传片： [bilibili:av14938870](http://www.bilibili.com/video/av14938870)
 * [正式版下载链接](http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919)
 
-## 编译步骤
-1. 创建一个副本并将副本代码中的 `{DATE}` 替换为当前日期，格式为 `yyyy-mm-dd` 。
-2. 其次将代码中的 `{HELP}` 替换为[帮助.html](https://gitee.com/projectxero/ca/blob/master/%E5%B8%AE%E5%8A%A9.html)的内容。
-3. 删除代码中所有在 `"IGNORELN_START";` 与 `"IGNORELN_END";` 的换行符及两侧的空白字符。
-4. （可选）运行GModuleOrganize.js，整理G模块。
-5. （可选）对代码进行压缩编码，GZIP+base64，自解压脚本需在开头加上 `"ui";` 。运行时自动解码解压。
-
-
-
-
-
+## 生成
+在当前目录下运行 `node export.js` 即可。
+文件会导出至 `/export` 。

@@ -10781,7 +10781,7 @@ MapScript.loadModule("AndroidBridge", {
 			}
 			break;
 			case ScriptActivity.ACTION_SCRIPT_ACTION:
-			AndroidBridge.scriptAction();
+			if (!startByIntent) AndroidBridge.scriptAction();
 			break;
 			case ScriptActivity.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -10827,16 +10827,7 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	},
 	scriptAction : function() {
-		Common.showOperateDialog([{
-			text : "显示/隐藏图标",
-			onclick : function() {
-				if (CA.icon) {
-					CA.hideIcon();
-				} else {
-					CA.showIcon();
-				}
-			}
-		}]);
+		Common.showOperateDialog(this.keeperMenu);
 	},
 	notifySettings : function() {
 		G.ui(function() {try {
@@ -11096,7 +11087,22 @@ MapScript.loadModule("AndroidBridge", {
 				CA.addHistory(s);
 			} catch(e) {erp(e)}}}));
 		}
-	} catch(e) {erp(e)}})}
+	} catch(e) {erp(e)}})},
+	keeperMenu : [{
+		text : "显示/隐藏图标",
+		onclick : function() {
+			if (CA.icon) {
+				CA.hideIcon();
+			} else {
+				CA.showIcon();
+			}
+		}
+	}, {
+		text : "快捷栏",
+		onclick : function() {
+			CA.showQuickBar();
+		}
+	}]
 });
 
 MapScript.loadModule("NeteaseAdapter", {
