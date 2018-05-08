@@ -1002,16 +1002,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.cmd.addTextChangedListener(new G.TextWatcher({
 				afterTextChanged : (function() {
 					var state = -1;
-					var skip = false;
 					var rep = function(s) {
-						var start = G.Selection.getSelectionStart(s);
-						var end = G.Selection.getSelectionEnd(s);
-						s.clearSpans();
+						FCString.clearSpans(s);
 						FCString.colorFC(s, Common.theme.textcolor);
-						skip = true;
-						CA.cmd.setText(s);
-						skip = false;
-						G.Selection.setSelection(CA.cmd.getText(), start, end);
 					}
 					var gostate0 = function() {
 						state = 0;
@@ -1051,7 +1044,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 					return function(s) {try {
 						s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-						if (skip) return;
 						CA.cmdstr = String(s);
 						if (CA.settings.iiMode == 1 && CA.Assist.active) {
 							if (state != 3) gostate3();
@@ -8165,6 +8157,121 @@ MapScript.loadModule("Common", {
 	}
 });
 
+MapScript.loadModule("Plugins", {
+	FEATURES : [
+		"injectable",
+		"observable"
+	],
+	modules : {},
+	observers : {
+		plugin : {
+			inject : []
+		}
+	},
+	Plugin : {
+		get : function() {
+			return this.core;
+		},
+		observe : function(type, target, f) {
+			this._parent.registerObserver(this.uuid, type, target, f);
+		},
+		unobserve : function(type, target, f) {
+			this._parent.unregisterObserver(this.uuid, type, target, f);
+		},
+		require : function() {
+			for (i in arguments) {
+				if (this._parent.FEATURES.indexOf(arguments[i]) < 0) throw new Error("Require Feature:" + arguments[i]);
+			}
+		}
+	},
+	inject : function(f) {
+		var o = Object.create(this.Plugin);
+		o._parent = this;
+		try {
+			o.core = f(o);
+		} catch(e) {
+			o.error = e;
+		}
+		this.fillInfo(o);
+		if (o.uuid in this.modules) {
+			return this.modules[o.uuid].info;
+		} else {
+			if (o.core.init) o.core.init();
+			this.emit("plugin", "inject", o.uuid);
+			return (this.modules[o.uuid] = o).info;
+		}
+	},
+	fillInfo : function(o) {
+		if (!o.core) o.core = {};
+		if (!o.info) o.info = {};
+		if (!o.name) o.name = o.core.name || "未知插件";
+		if (!o.description) o.description = o.core.description || "";
+		if (!o.author) o.author = o.core.author || "Anonymous";
+		if (!o.uuid) o.uuid = o.core.uuid || (o.author + ":" + o.name);
+		if (!Array.isArray(o.version)) o.version = o.core.version || [0];
+		if (!Array.isArray(o.require)) o.require = o.core.require || [];
+		if (!Array.isArray(o.menu)) o.menu = o.core.menu || [];
+		if (o.error) {
+			o.menu.unshift({
+				text : "查看错误",
+				onclick : function() {
+					erp(e);
+				}
+			});
+		}
+		o.info = {
+			name : o.name,
+			description : o.description,
+			author : o.author,
+			uuid : o.uuid,
+			version : o.version,
+			require : o.require,
+			menu : o.menu
+		}
+	},
+	registerObserver : function(module, type, target, f) {
+		var o = this.getObservers(type, target);
+		o.push({
+			module : module,
+			observer : f
+		});
+	},
+	unregisterObserver : function(module, type, target, f) {
+		var i, o;
+		if (f) {
+			o = this.getObservers(type, target);
+			for (i = o.length - 1; i >= 0; i--) {
+				if (o[i].module == module && o[i].observer == f) {
+					o.splice(i, 1);
+				}
+			}
+		} else if (target) {
+			o = this.getObservers(type, target);
+			for (i = o.length - 1; i >= 0; i--) {
+				if (o[i].module == module) o.splice(i, 1);
+			}
+		} else if (type) {
+			o = this.observers[type];
+			if (!o) throw new Error("Invalid event type: " + type);
+			for (i in o) this.unregisterObserver(module, type, i);
+		} else {
+			o = this.observers;
+			for (i in o) this.unregisterObserver(module, i);
+		}
+	},
+	getObservers : function(type, target) {
+		var o = this.observers;
+		if (!(type in o)) throw new Error("Invalid event type: " + type);
+		o = o[type];
+		if (!o[target]) o[target] = [];
+		return o[target];
+	},
+	emit : function(type, target) {
+		var i, o = this.getObservers(type, target);
+		for (i in o) o[i].apply(this.modules[o[i].module], arguments);
+	}
+});
+
 MapScript.loadModule("appendSSB", function(src, str, span) { //#IMPORTANT# Fix Bug: SpannableStringBuilder.append(CharSequence text, Object what, int flags) can only run on Android 5.0+
 	var c = src.length();
 	src.append(str);
@@ -8230,7 +8337,7 @@ MapScript.loadModule("FCString", {
 	ITALIC : "o",
 	RANDOMCHAR : "k",
 	RESET : "r",
-	parseFC : function self(s, defaultcolor) {
+	parseFC : function self(s) {
 		if (!self.tokenize) {
 			self.tokenize = function(o, s) {
 				var c, i, f = false;
@@ -8238,6 +8345,7 @@ MapScript.loadModule("FCString", {
 					c = s.slice(i, i + 1);
 					if (f) {
 						if (c in FCString.COLOR) {
+							self.reset(o);
 							self.startColor(o, c);
 						} else if (c in o.style) {
 							self.startStyle(o, c);
@@ -8263,7 +8371,6 @@ MapScript.loadModule("FCString", {
 			}
 			self.startColor = function(o, char) {
 				if (!isNaN(o.color)) self.endColor(o);
-				self.reset(o);
 				o.color = FCString.COLOR[char];
 				o.colorStart = o.index;
 			}
@@ -8274,7 +8381,7 @@ MapScript.loadModule("FCString", {
 					start : o.colorStart,
 					end : o.index
 				});
-				o.color = o.defaultcolor;
+				o.color = NaN;
 			}
 			self.startStyle = function(o, char) {
 				if (!isNaN(o.style[char])) self.endStyle(o, char);
@@ -8310,7 +8417,7 @@ MapScript.loadModule("FCString", {
 			}
 		}
 		var o = {
-			color : defaultcolor,
+			color : NaN,
 			colorStart : 0,
 			style : {},
 			spans : [],
@@ -8329,130 +8436,134 @@ MapScript.loadModule("FCString", {
 		});
 		return r;
 	},
-	colorFC : function(ss, defaultcolor) {
-		var self = this;
-		var color = defaultcolor;
-		var cs = 0;
-		var style = {
-			"l" : null,
-			"m" : null,
-			"n" : null,
-			"o" : null,
-			"k" : null
-		};
-		var span = [];
-		var s = String(ss);
-		var c, i, f = -1, r;
-		function startColor(c) {
-			if (color != defaultcolor) endColor();
-			reset();
-			color = self.COLOR[c];
-			cs = i + 1;
-		}
-		function endColor() {
-			if (color == defaultcolor) return;
-			span.push({
-				type : "c",
-				color : color,
-				start : cs,
-				end : i
-			});
-			color = defaultcolor;
-		}
-		function startStyle(c) {
-			if (style[c] != null) endStyle(c);
-			style[c] = i;
-		}
-		function endStyle(c, reset) {
-			if (style[c] == null) return;
-			span.push({
-				type : c,
-				start : style[c],
-				end : reset ? i : i - 1
-			});
-			style[c] = null;
-		}
-		function reset(f) {
-			for (var c in style) endStyle(c, f);
-			endColor();
-		}
-		for (i = 0; i < s.length; i++) {
-			c = s.slice(i, i + 1);
-			if (f >= 0) {
-				if (c in self.COLOR) {
-					startColor(c);
-					span.push({
-						type : "c_",
-						color : self.COLOR[c],
-						start : i - 1,
-						end : i + 1
-					});
-				} else if (c in style) {
-					startStyle(c);
-					span.push({
-						type : "s_",
-						start : i - 1,
-						end : i + 1
-					});
-					span.push({
-						type : c,
-						start : i - 1,
-						end : i + 1
-					});
-				} else if (c == self.RESET) {
-					reset();
-					span.push({
-						type : "s_",
-						start : i - 1,
-						end : i + 1
-					});
-				} else if (c == self.BEGIN) {
-					span.push({
-						type : "s_",
-						start : i - 1,
-						end : i
-					});
+	colorFC : function self(ss, defaultcolor) {
+		if (!self.tokenize) {
+			self.tokenize = function(o, s) {
+				var c, i, f = false;
+				for (i = 0; i < s.length; o.index = ++i) {
+					c = s.slice(i, i + 1);
+					if (f) {
+						if (c in FCString.COLOR) {
+							o.index--;
+							self.reset(o);
+							self.startColor(o, c);
+							self.colorTag(o, 2);
+						} else if (c in o.style) {
+							o.index--;
+							self.startStyle(o, c);
+							self.colorTag(o, 2);
+						} else if (c == FCString.RESET) {
+							o.index--;
+							self.reset(o);
+							self.colorTag(o, 2);
+						} else if (c == FCString.BEGIN) {
+							o.index--;
+							self.colorTag(o, 1);
+						}
+						f = false;
+					} else if (c == FCString.BEGIN){
+						f = true;
+					}
 				}
-				f = -1;
-			} else if (c == this.BEGIN){
-				f = i;
+				if (f) {
+					o.index--;
+					self.colorTag(o, 1);
+					o.index++;
+				}
+				self.reset(o);
+			}
+			self.startColor = function(o, char) {
+				if (!isNaN(o.color)) self.endColor(o);
+				o.color = FCString.COLOR[char];
+				o.colorStart = o.index;
+			}
+			self.endColor = function(o) {
+				if (isNaN(o.color)) return;
+				o.spans.push({
+					span : new G.ForegroundColorSpan(o.color),
+					start : o.colorStart,
+					end : o.index
+				});
+				o.color = NaN;
+			}
+			self.startStyle = function(o, char) {
+				if (!isNaN(o.style[char])) self.endStyle(o, char);
+				o.style[char] = o.index;
+			}
+			self.endStyle = function(o, char) {
+				if (isNaN(o.style[char])) return;
+				o.spans.push({
+					span : self.buildStyleSpan(char),
+					start : o.style[char],
+					end : o.index
+				});
+				o.style[char] = NaN;
+			}
+			self.reset = function(o) {
+				var char;
+				for (char in o.style) self.endStyle(o, char);
+				self.endColor(o);
+			}
+			self.colorTag = function(o, len) {
+				if (!isNaN(o.color)) {
+					if (o.colorStart < o.index) {
+						o.spans.push({
+							span : new G.ForegroundColorSpan(o.color),
+							start : o.colorStart,
+							end : o.index
+						});
+					}
+					o.colorStart = o.index + len;
+				}
+				o.spans.push({
+					span : new G.ForegroundColorSpan(Common.setAlpha(isNaN(o.color) ? o.defaultcolor : o.color, 0x80)),
+					start : o.index,
+					end : o.index + len
+				});
+			}
+			self.buildStyleSpan = function(ch) {
+				switch (ch) {
+					case FCString.BOLD:
+					return new G.StyleSpan(G.Typeface.BOLD);
+					case FCString.STRIKETHROUGH:
+					return new G.StrikethroughSpan();
+					case FCString.UNDERLINE:
+					return new G.UnderlineSpan();
+					case FCString.ITALIC:
+					return new G.StyleSpan(G.Typeface.ITALIC);
+					case FCString.RANDOMCHAR:
+					return new G.StyleSpan(0); //Unknown
+				}
 			}
 		}
-		reset(true);
-		span.forEach(function(e, i, a) {
-			switch (e.type) {
-				case "c":
-				ss.setSpan(new G.ForegroundColorSpan(e.color), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case "c_":
-				ss.setSpan(new G.ForegroundColorSpan(Common.setAlpha(e.color, 0x80)), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case "s_":
-				ss.setSpan(new G.ForegroundColorSpan(Common.setAlpha(defaultcolor, 0x80)), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.BOLD:
-				ss.setSpan(new G.StyleSpan(G.Typeface.BOLD), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.STRIKETHROUGH:
-				ss.setSpan(new G.StrikethroughSpan(), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.UNDERLINE:
-				ss.setSpan(new G.UnderlineSpan(), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				break;
-				
-				case self.ITALIC:
-				ss.setSpan(new G.StyleSpan(G.Typeface.ITALIC), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-				
-				case self.RANDOMCHAR:
-				//ss.setSpan(new G.StyleSpan(G.Typeface.ITALIC), e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			}
+		var o = {
+			defaultcolor : defaultcolor,
+			color : NaN,
+			colorStart : 0,
+			style : {},
+			spans : [],
+			index : 0
+		};
+		o.style[this.BOLD] = NaN;
+		o.style[this.STRIKETHROUGH] = NaN;
+		o.style[this.UNDERLINE] = NaN;
+		o.style[this.ITALIC] = NaN;
+		o.style[this.RANDOMCHAR] = NaN;
+		self.tokenize(o, String(ss));
+		o.spans.forEach(function(e) {
+			ss.setSpan(e.span, e.start, e.end, G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 		});
-		return r;
+	},
+	clearSpans : function(ss) {
+		[
+			G.ForegroundColorSpan,
+			G.StyleSpan,
+			G.StrikethroughSpan,
+			G.UnderlineSpan
+		].forEach(function(e) {
+			var i, a = ss.getSpans(0, ss.length(), e);
+			for (i in a) ss.removeSpan(a[i]);
+		});
 	}
 });
 
@@ -9328,7 +9439,7 @@ MapScript.loadModule("ISegment", {
 			} else if (o.command) {
 				result.append(o.command);
 				self.coverSpan(result, new G.ForegroundColorSpan(G.Color.WHITE));
-				FCString.parseFC_(result, G.Color.WHITE);
+				FCString.colorFC(result, G.Color.WHITE);
 				self.coverSpan(result, new G.TypefaceSpan("monospace"));
 				self.coverSpan(result, new G.BackgroundColorSpan(G.Color.BLACK));
 			} else if (o.list) {
