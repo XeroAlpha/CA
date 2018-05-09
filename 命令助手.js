@@ -8166,7 +8166,8 @@ MapScript.loadModule("Plugins", {
 	observers : {
 		plugin : {
 			inject : []
-		}
+		},
+		custom : {}
 	},
 	Plugin : {
 		get : function() {
@@ -8178,7 +8179,7 @@ MapScript.loadModule("Plugins", {
 		unobserve : function(type, target, f) {
 			this._parent.unregisterObserver(this.uuid, type, target, f);
 		},
-		require : function() {
+		feature : function() {
 			for (i in arguments) {
 				if (this._parent.FEATURES.indexOf(arguments[i]) < 0) throw new Error("Require Feature:" + arguments[i]);
 			}
@@ -8188,7 +8189,7 @@ MapScript.loadModule("Plugins", {
 		var o = Object.create(this.Plugin);
 		o._parent = this;
 		try {
-			o.core = f(o);
+			o.core = typeof f == "function" ? f(o) : Object(f);
 		} catch(e) {
 			o.error = e;
 		}
@@ -8196,7 +8197,7 @@ MapScript.loadModule("Plugins", {
 		if (o.uuid in this.modules) {
 			return this.modules[o.uuid].info;
 		} else {
-			if (o.core.init) o.core.init();
+			if (o.core.init) o.core.init(o);
 			this.emit("plugin", "inject", o.uuid);
 			return (this.modules[o.uuid] = o).info;
 		}
@@ -8227,7 +8228,10 @@ MapScript.loadModule("Plugins", {
 			version : o.version,
 			require : o.require,
 			menu : o.menu
-		}
+		};
+		if (!CA.settings.moduleSettings) CA.settings.moduleSettings = {};
+		if (!CA.settings.moduleSettings[o.uuid]) CA.settings.moduleSettings[o.uuid] = {};
+		o.settings = CA.settings.moduleSettings[o.uuid];
 	},
 	registerObserver : function(module, type, target, f) {
 		var o = this.getObservers(type, target);
@@ -8267,8 +8271,15 @@ MapScript.loadModule("Plugins", {
 		return o[target];
 	},
 	emit : function(type, target) {
-		var i, o = this.getObservers(type, target);
-		for (i in o) o[i].apply(this.modules[o[i].module], arguments);
+		var i, o = this.getObservers(type, target), t;
+		for (i in o) {
+			t = this.modules[o[i].module];
+			try {
+				o[i].apply(t, arguments);
+			} catch(e) {
+				if (t.onError instanceof Function) t.onError(e);
+			}
+		}
 	}
 });
 
