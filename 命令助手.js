@@ -1530,6 +1530,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else {
 			self.favorite.setAdapter(new RhinoListAdapter(t, self.fava));
 		}
+		if (CA.paste) CA.showPaste.refresh();
 		if (CA.history) return;
 		CA.history = self.linear;
 		self.linear.setTranslationX(self.tx = self.lx = 0);
@@ -2248,6 +2249,27 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				name : "粘贴栏位置",
+				type : "custom",
+				list : [{
+					text : "左侧"
+				}, {
+					text : "右侧"
+				}],
+				get : function() {
+					if (CA.settings.pasteBarGravity in this.list) {
+						return this.list[CA.settings.pasteBarGravity].text;
+					} else {
+						return this.list[CA.settings.pasteBarGravity = 0].text;
+					}
+				},
+				onclick : function(fset) {
+					Common.showListChooser(this.list, function(i) {
+						CA.settings.pasteBarGravity = i;
+						fset();
+					});
+				}
+			},{
 				name : "粘贴延迟",
 				type : "custom",
 				get : function() {
@@ -2676,131 +2698,113 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 	},
 	
-	showPaste : function self(index) {G.ui(function() {try {
+	showPaste : function self() {G.ui(function() {try {
 		if (!self.bar) {
-			self.bar = new G.LinearLayout(ctx);
-			self.bar.setAlpha(0.8);
-			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
-			Common.applyStyle(self.bar, "bar_float");
-			
-			self.buttonlis = new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			var vcfg = G.ViewConfiguration.get(ctx);
+			var touchSlop = vcfg.getScaledTouchSlop();
+			self.vmaker = function(holder) {
+				var view = new G.TextView(ctx);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				Common.applyStyle(view, "textview_default", 2);
+				return view;
+			}
+			self.vbinder = function(holder, s, i, a) {
+				holder.self.setText(s);
+			}
+			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.refresh = function() {
+				self.adapter.setArray(CA.his);
+			}
+			self.updateWidth = function(width) {
+				if (width > self.widthMax) width = self.widthMax;
+				if (width < self.widthMin) {
+					self.inDrawer = true;
+					width = 0;
+				} else {
+					self.inDrawer = false;
+				}
+				self.lparam.width = width;
+				self.linear.setLayoutParams(self.lparam);
+			}
+			self.touchListener = new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
-					case e.ACTION_DOWN:
-					Common.applyStyle(v, "button_reactive_pressed", 3);
+					case e.ACTION_MOVE:
+					if (touch.stead) {
+						if (Math.abs(touch.lx - e.getRawX()) < 16 * G.dp) {
+							break;
+						}
+						touch.stead = false;
+						if (!self.inDrawer) self.list.setVisibility(G.View.GONE);
+						CA.paste.update(Common.getScreenWidth(), -1);
+					}
+					self.updateWidth(touch.slw + (e.getRawX() - touch.lx) * self.dir);
 					break;
-					case e.ACTION_CANCEL:
+					case e.ACTION_DOWN:
+					touch.lx = e.getRawX();
+					touch.ly = e.getRawY();
+					touch.slw = self.lparam.width;
+					self.widthMin = 0.1 * Common.getScreenWidth();
+					self.widthMax = 9 * self.widthMin;
+					touch.stead = true;
+					break;
 					case e.ACTION_UP:
-					Common.applyStyle(v, "button_reactive", 3);
+					self.updateWidth(touch.slw + (e.getRawX() - touch.lx) * self.dir);
+					case e.ACTION_CANCEL:
+					if (!self.inDrawer) self.list.setVisibility(G.View.VISIBLE);
+					CA.paste.update(self.lparam.width + 16 * G.dp, -1);
 				}
 				return false;
 			} catch(e) {return erp(e), true}}});
-			
-			self.refresh = function() {
-				self.cmd.setText(CA.his[self.cur]);
-				Common.setClipboardText(self.cmd.getText());
-			}
-			
-			self.prev = new G.TextView(ctx);
-			self.prev.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.prev.setText("<");
-			self.prev.setGravity(G.Gravity.CENTER);
-			self.prev.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.prev, "button_reactive", 3);
-			self.prev.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var t = CA.his.length;
-				if (t == 0) return true;
-				self.cur = (self.cur + 1) % t;
-				self.refresh();
-				return true;
-			} catch(e) {erp(e)}}}));
-			self.prev.setOnTouchListener(self.buttonlis);
-			self.bar.addView(self.prev);
-			
-			self.next = new G.TextView(ctx);
-			self.next.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.next.setText(">");
-			self.next.setGravity(G.Gravity.CENTER);
-			self.next.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.next, "button_reactive", 3);
-			self.next.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var t = CA.his.length;
-				if (t == 0) return true;
-				self.cur = (t + self.cur - 1) % t;
-				self.refresh();
-				return true;
-			} catch(e) {erp(e)}}}));
-			self.next.setOnTouchListener(self.buttonlis);
-			self.bar.addView(self.next);
-			
-			self.cmd = new G.TextView(ctx);
-			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
-			self.cmd.setSingleLine(true);
-			self.cmd.setFocusable(false);
-			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-			self.cmd.setTypeface(G.Typeface.MONOSPACE);
-			self.cmd.setMovementMethod(G.ScrollingMovementMethod.getInstance());
-			Common.applyStyle(self.cmd, "edittext_default", 3);
-			self.cmd.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				if (e.getAction() == e.ACTION_UP && e.getEventTime() - e.getDownTime() < 100) {
-					self.exit.performClick();
-					CA.cmd.setText(self.cmd.getText());
-					CA.showGen(CA.settings.noAnimation);
-					v.postDelayed(new java.lang.Runnable({run : function() {try {
-						CA.showGen.activate(true);
-					} catch(e) {erp(e)}}}), 500);
-				}
-				return false;
-			} catch(e) {return erp(e), true}}}));
-			self.bar.addView(self.cmd);
-			
-			self.paste = new G.TextView(ctx);
-			self.paste.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.paste.setText("📋");
-			self.paste.setGravity(G.Gravity.CENTER);
-			self.paste.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.paste, "button_secondary", 3);
-			self.paste.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				CA.performPaste(self.cmd.getText().toString());
-			} catch(e) {erp(e)}}}));
-			self.bar.addView(self.paste);
-			
+			self.bar = new G.FrameLayout(ctx);
+			self.bar.setOnTouchListener(self.touchListener);
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setLayoutParams(self.lparam = new G.FrameLayout.LayoutParams(0.4 * Common.getScreenWidth(), -1, G.Gravity.LEFT));
+			Common.applyStyle(self.linear, "bar_float");
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			self.title = new G.TextView(ctx);
+			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
+			self.title.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			self.title.setText("粘贴栏");
+			Common.applyStyle(self.title, "textview_prompt", 1);
+			self.header.addView(self.title);
 			self.exit = new G.TextView(ctx);
-			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setText("关闭");
-			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.exit, "button_reactive", 3);
+			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+			self.exit.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			self.exit.setText("x");
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (!CA.settings.askedPaste) {
-					Common.showConfirmDialog({
-						title : "是否永久关闭粘贴栏？",
-						description : "您可以随时在设置中更改",
-						buttons : ["暂时隐藏", "永久关闭"],
-						canSkip : true,
-						skip : function(f) {
-							CA.settings.askedPaste = Boolean(f);
-							CA.trySave();
-						},
-						callback : function(id) {
-							CA.settings.pasteMode = id == 1 ? 0 : 1;
-						}
-					});
-				}
 				CA.hidePaste();
-				return true;
 			} catch(e) {erp(e)}}}));
-			self.exit.setOnTouchListener(self.buttonlis);
-			self.bar.addView(self.exit);
-			PWM.registerResetFlag(CA, "paste");
-			PWM.registerResetFlag(self, "bar");
+			Common.applyStyle(self.exit, "button_critical", 1);
+			self.header.addView(self.exit);
+			self.linear.addView(self.header);
+			self.list = new G.ListView(ctx);
+			self.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.list.setAdapter(self.adapter.self);
+			self.list.setOnTouchListener(self.touchListener);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				CA.performPaste(self.adapter.array[pos]);
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list);
+			self.bar.addView(self.linear);
 		}
-		self.cur = index;
+		if (CA.settings.pasteBarGravity == 1) {
+			self.lparam.gravity = self.gravity = G.Gravity.RIGHT;
+			self.lparam.setMargins(16 * G.dp, 0, 0, 0);
+			self.dir = -1;
+		} else {
+			self.lparam.gravity = self.gravity = G.Gravity.LEFT;
+			self.lparam.setMargins(0, 0, 16 * G.dp, 0);
+			self.dir = 1;
+		}
 		self.refresh();
 		if (CA.paste) return;
-		CA.paste = new G.PopupWindow(self.bar, -1, -2);
+		CA.paste = new G.PopupWindow(self.bar, self.lparam.width + 16 * G.dp, -1);
 		if (CA.supportFloat) CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), CA.supportFloat ? G.Gravity.TOP : G.Gravity.BOTTOM, 0, 0);
+		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), self.gravity, 0, 0);
 		PWM.addPopup(CA.paste);
 	} catch(e) {erp(e)}})},
 	hidePaste : function() {G.ui(function() {try {
@@ -8277,7 +8281,9 @@ MapScript.loadModule("Plugins", {
 			try {
 				o[i].apply(t, arguments);
 			} catch(e) {
-				if (t.onError instanceof Function) t.onError(e);
+				try {
+					if (t.onError instanceof Function) t.onError(e);
+				} catch(e) {}
 			}
 		}
 	}
