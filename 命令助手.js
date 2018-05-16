@@ -366,7 +366,6 @@ MapScript.loadModule("G", {
 	Rect: android.graphics.Rect,
 	ScaleAnimation: android.view.animation.ScaleAnimation,
 	ScrollView: android.widget.ScrollView,
-	ScrollingMovementMethod: android.text.method.ScrollingMovementMethod,
 	SeekBar: android.widget.SeekBar,
 	Selection: android.text.Selection,
 	Shader: android.graphics.Shader,
@@ -1107,17 +1106,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 						if (CA.fcs) CA.showFCS(s);
 						if (CA.history) CA.showHistory();
+						if (CA.settings.autoFormatCmd) rep(s);
 						if (CA.settings.iiMode != 2 || state !== 1) return;
 						if (CA.settings.senseDelay) {
 							CA.IntelliSense.callDelay(String(s));
 						} else {
 							CA.IntelliSense.proc(String(s));
 						}
-						if (CA.settings.autoFormatCmd) rep(s);
 					} catch(e) {erp(e)}}
 				})()
 				//beforeTextChanged : function(s, start, count, after) {},
-				//onTextChanged : function(s, start, count, after) {},
+				//onTextChanged : function(s, start, before, count) {},
 			}));
 			CA.cmd.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (CA.Assist.active) {
@@ -1731,6 +1730,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.showAssist.postHelp(-1);
 		CA.showAssist.hLoad();
 		CA.con.removeView(CA.assist);
+		CA.Assist.hide(); CA.IntelliSense.hide();
 		CA.assist = null;
 	} catch(e) {erp(e)}})},
 	
@@ -2891,50 +2891,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.paste = null;
 	} catch(e) {erp(e)}})},
 	
-	showPasteDelaySet : function self(callback) {G.ui(function() {try {
-		if (!self.getPrompt) {
-			self.getPrompt = function(progress) {
+	showPasteDelaySet : function(callback) {
+		Common.showSlider({
+			max : 100,
+			progress : CA.settings.pasteDelay,
+			prompt : function(progress) {
 				if (progress > 0) {
 					return "延迟" + (progress / 20).toFixed(2) + "秒后粘贴（仅适用于启动器）\n\n点击“粘贴”时将不会立即粘贴，你需要在这段延迟时间中点击需要粘贴的文本框。\n您可以在设置中修改该设置。";
 				} else {
 					return "立即粘贴\n\n点击“粘贴”时将会立即粘贴，但你只能粘贴到聊天框中。\n您可以在设置中修改该设置。";
 				}
-			}
-		}
-		var layout, seekbar, text, exit, popup;
-		layout = new G.LinearLayout(ctx);
-		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		Common.applyStyle(layout, "message_bg");
-		seekbar = new G.SeekBar(ctx);
-		seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
-		seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
-			onProgressChanged : function(v, progress, fromUser) {try {
-				text.setText(self.getPrompt(progress));
+			},
+			callback : function(progress) {
 				CA.settings.pasteDelay = parseInt(progress);
-			} catch(e) {erp(e)}}
-		}));
-		seekbar.setMax(100);
-		layout.addView(seekbar);
-		text = new G.TextView(ctx);
-		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		Common.applyStyle(text, "textview_default", 2);
-		layout.addView(text);
-		exit = new G.TextView(ctx);
-		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("关闭");
-		exit.setGravity(G.Gravity.CENTER);
-		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-		Common.applyStyle(exit, "button_critical", 3);
-		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			popup.dismiss();
-		} catch(e) {erp(e)}}}));
-		layout.addView(exit);
-		seekbar.setProgress(isNaN(CA.settings.pasteDelay) ? 40 : CA.settings.pasteDelay);
-		text.setText(self.getPrompt(seekbar.getProgress()));
-		popup = Common.showDialog(layout, -1, -2, callback);
-	} catch(e) {erp(e)}})},
+			},
+			onDismiss : callback
+		});
+	},
 	
 	showLibraryMan : function self(callback) {G.ui(function() {try {
 		if (!self.linear) {
@@ -6885,7 +6858,7 @@ MapScript.loadModule("Common", {
 			if (isNaN(n)) n = Number("0x" + d.slice(1));
 			return Common.argbInt(0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff);
 		}
-		var r = {id : (id in this.themelist ? String(id) : "light")}, k, i;
+		var r = {id : (id in this.themelist ? String(id) : "light")}, k, i, t;
 		k = r.id in this.themelist ? this.themelist[r.id] : light;
 		for (i in light) {
 			r[i] = convert(k[i], light[i]);
@@ -6904,6 +6877,9 @@ MapScript.loadModule("Common", {
 			CA.settings.textSize = i = 1;
 		}
 		r.textsize = [Math.ceil(10 * i), Math.ceil(12 * i), Math.ceil(14 * i), Math.ceil(16 * i), Math.ceil(18 * i)];
+		t = ctx.getResources().getDisplayMetrics();
+		G.dp = t.density * i;
+		G.sp = t.scaledDensity * i;
 		this.theme = r;
 	},
 	applyStyle : function(v, style, size) {
@@ -6980,25 +6956,52 @@ MapScript.loadModule("Common", {
 				self.current = Common.theme.id;
 				self.list.setAdapter(new RhinoListAdapter(Object.keys(Common.themelist), self.adapter));
 				self.linear.setBackgroundColor(Common.theme.message_bgcolor);
+				self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+				self.title.setPadding(0, 0, 0, 10 * G.dp);
 				self.title.setTextSize(Common.theme.textsize[4]);
 				self.title.setTextColor(Common.theme.textcolor);
+				self.alpha.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 				self.alpha.setText("不透明度：" + (isFinite(CA.settings.alpha) ? parseInt(CA.settings.alpha * 100) : 100) + "%");
 				self.alpha.setTextSize(Common.theme.textsize[2]);
 				self.alpha.setTextColor(Common.theme.highlightcolor);
+				self.tsz.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 				self.tsz.setText("字体大小：" + (isFinite(CA.settings.textSize) ? parseInt(CA.settings.textSize * 100) : 100) + "%");
 				self.tsz.setTextSize(Common.theme.textsize[2]);
 				self.tsz.setTextColor(Common.theme.highlightcolor);
+				self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 				self.exit.setTextSize(Common.theme.textsize[3]);
 				self.exit.setTextColor(Common.theme.criticalcolor);
 			}
+			self.alphaSetting = function() {
+				Common.showSlider({
+					max : 100,
+					progress : Math.floor(CA.settings.alpha * 100),
+					prompt : function(progress) {
+						return "不透明度：" + progress + "%";
+					},
+					callback : function(progress) {
+						CA.settings.alpha = progress / 100;
+						Common.loadTheme(self.current);
+						self.refresh();
+					},
+				});
+			}
+			self.tszSetting = function() {
+				var l = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+				Common.showListChooser(l.map(function(e) {
+					return String(e * 100) + "%";
+				}), function(p) {
+					CA.settings.textSize = l[p];
+					Common.loadTheme(self.current);
+					self.refresh();
+				});
+			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
-			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
 			
 			self.title = new G.TextView(ctx);
 			self.title.setText("主题选择");
 			self.title.setGravity(G.Gravity.CENTER);
-			self.title.setPadding(0, 0, 0, 10 * G.dp);
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
 			
 			self.list = new G.ListView(ctx);
@@ -7015,28 +7018,14 @@ MapScript.loadModule("Common", {
 			self.alpha = new G.TextView(ctx);
 			self.alpha.setGravity(G.Gravity.CENTER);
 			self.alpha.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var l = [0, 0.2, 0.4, 0.6, 0.8, 1];
-				Common.showListChooser(l.map(function(e) {
-					return String(e * 100) + "%";
-				}), function(p) {
-					CA.settings.alpha = l[p];
-					Common.loadTheme(self.current);
-					self.refresh();
-				});
+				self.alphaSetting();
 			} catch(e) {erp(e)}}}));
 			self.exbar.addView(self.alpha, new G.LinearLayout.LayoutParams(-2, -2, 1));
 			
 			self.tsz = new G.TextView(ctx);
 			self.tsz.setGravity(G.Gravity.CENTER);
 			self.tsz.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var l = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
-				Common.showListChooser(l.map(function(e) {
-					return String(e * 100) + "%";
-				}), function(p) {
-					CA.settings.textSize = l[p];
-					Common.loadTheme(self.current);
-					self.refresh();
-				});
+				self.tszSetting();
 			} catch(e) {erp(e)}}}));
 			self.exbar.addView(self.tsz, new G.LinearLayout.LayoutParams(-2, -2, 1));
 			self.linear.addView(self.exbar, new G.LinearLayout.LayoutParams(-1, -2));
@@ -7044,7 +7033,6 @@ MapScript.loadModule("Common", {
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (Common.theme.id != self.last || CA.settings.alpha != self.lastalpha || CA.settings.textSize != self.lasttsz) {
 					self.modified = true;
@@ -7442,6 +7430,42 @@ MapScript.loadModule("Common", {
 		if (f) o.async(f);
 		return o;
 	},
+	
+	showSlider : function self(o) {G.ui(function() {try {
+		var layout, seekbar, text, exit, popup;
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		Common.applyStyle(layout, "message_bg");
+		seekbar = new G.SeekBar(ctx);
+		seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		seekbar.setMax(o.max);
+		seekbar.setProgress(o.progress);
+		seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
+			onProgressChanged : function(v, progress, fromUser) {try {
+				text.setText(o.prompt(progress));
+			} catch(e) {erp(e)}}
+		}));
+		layout.addView(seekbar);
+		text = new G.TextView(ctx);
+		text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+		text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
+		Common.applyStyle(text, "textview_default", 2);
+		layout.addView(text);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setText("关闭");
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			o.callback(seekbar.getProgress());
+			popup.dismiss();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		text.setText(o.prompt(o.progress));
+		popup = Common.showDialog(layout, -1, -2, o.onDismiss);
+	} catch(e) {erp(e)}})},
 	
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
@@ -8299,9 +8323,10 @@ MapScript.loadModule("Plugins", {
 			o.menu.unshift({
 				text : "查看错误",
 				onclick : function() {
-					erp(e);
+					erp(o.error);
 				}
 			});
+			o.name += "[出错]";
 		}
 		o.info = {
 			name : o.name,
@@ -9336,7 +9361,7 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 		clearHolder : function() {
 			var i;
 			for (i in this.holders) {
-				this.holders[i].setTag("");
+				this.holders[i].self.setTag("");
 			}
 			this.holders.length = 0;
 			this.notifyChange();
