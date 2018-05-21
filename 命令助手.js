@@ -2321,6 +2321,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				name : "粘贴延迟",
 				type : "custom",
+				hidden : function() {
+					return MapScript.host == "AutoJs" || MapScript.host == "Android";
+				},
 				get : function() {
 					var v = isNaN(CA.settings.pasteDelay) ? 2 : CA.settings.pasteDelay / 20;
 					return v > 0 ? v + "秒" : "无";
@@ -2515,6 +2518,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					Common.showTextDialog(CA.tips.join("\n\n"));
 				}
 			},{
+				name : "导入用户数据",
+				type : "custom",
+				onclick : function() {
+					Common.showFileDialog({
+						type : 1,
+						callback : function(f) {
+							CA.importSettings(f.result);
+						}
+					});
+				}
+			},{
+				name : "导出用户数据",
+				type : "custom",
+				onclick : function() {
+					CA.exportSettings();
+				}
+			},{
 				name : "恢复默认数据",
 				type : "custom",
 				onclick : function(fset) {
@@ -2570,6 +2590,47 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.trySave();
 		});
 	} catch(e) {erp(e)}})},
+	
+	importSettings : function(f) {
+		CA.resetGUI();
+		Common.fileCopy(f, new java.io.File(CA.profilePath));
+		CA.initialize();
+		Common.toast("配置已导入");
+	},
+	exportSettings : function() {
+		CA.trySave();
+		Common.showOperateDialog([{
+			text : "导出",
+			onclick : function() {
+				Common.showFileDialog({
+					type : 1,
+					defaultFileName : "ca_settings.dat",
+					callback : function(f) {
+						var fp = String(f.result.getAbsolutePath());
+						try {
+							Common.fileCopy(CA.profilePath, f.result);
+							Common.toast("配置已导出至" + f.result);
+						} catch(e) {
+							Common.toast("文件保存失败，无法导出\n" + e);
+						}
+					}
+				});
+			}
+		}, {
+			text : "发送",
+			intent : (function() {
+				try {
+					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse("file://" + CA.profilePath));
+				} catch(e) {}
+			})(),
+			onclick : function() {
+				ctx.startActivity(this.intent);
+			},
+			hidden : function() {
+				return !this.intent;
+			}
+		}]);
+	},
 	
 	manageErrors : function() {
 		var f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "com.xero.ca.error.log");
@@ -2894,7 +2955,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	showPasteDelaySet : function(callback) {
 		Common.showSlider({
 			max : 100,
-			progress : CA.settings.pasteDelay,
+			progress : isNaN(CA.settings.pasteDelay) ? 40 : CA.settings.pasteDelay,
 			prompt : function(progress) {
 				if (progress > 0) {
 					return "延迟" + (progress / 20).toFixed(2) + "秒后粘贴（仅适用于启动器）\n\n点击“粘贴”时将不会立即粘贴，你需要在这段延迟时间中点击需要粘贴的文本框。\n您可以在设置中修改该设置。";
@@ -7661,8 +7722,11 @@ MapScript.loadModule("Common", {
 			if (onSave) onSave();
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
-		self.data = data;
-		self.last = data.map(function(e) {
+		self.data = data.filter(function(e) {
+			if (e.hidden && e.hidden()) return false;
+			return true;
+		});
+		self.last = self.data.map(function(e) {
 			switch (e.type) {
 				case "boolean":
 				case "seekbar":
@@ -7674,7 +7738,7 @@ MapScript.loadModule("Common", {
 				return null;
 			}
 		});
-		self.list.setAdapter(new RhinoListAdapter(data, self.adapter));
+		self.list.setAdapter(new RhinoListAdapter(self.data, self.adapter));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
 		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
@@ -8130,6 +8194,8 @@ MapScript.loadModule("Common", {
 	fileCopy : function(src, dest) {
 		const BUFFER_SIZE = 4096;
 		var fi, fo, buf, hr;
+		var fd = new java.io.File(dest).getParentFile();
+		if (fd) fd.mkdirs();
 		fi = new java.io.FileInputStream(src);
 		fo = new java.io.FileOutputStream(dest);
 		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
