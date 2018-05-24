@@ -602,26 +602,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.his.splice(CA.settings.histroyCount);
 		}
 	},
-	addFavorite : function(key, value, folder) {
-		if (!folder) folder = this.fav;
-		var t = this.getFavorite(key, folder);
-		if (t) {
-			t.value = value;
-		} else {
-			folder.push({
-				key : key,
-				value : value
-			});
-		}
-	},
-	getFavorite : function(key, folder) {
-		var i;
-		if (!folder) folder = this.fav;
-		for (i in folder) {
-			if (key == folder[i].key && !folder.children) return folder[i];
-		}
-		return null;
-	},
 	getFavoriteDir : function(key, folder) {
 		var i, t;
 		if (!folder) folder = this.fav;
@@ -1299,37 +1279,33 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "添加收藏",
 				onclick : function(v, tag) {
-					Common.showInputDialog({
-						title : "添加收藏",
-						description : "请给这条命令一个名字吧～\n\t有名字的命令才能被收藏",
-						callback : function(s) {
-							if (CA.getFavorite(s)) {
-								Common.toast("名字重复了～换一个名字吧");
-							} else {
-								if (!s) s = tag.cmd;
-								CA.addFavorite(s, tag.cmd);
-								CA.showHistory();
-							}
+					CA.showFavEditDialog({
+						mode : 0,
+						data : {
+							value : tag.cmd
 						},
-						singleLine : true
+						callback : function() {
+							this.folder.children.push(this.data);
+							self.refreshFavorite();
+						}
 					});
 				}
 			},{
 				text : "删除",
 				onclick : function(v, tag) {
 					CA.his.splice(tag.pos, 1);
-					Common.toast("删除啦～");
-					CA.showHistory();
+					Common.toast("已删除");
+					self.refreshHistory();
 				}
 			}, {
 				text : "批量编辑",
 				onclick : function(v, tag) {
 					CA.showHistoryEdit(tag.pos, function() {
-						CA.showHistory();
+						self.refreshHistory();
 					});
 				}
 			}];
-			self.favoriteEdit = [{
+			self.favoriteItemEdit = [{
 				text : "复制",
 				onclick : function(v, tag) {
 					Common.setClipboardText(tag.data.value);
@@ -1341,51 +1317,237 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showBatchBuilder(tag.data.value, true);
 				}
 			},{
-				text : "编辑名称",
+				text : "编辑",
+				onclick : function(v, tag) {
+					CA.showFavEditDialog({
+						mode : 1,
+						data : tag.data,
+						folder : tag.folder,
+						callback : function() {
+							self.refreshFavorite();
+						}
+					});
+				}
+			},{
+				text : "移动",
+				onclick : function(v, tag) {
+					CA.showFavEditDialog({
+						mode : 2,
+						data : tag.data,
+						folder : tag.folder,
+						callback : function() {
+							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
+							this.folder.children.push(this.data);
+							self.refreshFavorite();
+						}
+					});
+				}
+			},{
+				text : "删除",
+				onclick : function(v, tag) {
+					CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
+					Common.toast("已删除");
+					self.refreshFavorite();
+				}
+			}, {
+				text : "批量编辑",
+				onclick : function(v, tag) {
+					CA.showFavoriteEdit(tag.data, function() {
+						self.refreshFavorite();
+					});
+				}
+			}];
+			self.favoriteGroupEdit = [{
+				text : "重命名",
 				onclick : function(v, tag) {
 					Common.showInputDialog({
-						title : "编辑名称",
+						title : "重命名",
 						callback : function(s) {
-							if (!s) s = tag.data.value;
+							if (!s) {
+								Common.toast("名称不能为空");
+								return;
+							}
+							if (CA.getFavoriteDir(s, tag.folder ? tag.folder.children : null)) {
+								Common.toast("名称已存在");
+								return;
+							}
 							tag.data.key = s;
-							CA.showHistory();
+							self.refreshFavorite();
 						},
 						singleLine : true,
 						defaultValue : tag.data.key
 					});
 				}
 			},{
-				text : "编辑内容",
+				text : "移动",
 				onclick : function(v, tag) {
-					Common.showInputDialog({
-						title : "编辑内容",
-						callback : function(s) {
-							if (!s) {
-								Common.toast("命令不能为空哦～");
-							} else {
-								tag.data.value = s;
-								CA.showHistory();
-							}
-						},
-						singleLine : true,
-						defaultValue : tag.data.value
+					CA.showFavEditDialog({
+						mode : 2,
+						data : tag.data,
+						folder : tag.folder,
+						callback : function() {
+							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
+							this.folder.children.push(this.data);
+							self.refreshFavorite();
+						}
 					});
 				}
 			},{
 				text : "删除",
 				onclick : function(v, tag) {
-					CA.removeFavorite(tag.data);
-					Common.toast("删除啦～");
-					CA.showHistory();
+					CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
+					Common.toast("已删除");
+					self.refreshFavorite();
 				}
 			}, {
 				text : "批量编辑",
 				onclick : function(v, tag) {
 					CA.showFavoriteEdit(tag.data, function() {
-						CA.showHistory();
+						self.refreshFavorite();
 					});
 				}
 			}];
+			self.drawCursor = function(height) {
+				var width = height;
+				var bmp = G.Bitmap.createBitmap(width, height, G.Bitmap.Config.ARGB_8888);
+				var cv = new G.Canvas(bmp);
+				var pa = new G.Paint();
+				pa.setStyle(G.Paint.Style.FILL)
+				pa.setColor(Common.theme.promptcolor);
+				pa.setAntiAlias(true);
+				var ph = new G.Path();
+				ph.moveTo(0.3 * width, 0.3 * height);
+				ph.lineTo(0.7 * width, 0.5 * height);
+				ph.lineTo(0.3 * width, 0.7 * height);
+				ph.close();
+				cv.drawPath(ph, pa);
+				return bmp;
+			}
+			self.hismaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text = new G.TextView(ctx),
+					text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				text1.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+				text1.setMaxLines(2);
+				text1.setEllipsize(G.TextUtils.TruncateAt.END);
+				Common.applyStyle(text1, "textview_default", 3);
+				layout.addView(text1);
+				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+				text2.setText("📋");
+				text2.setGravity(G.Gravity.CENTER);
+				Common.applyStyle(text2, "textview_prompt", 3);
+				text2.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					CA.showGen.performCopy(holder.value);
+					return true;
+				} catch(e) {erp(e)}}}));
+				layout.addView(text2);
+				return layout;
+			}
+			self.hisbinder = function(holder, s) {
+				holder.text.setText(holder.value = s);
+			}
+			self.favimaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text1, "textview_default", 3);
+				layout.addView(text1);
+				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 15 * G.dp);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text2.setEllipsize(G.TextUtils.TruncateAt.END);
+				text2.setSingleLine(true);
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.favibinder = function(holder, e, i, a, depth) {
+				holder.text1.setText(e.key);
+				holder.text2.setText(e.value);
+				holder.self.setPadding(depth * 16 * G.dp, 0, 0, 0);
+			}
+			self.favgmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					img = holder.img = new G.ImageView(ctx),
+					text = holder.text = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				img.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				img.setImageBitmap(self.cursorImg);
+				layout.addView(img);
+				text.setPadding(0, 0, 15 * G.dp, 0);
+				text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+				text.setEllipsize(G.TextUtils.TruncateAt.END);
+				text.setGravity(G.Gravity.CENTER_VERTICAL | G.Gravity.LEFT);
+				text.setSingleLine(true);
+				Common.applyStyle(text, "textview_default", 3);
+				layout.addView(text);
+				return layout;
+			}
+			self.favgbinder = function(holder, e, i, a, depth, isExpanded) {
+				holder.img.setRotation(isExpanded ? 90 : 0);
+				holder.text.setText(e.key);
+				holder.self.setPadding(depth * 16 * G.dp, 0, 0, 0);
+			}
+			self.getFavChildren = function(e) {
+				var d = [], g = [], a = e.children;
+				if (!a) return;
+				for (i in a) {
+					if (a[i].children) {
+						g.push(a[i]);
+					} else {
+						d.push(a[i]);
+					}
+				}
+				return g.concat(d);
+			}
+			self.nula = function(s) {
+				var text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				text.setText("空空如也");
+				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
+				text.setGravity(G.Gravity.CENTER);
+				text.setFocusable(true);
+				Common.applyStyle(text, "textview_prompt", 4);
+				return text;
+			}
+			self.refreshHistory = function() {
+				if (CA.his.length == 0) {
+					self.hisEmpty = true;
+					self.history.setAdapter(self.nulAdapter);
+				} else {
+					self.hisAdapter.setArray(CA.his);
+					if (self.hisEmpty) self.history.setAdapter(self.hisAdapter.self);
+					self.hisEmpty = false;
+				}
+				if (CA.paste) CA.showPaste.refresh();
+			}
+			self.refreshFavorite = function() {
+				if (CA.fav.length == 0) {
+					self.favEmpty = true;
+					self.favorite.setAdapter(self.nulAdapter);
+				} else {
+					Array.prototype.splice.apply(self.favList, [0, self.favList.length].concat(self.getFavChildren({
+						children : CA.fav
+					})));
+					self.favAdapter.updateAll();
+					if (self.favEmpty) self.favorite.setAdapter(self.favAdapter.self);
+					self.favEmpty = false;
+				}
+			}
+			self.hisEmpty = self.favEmpty = true;
+			self.cursorImg = self.drawCursor(32 * G.dp);
+			self.nulAdapter = new RhinoListAdapter([null], self.nula);
+			self.hisAdapter = SimpleListAdapter.getController(new SimpleListAdapter(CA.his, self.hismaker, self.hisbinder));
+			self.favAdapter = ExpandableListAdapter.control(new ExpandableListAdapter(self.favList = [], self.getFavChildren, self.favimaker, self.favibinder, self.favgmaker, self.favgbinder));
+			
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.tag1 = new G.TextView(ctx);
@@ -1421,23 +1583,27 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.tag2.setFocusable(true);
 			Common.applyStyle(self.tag2, "textview_prompt", 1);
 			self.favorite = new G.ListView(ctx);
-			self.favorite.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				var t;
-				if (pos < 1 || !(t = parent.getItemAtPosition(pos))) return;
-				pos -= 1;
-				CA.cmd.setText(t.value);
-				CA.showGen.activate(false);
-			} catch(e) {erp(e)}}}));
-			self.favorite.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
-				var t;
-				if (pos < 1 || !(t = parent.getItemAtPosition(pos))) return;
-				pos -= 1;
-				Common.showOperateDialog(self.favoriteEdit, {
-					data : t
-				});
-				return true;
-			} catch(e) {return erp(e), true}}}));
 			self.favorite.addHeaderView(self.tag2);
+			self.favAdapter.bindListView(self.favorite, {
+				onItemClick : function(e) {
+					CA.cmd.setText(e.value);
+					CA.showGen.activate(false);
+				},
+				onItemLongClick : function(e, pos, parent, view, adpt) {
+					var p = adpt.getParent(pos);
+					Common.showOperateDialog(self.favoriteItemEdit, {
+						data : e,
+						folder :  isNaN(p) ? null : adpt.getItem(p),
+					});
+				},
+				onGroupLongClick : function(e, pos, parent, view, adpt) {
+					var p = adpt.getParent(pos);
+					Common.showOperateDialog(self.favoriteGroupEdit, {
+						data : e,
+						folder :  isNaN(p) ? null : adpt.getItem(p),
+					});
+				}
+			});
 			self.linear.addView(self.favorite);
 			CA.con.addOnLayoutChangeListener(self.layoutListener = new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
 				if (r - l == or - ol) return;
@@ -1453,60 +1619,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				if (self.tx < 0) self.linear.setTranslationX(self.tx = -self.screenWidth);
 			} catch(e) {erp(e)}}}));
-			self.hisa = function(s) {
-				var layout = new G.LinearLayout(ctx),
-					text1 = new G.TextView(ctx),
-					text2 = new G.TextView(ctx);
-				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				layout.setOrientation(G.LinearLayout.HORIZONTAL);
-				text1.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
-				text1.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
-				text1.setText(s);
-				text1.setMaxLines(2);
-				text1.setEllipsize(G.TextUtils.TruncateAt.END);
-				Common.applyStyle(text1, "textview_default", 3);
-				layout.addView(text1);
-				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
-				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-				text2.setText("📋");
-				text2.setGravity(G.Gravity.CENTER);
-				Common.applyStyle(text2, "textview_prompt", 3);
-				text2.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-					CA.showGen.performCopy(s);
-					return true;
-				} catch(e) {erp(e)}}}));
-				layout.addView(text2);
-				return layout;
-			}
-			self.fava = function(e) {
-				var layout = new G.LinearLayout(ctx),
-					text1 = new G.TextView(ctx),
-					text2 = new G.TextView(ctx);
-				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				layout.setOrientation(G.LinearLayout.VERTICAL);
-				text1.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
-				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text1.setText(e.key);
-				Common.applyStyle(text1, "textview_default", 3);
-				layout.addView(text1);
-				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 15 * G.dp);
-				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text2.setText(e.value);
-				text2.setEllipsize(G.TextUtils.TruncateAt.END);
-				text2.setSingleLine(true);
-				Common.applyStyle(text2, "textview_prompt", 1);
-				layout.addView(text2);
-				return layout;
-			}
-			self.nula = function(s) {
-				var text = new G.TextView(ctx);
-				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				text.setText("空空如也");
-				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setGravity(G.Gravity.CENTER);
-				text.setFocusable(true);
-				Common.applyStyle(text, "textview_prompt", 4);
-				return text;
+			if (G.style == "Material") { 
+				self.history.setFastScrollEnabled(true);
+				self.history.setFastScrollAlwaysVisible(false);
+				self.favorite.setFastScrollEnabled(true);
+				self.favorite.setFastScrollAlwaysVisible(false);
 			}
 			if (!CA.settings.splitScreenMode) {
 				var touchSlop = G.ViewConfiguration.get(ctx).getScaledTouchSlop();
@@ -1566,17 +1683,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(CA, "history");
 			PWM.registerResetFlag(self, "history");
 		}
-		if (CA.his.length == 0) {
-			self.history.setAdapter(new RhinoListAdapter([null], self.nula));
-		} else {
-			self.history.setAdapter(new RhinoListAdapter(CA.his, self.hisa));
-		}
-		if (CA.fav.length == 0) {
-			self.favorite.setAdapter(new RhinoListAdapter([null], self.nula));
-		} else {
-			self.favorite.setAdapter(new RhinoListAdapter(CA.fav, self.fava));
-		}
-		if (CA.paste) CA.showPaste.refresh();
+		self.refreshHistory();
+		self.refreshFavorite();
 		if (CA.history) return;
 		CA.history = self.linear;
 		self.linear.setTranslationX(self.tx = self.lx = 0);
@@ -1587,6 +1695,133 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (!CA.history) return;
 		CA.con.removeView(CA.history);
 		CA.history = null;
+	} catch(e) {erp(e)}})},
+	
+	showFavEditDialog : function self(o) {G.ui(function() {try {
+		if (!self.getChildren) {
+			self.getChildren = function(e, i, a, depth, params) {
+				if (e.children) {
+					var arr = e.children.filter(function(e) {
+						return e.children;
+					});
+					if (params.selected == e) {
+						arr.push({
+							key : "新增收藏夹",
+							newFolder : true
+						});
+					}
+					return arr;
+				}
+			}
+			self.vmaker = function(holder) {
+				var view = new G.TextView(ctx);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				Common.applyStyle(view, "item_default", 2);
+				return view;
+			}
+			self.ibinder = function(holder, e, i, a, depth) {
+				holder.self.setPadding((1 + depth) * 15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				holder.self.setText(e.key);
+			}
+			self.gbinder = function(holder, e, i, a, depth, isExpanded, params) {
+				self.ibinder(holder, e, i, a, depth);
+				Common.applyStyle(holder.self, params.selected == e ? "item_highlight" : "item_default", 2);
+			}
+		}
+		var layout, linear, title, key, value, folder, exit, popup, adpt, param;
+		param = {};
+		adpt = ExpandableListAdapter.control(new ExpandableListAdapter([{
+			key : "根收藏夹",
+			children : CA.fav,
+			root : true
+		}], self.getChildren, self.vmaker, self.ibinder, self.vmaker, self.gbinder, param));
+		layout = new G.LinearLayout(ctx);
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		Common.applyStyle(layout, "message_bg");
+		linear = new G.LinearLayout(ctx);
+		linear.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+		linear.setOrientation(G.LinearLayout.VERTICAL);
+		linear.setPadding(15 * G.dp, 5 * G.dp, 15 * G.dp, 5 * G.dp);
+		title = new G.TextView(ctx);
+		title.setText("添加收藏");
+		title.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+		title.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+		title.setFocusable(true);
+		Common.applyStyle(title, "textview_default", 4);
+		key = new G.EditText(ctx);
+		key.setHint("名称");
+		key.setSingleLine(true);
+		key.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		key.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		key.setSelection(key.length());
+		Common.applyStyle(key, "edittext_default", 2);
+		linear.addView(key);
+		value = new G.EditText(ctx);
+		value.setHint("内容");
+		value.setSingleLine(true);
+		value.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		value.setSelection(value.length());
+		Common.applyStyle(value, "edittext_default", 2);
+		linear.addView(value);
+		folder = new G.ListView(ctx);
+		folder.addHeaderView(title);
+		folder.addHeaderView(linear);
+		adpt.bindListView(folder, {
+			onItemClick : function(e, pos, parent, view, adpt) {
+				Common.showInputDialog({
+					title : "新建收藏夹",
+					callback : function(s) {
+						if (!s) {
+							Common.toast("收藏夹名称不能为空");
+						} else {
+							param.selected = CA.getFavoriteDir(s, adpt.getItem(adpt.getParent(pos)).children);
+							Common.toast("收藏夹已创建");
+							adpt.update(adpt.getParent(pos));
+						}
+					},
+					singleLine : true
+				});
+			},
+			onGroupClick : function(e, pos, parent, view, adpt) {
+				param.selected = e;
+				adpt.updateAll();
+			}
+		});
+		folder.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+		layout.addView(folder);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setText("确定");
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			o.data.key = String(key.getText());
+			o.data.value = String(value.getText());
+			o.folder = param.selected;
+			if (o.callback) o.callback();
+			popup.dismiss();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		param.selected = o.folder ? o.folder : adpt.getItem(0);
+		adpt.revealNode(param.selected);
+		adpt.updateAll();
+		key.setText(o.data.key || "");
+		value.setText(o.data.value || "");
+		switch (o.mode) {
+			case 0:
+			title.setText("添加收藏");
+			break;
+			case 1:
+			title.setText("编辑收藏");
+			adpt.setArray([]);
+			break;
+			case 2:
+			title.setText("移动收藏");
+			folder.removeHeaderView(linear);
+		}
+		popup = Common.showDialog(layout, -1, -2);
 	} catch(e) {erp(e)}})},
 	
 	showAssist : function self() {G.ui(function() {try {
@@ -1939,6 +2174,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	showFavoriteEdit : function self(data, callback) {G.ui(function() {try {
+		Common.toast("开发中……");
+		return callback();
+		
 		if (!self.linear) {
 			self.adapter = null;
 			self.refresh = function(key) {
@@ -2033,7 +2271,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
 					var i, z = String(Common.getClipboardText()).split("\n");
 					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
-					for (i = 1; i < z.length; i += 2) CA.addFavorite(z[i - 1], z[i]);
+					for (i = 1; i < z.length; i += 2) CA.addFavo%rite(z[i - 1], z[i]);
 					Common.toast(Math.floor(z.length / 2) + "条命令已粘贴");
 					self.refresh();
 				}
@@ -3736,6 +3974,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				bold : true
 			}]),
 			buttons : [
+				"相关信息",
 				"分享链接",
 				"加入交流群",
 				"提出意见/反馈bug",
@@ -3745,6 +3984,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				var t;
 				switch (id) {
 					case 0:
+					Common.showWebViewDialog({
+						mimeType : "text/html; charset=UTF-8",
+						code : CA.help
+					});
+					break;
+					case 1:
 					t = "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919";
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t)));
@@ -3753,7 +3998,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						Common.toast("下载链接已复制到剪贴板");
 					}
 					break;
-					case 1:
+					case 2:
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D")));
 					} catch(e) {
@@ -3761,7 +4006,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						Common.setClipboardText("207913610");
 					}
 					break;
-					case 2:
+					case 3:
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C")));
 					} catch(e) {
@@ -3770,7 +4015,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						});
 					}
 					break;
-					case 3:
+					case 4:
 					CA.showDonateDialog();
 				}
 				offset = 30 * 24 * 60 * 60 * 1000; //30d
@@ -4158,19 +4403,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							return;
 						}
 						var cmd = self.flatten();
-						Common.showInputDialog({
-							title : "名称",
-							callback : function(s) {
-								if (CA.getFavorite(s)) {
-									Common.toast("名称已存在");
-								} else {
-									if (!s) s = cmd;
-									CA.addFavorite(s, cmd);;
-									if (CA.history) CA.showHistory();
-									Common.toast("模板已收藏");
-								}
+						CA.showFavEditDialog({
+							mode : 0,
+							data : {
+								value : cmd
 							},
-							singleLine : true
+							callback : function() {
+								this.folder.children.push(this.data);
+								CA.showHistory();
+								Common.toast("模板已收藏");
+							}
 						});
 					}
 				}, {
@@ -9460,6 +9702,500 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 		}
 	}
 	r.getController = function(adapter) {
+		var r = adapter.getItem(-1);
+		r.self = adapter;
+		return r;
+	}
+	return r;
+})());
+
+MapScript.loadModule("ExpandableListAdapter", (function() {
+	const DEPTH_LIMIT = 40;
+	function buildExtendData(e, i, parent, children, idHolder, newDepth) {
+		return {
+			data : e,
+			id : idHolder[0]++,
+			group : Array.isArray(children),
+			children : children,
+			extend : null,
+			expanded : false,
+			children_expanded : 0,
+			parent : parent,
+			index : i,
+			depth : newDepth
+		};
+	}
+	function extendArray(item, getChildren, idHolder, params) {
+		if (!item.group) return;
+		var newDepth = item.depth + 1;
+		if (newDepth > DEPTH_LIMIT) return item.extend = item.children = [];
+		item.extend = item.children.map(function(e, i, a) {
+			return buildExtendData(e, i, item, getChildren(e, i, a, newDepth, params), idHolder, newDepth);
+		});
+		return item.extend;
+	}
+	function makePointer(controller) {
+		var i, a = controller.extend;
+		for (i = 0; i < a.length; i++) a[i].pos = i;
+	}
+	function extendNodeTree(controller, node) {
+		if (!node.extend) extendArray(data, controller._getChildren, controller.idHolder, controller.params);
+		node.extend.forEach(function(e) {
+			if (e.group) extendNodeTree(controller, e);
+		});
+	}
+	function expandNode(controller, cursor, data, mode) {
+		var i, a = controller.extend, e;
+		if (!data.extend) extendArray(data, controller._getChildren, controller.idHolder, controller.params);
+		if (mode == 0) mode = data.children_expanded;
+		for (i in data.extend) {
+			e = data.extend[i];
+			if (isNaN(e.pos)) a.splice(cursor[0], 0, e);
+			cursor[0]++;
+			if (!e.group) continue;
+			if (mode > 0) e.expanded = mode == 1;
+			e.children_expanded = data.children_expanded;
+			if (e.expanded) expandNode(controller, cursor, e, mode);
+		}
+		data.expanded = true;
+	}
+	function collapseNode(controller, delpos, data, recursive) {
+		var i, a = controller.extend, e;
+		for (i in data.extend) {
+			e = data.extend[i];
+			delpos.push(e.pos);
+			if (e.expanded) collapseNode(controller, delpos, e, recursive);
+		}
+		if (recursive) data.children_expanded = 2;
+	}
+	function getLastNodePos(node) {
+		if (!node.extend || !node.extend.length) return node.pos;
+		return getLastNodePos(node.extend[node.extend.length - 1]);
+	}
+	function updateNode(controller, data, target, isRoot, silent) {
+		var i, j, newArr, newExtend, newDepth, e, itemIndex;
+		newArr = isRoot ? data.data : controller._getChildren(data.data, data.index, data.parent.children, data.depth, controller.params);
+		data.group = Array.isArray(newArr);
+		if (!data.group) {
+			data.expanded = false;
+			data.children_expanded = 0;
+		}
+		if (!data.expanded) silent = true;
+		if (data.group && data.extend) {
+			newExtend = [];
+			newDepth = data.depth + 1;
+			if (data.depth <= DEPTH_LIMIT) {
+				for (i = 0; i < newArr.length; i++) {
+					itemIndex = -1;
+					for (j = 0; j < data.extend.length; j++) {
+						if (newArr[i] == data.extend[j].data) {
+							itemIndex = j;
+							break;
+						}
+					}
+					if (itemIndex < 0) {
+						e = buildExtendData(newArr[i], i, data, controller._getChildren(newArr[i], i, newArr, newDepth, controller.params), controller.idHolder, newDepth);
+					} else {
+						e = data.extend[itemIndex];
+						data.extend.splice(itemIndex, 1);
+					}
+					e.index = i;
+					newExtend.push(e);
+					if (!silent) target.push(e);
+					updateNode(controller, e, target, false, silent);
+				}
+			}
+		}
+		data.children = newArr;
+		data.extend = newExtend;
+		return target;
+	}
+	function searchNode(controller, data, root, arr) {
+		var i = root.children.indexOf(data);
+		if (i >= 0) {
+			arr.push(i);
+			return true;
+		}
+		if (!root.extend) extendArray(root, controller._getChildren, controller.idHolder, controller.params);
+		for (i = 0; i < root.extend.length; i++) {
+			if (!root.extend[i].group) continue;
+			if (searchNode(controller, data, root.extend[i], arr)) {
+				arr.push(i);
+				return true;
+			}
+		}
+		return false;
+	}
+	var r = function(arr, getChildren, itemMaker, itemBinder, groupMaker, groupBinder, params) {
+		//arr是列表数组
+		//getChildren(element, groupIndex, groupArray, depth, params)返回该group的子对象，如果不是group则返回null
+		//itemMaker(holder, params)生成item基础view
+		//itemBinder(holder, element, groupIndex, groupArray, depth, params)修改view使其实现指定的item界面
+		//groupMaker(holder, params)生成group基础view
+		//groupBinder(holder, element, groupIndex, groupArray, depth, isExpanded, params)修改view使其实现指定的group界面
+		var root, extend, itemholders = [], groupholders = [], dso = [], controller, idHolder = [0];
+		root = {
+			data : arr,
+			id : idHolder[0]++,
+			group : true,
+			children : arr,
+			extend : null,
+			expanded : true,
+			depth : -1,
+			pos : NaN
+		};
+		extend = extendArray(root, getChildren, idHolder, params).slice();
+		controller = new ExpandableListAdapter.Controller(root, extend, getChildren, groupholders, itemholders, itemMaker, groupMaker, itemBinder, groupBinder, dso, idHolder, params);
+		makePointer(controller);
+		return new G.ListAdapter({
+			getCount : function() {
+				return extend.length;
+			},
+			getItem : function(pos) {
+				if (pos == -1) return controller;
+				return extend[pos].data;
+			},
+			getItemId : function(pos) {
+				return extend[pos].id;
+			},
+			getItemViewType : function(pos) {
+				return extend[pos].group ? 1 : 0;
+			},
+			getView : function(pos, convert, parent) {
+				var holder, e;
+				try {
+					e = extend[pos];
+					if (e.group) {
+						if (!convert || !(convert.getTag() in groupholders)) {
+							holder = {};
+							convert = groupMaker(holder, params);
+							holder.self = convert;
+							convert.setTag(groupholders.length.toString());
+							groupholders.push(holder);
+						}
+						holder = groupholders[convert.getTag()];
+						holder.pos = parseInt(pos);
+						groupBinder(holder, e.data, e.index, e.parent.children, e.depth, e.expanded, params);
+					} else {
+						if (!convert || !(convert.getTag() in itemholders)) {
+							holder = {};
+							convert = itemMaker(holder, params);
+							holder.self = convert;
+							convert.setTag(itemholders.length.toString());
+							itemholders.push(holder);
+						}
+						holder = itemholders[convert.getTag()];
+						holder.pos = parseInt(pos);
+						itemBinder(holder, e.data, e.index, e.parent.children, e.depth, params);
+					}
+					return convert;
+				} catch(e) {
+					var a = new G.TextView(ctx);
+					a.setText(e + "\n" + e.stack);
+					erp(e);
+					return a;
+				}
+			},
+			getViewTypeCount : function() {
+				return 2;
+			},
+			hasStableIds : function() {
+				return true;
+			},
+			isEmpty : function() {
+				return extend.length === 0;
+			},
+			areAllItemsEnabled : function() {
+				return true;
+			},
+			isEnabled : function(pos) {
+				return pos >= 0 && pos < extend.length;
+			},
+			registerDataSetObserver : function(p) {
+				if (dso.indexOf(p) >= 0) return;
+				dso.push(p);
+			},
+			unregisterDataSetObserver : function(p) {
+				var i = dso.indexOf(p);
+				if (p >= 0) dso.splice(i, 1);
+			}
+		});
+	}
+	r.Controller = function(root, extend, getChildren, groupholders, itemholders, itemMaker, groupMaker, itemBinder, groupBinder, dso, idHolder, params) {
+		this.root = root;
+		this.extend = extend;
+		this._getChildren = getChildren;
+		this.groupholders = groupholders;
+		this.itemholders = itemholders;
+		this.itemMaker = itemMaker;
+		this.groupMaker = groupMaker;
+		this.itemBinder = itemBinder;
+		this.groupBinder = groupBinder;
+		this.dso = dso;
+		this.idHolder = idHolder;
+		this.params = params;
+	}
+	r.Controller.prototype = {
+		bindListView : function(lv, o) {
+			var adpt = this;
+			lv.setAdapter(adpt.self);
+			lv.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				var hn = parent.getHeaderViewsCount(), fn = parent.getFooterViewsCount(), c = parent.getCount();
+				if (pos < hn) {
+					if (o.onHeaderClick) o.onHeaderClick(pos);
+					return;
+				} else if (pos >= c - fn) {
+					if (o.onFooterClick) o.onFooterClick(pos - c + fn);
+					return;
+				}
+				pos -= hn;
+				var e = adpt.extend[pos], args = [e.data, pos, parent, view, adpt];
+				if (e.group) {
+					if (e.expanded) {
+						adpt.collapse(pos);
+						if (o.onGroupCollapse) o.onGroupCollapse.apply(o, args);
+					} else {
+						adpt.expand(pos);
+						if (o.onGroupExpand) o.onGroupExpand.apply(o, args);
+					}
+					if (o.onGroupClick) o.onGroupClick.apply(o, args);
+				} else {
+					if (o.onItemClick) o.onItemClick.apply(o, args);
+				}
+				if (o.onClick) o.onClick.apply(o, args);
+			} catch(e) {erp(e)}}}));
+			if (o.onLongClick || o.onGroupLongClick || o.onItemLongClick || o.onHeaderLongClick || o.onFooterLongClick) {
+				lv.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
+					var hn = parent.getHeaderViewsCount(), fn = parent.getFooterViewsCount(), c = parent.getCount();
+					if (pos < hn) {
+						if (o.onHeaderLongClick) o.onHeaderLongClick(pos);
+						return;
+					} else if (pos >= c - fn) {
+						if (o.onFooterLongClick) o.onFooterLongClick(pos - c + fn);
+						return;
+					}
+					pos -= hn;
+					var e = adpt.extend[pos], args = [e.data, pos, parent, view, adpt];
+					if (e.group) {
+						if (o.onGroupLongClick) o.onGroupLongClick.apply(o, args);
+					} else {
+						if (o.onItemLongClick) o.onItemLongClick.apply(o, args);
+					}
+					if (o.onLongClick) o.onLongClick.apply(o, args);
+					return true;
+				} catch(e) {return erp(e), true}}}));
+			}
+		},
+		collapse : function(pos, recursive) {
+			var i, e = this.extend[pos], delpos = [];
+			if (!e.expanded) return;
+			collapseNode(this, delpos, e, recursive);
+			for (i = delpos.length - 1; i >= 0; i--) {
+				this.extend[delpos[i]].pos = NaN;
+				this.extend.splice(delpos[i], 1);
+			}
+			e.expanded = false;
+			makePointer(this);
+			this.notifyChange();
+		},
+		collapseAll : function() {
+			var i, a = this.root.extend, e, delpos = [];
+			for (i = 0; i < a.length; i++) {
+				e = a[i];
+				if (e.expanded) {
+					collapseNode(this, delpos, e, true);
+					e.expanded = false;
+				} else if (e.group) {
+					e.children_expanded = 2;
+				}
+			}
+			for (i = delpos.length - 1; i >= 0; i--) {
+				this.extend[delpos[i]].pos = NaN;
+				this.extend.splice(delpos[i], 1);
+			}
+			makePointer(this);
+			this.notifyChange();
+		},
+		collapseTree : function(pos) {
+			this.collapse(pos, true);
+		},
+		clearHolder : function() {
+			var i;
+			for (i in this.holders) {
+				this.holders[i].self.setTag("");
+			}
+			this.holders.length = 0;
+			this.notifyChange();
+		},
+		enableAlwaysExtend : function() {
+			this.alwaysExtend = true;
+			this.extendAll();
+		},
+		extendAll : function() {
+			extendNodeTree(this, this.root);
+		},
+		expand : function(pos, recursive) {
+			var i, e = this.extend[pos];
+			if (!e.group || e.expanded) return;
+			expandNode(this, [pos + 1], e, recursive ? 1 : 0);
+			makePointer(this);
+			this.notifyChange();
+		},
+		expandAll : function() {
+			var i, a = this.root.extend, e;
+			expandNode(this, [0], this.root, 1);
+			makePointer(this);
+			this.notifyChange();
+		},
+		expandTree : function(pos) {
+			this.expand(pos, true);
+		},
+		findNodePath : function(node) {
+			var r = [];
+			if (searchNode(this, node, this.root, r)) {
+				r.reverse();
+				return r;
+			}
+			return null;
+		},
+		findNodePos : function(node) {
+			var i;
+			for (i in this.extend) {
+				if (extend[i].data == node) return i;
+			}
+			return -1;
+		},
+		getChildren : function(pos) {
+			return this.extend[pos].children;
+		},
+		getDepth : function(pos) {
+			return this.extend[pos].depth;
+		},
+		getGroupIndex : function(pos) {
+			return this.extend[pos].index;
+		},
+		getHolder : function(view) { 
+			return this.holders[view.getTag()];
+		},
+		getVisibleChildren : function(pos, arr) {
+			var i, e = this.extend[pos];
+			if (!arr) arr = [];
+			if (!e.extend) return arr;
+			for (i in e.extend) if (!isNaN(e.extend[i].pos)) arr.push(e.extend[i].pos);
+		},
+		getItem : function(pos) {
+			return this.extend[pos].data;
+		},
+		getParent : function(pos) {
+			return this.extend[pos].parent.pos;
+		},
+		getSiblings : function(pos, arr) {
+			var i, e = this.extend[pos].parent;
+			if (!arr) arr = [];
+			for (i in e.extend) arr.push(e.extend[i].pos);
+		},
+		getTree : function(pos, arr) {
+			var i, e = this.extend[pos];
+			if (!arr) arr = [];
+			arr.push(pos);
+			if (!e.extend || !e.expanded) return arr;
+			for (i in e.extend) {
+				this.getTree(e.extend[i].pos, arr);
+			}
+			return arr;
+		},
+		getPath : function(pos, arr) {
+			if (!arr) arr = [];
+			if (isNaN(pos)) return arr;
+			this.getPath(this.getParent(pos), arr);
+			arr.push(this.extend[pos].index);
+			return arr;
+		},
+		getPosition : function(path) {
+			var s = this.root, i;
+			for (i = 0; i < path.length; i++) {
+				if (!s.extend) return NaN;
+				s = s.extend[path[i]];
+				if (!s) return NaN;
+			}
+			return s.pos;
+		},
+		hasChildren : function(pos) {
+			return this.isGroup(pos) && this.extend[pos].children.length > 0;
+		},
+		isCollapsed : function(pos) {
+			return !this.extend[pos].expanded;
+		},
+		isExpanded : function(pos) {
+			return this.extend[pos].expanded;
+		},
+		isGroup : function(pos) {
+			return this.extend[pos].group;
+		},
+		isVisible : function(node) {
+			return this.findNote(node) >= 0;
+		},
+		notifyChange : function() {
+			this.dso.forEach(function(e) {
+				if (e) e.onChanged();
+			});
+		},
+		notifyInvalidate : function() {
+			this.dso.forEach(function(e) {
+				if (e) e.onInvalidated();
+			});
+		},
+		rebind : function(pos) {
+			var i, e;
+			for (i in this.groupholders) {
+				if (this.groupholders[i].pos == pos) {
+					e = this.extend[pos];
+					this.groupBinder(this.groupholders[i], e.data, e.index, e.parent.children, e.depth, this.params);
+				}
+			}
+			for (i in this.itemholders) {
+				if (this.itemholders[i].pos == pos) {
+					e = this.extend[pos];
+					this.itemBinder(this.itemholders[i], e.data, e.index, e.parent.children, e.depth, this.params);
+				}
+			}
+		},
+		reveal : function(path) {
+			var s = this.root, i;
+			for (i = 0; i < path.length; i++) {
+				if (!s.extend) return NaN;
+				s = s.extend[path[i]];
+				if (!s) return NaN;
+				if (s.group && !s.expanded && i < path.length - 1) this.expand(s.pos);
+			}
+			return s.pos;
+		},
+		revealNode : function(node) {
+			var a = this.findNodePath(node);
+			if (a) return this.reveal(a);
+			return NaN;
+		},
+		setArray : function(a) {
+			var i, u;
+			this.extend.length = 0;
+			this.root.data = this.root.children = a;
+			u = extendArray(this.root, this._getChildren, this.idHolder, this.params);
+			for (i in u) this.extend.push(u[i]);
+			makePointer(this);
+			this.notifyChange();
+		},
+		update : function(pos) {
+			Array.prototype.splice.apply(this.extend, updateNode(this, this.extend[pos], [pos + 1, getLastNodePos(this.extend[pos]) - pos], false, false));
+			makePointer(this);
+			this.notifyChange();
+		},
+		updateAll : function() {
+			Array.prototype.splice.apply(this.extend, updateNode(this, this.root, [0, this.extend.length], true, false));
+			makePointer(this);
+			this.notifyChange();
+		}
+	}
+	r.control = function(adapter) {
 		var r = adapter.getItem(-1);
 		r.self = adapter;
 		return r;
