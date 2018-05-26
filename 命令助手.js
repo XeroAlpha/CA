@@ -602,17 +602,30 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.his.splice(CA.settings.histroyCount);
 		}
 	},
-	getFavoriteDir : function(key, folder) {
+	getFavoriteDir : function(key, folder, noCreate) {
 		var i, t;
 		if (!folder) folder = this.fav;
-		for (i in folder) {
-			if (key == folder[i].key && folder.children) return folder[i];
+		for (i in folder) {Log.d(key, folder[i].key);
+			if (key == folder[i].key && folder[i].children) return folder[i];
 		}
+		if (noCreate) return null;
 		folder.push(t = {
 			key : key,
 			children : []
 		});
 		return t;
+	},
+	addFavorite : function(data, folder) { //该函数允许将文件夹内容合并
+		var i, t, a;
+		if (!folder) folder = this.fav;
+		if (data.children && (t = this.getFavoriteDir(data.key, folder, true))) {
+			a = data.children;
+			for (i = 0; i < a.length; i++) {
+				this.addFavorite(a[i], t.children);
+			}
+		} else {
+			folder.push(data);
+		}
 	},
 	removeFavorite : function(data, folder) {
 		var i;
@@ -1337,7 +1350,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						folder : tag.folder,
 						callback : function() {
 							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
-							this.folder.children.push(this.data);
+							CA.addFavorite(this.data, this.folder.children);
 							self.refreshFavorite();
 						}
 					});
@@ -1358,6 +1371,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}];
 			self.favoriteGroupEdit = [{
+				text : "全部展开",
+				hidden : function(tag) {
+					return self.favAdapter.isExpanded(tag.pos);
+				},
+				onclick : function(v, tag) {
+					self.favAdapter.expandTree(tag.pos);
+				}
+			}, {
+				text : "全部折叠",
+				hidden : function(tag) {
+					return !self.favAdapter.isExpanded(tag.pos);
+				},
+				onclick : function(v, tag) {
+					self.favAdapter.collapseTree(tag.pos);
+				}
+			}, {
 				text : "重命名",
 				onclick : function(v, tag) {
 					Common.showInputDialog({
@@ -1385,9 +1414,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						mode : 2,
 						data : tag.data,
 						folder : tag.folder,
+						hiddenFolder : [tag.data],
 						callback : function() {
 							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
-							this.folder.children.push(this.data);
+							CA.addFavorite(this.data, this.folder.children);
 							self.refreshFavorite();
 						}
 					});
@@ -1508,20 +1538,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return g.concat(d);
 			}
-			self.nula = function(s) {
-				var text = new G.TextView(ctx);
-				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				text.setText("空空如也");
-				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setGravity(G.Gravity.CENTER);
-				text.setFocusable(true);
-				Common.applyStyle(text, "textview_prompt", 4);
-				return text;
-			}
 			self.refreshHistory = function() {
 				if (CA.his.length == 0) {
 					self.hisEmpty = true;
-					self.history.setAdapter(self.nulAdapter);
+					self.history.setAdapter(EmptyAdapter);
 				} else {
 					self.hisAdapter.setArray(CA.his);
 					if (self.hisEmpty) self.history.setAdapter(self.hisAdapter.self);
@@ -1532,7 +1552,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.refreshFavorite = function() {
 				if (CA.fav.length == 0) {
 					self.favEmpty = true;
-					self.favorite.setAdapter(self.nulAdapter);
+					self.favorite.setAdapter(EmptyAdapter);
 				} else {
 					Array.prototype.splice.apply(self.favList, [0, self.favList.length].concat(self.getFavChildren({
 						children : CA.fav
@@ -1580,11 +1600,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.tag2.setText("收藏");
 			self.tag2.setGravity(G.Gravity.LEFT);
 			self.tag2.setPadding(10 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			self.tag2.setFocusable(true);
 			Common.applyStyle(self.tag2, "textview_prompt", 1);
 			self.favorite = new G.ListView(ctx);
 			self.favorite.addHeaderView(self.tag2);
 			self.favAdapter.bindListView(self.favorite, {
+				onHeaderClick : function(pos) {
+					CA.showFavEditDialog({
+						mode : 0,
+						data : {},
+						callback : function() {
+							this.folder.children.push(this.data);
+							self.refreshFavorite();
+						}
+					});
+				},
+				onHeaderLongClick : function(pos) {
+					if (!self.favEmpty) self.favAdapter.expandAll();
+				},
 				onItemClick : function(e) {
 					CA.cmd.setText(e.value);
 					CA.showGen.activate(false);
@@ -1596,11 +1628,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						folder :  isNaN(p) ? null : adpt.getItem(p),
 					});
 				},
+				onItemClick : function(e) {
+					CA.cmd.setText(e.value);
+					CA.showGen.activate(false);
+				},
 				onGroupLongClick : function(e, pos, parent, view, adpt) {
 					var p = adpt.getParent(pos);
 					Common.showOperateDialog(self.favoriteGroupEdit, {
 						data : e,
 						folder :  isNaN(p) ? null : adpt.getItem(p),
+						pos : pos
 					});
 				}
 			});
@@ -1702,7 +1739,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.getChildren = function(e, i, a, depth, params) {
 				if (e.children) {
 					var arr = e.children.filter(function(e) {
-						return e.children;
+						return e.children && params.hiddenFolder.indexOf(e) < 0;
 					});
 					if (params.selected == e) {
 						arr.push({
@@ -1730,6 +1767,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		var layout, linear, title, key, value, folder, exit, popup, adpt, param;
 		param = {};
+		param.hiddenFolder = o.hiddenFolder || [];
 		adpt = ExpandableListAdapter.control(new ExpandableListAdapter([{
 			key : "根收藏夹",
 			children : CA.fav,
@@ -1797,8 +1835,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			o.data.key = String(key.getText());
-			o.data.value = String(value.getText());
+			if (o.mode == 0 || o.mode == 1) {
+				if (!key.length()) return Common.toast("名称不能为空");
+				if (!value.length()) return Common.toast("内容不能为空");
+				o.data.key = String(key.getText());
+				o.data.value = String(value.getText());
+			}
 			o.folder = param.selected;
 			if (o.callback) o.callback();
 			popup.dismiss();
@@ -1807,8 +1849,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		param.selected = o.folder ? o.folder : adpt.getItem(0);
 		adpt.revealNode(param.selected);
 		adpt.updateAll();
-		key.setText(o.data.key || "");
-		value.setText(o.data.value || "");
+		if (o.data) {
+			key.setText(o.data.key || "");
+			value.setText(o.data.value || "");
+		}
 		switch (o.mode) {
 			case 0:
 			title.setText("添加收藏");
@@ -1978,30 +2022,31 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (pos != null) self.selection[pos] = true;
 				if (CA.his.length == 0) {
 					self.adapter = null;
-					self.list.setAdapter(new RhinoListAdapter([null], self.nula));
+					self.list.setAdapter(EmptyAdapter);
 				} else {
 					if (self.adapter) {
 						self.adapter.setArray(CA.his);
 					} else {
-						self.list.setAdapter(a = new RhinoListAdapter(CA.his, self.adpt));
-						self.adapter = RhinoListAdapter.getController(a);
+						self.list.setAdapter(a = new SimpleListAdapter(CA.his, self.vmaker, self.vbinder));
+						self.adapter = SimpleListAdapter.getController(a);
 					}
 				}
 				self.refreshBar();
 			}
 			self.refreshBar = function() {
-				var i, c = 0;
-				for (i in self.selection) {
+				var i, c = 0, e;
+				for (i = 0; i < self.selection.length; i++) {
 					if (!self.selection[i]) continue;
 					c++;
 				}
 				for (i = 0; i < self.actions.length; i++) {
-					if (self.actions[i].type == 0) { //总是显示
-						self.bar.getChildAt(i).setVisibility(G.View.VISIBLE);
-					} else if (self.actions[i].type == 1) { //仅选中1个时显示
-						self.bar.getChildAt(i).setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
-					} else if (self.actions[i].type == 2) { //选中1个或多个时显示
-						self.bar.getChildAt(i).setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
+					e = self.actions[i];
+					if (e.type == 0) { //总是显示
+						e.view.setVisibility(G.View.VISIBLE);
+					} else if (e.type == 1) { //仅选中1个时显示
+						e.view.setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
+					} else if (e.type == 2) { //选中1个或多个时显示
+						e.view.setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
 					}
 				}
 				self.title.setText("编辑 历史 （" + c + "/" + self.selection.length + "）");
@@ -2010,44 +2055,41 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				type : 0,
 				text : "全选",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = true;
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
 				}
 			}, {
 				type : 2,
 				text : "反选",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = !self.selection[i];
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
 				}
 			}, {
 				type : 2,
 				text : "清除选择",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = false;
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
 				}
 			}, {
 				type : 2,
 				text : "复制",
 				action : function() {
 					var z = [], i, c = 0;
-					for (i in self.selection) {
+					for (i = 0; i < self.selection.length; i++) {
 						if (!self.selection[i]) continue;
 						z.push(CA.his[i]);
 						c++;
@@ -2080,6 +2122,33 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.refresh();
 				}
 			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					check = holder.check = new G.CheckBox(ctx),
+					text = holder.text = new G.TextView(ctx);
+				layout.setGravity(G.Gravity.CENTER);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+					self.selection[holder.pos] = s;
+					if (!holder.busy) self.refreshBar();
+				} catch(e) {erp(e)}}}));
+				check.setFocusable(false);
+				layout.addView(check);
+				text.setPadding(5 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+				text.setMaxLines(2);
+				text.setEllipsize(G.TextUtils.TruncateAt.END);
+				Common.applyStyle(text, "textview_default", 3);
+				layout.addView(text);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i) {
+				holder.busy = true;
+				holder.check.setChecked(self.selection[i] == true);
+				holder.text.setText(e);
+				holder.busy = false;
+			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "container_default");
@@ -2112,7 +2181,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					o.action();
 				} catch(e) {erp(e)}}}));
-				self.bar.addView(b);
+				self.bar.addView(o.view = b);
 			});
 			self.hscr.addView(self.bar);
 			self.header.addView(self.hscr);
@@ -2120,41 +2189,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				view.getChildAt(0).performClick();
+				if (self.adapter) self.adapter.getHolder(view).check.performClick();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
-			self.adpt = function(e, i) {
-				var layout = new G.LinearLayout(ctx),
-					check = new G.CheckBox(ctx),
-					text = new G.TextView(ctx);
-				layout.setGravity(G.Gravity.CENTER);
-				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				layout.setOrientation(G.LinearLayout.HORIZONTAL);
-				check.setChecked(self.selection[i] == true);
-				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
-					self.selection[i] = s;
-					self.refreshBar();
-				} catch(e) {erp(e)}}}));
-				check.setFocusable(false);
-				layout.addView(check);
-				text.setPadding(5 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-				text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
-				text.setText(e);
-				text.setMaxLines(2);
-				text.setEllipsize(G.TextUtils.TruncateAt.END);
-				Common.applyStyle(text, "textview_default", 3);
-				layout.addView(text);
-				return layout;
-			}
-			self.nula = function(s) {
-				var text = new G.TextView(ctx);
-				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				text.setText("空空如也");
-				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setGravity(G.Gravity.CENTER);
-				text.setFocusable(true);
-				Common.applyStyle(text, "textview_prompt", 4);
-				return text;
+			if (G.style == "Material") {
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
 			}
 			PWM.registerResetFlag(self, "linear");
 		}
@@ -2174,42 +2214,65 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	showFavoriteEdit : function self(data, callback) {G.ui(function() {try {
-		Common.toast("开发中……");
-		return callback();
-		
 		if (!self.linear) {
 			self.adapter = null;
-			self.refresh = function(key) {
-				var a, t;
-				self.array = CA.fav;
+			self.trace = function(data, root) {
+				var i, r, a = root.children;
+				for (i = 0; i < a.length; i++) {
+					if (data == a[i]) return [root];
+					if (a[i].children) {
+						r = self.trace(data, a[i]);
+						if (r) {
+							r.unshift(root);
+							return r;
+						}
+					}
+				}
+			}
+			self.init = function(data) {
+				var t = {
+					key : "根",
+					children : CA.fav
+				};
+				self.path = self.trace(data, t) || [t];
+				self.refresh(data);
+			}
+			self.refresh = function(data) {
+				var a, t = self.path[self.path.length - 1];
+				self.array = t.children.slice();
 				self.selection = new Array(self.array.length);
-				if (key != null) self.selection[self.array.indexOf(data)] = true;
+				if (data != null) self.selection[self.array.indexOf(data)] = true;
 				if (self.array.length == 0) {
 					self.adapter = null;
-					self.list.setAdapter(new RhinoListAdapter([null], self.nula));
+					self.list.setAdapter(EmptyAdapter);
 				} else {
 					if (self.adapter) {
 						self.adapter.setArray(self.array);
 					} else {
-						self.list.setAdapter(a = new RhinoListAdapter(self.array, self.adpt));
-						self.adapter = RhinoListAdapter.getController(a);
+						self.list.setAdapter(a = new SimpleListAdapter(self.array, self.vmaker, self.vbinder));
+						self.adapter = SimpleListAdapter.getController(a);
 					}
 				}
+				self.pathbar.setVisibility(self.path.length > 1 ? G.View.VISIBLE : G.View.GONE);
+				self.pathbar.setText("返回上层 " + self.path.map(function(e) {
+					return e.key;
+				}).join(" > "));
 				self.refreshBar();
 			}
 			self.refreshBar = function() {
-				var i, c = 0;
-				for (i in self.selection) {
+				var i, c = 0, e;
+				for (i = 0; i < self.selection.length; i++) {
 					if (!self.selection[i]) continue;
 					c++;
 				}
 				for (i = 0; i < self.actions.length; i++) {
-					if (self.actions[i].type == 0) { //总是显示
-						self.bar.getChildAt(i).setVisibility(G.View.VISIBLE);
-					} else if (self.actions[i].type == 1) { //仅选中1个时显示
-						self.bar.getChildAt(i).setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
-					} else if (self.actions[i].type == 2) { //选中1个或多个时显示
-						self.bar.getChildAt(i).setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
+					e = self.actions[i];
+					if (e.type == 0) { //总是显示
+						e.view.setVisibility(G.View.VISIBLE);
+					} else if (e.type == 1) { //仅选中1个时显示
+						e.view.setVisibility(c == 1 ? G.View.VISIBLE : G.View.GONE);
+					} else if (e.type == 2) { //选中1个或多个时显示
+						e.view.setVisibility(c > 0 ? G.View.VISIBLE : G.View.GONE);
 					}
 				}
 				self.title.setText("编辑 收藏 （" + c + "/" + self.selection.length + "）");
@@ -2218,46 +2281,67 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				type : 0,
 				text : "全选",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = true;
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
 				}
 			}, {
 				type : 2,
 				text : "反选",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = !self.selection[i];
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
 				}
 			}, {
 				type : 2,
 				text : "清除选择",
 				action : function() {
-					var i, aa;
-					if (!self.adapter) return;
-					aa = self.adapter.views;
+					var i;
 					for (i = 0; i < self.selection.length; i++) {
 						self.selection[i] = false;
-						if (aa[i]) aa[i].getChildAt(0).setChecked(self.selection[i]);
 					}
+					if (self.adapter) self.adapter.notifyChange();
+					self.refreshBar();
+				}
+			}, {
+				type : 2,
+				text : "移动",
+				action : function() {
+					var fd = self.path[self.path.length - 1];
+					var i, a = [];
+					for (i = 0; i < self.selection.length; i++) {
+						if (!self.selection[i]) continue;
+						a.push(self.array[i]);
+					}
+					CA.showFavEditDialog({
+						mode : 2,
+						folder : fd,
+						hiddenFolder : a,
+						callback : function() {
+							for (i = 0; i < a.length; i++) {
+								CA.removeFavorite(a[i], fd.children);
+								CA.addFavorite(a[i], this.folder.children);
+							}
+							self.refresh();
+						}
+					});
 				}
 			}, {
 				type : 2,
 				text : "复制",
 				action : function() {
 					var z = [], i, c = 0, e;
-					for (i in self.selection) {
+					for (i = 0; i < self.selection.length; i++) {
 						if (!self.selection[i]) continue;
 						e = self.array[i];
+						if (e.children) continue;
 						z.push(e.key, e.value);
 						c++;
 					}
@@ -2269,9 +2353,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text : "粘贴",
 				action : function() {
 					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
+					var fd = self.path[self.path.length - 1];
 					var i, z = String(Common.getClipboardText()).split("\n");
 					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
-					for (i = 1; i < z.length; i += 2) CA.addFavo%rite(z[i - 1], z[i]);
+					for (i = 1; i < z.length; i += 2) CA.addFavorite({
+						key : z[i - 1],
+						value : z[i]
+					}, fd.children);
 					Common.toast(Math.floor(z.length / 2) + "条命令已粘贴");
 					self.refresh();
 				}
@@ -2289,6 +2377,43 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.refresh();
 				}
 			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					check = holder.check = new G.CheckBox(ctx),
+					linear = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setGravity(G.Gravity.CENTER);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+					self.selection[holder.pos] = s;
+					if (!holder.busy) self.refreshBar();
+				} catch(e) {erp(e)}}}));
+				check.setFocusable(false);
+				layout.addView(check);
+				linear.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				linear.setOrientation(G.LinearLayout.VERTICAL);
+				text1.setPadding(10 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text1, "textview_default", 3);
+				linear.addView(text1);
+				text2.setPadding(10 * G.dp, 0, 15 * G.dp, 15 * G.dp);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text2.setEllipsize(G.TextUtils.TruncateAt.END);
+				text2.setSingleLine(true);
+				Common.applyStyle(text2, "textview_prompt", 1);
+				linear.addView(text2);
+				layout.addView(linear);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i) {
+				holder.busy = true;
+				holder.check.setChecked(self.selection[i] == true);
+				holder.text1.setText(e.key);
+				holder.text2.setText(e.children ? "文件夹，包含" + e.children.length + "个成员" : e.value);
+				holder.busy = false;
+			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "container_default");
@@ -2301,7 +2426,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
-			
 			self.hscr = new G.HorizontalScrollView(ctx);
 			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.hscr.setHorizontalScrollBarEnabled(false);
@@ -2321,64 +2445,38 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					o.action();
 				} catch(e) {erp(e)}}}));
-				self.bar.addView(b);
+				self.bar.addView(o.view = b);
 			});
 			self.hscr.addView(self.bar);
 			self.header.addView(self.hscr);
 			self.linear.addView(self.header);
 			
+			self.pathbar = new G.TextView(ctx);
+			self.pathbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			self.pathbar.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.pathbar, "bar_float_second");
+			Common.applyStyle(self.pathbar, "text_prompt", 2);
+			self.pathbar.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (self.path.length < 2) return;
+				self.path.length -= 1;
+				self.refresh();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.pathbar);
+			
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				view.getChildAt(0).performClick();
+				if (self.array[pos].children) {
+					self.path.push(self.array[pos]);
+					self.refresh();
+				} else {
+					if (self.adapter) self.adapter.getHolder(view).check.performClick();
+				}
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
-			self.adpt = function(e, i) {
-				var layout = new G.LinearLayout(ctx),
-					check = new G.CheckBox(ctx),
-					linear = new G.LinearLayout(ctx),
-					text1 = new G.TextView(ctx),
-					text2 = new G.TextView(ctx);
-				layout.setGravity(G.Gravity.CENTER);
-				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				layout.setOrientation(G.LinearLayout.HORIZONTAL);
-				check.setChecked(self.selection[i] == true);
-				check.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
-					self.selection[i] = s;
-					self.refreshBar();
-				} catch(e) {erp(e)}}}));
-				check.setFocusable(false);
-				layout.addView(check);
-				linear.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				linear.setOrientation(G.LinearLayout.VERTICAL);
-				text1.setPadding(10 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
-				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text1.setText(e.key);
-				Common.applyStyle(text1, "textview_default", 3);
-				linear.addView(text1);
-				text2.setPadding(10 * G.dp, 0, 15 * G.dp, 15 * G.dp);
-				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text2.setText(e.value);
-				text2.setEllipsize(G.TextUtils.TruncateAt.END);
-				text2.setSingleLine(true);
-				Common.applyStyle(text2, "textview_prompt", 1);
-				linear.addView(text2);
-				layout.addView(linear);
-				return layout;
-			}
-			self.nula = function(s) {
-				var text = new G.TextView(ctx);
-				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				text.setText("空空如也");
-				text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
-				text.setGravity(G.Gravity.CENTER);
-				text.setFocusable(true);
-				Common.applyStyle(text, "textview_prompt", 4);
-				return text;
-			}
 			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
-		self.refresh(data);
+		self.init(data);
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
 		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
@@ -7191,6 +7289,10 @@ MapScript.loadModule("Common", {
 			v.setBackgroundColor(this.theme.float_bgcolor);
 			if (G.style == "Material") v.setElevation(8 * G.dp);
 			break;
+			case "bar_float_second":
+			v.setBackgroundColor(this.theme.float_bgcolor);
+			if (G.style == "Material") v.setElevation(4 * G.dp);
+			break;
 			case "container_default":
 			v.setBackgroundColor(Common.theme.bgcolor);
 			break;
@@ -7802,13 +7904,14 @@ MapScript.loadModule("Common", {
 					vl.getLayoutParams().gravity = G.Gravity.CENTER;
 					e._name = new G.TextView(ctx);
 					e._name.setText(String(e.name));
-					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+					e._name.setSingleLine(true);
+					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
 					Common.applyStyle(e._name, "textview_default", 3);
 					vl.addView(e._name);
 					if (e.description) {
 						e._description = new G.TextView(ctx);
 						e._description.setText(String(e.description));
-						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
 						Common.applyStyle(e._description, "textview_prompt", 1);
 						vl.addView(e._description);
 					}
@@ -7817,7 +7920,7 @@ MapScript.loadModule("Common", {
 						e._text = new G.TextView(ctx);
 						e._text.setText(e.get ? String(e.get()) : "");
 						e._text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-						e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+						e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
 						e._text.getLayoutParams().gravity = G.Gravity.CENTER;
 						Common.applyStyle(e._text, "textview_prompt", 2);
 						hl.addView(e._text);
@@ -9305,6 +9408,68 @@ MapScript.loadModule("Tutorial", {
 	}
 });
 
+MapScript.loadModule("EmptyAdapter", (function() {
+	var k = [], v = [];
+	function build() {
+		var text = new G.TextView(ctx);
+		text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+		text.setText("空空如也");
+		text.setPadding(0, 40 * G.dp, 0, 40 * G.dp);
+		text.setGravity(G.Gravity.CENTER);
+		text.setFocusable(true);
+		Common.applyStyle(text, "textview_prompt", 4);
+		return text;
+	}
+	return new G.ListAdapter({
+		getCount : function() {
+			return 1;
+		},
+		getItem : function(pos) {
+			return null;
+		},
+		getItemId : function(pos) {
+			return pos;
+		},
+		getItemViewType : function(pos) {
+			return 0;
+		},
+		getView : function(pos, convert, parent) {
+			try {
+				var i = k.indexOf(parent);
+				if (i < 0) {
+					k.push(parent);
+					v.push(convert = build());
+				} else {
+					convert = v[i];
+				}
+				return convert;
+			} catch(e) {
+				var a = new G.TextView(ctx);
+				a.setText(e + "\n" + e.stack);
+				erp(e);
+				return a;
+			}
+		},
+		getViewTypeCount : function() {
+			return 1;
+		},
+		hasStableIds : function() {
+			return true;
+		},
+		isEmpty : function() {
+			return false;
+		},
+		areAllItemsEnabled : function() {
+			return true;
+		},
+		isEnabled : function(pos) {
+			return true;
+		},
+		registerDataSetObserver : function(p) {},
+		unregisterDataSetObserver : function(p) {}
+	});
+})());
+
 MapScript.loadModule("RhinoListAdapter", (function() {
 	var r = function(arr, vmaker, params, preload) {
 		//arr是列表数组，vmaker(element, index, array, params)从item生成指定view
@@ -9969,10 +10134,10 @@ MapScript.loadModule("ExpandableListAdapter", (function() {
 					var hn = parent.getHeaderViewsCount(), fn = parent.getFooterViewsCount(), c = parent.getCount();
 					if (pos < hn) {
 						if (o.onHeaderLongClick) o.onHeaderLongClick(pos);
-						return;
+						return true;
 					} else if (pos >= c - fn) {
 						if (o.onFooterLongClick) o.onFooterLongClick(pos - c + fn);
-						return;
+						return true;
 					}
 					pos -= hn;
 					var e = adpt.extend[pos], args = [e.data, pos, parent, view, adpt];
