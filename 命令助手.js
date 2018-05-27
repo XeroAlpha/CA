@@ -197,6 +197,99 @@ MapScript.loadModule("ctx", (function(global) {
 
 MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
 
+MapScript.loadModule("Log", (function() {
+var proto = {
+	nullFunc : function() {},
+	start : function(target) {
+		var i;
+		for (i in this) if (i.length < 3) delete this[i];
+		this.setTarget(target);
+		return this;
+	},
+	stop : function() {
+		var i;
+		for (i in this) if (i.length < 3) this[i] = proto.nullFunc;
+		this.setTarget("null");
+		return this;
+	},
+	setTarget : function(target) {
+		if (target instanceof Function) {
+			return this.println = target;
+		}
+		this.println = proto.nullFunc;
+	},
+	a : function(a, b, m) { //断言
+		if (a != b) {
+			this.d(a, b, m);
+			this.r();
+			throw new Error(m);
+		}
+	},
+	c : function(f, scope) { //尝试调用函数
+		try {
+			for (var i = 2, s = []; i < arguments.length; i++) s.push(arguments[i]);
+			return this.d(f.apply(scope, s), s);
+		} catch(e) {
+			this.e(e);
+		}
+	},
+	d : function(v) { //打印多个信息
+		for (var i = 0, s = []; i < arguments.length; i++) s.push(arguments[i]);
+		this.println("Debug", s.join("; "));
+		return v;
+	},
+	e : function(e) { //打印错误
+		var s = [e, e.stack];
+		this.println("Error", s.join("\n"));
+	},
+	f : function(x) { //写入文件
+		var i;
+		var fp = new android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/ca.debug.txt";
+		try {
+			var fs = new java.io.FileOutputStream(fp, true);
+			fs.write(new java.lang.String(Date() + "\n").getBytes());
+			for (i in arguments) fs.write(new java.lang.String(String(arguments[i])+"\n").getBytes());
+			fs.close();
+			return x;
+		} catch (err) {
+			this.e(err);
+		}
+	},
+	r : function captureStack() { //查看堆栈
+		var k = {};
+		Error.captureStackTrace(k, captureStack);
+		return this.d(k.stack);
+	},
+	s : function(s) {
+		return this.d(this.debug("D", s, 0).join("\n")), s;
+	},
+	t : function self(s) { //显示Toast
+		ctx.runOnUiThread(function() {
+			if (self.last) self.last.cancel();
+			(self.last = android.widget.Toast.makeText(ctx, String(s), 0)).show();
+		});
+	},
+	debug : function self(name, o, depth) {
+		var i, r = [];
+		if (depth > 5) return [name + ": " + o];
+		if (o instanceof Array) {
+			r.push(name + ": " + "Array[" + o.length + "]");
+		} else {
+			r.push(name + ": " + (typeof o) + ": " + o);
+		}
+		if (o instanceof Object) {
+			for (i in o) {
+				self(i, o[i], depth + 1).forEach(function(e) {
+					r.push("\t" + e);
+				});
+			}
+		}
+		return r;
+	}
+};
+return Object.create(proto).stop();
+})());
+
 MapScript.loadModule("erp", function self(error) {
 	var tech = [error, "\n版本: {DATE}\n堆栈: ", error.stack, "\n来源: ", error.fileName, "\n包名: ", ctx.getPackageName(), "\nSDK版本: ", android.os.Build.VERSION.SDK_INT].join("");
 	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本: " + ModPE.getMinecraftVersion();
@@ -211,6 +304,7 @@ MapScript.loadModule("erp", function self(error) {
 		fs.println("* Error: " + new Date().toLocaleString());
 		fs.println(tech);
 		fs.close();
+		Log.e(e);
 	} catch(e) {
 		android.util.Log.e("CA", e);
 	}
@@ -605,7 +699,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	getFavoriteDir : function(key, folder, noCreate) {
 		var i, t;
 		if (!folder) folder = this.fav;
-		for (i in folder) {Log.d(key, folder[i].key);
+		for (i in folder) {
 			if (key == folder[i].key && folder[i].children) return folder[i];
 		}
 		if (noCreate) return null;
@@ -1813,7 +1907,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						if (!s) {
 							Common.toast("收藏夹名称不能为空");
 						} else {
-							param.selected = CA.getFavoriteDir(s, adpt.getItem(adpt.getParent(pos)).children);
+							var t = CA.getFavoriteDir(s, adpt.getItem(adpt.getParent(pos)).children);
+							if (param.hiddenFolder.indexOf(t) < 0) {
+								param.selected = t;
+							}
 							Common.toast("收藏夹已创建");
 							adpt.update(adpt.getParent(pos));
 						}
@@ -2362,6 +2459,50 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}, fd.children);
 					Common.toast(Math.floor(z.length / 2) + "条命令已粘贴");
 					self.refresh();
+				}
+			}, {
+				type : 0,
+				text : "导入",
+				action : function() {
+					var fd = self.path[self.path.length - 1];
+					Common.showFileDialog({
+						type : 0,
+						callback : function(f) {
+							try {
+								var r = JSON.parse(Common.readFile(f.result, "[]"));
+								if (!Array.isArray(r)) throw "不正确的收藏夹格式";
+								r.forEach(function(e) {
+									CA.addFavorite(e, fd.children);
+								});
+								self.refresh();
+								Common.toast("收藏已成功导入");
+							} catch(e) {
+								Common.toast("收藏夹导入失败\n" + e);
+							}
+						}
+					});
+				}
+			}, {
+				type : 2,
+				text : "导出",
+				action : function() {
+					var fd = self.path[self.path.length - 1];
+					var i, a = [];
+					for (i = 0; i < self.selection.length; i++) {
+						if (!self.selection[i]) continue;
+						a.push(self.array[i]);
+					}
+					Common.showFileDialog({
+						type : 1,
+						callback : function(f) {
+							try {
+								Common.saveFile(f.result, JSON.stringify(a, null, 4));
+								Common.toast("收藏已保存至" + f.result);
+							} catch(e) {
+								Common.toast("文件保存失败，无法导出\n" + e);
+							}
+						}
+					});
 				}
 			}, {
 				type : 2,
