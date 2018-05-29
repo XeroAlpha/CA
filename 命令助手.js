@@ -454,6 +454,8 @@ MapScript.loadModule("G", {
 	Path: android.graphics.Path,
 	PixelFormat: android.graphics.PixelFormat,
 	PopupWindow: android.widget.PopupWindow,
+	PorterDuff: android.graphics.PorterDuff,
+	PorterDuffXfermode: android.graphics.PorterDuffXfermode,
 	ProgressBar: android.widget.ProgressBar,
 	R: android.R,
 	RadioButton: android.widget.RadioButton,
@@ -511,7 +513,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.7",
+	version : "0.9.8",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -654,7 +656,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.settings = {
 				firstUse : Date.now(),
 				nextAskSupport : Date.now() + 30 * 24 * 60 * 60 * 1000,
-				barTop : false,
 				autoHideIcon : false,
 				autoFormatCmd : false,
 				alpha : 1,
@@ -897,6 +898,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.refreshAlpha();
 				self.refreshPos();
 			}
+			self.tutor = CA.settings.tutor_icon ? null : function() {
+				var off = [self.cx, self.cy];
+				Common.showTutorial({
+					text : "欢迎使用命令助手",
+					offset : off
+				});
+				Common.showTutorial({
+					text : "点击图标进入命令生成器\n长按图标打开快捷栏",
+					offset : off,
+					view : self.view,
+					callback : function() {
+						CA.settings.tutor_icon = true;
+					}
+				});
+				self.tutor = null;
+			}
 			self.lastState = true;
 			PWM.registerResetFlag(CA, "icon");
 			PWM.registerResetFlag(self, "view");
@@ -919,6 +936,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else {
 			PWM.addPopup(CA.icon);
 		}
+		if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
 		if (CA.icon) CA.icon.dismiss();
@@ -1046,12 +1064,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (callback) callback();
 					return;
 				}
-				var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, CA.settings.barTop ? -1 : 1);
+				var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1);
 				animation.setInterpolator(new G.AccelerateInterpolator(2.0));
 				animation.setDuration(100);
 				animation.setStartOffset(100);
 				self.bar.startAnimation(animation);
-				animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, CA.settings.barTop ? 1 : -1);
+				animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, -1);
 				animation.setInterpolator(new G.AccelerateInterpolator(2.0));
 				animation.setDuration(200);
 				animation.setAnimationListener(new G.Animation.AnimationListener({
@@ -1095,6 +1113,24 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				} catch(e) {erp(e)}}
 			});
+			self.tutor = CA.settings.tutor_gen ? null : function() {
+				Common.showTutorial({
+					text : "命令生成器可以协助你输入命令",
+					view : self.main
+				});
+				Common.showTutorial({
+					text : "按下加号进入命令创建模式",
+					view : self.add
+				});
+				Common.showTutorial({
+					text : "命令输入栏\n\n在此输入命令\n长按显示菜单\n向上拖动可以关闭命令生成器",
+					view : CA.cmd,
+					callback : function() {
+						CA.settings.tutor_gen = true;
+					}
+				});
+				self.tutor = null;
+			}
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
@@ -1223,7 +1259,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.main.removeCallbacks(touch.cbk);
 						touch.cbk = null;
 					}
-					if ((t < 0) == CA.settings.barTop) t = 0;
+					if (t > 0) t = 0;
 					if (touch.stead && Math.abs(t) < 20 * G.dp) break;
 					touch.stead = false;
 					self.main.setTranslationY(t);
@@ -1252,7 +1288,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.main.setTranslationY(0);
 					if (e.getAction() == e.ACTION_CANCEL || touch.stead) return false;
 					t = e.getRawY() - touch.sy;
-					if ((t < 0) == CA.settings.barTop) t = 0;
+					if (t > 0) t = 0;
 					if (Math.abs(t) > 0.4 * self.main.getMeasuredHeight()) {
 						if (CA.settings.noAnimation) {
 							CA.hideGen();
@@ -1332,13 +1368,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.con.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 			Common.applyStyle(CA.con, "container_default")
 			
-			if (CA.settings.barTop) {
-				self.main.addView(self.bar);
-				self.main.addView(CA.con);
-			} else {
-				self.main.addView(CA.con);
-				self.main.addView(self.bar);
-			}
+			self.main.addView(CA.con);
+			self.main.addView(self.bar);
 			
 			PWM.registerResetFlag(CA, "con");
 			PWM.registerResetFlag(CA, "cmd");
@@ -1369,6 +1400,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		animation.setInterpolator(new G.DecelerateInterpolator(2));
 		animation.setDuration(200);
 		CA.con.startAnimation(animation);
+		if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideGen : function() {G.ui(function() {try {
 		if (CA.gen) CA.gen.dismiss();
@@ -2863,14 +2895,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
-				id : "barTop",
-				name : "输入栏置顶",
-				description : "命令输入栏会被显示在顶部，兼容旧版UI。",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
 				id : "noAnimation",
 				name : "关闭动画",
 				description : "关闭部分动画以减轻卡顿。",
@@ -3182,7 +3206,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			
 			self.scr = new G.ScrollView(ctx);
 			self.scr.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
-			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, CA.settings.barTop ? G.Gravity.TOP : G.Gravity.BOTTOM));
+			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.BOTTOM));
 			
 			self.line = new G.LinearLayout(ctx);
 			self.line.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
@@ -3364,8 +3388,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (!self.inDrawer) self.list.setVisibility(G.View.VISIBLE);
 					CA.paste.update(self.lparam.width + 16 * G.dp, -1);
 				}
-				return false;
+				return v == self.bar;
 			} catch(e) {return erp(e), true}}});
+			self.inDrawer = false;
 			self.bar = new G.FrameLayout(ctx);
 			self.bar.setOnTouchListener(self.touchListener);
 			self.linear = new G.LinearLayout(ctx);
@@ -3406,6 +3431,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.list);
 			self.bar.addView(self.linear);
 			PWM.registerResetFlag(self, "bar");
+			PWM.registerResetFlag(CA, "paste");
+		}
+		if (self.inDrawer) {
+			self.updateWidth(0.4 * Common.getScreenWidth());
+			CA.paste.update(self.lparam.width + 16 * G.dp, -1);
+			self.list.setVisibility(G.View.VISIBLE);
+			if (!CA.settings.noAnimation) self.animateShow();
 		}
 		self.refresh();
 		if (CA.paste) return;
@@ -8675,6 +8707,75 @@ MapScript.loadModule("Common", {
 		popup = Common.showDialog(layout, -1, -1, function() {
 			wv.destroy();
 		});
+	} catch(e) {erp(e)}})},
+	
+	showTutorial : function self(o) {gHandler.post(function() {try {
+		if (!self.popup) {
+			self.queue = [];
+			self.next = function() {
+				if (!self.popup.isShowing()) {
+					var decor = ctx.getWindow().getDecorView();
+					decor.getWindowVisibleDisplayFrame(self.frameRect);
+					if (self.bmp) self.bmp.recycle();
+					self.bmp = G.Bitmap.createBitmap(self.frameRect.width(), self.frameRect.height(), G.Bitmap.Config.ARGB_8888);
+					self.frame.setBackground(new G.BitmapDrawable(self.bmp));
+					self.cv.setBitmap(self.bmp);
+					self.popup.showAtLocation(decor, G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
+				}
+				if (!self.queue.length) {
+					self.popup.dismiss();
+					return;
+				}
+				self.current = self.queue.shift();
+				if (self.current.callback) self.current.callback();
+				self.text.setText(self.current.text || "");
+				self.draw(self.current);
+			}
+			self.draw = function(o) {
+				self.cv.drawColor(Common.argbInt(0xa0, 0, 0, 0), G.PorterDuff.Mode.SRC);
+				if (o.view) {
+					o.rect = new G.Rect();
+					o.view.getGlobalVisibleRect(o.rect);
+					if (o.offset) o.rect.offset(o.offset[0] - self.frameRect.left, o.offset[1] - self.frameRect.top);
+				}
+				if (o.rect) {
+					self.cv.drawRect(o.rect, self.paint);
+				}
+			}
+			self.paint = new G.Paint();
+			self.paint.setStyle(G.Paint.Style.FILL);
+			self.paint.setColor(G.Color.WHITE);
+			self.paint.setAntiAlias(true);
+			self.paint.setXfermode(G.PorterDuffXfermode(G.PorterDuff.Mode.DST_OUT));
+			self.cv = new G.Canvas();
+			self.frameRect = new G.Rect();
+			self.frame = new G.FrameLayout(ctx);
+			self.frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				if (e.getAction() == e.ACTION_DOWN) {
+					self.next();
+				}
+				return true;
+			} catch(e) {return erp(e), true}}}));
+			self.text = new G.TextView(ctx);
+			self.text.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+			self.text.setTextColor(G.Color.WHITE);
+			self.text.setTextSize(16);
+			self.text.setGravity(G.Gravity.CENTER);
+			self.text.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER));
+			self.frame.addView(self.text);
+			self.popup = new G.PopupWindow(self.frame, -1, -1);
+			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			self.popup.setFocusable(true);
+			self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+			self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+				self.bmp.recycle();
+				self.bmp = null;
+				self.queue.length = 0;
+			} catch(e) {erp(e)}}}));
+		}
+		self.queue.push(o);
+		if (!self.popup.isShowing()) self.next();
 	} catch(e) {erp(e)}})},
 	
 	fileCopy : function(src, dest) {
