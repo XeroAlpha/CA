@@ -1425,6 +1425,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						},
 						callback : function() {
 							this.folder.children.push(this.data);
+						},
+						onDismiss : function() {
 							self.refreshFavorite();
 						}
 					});
@@ -1462,7 +1464,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						mode : 1,
 						data : tag.data,
 						folder : tag.folder,
-						callback : function() {
+						onDismiss : function() {
 							self.refreshFavorite();
 						}
 					});
@@ -1477,6 +1479,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						callback : function() {
 							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
 							CA.addFavorite(this.data, this.folder.children);
+						},
+						onDismiss : function() {
 							self.refreshFavorite();
 						}
 					});
@@ -1544,6 +1548,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						callback : function() {
 							CA.removeFavorite(tag.data, tag.folder ? tag.folder.children : null);
 							CA.addFavorite(this.data, this.folder.children);
+						},
+						onDismiss : function() {
 							self.refreshFavorite();
 						}
 					});
@@ -1736,6 +1742,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						data : {},
 						callback : function() {
 							this.folder.children.push(this.data);
+						},
+						onDismiss : function() {
 							self.refreshFavorite();
 						}
 					});
@@ -1754,9 +1762,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						folder :  isNaN(p) ? null : adpt.getItem(p),
 					});
 				},
-				onItemClick : function(e) {
-					CA.cmd.setText(e.value);
-					CA.showGen.activate(false);
+				onGroupClick : function(e, pos, parent, view, adpt) {
+					parent.smoothScrollToPositionFromTop(pos + parent.getHeaderViewsCount(), 0, 100);
 				},
 				onGroupLongClick : function(e, pos, parent, view, adpt) {
 					var p = adpt.getParent(pos);
@@ -1951,7 +1958,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			},
 			onGroupClick : function(e, pos, parent, view, adpt) {
-				param.selected = e;
+				if (param.selected != e) {
+					param.selected = e;
+					adpt.expand(pos);
+				}
+				parent.smoothScrollToPositionFromTop(pos + parent.getHeaderViewsCount(), 0, 100);
 				adpt.updateAll();
 			}
 		});
@@ -1984,17 +1995,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		switch (o.mode) {
 			case 0:
-			title.setText("添加收藏");
+			title.setText(o.title || "添加收藏");
 			break;
 			case 1:
-			title.setText("编辑收藏");
+			title.setText(o.title || "编辑收藏");
 			adpt.setArray([]);
 			break;
 			case 2:
-			title.setText("移动收藏");
+			title.setText(o.title || "移动收藏");
 			folder.removeHeaderView(linear);
 		}
-		popup = Common.showDialog(layout, -1, -2);
+		popup = Common.showDialog(layout, -1, -2, o.onDismiss);
 	} catch(e) {erp(e)}})},
 	
 	showAssist : function self() {G.ui(function() {try {
@@ -2215,6 +2226,30 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			}, {
 				type : 2,
+				text : "添加收藏",
+				action : function() {
+					CA.showFavEditDialog({
+						title : "选择收藏夹",
+						mode : 2,
+						callback : function() {
+							var z = this.folder.children, i, c = 0;
+							for (i = 0; i < self.selection.length; i++) {
+								if (!self.selection[i]) continue;
+								c++;
+								CA.addFavorite({
+									key : "历史记录(" + c + ")",
+									value : CA.his[i]
+								}, z);
+							}
+							Common.toast(c + "条命令已收藏");
+						},
+						onDismiss : function() {
+							if (CA.history) CA.showHistory();
+						}
+					});
+				}
+			}, {
+				type : 2,
 				text : "复制",
 				action : function() {
 					var z = [], i, c = 0;
@@ -2406,6 +2441,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				self.title.setText("编辑 收藏 （" + c + "/" + self.selection.length + "）");
 			}
+			self.editFav = function(pos) {
+				CA.showFavEditDialog({
+					mode : 1,
+					data : self.array[pos],
+					folder : self.path[self.path.length - 1],
+					callback : function() {
+						self.refresh();
+					}
+				});
+			}
 			self.actions = [{
 				type : 0,
 				text : "全选",
@@ -2555,7 +2600,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					check = holder.check = new G.CheckBox(ctx),
 					linear = new G.LinearLayout(ctx),
 					text1 = holder.text1 = new G.TextView(ctx),
-					text2 = holder.text2 = new G.TextView(ctx);
+					text2 = holder.text2 = new G.TextView(ctx),
+					edit = holder.edit = new G.ImageView(ctx);
 				layout.setGravity(G.Gravity.CENTER);
 				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.HORIZONTAL);
@@ -2565,7 +2611,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} catch(e) {erp(e)}}}));
 				check.setFocusable(false);
 				layout.addView(check);
-				linear.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				edit.setImageResource(G.R.drawable.ic_menu_edit);
+				edit.setScaleType(G.ImageView.ScaleType.FIT_CENTER);
+				edit.setLayoutParams(G.LinearLayout.LayoutParams(24 * G.dp, -1));
+				edit.getLayoutParams().setMargins(5 * G.dp, 0, 5 * G.dp, 0);
+				edit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					self.editFav(holder.pos);
+				} catch(e) {erp(e)}}}));
+				layout.addView(edit);
+				linear.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
 				linear.setOrientation(G.LinearLayout.VERTICAL);
 				text1.setPadding(10 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -2585,6 +2639,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				holder.check.setChecked(self.selection[i] == true);
 				holder.text1.setText(e.key);
 				holder.text2.setText(e.children ? "文件夹，包含" + e.children.length + "个成员" : e.value);
+				holder.edit.setVisibility(e.children ? G.View.GONE : G.View.VISIBLE);
 				holder.busy = false;
 			}
 			self.linear = new G.LinearLayout(ctx);
@@ -2646,6 +2701,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
+			if (G.style == "Material") {
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
+			}
 			PWM.registerResetFlag(self, "linear");
 		}
 		if (self.popup) self.popup.dismiss();
@@ -4681,8 +4740,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							},
 							callback : function() {
 								this.folder.children.push(this.data);
-								CA.showHistory();
 								Common.toast("模板已收藏");
+							},
+							onDismiss : function() {
+								if (CA.history) CA.showHistory();
 							}
 						});
 					}
@@ -5547,12 +5608,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			} else {
 				if (!uv) {
-					t.input.push("~ - 相对位置");
-					t.assist["~ - 相对位置"] = "~";
+					t.input.push("~ - 相对坐标");
+					t.assist["~ - 相对坐标"] = "~";
 				}
 				if ((ps.length == 0 || uv) && CA.hasFeature("enableLocalCoord")) {
-					t.input.push("^ - 本地坐标(^左 ^上 ^前)");
-					t.assist["^ - 本地坐标(^左 ^上 ^前)"] = "^";
+					t.input.push("^ - 局部坐标(^左 ^上 ^前)");
+					t.assist["^ - 局部坐标(^左 ^上 ^前)"] = "^";
 				}
 			}
 			if (MCAdapter.available()) {
@@ -6714,7 +6775,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			screla.setChecked(false);
 			screla.setLayoutParams(G.TableLayout.LayoutParams(-1, -2));
 			screla.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
-			screla.setText("使用本地坐标（^左 ^上 ^前）");
+			screla.setText("使用局部坐标（^左 ^上 ^前）");
 			screla.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
 				var i;
 				for (i = 0; i < 3; i++) rela[i].setVisibility(s ? G.View.GONE : G.View.VISIBLE);
@@ -8721,6 +8782,7 @@ MapScript.loadModule("Common", {
 					self.frame.setBackground(new G.BitmapDrawable(self.bmp));
 					self.cv.setBitmap(self.bmp);
 					self.popup.showAtLocation(decor, G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
+					if (MapScript.host == "Android") ScriptActivity.bringToFront();
 				}
 				if (!self.queue.length) {
 					self.popup.dismiss();
@@ -14667,8 +14729,8 @@ CA.IntelliSense.inner["default"] = {
 									"name": "等级",
 									"vtype": "数值",
 									"suffix": "L",
-									"input": "^(\\+|-)?(\\d+(L)?)?",
-									"finish": "^(\\+|-)?\\d+L"
+									"input": "^(\\+|-)?(\\d+([Ll])?)?",
+									"finish": "^(\\+|-)?\\d+[Ll]"
 								},
 								{
 									"type": "selector",
