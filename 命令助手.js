@@ -304,7 +304,7 @@ MapScript.loadModule("erp", function self(error) {
 		fs.println("* Error: " + new Date().toLocaleString());
 		fs.println(tech);
 		fs.close();
-		Log.e(e);
+		Log.e(error);
 	} catch(e) {
 		android.util.Log.e("CA", e);
 	}
@@ -313,7 +313,7 @@ MapScript.loadModule("erp", function self(error) {
 	} else {
 		self.count = 1;
 	}
-	if (self.count > 10) return;
+	if (self.count > 3) return;
 	gHandler.post(new java.lang.Runnable({run : function() {try {
 		android.widget.Toast.makeText(ctx, error.fileName + "出现了一个错误：" + error + "\n查看对话框获得更多信息。", 0).show();
 		var dialog = new android.app.AlertDialog.Builder(ctx);
@@ -1383,11 +1383,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.gen.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 		CA.gen.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			if (PWM.busy) return; //避免在dismiss过程中修改窗口数组
+			PWM.remove(CA.gen);
 			CA.screenChangeHook();
 			CA.trySave();
 		} catch(e) {erp(e)}}}));
 		CA.gen.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(CA.gen);
+		PWM.add(CA.gen, "ca.Generator");
 		CA.cmd.setText(CA.cmd.getText());
 		self.activate(false);
 		if (noani) return;
@@ -2370,11 +2371,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
 			self.popup = null;
 			if (callback) callback();
 		} catch(e) {erp(e)}}}));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "ca.HistoryEdit");
 	} catch(e) {erp(e)}})},
 	
 	showFavoriteEdit : function self(data, callback) {G.ui(function() {try {
@@ -2715,11 +2717,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
 			self.popup = null;
 			if (callback) callback();
 		} catch(e) {erp(e)}}}));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "ca.FavoriteEdit");
 	} catch(e) {erp(e)}})},
 	
 	performExit : function() {G.ui(function() {try {
@@ -4027,11 +4030,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			callback();
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "ca.LibraryManage");
 	} catch(e) {erp(e)}})},
 	
 	showModeChooser : function self(callback) {
@@ -4803,10 +4807,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "ca.BatchBuilder");
 		if (reset || !self.edit.length()) self.init(text || "");
 	} catch(e) {erp(e)}})},
 	BatchPattern : {
@@ -7327,8 +7332,9 @@ MapScript.loadModule("PWM", {
 		}
 		return false;
 	},
-	add : function(w) {
+	add : function(w, name) {
 		var v, wp;
+		if (name) Page.enter(w, name);
 		if (this.windows.indexOf(w) < 0) this.windows.push(w);
 		this.floats.forEach(function(e) {
 			if (!e.isShowing()) return;
@@ -7340,6 +7346,11 @@ MapScript.loadModule("PWM", {
 			PWM.wm.addView(v, wp);
 		});
 		this._notifyListeners("add", w);
+	},
+	remove : function(w) {
+		var i = this.windows.indexOf(w);
+		this.windows.splice(i, 1);
+		Page.exit(w);
 	},
 	addFloat : function(w) {
 		if (this.floats.indexOf(w) < 0) this.floats.push(w);
@@ -7444,6 +7455,46 @@ MapScript.loadModule("PWM", {
 		this.listeners.forEach(function(e) {
 			e.apply(null, args);
 		});
+	}
+});
+
+MapScript.loadModule("Page", {
+	stack : [],
+	enter : function(obj, name, listener, tag) {
+		var t;
+		if (this.stack.length) this.onPause(this.stack[this.stack.length - 1]);
+		this.stack.push(t = {
+			obj : obj,
+			name : name,
+			listener : listener,
+			tag : tag
+		});
+		this.onEnter(t);
+	},
+	exit : function(obj) {
+		var i;
+		for (i = this.stack.length - 1; i >= 0; i--) {
+			if (this.stack[i].obj != obj) continue;
+			this.stack.splice(i, this.stack.length - i).forEach(this.onExit, this);
+			if (i > 0) this.onResume(this.stack[i - 1]);
+			break;
+		}
+	},
+	onEnter : function(o) {
+		if (o.listener && o.listener.onEnter) o.listener.onEnter(o.obj, o.name, o.tag);
+		if (MapScript.host == "Android") TCAgent.onPageStart(ctx, o.name);
+	},
+	onExit : function(o) {
+		if (o.listener && o.listener.onExit) o.listener.onExit(o.obj, o.name, o.tag);
+		if (MapScript.host == "Android") TCAgent.onPageEnd(ctx, o.name);
+	},
+	onPause : function(o) {
+		if (o.listener && o.listener.onPause) o.listener.onPause(o.obj, o.name, o.tag);
+		if (MapScript.host == "Android") TCAgent.onPageEnd(ctx, o.name);
+	},
+	onResume : function(o) {
+		if (o.listener && o.listener.onResume) o.listener.onResume(o.obj, o.name, o.tag);
+		if (MapScript.host == "Android") TCAgent.onPageStart(ctx, o.name);
 	}
 });
 
@@ -7698,6 +7749,7 @@ MapScript.loadModule("Common", {
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			if (!self.modified) Common.loadTheme(self.last);
 			if (dismiss) dismiss();
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.last = Common.theme.id;
@@ -7705,7 +7757,7 @@ MapScript.loadModule("Common", {
 		self.lasttsz = CA.settings.textSize;
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "common.ChangeTheme");
 	} catch(e) {erp(e)}})},
 	
 	customVMaker : function(holder) {
@@ -8299,6 +8351,7 @@ MapScript.loadModule("Common", {
 				}
 			});
 			if (onSave) onSave();
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.data = data.filter(function(e) {
@@ -8319,7 +8372,7 @@ MapScript.loadModule("Common", {
 		});
 		self.list.setAdapter(new RhinoListAdapter(self.data, self.adapter));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "common.Settings");
 	} catch(e) {erp(e)}})},
 	
 	showFileDialog : function self(o) {G.ui(function() {try {
@@ -8717,10 +8770,11 @@ MapScript.loadModule("Common", {
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "common.Console");
 	} catch(e) {erp(e)}})},
 	
 	showWebViewDialog : function(s) {G.ui(function() {try {
@@ -9499,11 +9553,12 @@ MapScript.loadModule("Tutorial", {
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			CA.trySave();
 			if (callback) callback();
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.refresh();
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "tutorial.List");
 	} catch(e) {erp(e)}})},
 	
 	showIntro : function(o, callback) {G.ui(function() {try {
@@ -9690,11 +9745,12 @@ MapScript.loadModule("Tutorial", {
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 			CA.trySave();
 			if (callback) callback();
+			PWM.remove(self.popup);
 			self.popup = null;
 		} catch(e) {erp(e)}}}));
 		self.init(o);
 		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		PWM.add(self.popup, "tutorial.Tutorial");
 	} catch(e) {erp(e)}})},
 	
 	getSettings : function(id) {
@@ -11199,9 +11255,10 @@ MapScript.loadModule("JSONEdit", {
 				p.y = 0;
 				PWM.wm.addView(self.main, p);
 				JSONEdit.edit = self;
-				PWM.add(self);
+				PWM.add(self, "jsonedit.Main");
 			}
 			self.dismiss = function() {
+				PWM.remove(self);
 				JSONEdit.edit = null;
 				if (JSONEdit.updateListener) JSONEdit.updateListener();
 				PWM.wm.removeViewImmediate(self.main);
@@ -12842,18 +12899,21 @@ MapScript.loadModule("NeteaseAdapter", {
 CA.IntelliSense.inner["default"] = {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.2.13 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.4.0 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.2.13.54",
+	"targetSupportVer": "1.4.0.5",
 	"commands": {},
 	"enums": {
 		"block": {
+			"acacia_button": "金合欢木按钮",
 			"acacia_door": "金合欢木门",
 			"acacia_fence_gate": "金合欢栅栏门",
-			"acacia_stairs": "金合欢木楼梯",
+			"acacia_pressure_plate": "金合欢木压力板",
+			"acacia_stairs": "金合欢楼梯",
+			"acacia_trapdoor": "金合欢木活板门",
 			"activator_rail": "激活铁轨",
 			"air": "空气",
 			"anvil": "铁砧",
@@ -12861,11 +12921,15 @@ CA.IntelliSense.inner["default"] = {
 			"bed": "床",
 			"bedrock": "基岩",
 			"beetroot": "甜菜根",
+			"birch_button": "白桦木按钮",
 			"birch_door": "白桦木门",
 			"birch_fence_gate": "白桦木栅栏门",
-			"birch_stairs": "桦木楼梯",
+			"birch_pressure_plate": "白桦木压力板",
+			"birch_stairs": "白桦木楼梯",
+			"birch_trapdoor": "白桦木活板门",
 			"black_glazed_terracotta": "黑色带釉陶瓦",
 			"blue_glazed_terracotta": "蓝色带釉陶瓦",
+			"blue_ice": "蓝冰",
 			"bone_block": "骨块",
 			"bookshelf": "书架",
 			"brewing_stand": "酿造台",
@@ -12878,6 +12942,7 @@ CA.IntelliSense.inner["default"] = {
 			"cake": "蛋糕",
 			"carpet": "地毯",
 			"carrots": "胡萝卜",
+			"carved_pumpkin": "雕刻南瓜",
 			"cauldron": "炼药锅",
 			"chain_command_block": "连锁型命令方块",
 			"chest": "箱子",
@@ -12892,11 +12957,21 @@ CA.IntelliSense.inner["default"] = {
 			"command_block": "命令方块",
 			"concrete": "混凝土",
 			"concretepowder": "混凝土粉末",
+			"coral": "珊瑚",
+			"coral_block": "珊瑚块",
+			"coral_fan": "珊瑚扇",
+			"coral_fan_dead": "死亡珊瑚扇",
+			"coral_fan_hang": "",
+			"coral_fan_hang2": "",
+			"coral_fan_hang3": "",
 			"crafting_table": "工作台",
 			"cyan_glazed_terracotta": "青色带釉陶瓦",
+			"dark_oak_button": "深色橡木按钮",
 			"dark_oak_door": "深色橡木门",
 			"dark_oak_fence_gate": "深色橡木栅栏门",
+			"dark_oak_pressure_plate": "深色橡木压力板",
 			"dark_oak_stairs": "深色橡木楼梯",
+			"dark_oak_trapdoor": "深色橡木活板门",
 			"dark_prismarine_stairs": "暗海晶石楼梯",
 			"daylight_detector": "阳光传感器",
 			"daylight_detector_inverted": "反向阳光传感器",
@@ -12911,6 +12986,7 @@ CA.IntelliSense.inner["default"] = {
 			"double_stone_slab2": "双红砂岩台阶",
 			"double_wooden_slab": "双木台阶",
 			"dragon_egg": "龙蛋",
+			"dried_kelp_block": "干海带块",
 			"dropper": "投掷器",
 			"emerald_block": "绿宝石块",
 			"emerald_ore": "绿宝石矿石",
@@ -12958,9 +13034,13 @@ CA.IntelliSense.inner["default"] = {
 			"iron_ore": "铁矿石",
 			"iron_trapdoor": "铁活板门",
 			"jukebox": "唱片机",
+			"jungle_button": "丛林木按钮",
 			"jungle_door": "丛林木门",
 			"jungle_fence_gate": "丛林木栅栏门",
+			"jungle_pressure_plate": "丛林木压力板",
 			"jungle_stairs": "丛林楼梯",
+			"jungle_trapdoor": "丛林木活板门",
+			"kelp": "海带",
 			"ladder": "梯子",
 			"lapis_block": "青金石块",
 			"lapis_ore": "青金石矿石",
@@ -13040,6 +13120,8 @@ CA.IntelliSense.inner["default"] = {
 			"sandstone_stairs": "砂岩楼梯",
 			"sapling": "树苗",
 			"sealantern": "海晶灯",
+			"sea_pickle": "海泡菜",
+			"seagrass": "海草",
 			"shulker_box": "潜影盒",
 			"silver_glazed_terracotta": "淡灰色带釉陶瓦",
 			"skull": "生物头颅",
@@ -13048,9 +13130,12 @@ CA.IntelliSense.inner["default"] = {
 			"snow_layer": "雪",
 			"soul_sand": "灵魂沙",
 			"sponge": "海绵",
+			"spruce_button": "云杉木按钮",
 			"spruce_door": "云杉木门",
 			"spruce_fence_gate": "云杉木栅栏门",
+			"spruce_pressure_plate": "云杉木压力板",
 			"spruce_stairs": "云杉楼梯",
+			"spruce_trapdoor": "云杉木活板门",
 			"stained_glass": "染色玻璃",
 			"stained_glass_pane": "染色玻璃板",
 			"stained_hardened_clay": "染色陶瓦",
@@ -13158,6 +13243,7 @@ CA.IntelliSense.inner["default"] = {
 			"diamond_shovel": "钻石锹",
 			"diamond_sword": "钻石剑",
 			"dragon_breath": "龙息",
+			"dried_kelp": "干海带",
 			"dye": "染料",
 			"egg": "鸡蛋",
 			"elytra": "鞘翅",
@@ -13193,6 +13279,7 @@ CA.IntelliSense.inner["default"] = {
 			"golden_shovel": "金锹",
 			"golden_sword": "金剑",
 			"gunpowder": "火药",
+			"heart_of_the_sea": "海洋之心",
 			"hopper_minecart": "漏斗矿车",
 			"horsearmordiamond": "钻石马铠",
 			"horsearmorgold": "金马铠",
@@ -13217,6 +13304,7 @@ CA.IntelliSense.inner["default"] = {
 			"leather_leggings": "皮革裤子",
 			"lingering_potion": "滞留药水",
 			"magma_cream": "岩浆膏",
+			"medicine": "",
 			"melon": "西瓜片",
 			"melon_seeds": "西瓜种子",
 			"minecart": "矿车",
@@ -13225,6 +13313,7 @@ CA.IntelliSense.inner["default"] = {
 			"muttoncooked": "熟羊肉",
 			"muttonraw": "生羊肉",
 			"name_tag": "命名牌",
+			"nautilus_shell": "鹦鹉螺",
 			"netherstar": "下界之星",
 			"netherbrick": "地狱砖",
 			"painting": "画",
@@ -13280,6 +13369,7 @@ CA.IntelliSense.inner["default"] = {
 			"sugar": "糖",
 			"tnt_minecart": "TNT矿车",
 			"totem": "不死图腾",
+			"trident": "三叉戟",
 			"wheat_seeds": "小麦种子",
 			"wooden_axe": "木斧",
 			"wooden_hoe": "木锄",
@@ -13306,6 +13396,8 @@ CA.IntelliSense.inner["default"] = {
 			"bucket.empty_water": "桶放置水声",
 			"bucket.fill_lava": "桶装岩浆声",
 			"bucket.fill_water": "桶装水声",
+			"bucket.fill_fish": "桶装鱼声",
+			"bucket.empty_fish": "桶倒鱼声",
 			"bottle.dragonbreath": "获取龙息声",
 			"cauldron.explode": "炼药锅爆炸声",
 			"cauldron.dyearmor": "炼药锅着色装备声",
@@ -13375,6 +13467,27 @@ CA.IntelliSense.inner["default"] = {
 			"mob.cow.milk": "牛挤奶声",
 			"mob.creeper.death": "苦力怕死亡声",
 			"mob.creeper.say": "苦力怕叫/受伤声",
+			"mob.dolphin.idle_water": "海豚叫声",
+			"mob.dolphin.attack": "海豚攻击声",
+			"mob.dolphin.blowhole": "",
+			"mob.dolphin.death": "海豚死亡声",
+			"mob.dolphin.eat": "海豚吃东西声",
+			"mob.dolphin.hurt": "海豚受伤声",
+			"mob.dolphin.idle": "海豚叫声",
+			"mob.dolphin.jump": "海豚跳跃声",
+			"mob.dolphin.play": "海豚玩耍声",
+			"mob.dolphin.splash": "海豚入水声",
+			"mob.dolphin.swim": "海豚游泳声",
+			"mob.drowned.say_water": "溺尸叫声（水中）",
+			"mob.drowned.death_water": "溺尸死亡声（水中）",
+			"mob.drowned.hurt_water": "溺尸受伤声（水中）",
+			"mob.drowned.say": "溺尸叫声（陆地）",
+			"mob.drowned.death": "溺尸死亡声（陆地）",
+			"mob.drowned.hurt": "溺尸受伤声（陆地）",
+			"mob.drowned.shoot": "溺尸投掷声",
+			"mob.drowned.step": "溺尸行走声",
+			"mob.drowned.swim": "溺尸游泳声",
+			"entity.zombie.converted_to_drowned": "僵尸转化为溺尸声",
 			"mob.endermen.death": "末影人死亡声",
 			"mob.endermen.hit": "末影人受伤声",
 			"mob.endermen.idle": "末影人叫声",
@@ -13403,6 +13516,9 @@ CA.IntelliSense.inner["default"] = {
 			"mob.guardian.land_death": "守卫者死亡声（陆地上）",
 			"mob.guardian.land_hit": "",
 			"mob.guardian.land_idle": "守卫者叫声（陆地）",
+			"mob.fish.flop": "鱼扑腾声",
+			"mob.fish.hurt": "鱼受伤声",
+			"mob.fish.step": "鱼行走声",
 			"mob.llama.angry": "羊驼愤怒声",
 			"mob.llama.death": "羊驼死亡声",
 			"mob.llama.idle": "羊驼叫声",
@@ -15721,7 +15837,7 @@ CA.IntelliSense.inner["addition"] = {
 	"version": [0, 0, 1],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.2.0.2",
+	"targetSupportVer": "1.4.0.5",
 	"commands": {},
 	"enums": {
 		"structure": {
