@@ -513,7 +513,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "0.9.8",
+	version : "1.0.0",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -544,7 +544,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else if (!this.hasFeature("enableCommandBlock")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有命令方块等功能，部分命令助手的功能可能无法使用。推荐升级您的Minecraft PE至1.2及以上。");
 		} else if (this.hasFeature("version_1_1")) {
-			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有ID表，且选择器部分有bug。推荐升级您的Minecraft PE至1.2及以上。");
+			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有ID表，且部分命令有bug。推荐升级您的Minecraft PE至1.2及以上，或者使用网易代理的我的世界最新版本。\n您也可在设置→拓展包→切换版本→自定义中设置版本为1.2。");
 		}
 		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.getTip(), 1);
 		this.fine = true;
@@ -1695,6 +1695,88 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.favEmpty = false;
 				}
 			}
+			self.scrollToLeft = function(noani) {
+				self.linear.setTranslationX(0);
+				if (CA.settings.noAnimation || noani) return;
+				var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, -self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
+				animation.setInterpolator(new G.DecelerateInterpolator(1.0));
+				animation.setDuration(200);
+				self.linear.startAnimation(animation);
+			}
+			self.scrollToRight = function(noani) {
+				self.linear.setTranslationX(-self.screenWidth);
+				if (CA.settings.noAnimation || noani) return;
+				var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, -self.screenWidth - self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
+				animation.setInterpolator(new G.DecelerateInterpolator(1.0));
+				animation.setDuration(200);
+				self.linear.startAnimation(animation);
+			}
+			self.tutor = CA.settings.tutor_his ? null : function() {
+				var lhis = CA.his, lfav = CA.fav;
+				CA.his = [
+					"/say 欢迎使用命令助手!",
+					"/clone 45 5 3 47 5 5 50 2 1",
+					"/execute @p[x=45,y=6,z=3,dx=2,dy=2,dz=2,m=0] ~ ~ ~ gamemode 1"
+				];
+				CA.fav = [{
+					key : "收藏夹",
+					children : [{
+						key : "设置title",
+						value : "/title @a times ${渐入时间:param} ${显示时间:param} ${渐出时间:param}"
+					}]
+				}, {
+					key : "获得命令方块",
+					value : "/give @p command_block"
+				}, {
+					key : "关闭命令提示",
+					value : "/gamerule commandblockoutput false"
+				}, {
+					key : "命令助手设置",
+					value : "/help"
+				}];
+				self.refreshHistory();
+				self.refreshFavorite();
+				Common.showTutorial({
+					text : "左侧这里是使用命令的历史记录列表",
+					view : CA.settings.splitScreenMode ? self.history : self.linear,
+					callback : function() {
+						self.scrollToLeft();
+					}
+				});
+				Common.showTutorial({
+					text : "点击条目将会编辑该命令\n点击右侧粘贴按钮可粘贴该命令\n长按弹出上下文菜单",
+					view : self.history
+				});
+				Common.showTutorial({
+					text : "右侧这里是使用命令的收藏夹",
+					view : CA.settings.splitScreenMode ? self.favorite : self.linear,
+					callback : function() {
+						self.scrollToRight();
+					}
+				});
+				Common.showTutorial({
+					text : "收藏夹类似于文件夹，您可以轻松分类命令",
+					view : self.favorite,
+					callback : function() {
+						self.favAdapter.expandAll();
+					}
+				});
+				Common.showTutorial({
+					text : "点击条目进入编辑状态\n点击组展开或折叠收藏夹\n长按打开上下文菜单",
+					view : self.favorite,
+					callback : function() {
+						CA.settings.tutor_his = true;
+					},
+					onDismiss : function() {
+						CA.his = lhis;
+						CA.fav = lfav;
+						self.refreshHistory();
+						self.refreshFavorite();
+						self.scrollToLeft();
+					}
+				});
+				self.tutor = null;
+			}
 			self.hisEmpty = self.favEmpty = true;
 			self.cursorImg = self.drawCursor(32 * G.dp);
 			self.nulAdapter = new RhinoListAdapter([null], self.nula);
@@ -1861,6 +1943,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.linear.setTranslationX(self.tx = self.lx = 0);
 		CA.con.addView(CA.history);
 		self.layoutListener.onLayoutChange(CA.con, 0, 0, CA.con.getMeasuredWidth(), CA.con.getMeasuredHeight(), 0, 0, 0, 0);
+		if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideHistory : function() {G.ui(function() {try {
 		if (!CA.history) return;
@@ -4740,7 +4823,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						CA.showFavEditDialog({
 							mode : 0,
 							data : {
-								value : cmd
+								value : cmd,
+								source : "batch"
 							},
 							callback : function() {
 								this.folder.children.push(this.data);
@@ -4817,24 +4901,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	BatchPattern : {
 		list : {
 			name : "列表",
+			description : "包含了一系列参数的列表",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
 			create : function() {
 				return this.buildLayout({
 					list : []
 				});
 			},
 			parse : function(s) {
-				var z = s.indexOf("|)");
-				if (z < 0) return;
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
 				return {
-					length : z + 2,
+					length : o.cur + 1,
 					data : this.buildLayout({
-						list : s.slice(1, z).split("|")
+						list : r
 					})
 				};
 			},
 			stringify : function(o) {
 				this.update(o);
-				return "(" + o.list.join("|") + "|)";
+				return "(" + ISegment.writeLenientStringArray(o.list, this.options) + ")";
 			},
 			export : function(o) {
 				this.update(o);
@@ -4853,6 +4947,54 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},
 			update : function(o) {
 				o.list = String(o.edittext.getText()).split("\n");
+			}
+		},
+		param : {
+			name : "固定参数",
+			description : "仅含1个参数的列表",
+			options : {
+				skipChars : ")",
+				endChars : ")"
+			},
+			create : function() {
+				return this.buildLayout({
+					text : ""
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientString(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						text : r
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientString(o.text, this.options) + ")";
+			},
+			export : function(o) {
+				this.update(o);
+				return [o.text];
+			},
+			buildLayout : function(o) {
+				var text = new G.EditText(ctx);
+				text.setText(o.text);
+				text.setHint("在这里填入需要的参数");
+				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
+				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+				Common.applyStyle(text, "edittext_default", 3);
+				o.layout = o.edittext = text;
+				return o;
+			},
+			update : function(o) {
+				o.text = String(o.edittext.getText()).replace(/\n/g, " ");
 			}
 		}
 	},
@@ -8868,6 +9010,7 @@ MapScript.loadModule("Common", {
 			self.frame = new G.FrameLayout(ctx);
 			self.frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
+					if (self.current.onDismiss) self.current.onDismiss();
 					self.next();
 				}
 				return true;
@@ -8887,7 +9030,10 @@ MapScript.loadModule("Common", {
 			self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
 				self.bmp.recycle();
 				self.bmp = null;
-				self.queue.length = 0;
+				if (self.current.onDismiss) self.current.onDismiss();
+				self.queue.splice(0, self.queue.length).forEach(function(e) {
+					if (e.onDismiss) e.onDismiss();
+				});
 			} catch(e) {erp(e)}}}));
 		}
 		self.queue.push(o);
@@ -10866,6 +11012,116 @@ MapScript.loadModule("Updater", {
 });
 
 MapScript.loadModule("ISegment", {
+	alignStringEnd : function(s, len, char) {
+		var i, t;
+		for (i = len - s.length; i >= 0; i--) {
+			t += char;
+		}
+		return t + s;
+	},
+	readLenientString : function(strStream, options) {
+		var c, state = 0, startChar = "", r = [], hex, hexn, endchars = options.endChars || "";
+		while (strStream.cur < strStream.str.length) {
+			c = strStream.str.charAt(strStream.cur++);
+			switch (state) {
+				case 0:
+				if (c == "\\") {
+					state = 1;
+				} else if (endchars.indexOf(c) >= 0) {
+					return r.join("");
+				} else {
+					r.push(c);
+				}
+				break;
+				case 1:
+				if (c == "0") {
+					r.push("\0");
+				} else if (c == "n") {
+					r.push("\n");
+				} else if (c == "r") {
+					r.push("\r");
+				} else if (c == "v") {
+					r.push("\v");
+				} else if (c == "t") {
+					r.push("\t");
+				} else if (c == "b") {
+					r.push("\b");
+				} else if (c == "f") {
+					r.push("\f");
+				} else if (c == "x") {
+					state = 2;
+					hex = 0; hexn = 2;
+					break;
+				} else if (c == "u") {
+					state = 3;
+					hex = 0; hexn = 4;
+					break;
+				} else {
+					r.push(c);
+				}
+				state = 0;
+				break;
+				case 2:
+				case 3:
+				hex = hex * 16 + parseInt(c, 16);
+				if (hexn <= 0) {
+					r.push(String.fromCharCode(hex));
+					state = 0;
+				} else hexn--;
+				break;
+			}
+		}
+		return r.join("");
+	},
+	writeLenientString : function(s, options) {
+		var i = 0, c, r = [], skipchars = options.skipChars || "";
+		while (i < s.length) {
+			c = s.charAt(i++);
+			if (c == "\0") {
+				r.push("\\0");
+			} else if (c == "\n") {
+				r.push("\\n");
+			} else if (c == "\r") {
+				r.push("\\r");
+			} else if (c == "\v") {
+				r.push("\\v");
+			} else if (c == "\t") {
+				r.push("\\t");
+			} else if (c == "\b") {
+				r.push("\\b");
+			} else if (c == "\f") {
+				r.push("\\f");
+			} else if (skipchars.indexOf(c) >= 0) {
+				r.push("\\" + c);
+			} else if (c < " " || c > "~") { //not in 0x20-0x7e
+				r.push("\\u" + this.alignStringEnd(cc.toString(16), 4, "0"));
+			} else {
+				r.push(c);
+			}
+		}
+		return r.join("");
+	},
+	readLenientStringArray : function(strStream, options) {
+		var i, r = [], opt = {
+			endChars : options.splitChars + options.endChars
+		};
+		while (strStream.cur < strStream.str.length) {
+			r.push(this.readLenientString(strStream, opt));
+			if (options.endChars.indexOf(strStream.str[strStream.cur - 1]) >= 0) {
+				break;
+			}
+		}
+		return r;
+	},
+	writeLenientStringArray : function(arr, options) {
+		var self = this, opt = {
+			skipChars : options.splitChar + options.skipChars
+		};
+		return arr.map(function(e) {
+			return self.writeLenientString(e, opt);
+		}).join(options.splitChar);
+	},
+	
 	rawJson : function self(o, variableMap) {
 		if (!self.coverSpan) {
 			self.coverSpan = function(src, span) {
@@ -12917,6 +13173,7 @@ CA.IntelliSense.inner["default"] = {
 			"activator_rail": "激活铁轨",
 			"air": "空气",
 			"anvil": "铁砧",
+			"barrier": "屏障",
 			"beacon": "信标",
 			"bed": "床",
 			"bedrock": "基岩",
@@ -12938,6 +13195,7 @@ CA.IntelliSense.inner["default"] = {
 			"brown_glazed_terracotta": "棕色带釉陶瓦",
 			"brown_mushroom": "棕色蘑菇",
 			"brown_mushroom_block": "棕色蘑菇",
+			"bubble_column": "气泡柱",
 			"cactus": "仙人掌",
 			"cake": "蛋糕",
 			"carpet": "地毯",
@@ -12957,6 +13215,7 @@ CA.IntelliSense.inner["default"] = {
 			"command_block": "命令方块",
 			"concrete": "混凝土",
 			"concretepowder": "混凝土粉末",
+			"conduit": "潮涌核心",
 			"coral": "珊瑚",
 			"coral_block": "珊瑚块",
 			"coral_fan": "珊瑚扇",
@@ -13166,6 +13425,7 @@ CA.IntelliSense.inner["default"] = {
 			"trapped_chest": "陷阱箱",
 			"tripwire": "绊线",
 			"tripwire_hook": "绊线钩",
+			"turtle_egg": "海龟蛋",
 			"undyed_shulker_box": "未染色的潜影盒",
 			"unlit_redstone_torch": "熄灭的红石火把",
 			"unpowered_comparator": "红石比较器",
@@ -13370,6 +13630,7 @@ CA.IntelliSense.inner["default"] = {
 			"tnt_minecart": "TNT矿车",
 			"totem": "不死图腾",
 			"trident": "三叉戟",
+			"turtle_helmet": "海龟壳",
 			"wheat_seeds": "小麦种子",
 			"wooden_axe": "木斧",
 			"wooden_hoe": "木锄",
@@ -13382,6 +13643,10 @@ CA.IntelliSense.inner["default"] = {
 			"ambient.weather.thunder": "打雷声",
 			"ambient.weather.lightning.impact": "打雷声（爆炸）",
 			"ambient.weather.rain": "雨声",
+			"beacon.activate": "信标激活声",
+			"beacon.ambient": "",
+			"beacon.deactivate": "信标关闭声",
+			"beacon.power": "信标充能声",
 			"block.false_permissions": "禁止方块效果声",
 			"block.end_portal.spawn": "生成末地传送门声",
 			"block.end_portal_frame.fill": "填充末地传送门框架声",
@@ -13392,6 +13657,9 @@ CA.IntelliSense.inner["default"] = {
 			"block.itemframe.rotate_item": "转动展示框中的展示物品声",
 			"block.chorusflower.death": "紫颂花死亡声",
 			"block.chorusflower.grow": "紫颂花长高声",
+			"block.turtle_egg.drop": "海龟蛋掉落声",
+			"block.turtle_egg.break": "海龟蛋破坏声",
+			"block.turtle_egg.crack": "海龟蛋裂开声",
 			"bucket.empty_lava": "桶放置岩浆声",
 			"bucket.empty_water": "桶放置水声",
 			"bucket.fill_lava": "桶装岩浆声",
@@ -13408,6 +13676,11 @@ CA.IntelliSense.inner["default"] = {
 			"cauldron.fillwater": "炼药锅放满水声",
 			"cauldron.takewater": "炼药锅拿取水声",
 			"cauldron.adddye": "炼药锅染色水声",
+			"conduit.activate": "潮涌核心激活声",
+			"conduit.ambient": "",
+			"conduit.attack": "",
+			"conduit.deactivate": "潮涌核心关闭声",
+			"conduit.short": "",
 			"damage.fallbig": "长高度落伤害声",
 			"damage.fallsmall": "短高度掉落伤害",
 			"elytra.loop": "鞘翅飞翔声",
@@ -13442,6 +13715,11 @@ CA.IntelliSense.inner["default"] = {
 			"liquid.lava": "流动岩浆声",
 			"liquid.lavapop": "流动岩浆产生声",
 			"liquid.water": "流动水声",
+			"bubble.pop": "气泡柱冒泡声",
+			"bubble.up": "涌升流气泡柱声",
+			"bubble.upinside": "涌升流气泡柱内部声",
+			"bubble.down": "涡流气泡柱声",
+			"bubble.downinside": "涡流气泡柱内部声",
 			"minecart.base": "矿车行驶声",
 			"minecart.inside": "矿车驾驶声",
 			"furnace.lit": "熔炉点燃声",
@@ -13576,6 +13854,11 @@ CA.IntelliSense.inner["default"] = {
 			"mob.parrot.step": "鹦鹉走路声",
 			"mob.parrot.eat": "鹦鹉吃东西声",
 			"mob.parrot.fly": "鹦鹉飞翔声",
+			"mob.phantom.bite": "幻翼撕咬声",
+			"mob.phantom.death": "幻翼死亡声",
+			"mob.phantom.hurt": "幻翼受伤声",
+			"mob.phantom.idle": "幻翼叫声",
+			"mob.phantom.swoop": "幻翼俯冲声",
 			"mob.pig.death": "猪死亡声",
 			"mob.pig.boost": "猪加速声",
 			"mob.pig.say": "猪叫声",
@@ -13615,6 +13898,15 @@ CA.IntelliSense.inner["default"] = {
 			"mob.squid.ambient": "",
 			"mob.squid.death": "鱿鱼死亡声",
 			"mob.squid.hurt": "鱿鱼受伤声",
+			"mob.turtle.ambient": "",
+			"mob.turtle_baby.born": "小海龟孵化声",
+			"mob.turtle.death": "海龟死亡声",
+			"mob.turtle_baby.death": "小海龟死亡声",
+			"mob.turtle.hurt": "海龟受伤声",
+			"mob.turtle_baby.hurt": "小海龟受伤声",
+			"mob.turtle.step": "海龟行走声",
+			"mob.turtle_baby.step": "小海龟行走声",
+			"mob.turtle.swim": "海龟游泳声",
 			"mob.stray.ambient": "",
 			"mob.stray.death": "尸壳死亡声",
 			"mob.stray.hurt": "流髑受伤声",
@@ -13768,6 +14060,7 @@ CA.IntelliSense.inner["default"] = {
 			"use.stone": "",
 			"hit.stone": "",
 			"fall.stone": "",
+			"fall.egg": "",
 			"step.stone": "石头行走声",
 			"use.wood": "",
 			"hit.wood": "",
@@ -13862,6 +14155,7 @@ CA.IntelliSense.inner["default"] = {
 			"ocelot": "豹猫",
 			"painting": "画",
 			"parrot": "鹦鹉",
+			"phantom": "幻翼",
 			"pig": "猪",
 			"player": "玩家",
 			"polar_bear": "北极熊",
@@ -13886,6 +14180,7 @@ CA.IntelliSense.inner["default"] = {
 			"tnt": "已激活的TNT",
 			"tnt_minecart": "TNT矿车",
 			"tropicalfish": "热带鱼",
+			"turtle": "海龟",
 			"vex": "恼鬼",
 			"villager": "村民",
 			"vindicator": "卫道士",
@@ -13903,32 +14198,32 @@ CA.IntelliSense.inner["default"] = {
 			"zombie_villager": "僵尸村民"
 		},
 		"effect": {
-			"speed": "速度",
-			"slowness": "缓慢",
+			"absorption": "伤害吸收",
+			"blindness": "失明",
+			"conduit_power": "潮涌能量",
+			"fatal_poison": "剧毒",
+			"fire_resistance": "防火",
 			"haste": "急迫",
-			"mining_fatigue": "挖掘疲劳",
-			"strength": "力量",
-			"instant_health": "瞬间治疗",
+			"health_boost": "生命提升",
+			"hunger": "饥饿",
 			"instant_damage": "瞬间伤害",
+			"instant_health": "瞬间治疗",
+			"invisibility": "隐身",
 			"jump_boost": "跳跃提升",
+			"levitation": "飘浮",
+			"mining_fatigue": "挖掘疲劳",
 			"nausea": "反胃",
+			"night_vision": "夜视",
+			"poison": "中毒",
 			"regeneration": "生命回复",
 			"resistance": "抗性提升",
-			"fire_resistance": "防火",
-			"water_breathing": "水下呼吸",
-			"invisibility": "隐身",
-			"blindness": "失明",
-			"night_vision": "夜视",
-			"hunger": "饥饿",
-			"weakness": "虚弱",
-			"poison": "中毒",
-			"wither": "凋零",
-			"health_boost": "生命提升",
-			"absorption": "伤害吸收",
 			"saturation": "饱和",
-			//"glowing": "发光",
-			"levitation": "飘浮",
-			"fatal_poison": "剧毒"
+			"slowness": "缓慢",
+			"speed": "速度",
+			"strength": "力量",
+			"water_breathing": "水下呼吸",
+			"weakness": "虚弱",
+			"wither": "凋零"
 		},
 		"enchant_type": {
 			"aqua_affinity": "水下速掘",
@@ -13964,7 +14259,9 @@ CA.IntelliSense.inner["default"] = {
 			"unbreaking": "耐久"
 		},
 		"gamerule_string": {},
-		"gamerule_int": {},
+		"gamerule_int": {
+			"maxcommandchainlength": "最大连锁命令方块链长度"
+		},
 		"gamerule_bool": {
 			"commandblockoutput": "命令执行时是否在控制台进行文本提示",
 			"drowningdamage": "是否启用溺水伤害",
@@ -15023,16 +15320,6 @@ CA.IntelliSense.inner["default"] = {
 				"gamerule": {
 					"description": "设置或查询一条游戏规则的值",
 					"patterns": {
-						/*"query_int": {
-							"description": "查询指定游戏规则的值",
-							"params": [
-								{
-									"type": "enum",
-									"name": "规则名",
-									"list": "gamerule_int"
-								}
-							]
-						},*/
 						"query_bool": {
 							"description": "查询指定游戏规则的值",
 							"params": [
@@ -15050,20 +15337,6 @@ CA.IntelliSense.inner["default"] = {
 									"type": "string",
 									"name": "规则名",
 									"suggestion": "gamerule_string"
-								}
-							]
-						},
-						"set_int": {
-							"description": "设置指定游戏规则的值",
-							"params": [
-								{
-									"type": "enum",
-									"name": "规则名",
-									"list": "gamerule_int"
-								},
-								{
-									"type": "int",
-									"name": "值"
 								}
 							]
 						},*/
@@ -16024,6 +16297,39 @@ CA.IntelliSense.inner["addition"] = {
 				}
 			},
 			"minSupportVer": "1.2.5.12"
+		},
+		"1.5.0.1": {
+			"commands": {
+				"gamerule": {
+					"patterns": {
+						"query_int": {
+							"description": "查询指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								}
+							]
+						},
+						"set_int": {
+							"description": "设置指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								},
+								{
+									"type": "int",
+									"name": "值"
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.5.0.1"
 		}
 	}
 };
