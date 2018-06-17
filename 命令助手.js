@@ -43,9 +43,6 @@ function initialize() {}
 function unload() {}
 
 var MapScript = {
-	//世界目录
-	baseDir : android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/",
-
 	//可访问钩子
 	hooks : ["attackHook", "chatHook", "continueDestroyBlock", "destroyBlock", "projectileHitEntityHook", "eatHook", "entityAddedHook", "entityHurtHook", "entityRemovedHook", "explodeHook", "serverMessageReceiveHook", "deathHook", "playerAddExpHook", "playerExpLevelChangeHook", "redstoneUpdateHook", "screenChangeHook", "newLevel", "startDestroyBlock", "projectileHitBlockHook", "modTick", "leaveGame", "useItem", "initialize", "unload"],
 
@@ -176,21 +173,27 @@ MapScript.init(this);
 MapScript.loadModule("ctx", (function(global) {
 	if ("ModPE" in global) { //以ModPE脚本加载(BlockLauncher及衍生App)
 		MapScript.host = "BlockLauncher";
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
 		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
 	} else if ("activity" in global) { //以AutoJS脚本加载（UI模式）
 		MapScript.host = "AutoJs";
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
 		return activity;
 	} else if ("context" in global) { //以AutoJS脚本加载（非UI模式）
 		MapScript.host = "AutoJsNoUI";
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
 		return context;
 	} else if ("ScriptActivity" in global) { //在Android脚本外壳中加载
 		MapScript.host = "Android";
+		MapScript.baseDir = ScriptActivity.getDir("rhino", 0).getAbsolutePath() + "/";
 		return ScriptActivity;
 	} else if ("World" in global) { //在Inner Core中加载
 		MapScript.host = "InnerCore";
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
 		return Packages.zhekasmirnov.launcher.utils.UIUtils.getContext();
 	} else {
 		MapScript.host = "Unknown";
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
 		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
 	}
 })(this));
@@ -575,6 +578,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}},
 	load : function() {
 		var f = MapScript.readJSON(this.profilePath, null, true), t;
+		if (!f) {
+			t = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang/minecraftWorlds/xero_commandassist.dat");
+			if (t.isFile()) f = MapScript.readJSON(t, null, true);
+			t.delete();
+		}
 		if (f && Array.isArray(f.history) && (f.favorite instanceof Object) && (f.settings instanceof Object)) {
 			this.his = f.history;
 			this.fav = f.favorite;
@@ -1697,19 +1705,23 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			self.scrollToLeft = function(noani) {
 				self.linear.setTranslationX(0);
-				if (CA.settings.noAnimation || noani) return;
-				var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, -self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
-				animation.setInterpolator(new G.DecelerateInterpolator(1.0));
-				animation.setDuration(200);
-				self.linear.startAnimation(animation);
+				if (!CA.settings.noAnimation && !noani) {
+					var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
+					animation.setInterpolator(new G.DecelerateInterpolator(1.0));
+					animation.setDuration(300);
+					self.linear.startAnimation(animation);
+				}
+				self.tx = 0;
 			}
 			self.scrollToRight = function(noani) {
 				self.linear.setTranslationX(-self.screenWidth);
-				if (CA.settings.noAnimation || noani) return;
-				var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, -self.screenWidth - self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
-				animation.setInterpolator(new G.DecelerateInterpolator(1.0));
-				animation.setDuration(200);
-				self.linear.startAnimation(animation);
+				if (!CA.settings.noAnimation && !noani) {
+					var animation = new G.TranslateAnimation(G.Animation.ABSOLUTE, self.screenWidth + self.tx, G.Animation.ABSOLUTE, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
+					animation.setInterpolator(new G.DecelerateInterpolator(1.0));
+					animation.setDuration(300);
+					self.linear.startAnimation(animation);
+				}
+				self.tx = -self.screenWidth;
 			}
 			self.tutor = CA.settings.tutor_his ? null : function() {
 				var lhis = CA.his, lfav = CA.fav;
@@ -7637,6 +7649,13 @@ MapScript.loadModule("Page", {
 	onResume : function(o) {
 		if (o.listener && o.listener.onResume) o.listener.onResume(o.obj, o.name, o.tag);
 		if (MapScript.host == "Android") TCAgent.onPageStart(ctx, o.name);
+	},
+	initialize : function(o) {
+		this.stack.length = 0;
+		this.enter(this, "screen");
+	},
+	unload : function(o) {
+		this.exit(this);
 	}
 });
 
@@ -8978,7 +8997,8 @@ MapScript.loadModule("Common", {
 					self.frame.setBackground(new G.BitmapDrawable(self.bmp));
 					self.cv.setBitmap(self.bmp);
 					self.popup.showAtLocation(decor, G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
-					if (MapScript.host == "Android") ScriptActivity.bringToFront();
+					if (MapScript.host == "Android" && CA.supportFloat) ScriptActivity.bringToFront();
+					PWM.addFloat(self.popup);
 				}
 				if (!self.queue.length) {
 					self.popup.dismiss();
