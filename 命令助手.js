@@ -1608,7 +1608,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				layout.addView(text1);
 				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-				text2.setText("📋");
+				text2.setText("\ud83d\udccb"); //Emoji:Paste
 				text2.setGravity(G.Gravity.CENTER);
 				Common.applyStyle(text2, "textview_prompt", 3);
 				text2.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
@@ -7502,8 +7502,6 @@ MapScript.loadModule("PWM", {
 		this._notifyListeners("add", w);
 	},
 	remove : function(w) {
-		var i = this.windows.indexOf(w);
-		this.windows.splice(i, 1);
 		Page.exit(w);
 	},
 	addFloat : function(w) {
@@ -7516,8 +7514,9 @@ MapScript.loadModule("PWM", {
 	},
 	hideAll : function() {
 		var v;
-		this.windows.forEach(function(e) {
-			if (!e.isShowing()) return;
+		(this.windows = this.windows.filter(function(e) {
+			return e.isShowing();
+		})).forEach(function(e) {
 			v = e.getContentView();
 			if (!v) return;
 			v.getRootView().setVisibility(G.View.GONE);
@@ -8548,10 +8547,10 @@ MapScript.loadModule("Common", {
 			}
 			self.vbinder = function(holder, e) {
 				if (e) {
-					holder.self.setText((e.isDirectory() ? "📁 " : "📄 ") + String(e.getName()));
+					holder.self.setText((e.isDirectory() ? "\ud83d\udcc1 " : "\ud83d\udcc4 ") + String(e.getName())); //Emoji:Collapsed Folder; Document
 					Common.applyStyle(holder.self, e.isHidden() ? "item_disabled" : "item_default", 3);
 				} else {
-					holder.self.setText("📂 .. (上一级目录)");
+					holder.self.setText("\ud83d\udcc2 .. (上一级目录)"); //Emoji:Expanded Folder
 					Common.applyStyle(holder.self, "item_default", 3);
 				}
 			}
@@ -8647,7 +8646,7 @@ MapScript.loadModule("Common", {
 			self.header.addView(self.path, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 			
 			self.newDir = new G.TextView(ctx);
-			self.newDir.setText("📁+");
+			self.newDir.setText("\ud83d\udcc1+"); //Emoji:Collapsed Folder
 			self.newDir.setGravity(G.Gravity.CENTER);
 			self.newDir.setPadding(20 * G.dp, 0, 20 * G.dp, 0);
 			Common.applyStyle(self.newDir, "button_default", 2);
@@ -9854,7 +9853,7 @@ MapScript.loadModule("Tutorial", {
 				layout.addView(text1);
 				text2.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-				text2.setText("📋");
+				text2.setText("\ud83d\udccb"); //Emoji:Paste
 				text2.setGravity(G.Gravity.CENTER);
 				Common.applyStyle(text2, "button_default", 3);
 				layout.addView(text2);
@@ -10967,10 +10966,10 @@ MapScript.loadModule("Updater", {
 						"<b>命令助手更新啦！</b><br />",
 						"<b>最新版本：" + info.version + "</b>\t(" + info.belongs + ")",
 						"发布时间：" + Updater.toChineseDate(info.time),
-						"<br /><b>下载地址：</b><br />" + Object.keys(info.downloads).map(function(e) {
-							return Updater.toAnchor("★" + e, info.downloads[e]);
+						"<br /><b>下载地址：</b><br /><ul>" + Object.keys(info.downloads).map(function(e) {
+							return "<li>" + Updater.toAnchor(e, info.downloads[e]) + "</li>";
 						}).join("<br />"),
-						"<br />最近更新内容：",
+						"</ul><br />最近更新内容：",
 						info.info.replace(/\n/g, "<br />")
 					].join("<br />")));
 				} else if (!silently) {
