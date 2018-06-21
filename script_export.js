@@ -13,7 +13,7 @@ var curdate = getDateString(new Date());
 var cwd = process.cwd();
 var script = cwd + "/命令助手.js";
 var help = cwd + "/帮助.html";
-var outputFile = cwd + "/build/命令助手.min.js";
+var outputFile = cwd + "/build/min.js";
 var exportFile = cwd + "/export/命令助手(" + curdate + ").js";
 ensureDir(cwd + "/build");
 ensureDir(cwd + "/export");

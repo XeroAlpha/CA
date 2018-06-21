@@ -1122,6 +1122,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} catch(e) {erp(e)}}
 			});
 			self.tutor = CA.settings.tutor_gen ? null : function() {
+				var l = CA.cmd.getText();
+				CA.cmd.setText("");
 				Common.showTutorial({
 					text : "命令生成器可以协助你输入命令",
 					view : self.main
@@ -1135,6 +1137,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view : CA.cmd,
 					callback : function() {
 						CA.settings.tutor_gen = true;
+					},
+					onDismiss : function() {
+						CA.cmd.setText(l);
 					}
 				});
 				self.tutor = null;
@@ -7083,7 +7088,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					text.setSingleLine(true);
 					text.setEllipsize(G.TextUtils.TruncateAt.END);
 					text.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-					Common.applyStyle(name, "textview_default", 2);
+					Common.applyStyle(text, "textview_default", 2);
 					view.addView(text);
 					del.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 					del.setText("×");
