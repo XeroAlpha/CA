@@ -12311,11 +12311,11 @@ MapScript.loadModule("MCAdapter", {
 		}
 	},
 	applySense : function(t) {
-		if (MapScript.host != "Android" || CA.settings.neverAskAdapter) return;
+		if (MapScript.host != "Android" || this.asked) return;
 		if (!t.input) t.input = [];
 		if (!t.menu) t.menu = {};
-		t.input.push("（加载适配器以显示更多信息……）");
-		t.menu["（加载适配器以显示更多信息……）"] = function() {
+		t.input.push("（加载适配器以显示更多游戏相关信息……）");
+		t.menu["（加载适配器以显示更多游戏相关信息……）"] = function() {
 			MCAdapter.listAdapters();
 		};
 	},
@@ -12354,7 +12354,6 @@ MapScript.loadModule("MCAdapter", {
 		description : "适用于BlockLauncher/BlockLauncher PRO",
 		callback : function() {
 			var f = new java.io.File(ctx.getExternalFilesDir(null), "ModPE适配器.js");
-			this.unpackAssets("adapter/ModPE.js", f);
 			var i = new android.content.Intent("net.zhuoweizhang.mcpelauncher.action.IMPORT_SCRIPT");
 			if (this.existPackage("net.zhuoweizhang.mcpelauncher.pro")) {
 				i.setClassName("net.zhuoweizhang.mcpelauncher.pro", "net.zhuoweizhang.mcpelauncher.api.ImportScriptActivity");
@@ -12364,6 +12363,7 @@ MapScript.loadModule("MCAdapter", {
 				Common.toast("未找到BlockLauncher/BlockLauncher PRO");
 				return;
 			}
+			this.unpackAssets("adapter/ModPE.js", f);
 			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
 			ctx.startActivity(i);
 			this.askShortcut("BlockLauncher", i.getComponent().getPackageName());
@@ -12373,7 +12373,6 @@ MapScript.loadModule("MCAdapter", {
 		description : "适用于多玩我的世界盒子",
 		callback : function() {
 			var f = new java.io.File(ctx.getExternalFilesDir(null), "多玩我的世界盒子适配器.js");
-			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
 			var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
 			if (this.existPackage("com.duowan.groundhog.mctools")) {
 				i.setClassName("com.duowan.groundhog.mctools", "com.duowan.groundhog.mctools.activity.plug.PluginOutsideImportActivity");
@@ -12381,6 +12380,7 @@ MapScript.loadModule("MCAdapter", {
 				Common.toast("未找到多玩我的世界盒子");
 				return;
 			}
+			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
 			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
 			ctx.startActivity(i);
 			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
@@ -12390,19 +12390,15 @@ MapScript.loadModule("MCAdapter", {
 		text : "InnerCore适配器",
 		description : "适用于Inner Core",
 		callback : function() {
-			if (this.getPackageVersion("com.zhekasmirnov.innercore") > 10) { //这个数字我瞎编的，反正介于1～25之间就好
+			var ver = this.getPackageVersion("com.zhekasmirnov.innercore");
+			if (ver > 10) { //这个数字我瞎编的，反正介于1～25之间就好
 				var f = new java.io.File(ctx.getExternalFilesDir(null), "InnerCore适配器.icmod");
-				this.unpackAssets("adapter/InnerCore.icmod", f);
 				var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
-				if (this.existPackage("com.zhekasmirnov.innercore")) {
-					i.setClassName("com.zhekasmirnov.innercore", "zhekasmirnov.launcher.core.ExtractModActivity");
-				} else {
-					Common.toast("未找到InnerCore");
-					return;
-				}
+				i.setClassName("com.zhekasmirnov.innercore", "zhekasmirnov.launcher.core.ExtractModActivity");
+				this.unpackAssets("adapter/InnerCore.icmod", f);
 				i.setDataAndType(android.net.Uri.fromFile(f), "application/icmod");
 				ctx.startActivity(i);
-			} else {
+			} else if (!isNaN(ver)) {
 				var fs = [
 					"main.js",
 					"mod.info",
@@ -12415,6 +12411,9 @@ MapScript.loadModule("MCAdapter", {
 					this.unpackAssets("adapter/ICAdpt/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
 				}
 				Common.toast("Mod文件已释放");
+			} else {
+				Common.toast("未找到InnerCore");
+				return;
 			}
 			this.askShortcut("Inner Core", "com.zhekasmirnov.innercore");
 		}
@@ -12962,11 +12961,17 @@ MapScript.loadModule("NeteaseAdapter", {
 		if (CA.settings.mcPublisher && CA.settings.mcPackName) {
 			return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
 		} else {
-			var i, result;
+			var i, result = [];
 			for (i = 0; i < this.packNames.length; i++) {
 				if (MCAdapter.existPackage(this.packNames[i])) {
-					return this.getVersionByPar(this.packNames[i], this.packages[this.packNames[i]].publisher);
+					result.push(this.getVersionByPar(this.packNames[i], this.packages[this.packNames[i]].publisher));
 				}
+			}
+			if (result.length > 1) {
+				Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + result[0]);
+			}
+			if (result.length > 0) {
+				return result[0];
 			}
 		}
 		return "*";
@@ -14128,7 +14133,7 @@ CA.IntelliSense.inner["default"] = {
 			"music.game.credits": "制作人员名单背景音乐"
 		},
 		"entity": {
-			"area_effect_cloud": "效果区域云",
+			"area_effect_cloud": "效果区域云(无法用summon生成)",
 			"armor_stand": "盔甲架",
 			"arrow": "射出的箭",
 			"bat": "蝙蝠",
@@ -14143,57 +14148,57 @@ CA.IntelliSense.inner["default"] = {
 			"creeper": "爬行者",
 			"dolphin": "海豚",
 			"donkey": "驴",
-			"dragon_fireball": "末影龙火球",
+			"dragon_fireball": "末影龙火球(无法用summon生成)",
 			"drowned": "溺尸",
 			"egg": "丢出的鸡蛋",
 			"elder_guardian": "远古守卫者",
 			"ender_crystal": "末影水晶",
 			"ender_dragon": "末影龙",
-			"ender_pearl": "丢出的末影珍珠",
+			"ender_pearl": "丢出的末影珍珠(无法用summon生成)",
 			"enderman": "末影人",
 			"endermite": "末影螨",
 			"evocation_fang": "唤魔者尖牙",
 			"evocation_illager": "唤魔者",
-			"eye_of_ender_signal": "丢出的末影之眼",
-			"falling_block": "掉落中的方块",
-			"fireball": "火球",
+			"eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
+			"falling_block": "掉落中的方块(无法用summon生成)",
+			"fireball": "火球(无法用summon生成)",
 			"fireworks_rocket": "烟花火箭",
-			"fishing_hook": "鱼钩",
+			"fishing_hook": "鱼钩(无法用summon生成)",
 			"ghast": "恶魂",
 			"guardian": "守卫者",
 			"hopper_minecart": "漏斗矿车",
 			"horse": "马",
 			"husk": "尸壳",
 			"iron_golem": "铁傀儡",
-			"item": "掉落的物品",
+			"item": "掉落的物品(无法用summon生成)",
 			"leash_knot": "拴绳结",
 			"lightning_bolt": "闪电",
-			"lingering_potion": "滞留药水",
+			"lingering_potion": "滞留药水(无法用summon生成)",
 			"llama": "羊驼",
-			"llama_spit": "羊驼唾沫",
+			"llama_spit": "羊驼唾沫(无法用summon生成)",
 			"magma_cube": "岩浆怪",
 			"minecart": "矿车",
 			"mooshroom": "哞菇",
-			"moving_block": "",
+			"moving_block": "？(无法用summon生成)",
 			"mule": "骡",
 			"ocelot": "豹猫",
-			"painting": "画",
+			"painting": "画(无法用summon生成)",
 			"parrot": "鹦鹉",
 			"phantom": "幻翼",
 			"pig": "猪",
-			"player": "玩家",
+			"player": "玩家(无法用summon生成)",
 			"polar_bear": "北极熊",
 			"pufferfish": "河豚",
 			"rabbit": "兔子",
 			"salmon": "鲑鱼",
 			"sheep": "羊",
 			"shulker": "潜影贝",
-			"shulker_bullet": "潜影贝导弹",
+			"shulker_bullet": "潜影贝导弹(无法用summon生成)",
 			"silverfish": "蠹虫",
 			"skeleton": "骷髅",
 			"skeleton_horse": "骷髅马",
 			"slime": "史莱姆",
-			"small_fireball": "烈焰人火球/射出的火球",
+			"small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
 			"snow_golem": "雪傀儡",
 			"snowball": "丢出的雪球",
 			"spider": "蜘蛛",
@@ -14211,8 +14216,8 @@ CA.IntelliSense.inner["default"] = {
 			"witch": "女巫",
 			"wither": "凋灵",
 			"wither_skeleton": "凋灵骷髅",
-			"wither_skull": "黑色凋灵之首",
-			"wither_skull_dangerous": "蓝色凋灵之首",
+			"wither_skull": "黑色凋灵之首(无法用summon生成)",
+			"wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
 			"wolf": "狼",
 			"xp_bottle": "丢出的附魔之瓶",
 			"xp_orb": "经验球",
