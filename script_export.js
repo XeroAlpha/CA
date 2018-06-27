@@ -2,15 +2,9 @@ var fs = require("fs");
 var process = require("process");
 var zlib = require("zlib");
 
-function fixZero(s, n) {
-	s = String(s);
-	return n > s.length ? fixZero("0" + s, n) : s;
-}
-function getDateString(d) {
-	return fixZero(d.getFullYear(), 4) + "-" + fixZero(d.getMonth() + 1, 2) + "-" + fixZero(d.getDate(), 2);
-}
-var curdate = getDateString(new Date());
 var cwd = process.cwd();
+var versions = JSON.parse(fs.readFileSync(cwd + "/versions.json", 'utf-8'));
+var curdate = versions[versions.length - 1].version;
 var script = cwd + "/命令助手.js";
 var help = cwd + "/帮助.html";
 var outputFile = cwd + "/build/min.js";
@@ -29,7 +23,7 @@ function initScript(s) {
 
 function initExport(s) {
 	s = initScript(s);
-	s = s.replace(/\{HELP\}/g, String(fs.readFileSync(help)).replace(/\s*\n\s*/g, ""));
+	s = s.replace(/\{HELP\}/g, fs.readFileSync(help, 'utf-8').replace(/\s*\n\s*/g, ""));
 	//加入帮助文档
 	
 	s = jsmin("", s, 1);
