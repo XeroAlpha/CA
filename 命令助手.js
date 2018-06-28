@@ -12639,7 +12639,7 @@ MapScript.loadModule("AndroidBridge", {
 	verifyApk : function() {
 		if (ctx.getPackageName() != "com.xero.ca") throw new java.lang.SecurityException();
 		AndroidBridge.verifySign();
-		//AndroidBridge.verifyDex();
+		AndroidBridge.verifyDex();
 	},
 	verifySign : function() {
 		try {

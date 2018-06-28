@@ -54,12 +54,6 @@ function makeUpdate() {
 			"源代码(Git@OSC)": "https://gitee.com/projectxero/ca/blob/master/%E5%91%BD%E4%BB%A4%E5%8A%A9%E6%89%8B.js"
 		}
 	}));
-	/*
-	var s = String(files.read(gradle));
-	s = s.replace(/versionCode \d+/, "versionCode " + Math.floor(lv.time / 86400000));
-	s = s.replace(/versionName ".*"/, "versionName \"" + lv.version + "\"");
-	files.write(gradle, s);
-	*/
 }
 
 function main(details) {

@@ -37,13 +37,13 @@ function initExport(s) {
 	s = s.replace(/^\s*/, "");
 	//去除开头多余的空行
 	
+	s = s.replace(/^"ui";\n/, "").replace(/CA\.RELEASE/g, "true");
+	//去除UI标志，标记正式版
+	
 	return s;
 }
 
 function initGZIP(s) {
-	s = s.replace(/^"ui";\n/, "").replace(/CA\.RELEASE/g, "true");
-	//去除UI标志，标记正式版
-	
 	var b = Buffer.from(s);
 	b = zlib.gzipSync(b); //GZIP压缩
 	var r = '"ui";\nvar a=new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(android.util.Base64.decode("' + b.toString("base64") + '",2))))),b=[],c;while(c=a.readLine())b.push(c);a.close();eval(b.join("\\n"));';
@@ -52,7 +52,9 @@ function initGZIP(s) {
 
 function exports() {
 	var min;
+	console.log("Running js-min...");
 	fs.writeFileSync(outputFile, min = initExport(fs.readFileSync(script)));
+	console.log("Compressing...");
 	fs.writeFileSync(exportFile, initGZIP(min));
 }
 
@@ -268,6 +270,5 @@ function jsmin(comment, input, level) {
     return comment + ret;
 }
 console.log("Start Export at " + process.cwd());
-console.log("Running js-min");
 exports();
-console.log("Complete. File has been exported to" + exportFile);
+console.log("Complete. File has been exported to " + exportFile);
