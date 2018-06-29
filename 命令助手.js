@@ -10941,7 +10941,7 @@ MapScript.loadModule("Updater", {
 			} else {
 				this.lastcheck = r = JSON.parse(this.queryPage(this.url));
 			}
-			callback(Date.parse(CA.publishDate) < Date.parse(r.version), r.version, r);
+			callback(Date.parse(r.version) - Date.parse(CA.publishDate), r.version, r);
 		} catch(e) {
 			if (!silently) return Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
 		}
@@ -10966,7 +10966,7 @@ MapScript.loadModule("Updater", {
 		if (callback) callback();
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			Updater.getUpdateInfo(function(flag, date, info) {
-				if (flag) {
+				if (flag > 0) {
 					Common.showTextDialog(G.Html.fromHtml([
 						"<b>命令助手更新啦！</b><br />",
 						"<b>最新版本：" + info.version + "</b>\t(" + info.belongs + ")",
@@ -10978,7 +10978,11 @@ MapScript.loadModule("Updater", {
 						info.info.replace(/\n/g, "<br />")
 					].join("<br />")));
 				} else if (!silently) {
-					Common.toast("当前已经是最新版本：" + date);
+					if (flag == 0) {
+						Common.toast("当前已经是最新版本：" + date);
+					} else {
+						Common.toast("目前您正在使用Beta版本，目前暂未公开Beta版的更新");
+					}
 				}
 				Updater.latest = date;
 			}, silently);
@@ -10991,7 +10995,7 @@ MapScript.loadModule("Updater", {
 		this.checking = true;
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			Updater.getUpdateInfo(function(flag, date, info) {
-				if (Date.parse(CA.publishDate) <= Date.parse(date)) {
+				if (flag >= 0) {
 					Common.showTextDialog(G.Html.fromHtml([
 						"<b>命令助手已更新！</b>",
 						"<b>" + oldVer + " -> " + info.version + "</b>\t(" + info.belongs + ")",
@@ -13607,6 +13611,7 @@ CA.IntelliSense.inner["default"] = {
 			"netherbrick": "地狱砖",
 			"painting": "画",
 			"paper": "纸",
+			"phantom_membrane": "幻翼膜",
 			"poisonous_potato": "毒马铃薯",
 			"porkchop": "生猪排",
 			"portfolio": "公文包",
@@ -14247,6 +14252,7 @@ CA.IntelliSense.inner["default"] = {
 			"regeneration": "生命回复",
 			"resistance": "抗性提升",
 			"saturation": "饱和",
+			"slow_falling": "缓降",
 			"slowness": "缓慢",
 			"speed": "速度",
 			"strength": "力量",
