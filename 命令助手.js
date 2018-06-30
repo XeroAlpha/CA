@@ -293,7 +293,7 @@ var proto = {
 return Object.create(proto).stop();
 })());
 
-MapScript.loadModule("erp", function self(error) {
+MapScript.loadModule("erp", function self(error, silent) {
 	var tech = [error, "\n版本: {DATE}\n堆栈: ", error.stack, "\n来源: ", error.fileName, "\n包名: ", ctx.getPackageName(), "\nSDK版本: ", android.os.Build.VERSION.SDK_INT].join("");
 	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本: " + ModPE.getMinecraftVersion();
 	if (error.javaException) {
@@ -311,6 +311,7 @@ MapScript.loadModule("erp", function self(error) {
 	} catch(e) {
 		android.util.Log.e("CA", e);
 	}
+	if (silent) return;
 	if (self.count) {
 		self.count++;
 	} else {
@@ -9326,7 +9327,7 @@ MapScript.loadModule("Plugins", {
 			} catch(e) {
 				try {
 					if (t.onError instanceof Function) t.onError(e);
-				} catch(e) {}
+				} catch(e) {erp(e, true)}
 			}
 		}
 	}
@@ -9950,6 +9951,17 @@ MapScript.loadModule("EmptyAdapter", (function() {
 		Common.applyStyle(text, "textview_prompt", 4);
 		return text;
 	}
+	function resize(view, parent) {
+		var c = parent.getChildCount();
+		var h = parent.getHeight();
+		if (c > 0) {
+			h -= parent.getChildAt(c - 1).getBottom();
+		}
+		h -= parent.getDividerHeight();
+		if (h < 100 * G.dp) h = -2;
+		view.getLayoutParams().height = h;
+		view.setLayoutParams(view.getLayoutParams());
+	}
 	return new G.ListAdapter({
 		getCount : function() {
 			return 1;
@@ -9972,6 +9984,7 @@ MapScript.loadModule("EmptyAdapter", (function() {
 				} else {
 					convert = v[i];
 				}
+				//resize(convert, parent);
 				return convert;
 			} catch(e) {
 				var a = new G.TextView(ctx);
@@ -12236,8 +12249,9 @@ MapScript.loadModule("EasterEgg", {
 });
 
 MapScript.loadModule("MCAdapter", {
-	targetVersion : 1,
+	targetVersion : 2,
 	bundle : null,
+	updateListener : {},
 	onCreate : function() {
 		if (MapScript.host == "Android") {
 			this.getInfo = this.getInfo_Android;
@@ -12245,9 +12259,6 @@ MapScript.loadModule("MCAdapter", {
 		} else if (MapScript.host == "BlockLauncher") {
 			this.getInfo = this.getInfo_ModPE;
 			this.available = this.available_ModPE;
-		} else if (MapScript.host == "InnerCore") {
-			this.getInfo = this.getInfo_IC;
-			this.available = this.available_IC;
 		}
 	},
 	initialize : function() {
@@ -12269,45 +12280,45 @@ MapScript.loadModule("MCAdapter", {
 		return false;
 	},
 	getInfo_ModPE : function(id) {
+		var p, b;
 		try {
 			switch (id) {
 				case "playernames":
 				return Server.getAllPlayerNames();
 				case "playerposition":
 				return [Player.getX(), Player.getY(), Player.getZ()];
+				case "playerrotation":
+				p = Player.getEntity();
+				return [Entity.getPitch(p), Entity.getYaw(p)];
 				case "pointedblockpos":
 				return [Player.getPointedBlockX(), Player.getPointedBlockY(), Player.getPointedBlockZ()];
+				case "pointedblockinfo":
+				return [Player.getPointedBlockId(), Player.getPointedBlockData(), Player.getPointedBlockSide()];
+				case "levelbiome":
+				return String(Level.biomeIdToName(b) + "(" + b + ")");
+				case "levelbrightness":
+				return Level.getBrightness(Player.getX(), Player.getY(), Player.getZ());
+				case "leveltime":
+				return Level.getTime();
 			}
-		} catch(e) {}
+		} catch(e) {erp(e, true)}
 		return null;
 	},
 	available_ModPE : function() {
 		return this.inLevel;
-	},
-	getInfo_IC : function(id) {
-		var r;
-		try {
-			switch (id) {
-				case "playernames":
-				return [Player.getName()];
-				case "playerposition":
-				r = Player.getPosition();
-				return [r.x, r.y, r.z];
-				case "pointedblockpos":
-				r = Player.getPointed().pos;
-				return [r.x, r.y, r.z];
-			}
-		} catch(e) {}
-		return null;
-	},
-	available_IC : function() {
-		return World.isLoaded;
 	},
 	getInfo : function(id) {
 		return null;
 	},
 	available : function() {
 		return false;
+	},
+	updateInfo : function(data) {
+		var i;
+		this.bundle = data;
+		try {
+			for (i in this.updateListener) this.updateListener[i]();
+		} catch(e) {erp(e, true)}
 	},
 	callHook : function(name, args) {
 		if (name in MapScript.global) {
@@ -12554,7 +12565,12 @@ MapScript.loadModule("AndroidBridge", {
 					Common.toast("已连接至Minecraft适配器，终端：" + data.getString("platform") + "\n" + (MCAdapter.targetVersion > MCAdapter.version ? "此适配器版本较旧，可能不支持部分提示，请在设置中重新加载适配器" : "当前适配器为最新版本"));
 					break;
 					case "info":
-					MCAdapter.bundle = data.getBundle("info");
+					MCAdapter.updateInfo(data.getBundle("info"));
+					break;
+					case "event":
+					try {
+						MCAdapter.callHook(data.getString("name"), JSON.parse(data.getString("param")));
+					} catch(e) {erp(e, true)}
 					break;
 					case "resetMCV":
 					NeteaseAdapter.mcVersion = String(data.getString("version"));
@@ -14928,7 +14944,7 @@ CA.IntelliSense.inner["default"] = {
 					"description": "测试两个区域的方块是否相同",
 					"patterns": {
 						"default": {
-							"description": "将起点与终点指定的长方体区域内的方块结构与对应目标点的方块结构（除NBT）进行比较",
+							"description": "将起点与终点指定的长方体区域内的方块结构与对应目标点的方块结构进行比较",
 							"params": [
 								{
 									"type": "position",

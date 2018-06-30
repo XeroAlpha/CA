@@ -1,14 +1,6 @@
 (function() {try {
 
-if (MapScript.host != "BlockLauncher") return {
-	"name": "调试屏幕",
-	"author": "ProjectXero",
-	"description": "仅支持ModPE平台，当前不可用。\n在屏幕上显示游戏相关信息。",
-	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 0, 1],
-	"require": []
-};
-if (Date.parse(CA.publishDate) < Date.parse("2017-12-15")) return {
+if (Date.parse(CA.publishDate) < Date.parse("2018-06-30")) return {
 	"name": "调试屏幕",
 	"author": "ProjectXero",
 	"description": "您的命令助手版本过低，无法启用调试屏幕。\n在屏幕上显示游戏相关信息。",
@@ -20,18 +12,33 @@ if (Date.parse(CA.publishDate) < Date.parse("2017-12-15")) return {
 MapScript.loadModule("F3", {
 	running : false,
 	locked : false,
-	logEvent : false,
+	eventLimit : 50,
 	tk : 0,
+	eventTypes : {
+		TapBlock : true,
+		DestroyBlock : true,
+		AttackEntity : true
+	},
 	initialize : function() {
 		if (MCAdapter.inLevel) this.newLevel();
 	},
 	newLevel : function() {
-		if (CA.settings._menu_side) Menu.side = CA.settings._menu_side;
-		this.showMenu(CA.settings._F3_openedMenu);
-		CA.settings._F3_openedMenu = true;
+		if (CA.settings._F3_style) Menu.style = CA.settings._F3_style;
+		if (CA.settings._F3_side) Menu.side = CA.settings._F3_side;
+		if (CA.settings._F3_eventLimit) this.eventLimit = CA.settings._F3_eventLimit;
+		if (CA.settings._F3_eventTypes) this.eventTypes = CA.settings._F3_eventTypes;
+		if (Menu.style == "menu") {
+			F3.showIcon();
+		} else {
+			this.showMenu(CA.settings._F3_openedMenu);
+			CA.settings._F3_openedMenu = true;
+		}
+		MCAdapter.updateListener["F3.ticker"] = this.ticker.bind(this);
 	},
 	leaveGame : function() {
+		delete MCAdapter.updateListener["F3.ticker"];
 		this.hideMenu();
+		this.hideIcon();
 	},
 	useItem : function(x, y, z, itemid, blockid, side, itemDamage, blockDamage) {
 		this.logEvent("TapBlock", {
@@ -42,8 +49,7 @@ MapScript.loadModule("F3", {
 	},
 	destroyBlock : function(x, y, z, side) {
 		this.logEvent("DestroyBlock", {
-			pos : [x, y, z],
-			block : Level.getTile(x, y, z) + ":" + Level.getData(x, y, z) + ">" + side
+			pos : [x, y, z]
 		});
 	},
 	attackHook : function(attacker, victim) {
@@ -52,39 +58,84 @@ MapScript.loadModule("F3", {
 			victim : victim
 		});
 	},
-	modTick : function() {
-		if (++this.tk < 5) return;
-		this.tk = 0;
+	ticker : function() {
 		if (!this.running || this.locked) return;
-		var p = Player.getEntity();
-		this.items.x = Player.getX().toFixed(5);
-		this.items.y = (Player.getY() - 1.619999885559082).toFixed(5);
-		this.items.z = Player.getZ().toFixed(5);
-		this.items.rx = Entity.getPitch(p).toFixed(5);
-		this.items.ry = Entity.getYaw(p).toFixed(5);
-		this.items.b = Level.getBiome(this.items.x, this.items.z);
-		this.items.bn = Level.biomeIdToName(this.items.b);
-		this.items.bl = Level.getBrightness(this.items.x, this.items.y, this.items.z);
-		//this.items.t = Level.getTime();
-		if (Player.getPointedBlockY() >= 0) {
-			this.items.lx = Player.getPointedBlockX();
-			this.items.ly = Player.getPointedBlockY();
-			this.items.lz = Player.getPointedBlockZ();
-			this.items.lb = Player.getPointedBlockId();
-			this.items.ld = Player.getPointedBlockData();
-			this.items.ls = Player.getPointedBlockSide();
+		var pp = MCAdapter.getInfo("playerposition"),
+			pr = MCAdapter.getInfo("playerrotation"),
+			pbp = MCAdapter.getInfo("pointedblockpos"),
+			pbi = MCAdapter.getInfo("pointedblockinfo"),
+			lb = MCAdapter.getInfo("levelbiome"),
+			ll = MCAdapter.getInfo("levelbrightness"),
+			lt = MCAdapter.getInfo("leveltime");
+		this.items.x = pp[0].toFixed(5);
+		this.items.y = (pp[1] - 1.619999885559082).toFixed(5);
+		this.items.z = pp[2].toFixed(5);
+		this.items.rx = pr[0].toFixed(5);
+		this.items.ry = pr[1].toFixed(5);
+		this.items.b = lb;
+		this.items.bl = ll;
+		this.items.t = lt;
+		if (pbp[1] >= 0) {
+			this.items.lx = pbp[0];
+			this.items.ly = pbp[1];
+			this.items.lz = pbp[2];
+			this.items.lb = pbi[0];
+			this.items.ld = pbi[1];
+			this.items.ls = pbi[2];
 		} else {
 			this.items.lx = this.items.ly = this.items.lz = this.items.lb = this.items.ld = this.items.ls = null;
 		}
-		if (Entity.getY(Player.getPointedEntity()) > 0) {
-			this.items.puid = Player.getPointedEntity();
-			this.items.pt = Entity.getEntityTypeId(this.items.puid);
-		} else {
-			this.items.puid = this.items.pt = null;
-		}
 		Menu.notifyChange();
 	},
+	showIcon : function self() {G.ui(function() {try {
+		if (F3.icon) return;
+		if (!self.view) {
+			self.view = new G.TextView(ctx);
+			self.view.setText("D");
+			self.view.setTextSize(Common.theme.textsize[4]);
+			self.view.setBackgroundColor(Common.theme.go_bgcolor);
+			self.view.setTextColor(Common.theme.go_textcolor);
+			self.view.setAlpha(0.7);
+			self.view.setGravity(G.Gravity.CENTER);
+			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				F3.showMenu(false);
+				F3.hideIcon();
+			} catch(e) {erp(e)}}}));
+			self.view.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (touch.stead && Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < 20 * G.dp) break;
+					touch.stead = false;
+					F3.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
+					break;
+					case e.ACTION_DOWN:
+					touch.offx = self.cx - (touch.lx = e.getRawX());
+					touch.offy = self.cy - (touch.ly = e.getRawY());
+					touch.stead = true;
+					v.setBackgroundColor(Common.theme.go_touchbgcolor);
+					v.setTextColor(Common.theme.go_touchtextcolor);
+					break;
+					case e.ACTION_UP:
+					case e.ACTION_CANCEL:
+					v.setBackgroundColor(Common.theme.go_bgcolor);
+					v.setTextColor(Common.theme.go_textcolor);
+				}
+				return !touch.stead;
+			} catch(e) {erp(e)}}}));
+		}
+		F3.icon = new G.PopupWindow(self.view, 32 * G.dp, 32 * G.dp);
+		F3.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx ? self.cx : (self.cx = G.screenWidth), self.cy ? self.cy : (self.cy = 0.5 * G.screenHeight - 16 * G.dp));
+	} catch(e) {erp(e)}})},
+	hideIcon : function() {G.ui(function() {try {
+		if (F3.icon) F3.icon.dismiss();
+		F3.icon = null;
+	} catch(e) {erp(e)}})},
 	showMenu : function(hide) {
+		if (Menu.style == "menu") {
+			Menu.side = G.Gravity.RIGHT | G.Gravity.BOTTOM;
+		} else if (Menu.side == (G.Gravity.RIGHT | G.Gravity.BOTTOM)) {
+			Menu.side = G.Gravity.RIGHT;
+		}
 		Menu.show("调试屏幕", this.menu, this.menuListener, hide);
 		if (hide) Common.toast("调试屏幕 by ProjectXero\n您可以从屏幕" + F3.getGravityText(Menu.side) + "滑出调试屏幕");
 	},
@@ -166,6 +217,7 @@ MapScript.loadModule("F3", {
 			}
 		}
 		if (this.locked) return;
+		if (!this.eventTypes[name]) return;
 		var s = [name], a = [];
 		for (i in args) {
 			s.push(i + ":" + args[i]);
@@ -177,6 +229,7 @@ MapScript.loadModule("F3", {
 			argsMenu : a,
 			onClick : self.onclick
 		});
+		if (this.eventBuffer.length > this.eventLimit) this.eventBuffer.length = this.eventLimit;
 		if (this.running) this.refreshEvents();
 	},
 	refreshEvents : function() {G.ui(function() {try {
@@ -214,9 +267,11 @@ MapScript.loadModule("F3", {
 		onShow : function(resolvedMenu) {
 			F3.running = true;
 			F3.refreshEvents();
+			if (Menu.style == "menu") F3.hideIcon();
 		},
 		onExit : function() {
 			F3.running = false;
+			if (Menu.style == "menu") F3.showIcon();
 		},
 		onPause : function() {
 			F3.running = false;
@@ -257,7 +312,7 @@ MapScript.loadModule("F3", {
 		}
 	}, {
 		text : function() {
-			return "Biome: " + F3.items.bn  + " (" + F3.items.b + ")\nBrightness: " + F3.items.bl;
+			return "Biome: " + F3.items.b + "\nBrightness: " + F3.items.bl;
 		}
 	}, {
 		text : function() {
@@ -293,14 +348,43 @@ MapScript.loadModule("F3", {
 			Menu.show("设置", F3.manage, {
 				onExit : function() {
 					Menu.reset();
-					CA.settings._menu_side = parseInt(Menu.side);
+					CA.settings._F3_style = Menu.style;
+					CA.settings._F3_side = parseInt(Menu.side);
+					CA.settings._F3_eventLimit = parseInt(F3.eventLimit);
+					CA.settings._F3_eventTypes = F3.eventTypes;
+					CA.trySave();
 					F3.showMenu();
 				}
 			});
 		}
 	}],
 	manage : [{
-		text : "位置",
+		text : "样式",
+		highlight : true
+	},{
+		text : "Menu",
+		value : "menu",
+		option : "style",
+		checked : function() {
+			return Menu.style == this.value;
+		},
+		set : function(v) {
+			Menu.style = v;
+		}
+	},{
+		text : "Drawer",
+		value : "drawer",
+		option : "style",
+		checked : function() {
+			return Menu.style == this.value;
+		},
+		set : function(v) {
+			Menu.style = v;
+		}
+	},{
+		space : 10
+	},{
+		text : "位置（仅Drawer样式下可用）",
 		highlight : true
 	}, function() {
 		var bit = {
@@ -322,12 +406,42 @@ MapScript.loadModule("F3", {
 				}
 			};
 		});
+	}, {
+		space : 10
+	}, {
+		text : "事件限制",
+		highlight : true
+	}, {
+		text : "最大数量",
+		input : "number",
+		get : function() {
+			return F3.eventLimit;
+		},
+		set : function(v) {
+			F3.eventLimit = parseInt(v);
+		}
+	}, function() {
+		return Object.keys(F3.eventTypes).map(function(e) {
+			return {
+				text : e,
+				checked : function() {
+					return F3.eventTypes[e] == true;
+				},
+				set : function(v) {
+					F3.eventTypes[e] = v == true;
+				}
+			};
+		});
+	}, {
+		space : 10
+	}, {
+		prompt : "调试屏幕 V 0.4\n本模块由@ProjectXero制作"
 	}]
 });
 
 MapScript.loadModule("Menu", {
 	side : G.Gravity.RIGHT,
-	style : "drawer",	
+	style : "drawer",
 	show : function self(title, menu, listener, drawer) {G.ui(function() {try {
 		if (!self.adapter) {
 			self.adapter = function(e, i, a) {
@@ -836,6 +950,7 @@ MapScript.loadModule("Menu", {
 			} else {
 				self.popup = new G.PopupWindow(self.frame, -2, -2);
 			}
+			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 		}
 		self.openMenu({
 			title : menu ? title : "",
