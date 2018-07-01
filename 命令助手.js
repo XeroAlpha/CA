@@ -517,7 +517,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "1.0.0",
+	version : "1.0.1",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -919,6 +919,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view : self.view,
 					callback : function() {
 						CA.settings.tutor_icon = true;
+						CA.trySave();
 					}
 				});
 				self.tutor = null;
@@ -1011,10 +1012,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								text : "插入该JSON",
 								onclick : function(v) {
 									var k = MapScript.toSource(data);
-									if ((/\S$/).test(CA.cmd.getText())) {
-										k = " " + k;
-									}
-									CA.cmd.getText().append(CA.cmd.getText() + k);
+									Common.replaceSelection(CA.cmd.getText(), k);
 								}
 							},{
 								text : "继续编辑",
@@ -1138,6 +1136,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view : CA.cmd,
 					callback : function() {
 						CA.settings.tutor_gen = true;
+						CA.trySave();
 					},
 					onDismiss : function() {
 						CA.cmd.setText(l);
@@ -1784,6 +1783,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					view : self.favorite,
 					callback : function() {
 						CA.settings.tutor_his = true;
+						CA.trySave();
 					},
 					onDismiss : function() {
 						CA.his = lhis;
@@ -12252,6 +12252,7 @@ MapScript.loadModule("MCAdapter", {
 	targetVersion : 2,
 	bundle : null,
 	updateListener : {},
+	ticker : 0,
 	onCreate : function() {
 		if (MapScript.host == "Android") {
 			this.getInfo = this.getInfo_Android;
@@ -12270,6 +12271,11 @@ MapScript.loadModule("MCAdapter", {
 	},
 	leaveGame : function() {
 		this.inLevel = false;
+	},
+	modTick : function self() {
+		if (--this.ticker > 0) return;
+		this.notifyInfoUpdate();
+		this.ticker = 5;
 	},
 	getInfo_Android : function(id) {
 		if (!this.bundle || !this.bundle.containsKey(id)) return null;
@@ -12316,6 +12322,9 @@ MapScript.loadModule("MCAdapter", {
 	updateInfo : function(data) {
 		var i;
 		this.bundle = data;
+		this.notifyInfoUpdate();
+	},
+	notifyInfoUpdate : function() {
 		try {
 			for (i in this.updateListener) this.updateListener[i]();
 		} catch(e) {erp(e, true)}
@@ -12403,7 +12412,7 @@ MapScript.loadModule("MCAdapter", {
 		}
 	}, {
 		text : "InnerCore适配器",
-		description : "适用于Inner Core",
+		description : "旧版 | 适用于Inner Core",
 		callback : function() {
 			var ver = this.getPackageVersion("com.zhekasmirnov.innercore");
 			if (ver > 10) { //这个数字我瞎编的，反正介于1～25之间就好
@@ -13014,8 +13023,10 @@ MapScript.loadModule("NeteaseAdapter", {
 		var c = ctx.getPackageManager().getPackageInfo(packageName, 0).versionCode;
 		if (c < 840035545) { //1.0.0.35545
 			return "1.1.3.52"; //未确认
-		} else {
+		} else if (c < 840043535) { //1.6.1.43535
 			return "1.2.5.50";
+		} else {
+			return "1.4.1.5";
 		}
 	},
 	askPackage : function(callback, canCustomize) {

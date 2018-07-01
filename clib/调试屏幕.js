@@ -5,7 +5,7 @@ if (Date.parse(CA.publishDate) < Date.parse("2018-06-30")) return {
 	"author": "ProjectXero",
 	"description": "您的命令助手版本过低，无法启用调试屏幕。\n在屏幕上显示游戏相关信息。",
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 0, 1],
+	"version": [0, 6],
 	"require": []
 };
 
@@ -124,7 +124,8 @@ MapScript.loadModule("F3", {
 			} catch(e) {erp(e)}}}));
 		}
 		F3.icon = new G.PopupWindow(self.view, 32 * G.dp, 32 * G.dp);
-		F3.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx ? self.cx : (self.cx = G.screenWidth), self.cy ? self.cy : (self.cy = 0.5 * G.screenHeight - 16 * G.dp));
+		if (CA.supportFloat) F3.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		F3.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx ? self.cx : (self.cx = Common.getScreenWidth()), self.cy ? self.cy : (self.cy = 0.5 * Common.getScreenHeight() - 16 * G.dp));
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
 		if (F3.icon) F3.icon.dismiss();
@@ -435,7 +436,7 @@ MapScript.loadModule("F3", {
 	}, {
 		space : 10
 	}, {
-		prompt : "调试屏幕 V 0.4\n本模块由@ProjectXero制作"
+		prompt : "调试屏幕 V 0.6\n本模块由@ProjectXero制作"
 	}]
 });
 
@@ -1065,7 +1066,7 @@ return {
 	"author": "ProjectXero",
 	"description": "在屏幕上显示游戏相关信息。",
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 0, 1],
+	"version": [0, 6],
 	"require": [],
 	"minCAVersion": "2017-12-15"
 };
@@ -1076,7 +1077,7 @@ return {
 	"author": "ProjectXero",
 	"description": "加载出错：" + e,
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 0, 1],
+	"version": [0, 6],
 	"require": [],
 	"menu" : [{
 		text : "查看错误",
