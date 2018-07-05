@@ -222,8 +222,8 @@ var proto = {
 		this.println = proto.nullFunc;
 	},
 	a : function(a, b, m) { //断言
-		if (a != b) {
-			this.d(a, b, m);
+		if (a !== b) {
+			this.println("Fatal", m + ": " + a + " !== " + b);
 			this.r();
 			throw new Error(m);
 		}
@@ -245,32 +245,27 @@ var proto = {
 		var s = [e, e.stack];
 		this.println("Error", s.join("\n"));
 	},
-	f : function(x) { //写入文件
-		var i;
-		var fp = new android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/ca.debug.txt";
-		try {
-			var fs = new java.io.FileOutputStream(fp, true);
-			fs.write(new java.lang.String(Date() + "\n").getBytes());
-			for (i in arguments) fs.write(new java.lang.String(String(arguments[i])+"\n").getBytes());
-			fs.close();
-			return x;
-		} catch (err) {
-			this.e(err);
-		}
+	f : function(name, args) { //记录函数
+		for (var i = 0, s = []; i < args.length; i++) s.push(args[i]);
+		this.println("Verbose", name + "(" + s.join(", ") + ")");
 	},
 	r : function captureStack() { //查看堆栈
 		var k = {};
 		Error.captureStackTrace(k, captureStack);
-		return this.d(k.stack);
+		return this.println("Debug", k.stack);
 	},
-	s : function(s) {
-		return this.d(this.debug("D", s, 0).join("\n")), s;
+	s : function(s) { //树状解析对象
+		return this.println("Debug", this.debug("D", s, 0).join("\n")), s;
 	},
 	t : function self(s) { //显示Toast
 		ctx.runOnUiThread(function() {
 			if (self.last) self.last.cancel();
 			(self.last = android.widget.Toast.makeText(ctx, String(s), 0)).show();
 		});
+	},
+	e : function(e) { //打印警告
+		var s = [e, e.stack];
+		this.println("Warning", s.join("\n"));
 	},
 	debug : function self(name, o, depth) {
 		var i, r = [];
@@ -307,7 +302,11 @@ MapScript.loadModule("erp", function self(error, silent) {
 		fs.println("* Error: " + new Date().toLocaleString());
 		fs.println(tech);
 		fs.close();
-		Log.e(error);
+		if (silent) {
+			Log.w(error);
+		} else {
+			Log.e(error);
+		}
 	} catch(e) {
 		android.util.Log.e("CA", e);
 	}
