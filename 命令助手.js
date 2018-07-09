@@ -4424,7 +4424,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 					break;
 					case 1:
-					t = "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919";
+					t = "https://www.coolapk.com/game/190152";
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t)));
 					} catch(e) {
@@ -11953,7 +11953,7 @@ MapScript.loadModule("SettingsCompat", {
 			localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
 			localIntent.putExtra("com.android.settings.ApplicationPkgName", ctx.getPackageName());
 		}
-		ctx.startActivity(localIntent);
+		this.startSafely(intent);
 	},
 	canDrawOverlays : function() {
 		if (this.SYSVER >= 23) { //Android M (6.0)
@@ -11993,10 +11993,11 @@ MapScript.loadModule("SettingsCompat", {
 			var intent = new android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
 			intent.setData(android.net.Uri.parse("package:" + ctx.getPackageName()));
 			intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-			ctx.startActivity(intent);
-		} else {
-			this.showAppSettings();
+			if (this.startSafely(intent)) {
+				return;
+			}
 		}
+		this.showAppSettings();
 	},
 	manageDrawOverlaysForRom : function() {
 		if (this.rom in this.ShowManager) {
@@ -16175,11 +16176,14 @@ CA.IntelliSense.inner["addition"] = {
 	"commands": {},
 	"enums": {
 		"structure": {
+			"buriedtreasure": "埋藏的宝藏",
 			"endcity": "末地城",
 			"fortress": "下界要塞",
 			"mansion": "林地府邸",
 			"mineshaft": "废弃矿井",
 			"monument": "海底遗迹",
+			"ruins": "水下遗迹",
+			"shipwreck": "沉船",
 			"stronghold": "要塞",
 			"temple": "沙漠神殿/丛林神庙/沼泽小屋/雪屋",
 			"village": "村庄"
