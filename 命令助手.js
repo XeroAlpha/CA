@@ -289,6 +289,16 @@ return Object.create(proto).stop();
 })());
 
 MapScript.loadModule("erp", function self(error, silent) {
+	if (error instanceof java.lang.Throwable) {
+		error = {
+			javaException : error,
+			stack : "",
+			fileName : "",
+			toString : function() {
+				return this.javaException.toString();
+			}
+		};
+	}
 	var tech = [error, "\n版本: {DATE}\n堆栈: ", error.stack, "\n来源: ", error.fileName, "\n包名: ", ctx.getPackageName(), "\nSDK版本: ", android.os.Build.VERSION.SDK_INT].join("");
 	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本: " + ModPE.getMinecraftVersion();
 	if (error.javaException) {
@@ -516,7 +526,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "1.0.1",
+	version : "1.1.0",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -1359,6 +1369,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				CA.cmd.setText("");
 			} catch(e) {erp(e)}}}));
+			if (MapScript.host == "Android") {
+				self.copy.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try { 
+					if (WSServer.isConnected()) {
+						WSServer.sendCommand(String(CA.cmd.getText()), function(json) {
+							Common.toast("已执行！状态代码：" + json.statusCode + "\n" + json.statusMessage);
+						})
+					} else {
+						if (!WSServer.isAvailable()) {
+							Common.toast("请先在设置中打开WebSocket服务器");
+						} else {
+							Common.toast("请在客户端输入以下指令来连接到服务器。\n/connect " + WSServer.getAddress());
+						}
+					}
+					return true;
+				} catch(e) {return erp(e), true}}}));
+			}
 			self.copy.setOnTouchListener(new G.View.OnTouchListener({onTouch : function(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_DOWN:
@@ -1370,10 +1396,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return false;
 			} catch(e) {return erp(e), false}}}));
-			self.copy.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
-				EasterEgg.start();
-				return true;
-			} catch(e) {return erp(e), true}}}));
 			self.bar.addView(self.copy);
 			
 			CA.con = new G.FrameLayout(ctx);
@@ -1890,6 +1912,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (self.tx < 0) self.linear.setTranslationX(self.tx = -self.screenWidth);
 			} catch(e) {erp(e)}}}));
 			if (G.style == "Material") { 
+				self.history.setVerticalScrollbarPosition(G.View.SCROLLBAR_POSITION_LEFT);
 				self.history.setFastScrollEnabled(true);
 				self.history.setFastScrollAlwaysVisible(false);
 				self.favorite.setFastScrollEnabled(true);
@@ -2116,6 +2139,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.htext = "";
 			self.keep = true;
 			self.hUpdate = false;
+			self.hPaused = false;
 			self.postHelp = function(type, text) {
 				if (type == self.htype && text == self.htext) return;
 				self.htype = type;
@@ -2128,6 +2152,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (CA.settings.splitScreenMode || self.tx < 0) self.hLoad();
 			} catch(e) {erp(e)}})}
 			self.hLoad = function() {
+				self.help.getSettings().setCacheMode(Updater.isConnected() ? android.webkit.WebSettings.LOAD_DEFAULT : android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK);
 				switch (self.htype) {
 					case 0:
 					self.help.loadUrl(self.htext);
@@ -2143,7 +2168,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			self.initBrowser = function(wv) {
 				var ws = wv.getSettings();
-				ws.setSupportZoom(true);
 				ws.setJavaScriptEnabled(true);
 				ws.setAllowFileAccess(true);
 				ws.setAllowFileAccessFromFileURLs(true);
@@ -2153,9 +2177,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				ws.setJavaScriptCanOpenWindowsAutomatically(true);
 				ws.setLoadsImagesAutomatically(!CA.settings.noWebImage);
 				ws.setAllowContentAccess(true);
-				/*ws.setAppCachePath((new java.io.File(ctx.getCacheDir(), "com.xero.ca.webview")).getAbsolutePath());
 				ws.setAppCacheEnabled(true);
-				ws.setCacheMode(ws.LOAD_CACHE_ELSE_NETWORK);*/
+				ws.setAppCachePath((new java.io.File(ctx.getCacheDir(), "com.xero.ca.webview")).getAbsolutePath());
 			}
 			self.initContent = function(v) {
 				if (!CA.settings.splitScreenMode) {
@@ -2208,6 +2231,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.linear.setTranslationX(self.tx);
 						if (f) break;
 						if (self.cancelled) return true;
+						if (self.hPaused) {
+							self.hPaused = false;
+							self.help.onResume();
+						}
 						self.hCheck(); //检测是否需要加载网页
 						e.setAction(e.ACTION_CANCEL);
 						self.cancelled = true;
@@ -2230,6 +2257,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							animation.setInterpolator(new G.DecelerateInterpolator(1.0));
 							animation.setDuration(200);
 							self.linear.startAnimation(animation);
+						}
+						if (!self.hPaused && self.tx == 0) {
+							self.help.onPause();
+							self.hPaused = true;
 						}
 						if (self.cancelled) return true;
 					}
@@ -3281,15 +3312,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}, {
 			text : "发送",
-			intent : (function() {
-				try {
-					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse("file://" + CA.profilePath));
-				} catch(e) {}
-			})(),
+			path : new java.io.File(ctx.getExternalCacheDir(), "ca_settings.dat"),
 			onclick : function() {
+				Common.fileCopy(CA.profilePath, this.path);
 				ctx.startActivity(this.intent);
 			},
 			hidden : function() {
+				try {
+					this.intent = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(this.path));
+				} catch(e) {}
 				return !this.intent;
 			}
 		}]);
@@ -9067,7 +9098,7 @@ MapScript.loadModule("Common", {
 	fileCopy : function(src, dest) {
 		const BUFFER_SIZE = 4096;
 		var fi, fo, buf, hr;
-		var fd = new java.io.File(dest).getParentFile();
+		var fd = (dest instanceof java.io.File ? dest : new java.io.File(dest)).getParentFile();
 		if (fd) fd.mkdirs();
 		fi = new java.io.FileInputStream(src);
 		fo = new java.io.FileOutputStream(dest);
@@ -12752,6 +12783,20 @@ MapScript.loadModule("AndroidBridge", {
 				}).bind(this));
 			}
 		}, {
+			name : "WebSocket服务器",
+			description : "实验性功能",
+			type : "custom",
+			get : function() {
+				return WSServer.isAvailable() ? (WSServer.isConnected() ? "已连接" : "已启动") : "未启动";
+			},
+			onclick : function(fset) {
+				if (WSServer.isAvailable()) {
+					WSServer.howToUse();
+				} else {
+					WSServer.start();
+				}
+			}
+		}, {
 			name : "开机自动启动",
 			description : "需要系统允许开机自启",
 			type : "boolean",
@@ -13135,7 +13180,6 @@ MapScript.loadModule("NeteaseAdapter", {
 		});
 	},
 	packNames : [
-		"com.mojang.minecraftpe",
 		"com.netease.x19",
 		"com.netease.mc.aligames",
 		"com.netease.mc.bili",
@@ -13148,13 +13192,10 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.mc.huawei",
 		"com.netease.mc.vivo",
 		"com.netease.mc.nearme.gamecenter",
+		"com.mojang.minecraftpe",
 		"com.zhekasmirnov.innercore"
 	],
 	packages : {
-		"com.mojang.minecraftpe" : {
-			desc : "国际版",
-			publisher : "Mojang"
-		},
 		"com.netease.x19" : {
 			desc : "网易-官方版",
 			publisher : "Netease"
@@ -13203,11 +13244,169 @@ MapScript.loadModule("NeteaseAdapter", {
 			desc : "网易-OPPO应用商店版",
 			publisher : "Netease"
 		},
+		"com.mojang.minecraftpe" : {
+			desc : "国际版",
+			publisher : "Mojang"
+		},
 		//待补，在此感谢@风铃物语 与 @绿叶 的帮助
 		"com.zhekasmirnov.innercore" : {
 			desc : "Inner Core",
 			publisher : "innercore"
 		}
+	}
+});
+
+MapScript.loadModule("WSServer", {
+	//Thanks to [jocopa3/PEWS-API](https://github.com/jocopa3/PEWS-API)
+	// and [LNSSPsd/MyAgent](https://github.com/LNSSPsd/MyAgent)
+	port : 19134,
+	conn : null,
+	events : {},
+	responsers : {}, 
+	connectedListener : null,
+	isAvailable : function() {
+		return this.server != null;
+	},
+	isConnected : function() {
+		return this.conn != null;
+	},
+	build : function(port) {
+		this.server = ScriptActivity.createWebSocketHelper(port, {
+			onOpen : function(conn, handshake) {try {
+				WSServer.onOpen(conn, handshake);
+			} catch(e) {erp(e)}},
+			onClose : function(conn, code, reason, remote) {try {
+				WSServer.onClose(conn, code, reason, remote);
+			} catch(e) {erp(e)}},
+			onMessage : function(conn, message) {try {
+				WSServer.onMessage(conn, message);
+			} catch(e) {erp(e)}},
+			onError : function(conn, err) {
+				erp(err);
+			},
+			onStart : function() {try {
+				WSServer.onStart();
+			} catch(e) {erp(e)}}
+		});
+		this.server.setConnectionLostTimeout(-1);
+	},
+	start : function() {
+		this.build(this.port);
+		this.server.start();
+	},
+	stop : function() {
+		this.server.stop();
+		this.server = null;
+		AndroidBridge.notifySettings();
+	},
+	onStart : function() {
+		this.howToUse();
+		AndroidBridge.notifySettings();
+	},
+	onOpen : function(conn, handshake) {
+		if (this.conn != null) {
+			conn.close(1, "A client has been binded to CA.");
+			return;
+		}
+		this.conn = conn;
+		if (this.connectedListener) this.connectedListener(conn);
+		Common.toast("设备" + conn.getRemoteSocketAddress() + "已连接");
+		AndroidBridge.notifySettings();
+	},
+	onClose : function(conn, code, reason, remote) {
+		this.conn = null;
+		Common.toast("设备已断开");
+		AndroidBridge.notifySettings();
+	},
+	onMessage : function(conn, message) {
+		var json = JSON.parse(message);
+		var header = json.header;
+		switch (header.messagePurpose) {
+			case "event":
+			this.onEvent(json);
+			break;
+			case "commandResponse":
+			this.onResponse(json);
+			break;
+			case "error":
+			this.onEvent(json);
+			break;
+		}
+	},
+	onEvent : function(json) {
+		var callback = this.events[json.body.eventName];
+		if (callback != null) {
+			callback(json.body);
+		}
+	},
+	onResponse : function(json) {
+		var callback = this.responsers[json.header.requestId];
+		delete this.responsers[json.header.requestId];
+		if (callback != null) {
+			callback(json.body);
+		}
+	},
+	onError : function(json) {
+		Common.toast("出现错误！错误代码：" + json.body.statusCode + "\n" + json.body.statusMessage)
+	},
+	howToUse : function() {
+		Common.showTextDialog("WebSocket服务器已开启。请在客户端输入以下指令来连接到服务器。\n/connect " + this.getAddress() + "\n\n用法：\n长按复制/粘贴即可执行输入框中的命令");
+	},
+	getIp : function() {
+		var wm = ctx.getSystemService(ctx.WIFI_SERVICE);
+        if (wm != null && wm.isWifiEnabled()) {
+            var wifiInfo = wm.getConnectionInfo();
+            var i = wifiInfo.getIpAddress();
+            return [i & 0xFF, (i >> 8) & 0xFF, (i >> 16 ) & 0xFF, i >> 24 & 0xFF].join(".");
+        }
+        return "127.0.0.1";
+	},
+	getAddress : function() {
+		return this.getIp() + ":" + this.port;
+	},
+	uuid : function() {
+		return String(java.util.UUID.randomUUID().toString());
+	},
+	buildHeader : function(purpose) {
+		return {
+			version : 1,
+			requestId : this.uuid(),
+			messagePurpose : purpose,
+			messageType : "commandRequest"
+		};
+	},
+	subscribeEvent : function(name, callback) {
+		if (!this.conn) return;
+		this.events[name] = callback;
+		this.conn.send(JSON.stringify({
+			header : this.buildHeader("subscribe"),
+			body : {
+				eventName : name
+			}
+		}));
+	},
+	unsubscribeEvent : function(name) {
+		if (!this.conn) return;
+		this.conn.send(JSON.stringify({
+			header : this.buildHeader("unsubscribe"),
+			body : {
+				eventName : name
+			}
+		}));
+		delete this.events[name];
+	},
+	sendCommand : function(cmd, callback) {
+		if (!this.conn) return;
+		var json = {
+			header : this.buildHeader("commandRequest"),
+			body : {
+				version : 1,
+				commandLine : cmd,
+				origin : "player"
+			}
+		};
+		this.responsers[json.header.requestId] = callback;
+		this.conn.send(JSON.stringify(json));
 	}
 });
 
