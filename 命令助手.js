@@ -309,7 +309,7 @@ MapScript.loadModule("erp", function self(error, silent) {
 	android.util.Log.e("CA", tech);
 	try {
 		var fs = new java.io.PrintWriter(new java.io.FileOutputStream(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", true));
-		fs.println("* Error: " + new Date().toLocaleString());
+		fs.println("* " + (silent ? "Warning" : "Error") + ": " + new Date().toLocaleString());
 		fs.println(tech);
 		fs.close();
 		if (silent) {
@@ -526,7 +526,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "1.1.0",
+	version : "1.1.1",
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -752,6 +752,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.save();
 			return true;
 		} catch(e) {
+			erp(e, true);
 			Common.showTextDialog("命令助手无法在您的手机上运行：文件写入失败。\n原因可能为：\n1、您的内部存储没有足够的空间\n2、文件被保护\n3、未开放文件读写权限\n\n请检查您的系统。\n\n错误原因：" + e);
 		}
 		return false;
@@ -813,19 +814,25 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.view.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-				self.updateScreenInfo();
+				var smChanged = self.updateScreenInfo();
 				if (self.cx < 0) self.cx = 0;
 				if (self.cy < 0) self.cy = 0;
 				if (self.cx > self.scrWidth) self.cx = self.scrWidth;
 				if (self.cy > self.scrHeight) self.cy = self.scrHeight;
+				if (smChanged) {
+					self.icon.setTranslationX(0);
+					self.refreshPos();
+				}
 			} catch(e) {erp(e)}}}));
 			self.longClick = new java.lang.Runnable({run : function() {try {
 				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
 				self.longClicked = false;
 			} catch(e) {erp(e)}}});
 			self.updateScreenInfo = function() {
+				var lw = self.scrWidth, lh = self.scrHeight;
 				self.scrWidth = Common.getScreenWidth();
 				self.scrHeight = Common.getScreenHeight();
+				return lw != self.scrWidth || lh != self.scrHeight;
 			}
 			self.animateToPos = function(x, y, dur, interpolator, callback) {
 				if (!CA.icon) return;
@@ -1106,7 +1113,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showPaste(0);
 				} else if (CA.settings.pasteMode == 2) {
 					self.performClose(function() {
-						CA.performPaste(s);
+						CA.performPaste(s, true);
 					});
 					return;
 				}
@@ -2687,6 +2694,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								self.refresh();
 								Common.toast("收藏已成功导入");
 							} catch(e) {
+								erp(e, true);
 								Common.toast("收藏夹导入失败\n" + e);
 							}
 						}
@@ -2709,6 +2717,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								Common.saveFile(f.result, JSON.stringify(a, null, 4));
 								Common.toast("收藏已保存至" + f.result);
 							} catch(e) {
+								erp(e, true);
 								Common.toast("文件保存失败，无法导出\n" + e);
 							}
 						}
@@ -3034,6 +3043,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showPasteDelaySet(fset)
 				}
 			},{
+				id : "overwriteMCTextbox",
+				name : "替换MC文本框文本",
+				description : "粘贴文本时会自动将文本框中原来的文本替换为新的文本，而不是直接粘贴",
+				hidden : function() {
+					return !(MapScript.host == "AutoJs" || MapScript.host == "Android");
+				},
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
 				name : "管理历史",
 				type : "custom",
 				get : function() {
@@ -3305,6 +3324,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							Common.fileCopy(CA.profilePath, f.result);
 							Common.toast("配置已导出至" + f.result);
 						} catch(e) {
+							erp(e, true);
 							Common.toast("文件保存失败，无法导出\n" + e);
 						}
 					}
@@ -3371,7 +3391,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	listErrors : function() {
 		var f = Common.readFile(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", "");
 		if (!f.length) return;
-		var a = f.slice(9).split("\n* Error: ");
+		var a = f.slice(9).split("\n* ");
 		a.reverse();
 		Common.showListChooser(a, function(id) {
 			Common.setClipboardText(a[id]);
@@ -3465,20 +3485,51 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.fcs = null;
 	} catch(e) {erp(e)}})},
 	
-	performPaste : function(cmd) {
-		var r, t;
+	isMinecraftTextbox : function(packageName) {
+		return packageName == "net.zhuoweizhang.mcpelauncher.pro" ||
+		       packageName == "net.zhuoweizhang.mcpelauncher" ||
+			   NeteaseAdapter.packNames.indexOf(packageName) >= 0;
+	},
+	performPaste : function(cmd, warnSvcNotRun) {
 		Common.setClipboardText(cmd);
 		if (MapScript.host == "AutoJs" || MapScript.host == "Android") {
 			try {
 				if (MapScript.host == "AutoJs") {
-					if (!editable().findOne().paste()) throw "";
+					var widgets = editable().find(), success = false;
+					if (widgets.empty()) throw "找不到文本框";
+					widgets.each(function(e) {
+						if (CA.settings.overwriteMCTextbox && CA.isMinecraftTextbox(String(e.packageName()))) {
+							success = e.setText(cmd) || success;
+						} else {
+							success = e.paste() || success;
+						}
+					});
+					if (!success) throw "粘贴失败"
 				} else if (MapScript.host == "Android") {
-					t = ScriptActivity.getAccessibilitySvc();
-					if (!t) throw 1;
-					t.paste();
+					var svc = ScriptActivity.getAccessibilitySvc();
+					if (!svc) {
+						if (warnSvcNotRun) {
+							throw "请打开无障碍服务";
+						} else {
+							return;
+						}
+					}
+					if (android.os.Build.VERSION.SDK_INT < 18) throw "系统版本过低！请升级系统至Android 4.3及以上";
+					var node = svc.getRootInActiveWindow();
+					if (!node) throw "无法获取窗口内容";
+					node = node.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_INPUT);
+					if (!node) throw "找不到焦点输入控件";
+					if (!node.isEditable()) throw "当前焦点输入控件不可编辑";
+					if (CA.settings.overwriteMCTextbox && CA.isMinecraftTextbox(String(node.getPackageName()))) {
+						var bundle = new android.os.Bundle();
+						bundle.putCharSequence(android.view.accessibility.AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, cmd);
+						if (!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SET_TEXT, bundle)) throw "设置文本失败";
+					} else {
+						if (!node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_PASTE)) throw "粘贴失败";
+					}
 				}
 			} catch(e) {
-				Common.toast("请打开无障碍服务");
+				Common.toast(e);
 			}
 		} else {
 			try {
@@ -3493,7 +3544,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					ctx.updateTextboxText(cmd);
 				} else {
 					CA.showPasteDelaySet(function() {
-						CA.performPaste(cmd);
+						CA.performPaste(cmd, warnSvcNotRun);
 					});
 				}
 			} catch(e) {
@@ -3619,7 +3670,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.list.setAdapter(self.adapter.self);
 			self.list.setOnTouchListener(self.touchListener);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				CA.performPaste(self.adapter.array[pos]);
+				CA.performPaste(self.adapter.array[pos], false);
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
 			self.bar.addView(self.linear);
@@ -4397,7 +4448,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 				Common.showListChooser(a, function(id) {
 					gHandler.post(function() {
-						CA.performPaste(String(a[id].cmd));
+						CA.performPaste(String(a[id].cmd), true);
 					});
 				}, true);
 			} catch(e) {erp(e)}}}));
@@ -5103,6 +5154,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			//应用更改
 			this.apply();
 		} catch(e) {
+			erp(e, true);
 			Common.showTextDialog("当前命令库解析出错。\n" + e + (e instanceof Error ? "\n堆栈：\n" + e.stack : ""));
 		}},
 		procCmd : function(s) {
@@ -8956,7 +9008,6 @@ MapScript.loadModule("Common", {
 			self.main.addView(self.bar);
 			
 			self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-			self.print("\n想接这坑的请联系我，联系方式在关于里面");
 			self.ready();
 			PWM.registerResetFlag(self, "main");
 		}
@@ -14525,23 +14576,24 @@ CA.IntelliSense.inner["default"] = {
 		},
 		"gamerule_bool": {
 			"commandblockoutput": "命令执行时是否在控制台进行文本提示",
+			"dodaylightcycle": "日夜交替效果是否启用",
+			"doentitydrops": "非生物实体是否掉落物品",
+			"dofiretick": "火是否传播及自然熄灭",
+			"doinsomnia": "玩家失眠时是否生成幻翼",
+			"domobloot": "生物是否掉落物品",
+			"domobspawning": "生物是否自然生成",
+			"dotiledrops": "方块被破坏时是否掉落物品",
+			"doweathercycle": "天气是否变化",
 			"drowningdamage": "是否启用溺水伤害",
 			"falldamage": "是否启用掉落伤害",
 			"firedamage": "是否启用燃烧伤害",
+			"keepinventory": "玩家死亡后是否对物品栏和经验进行保存",
+			"mobgriefing": "生物是否能改变、破坏方块及捡拾物品",
+			"naturalregeneration": "玩家能否在饥饿值足够时自然恢复生命值",
 			"pvp": "是否允许玩家互相攻击",
 			"sendcommandfeedback": "聊天栏是否会显示被一个玩家执行一些特殊命令的提示",
-			"dofiretick": "火是否传播及自然熄灭",
-			"domobspawning": "生物是否自然生成",
-			"dotiledrops": "方块被破坏时是否掉落物品",
-			"mobgriefing": "生物是否能改变、破坏方块及捡拾物品",
-			"doentitydrops": "非生物实体是否掉落物品",
-			"keepinventory": "玩家死亡后是否对物品栏和经验进行保存",
-			"domobloot": "生物是否掉落物品",
-			"dodaylightcycle": "日夜交替效果是否启用",
-			"doweathercycle": "天气是否变化",
-			"naturalregeneration": "玩家能否在饥饿值足够时自然恢复生命值",
-			"tntexplodes": "TNT能否爆炸",
-			"showcoordinates": "是否显示坐标"
+			"showcoordinates": "是否显示坐标",
+			"tntexplodes": "TNT能否爆炸"
 		},
 		"particle": {},
 		"difficulty": {
