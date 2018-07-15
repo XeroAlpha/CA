@@ -12035,7 +12035,7 @@ MapScript.loadModule("SettingsCompat", {
 			localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
 			localIntent.putExtra("com.android.settings.ApplicationPkgName", ctx.getPackageName());
 		}
-		this.startSafely(intent);
+		this.startSafely(localIntent);
 	},
 	canDrawOverlays : function() {
 		if (this.SYSVER >= 23) { //Android M (6.0)
