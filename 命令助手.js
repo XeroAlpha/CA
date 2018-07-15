@@ -1381,7 +1381,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (WSServer.isConnected()) {
 						WSServer.sendCommand(String(CA.cmd.getText()), function(json) {
 							Common.toast("已执行！状态代码：" + json.statusCode + "\n" + json.statusMessage);
-						})
+						});
 					} else {
 						if (!WSServer.isAvailable()) {
 							Common.toast("请先在设置中打开WebSocket服务器");
@@ -13315,11 +13315,14 @@ MapScript.loadModule("WSServer", {
 	events : {},
 	responsers : {}, 
 	connectedListener : null,
+	unload : function() {
+		this.stop();
+	},
 	isAvailable : function() {
-		return this.server != null;
+		return this.server != null && this.running;
 	},
 	isConnected : function() {
-		return this.conn != null;
+		return this.conn != null && this.conn.isOpen();
 	},
 	build : function(port) {
 		this.server = ScriptActivity.createWebSocketHelper(port, {
@@ -13348,10 +13351,12 @@ MapScript.loadModule("WSServer", {
 	stop : function() {
 		this.server.stop();
 		this.server = null;
+		this.running = false;
 		AndroidBridge.notifySettings();
 	},
 	onStart : function() {
 		this.howToUse();
+		this.running = true;
 		AndroidBridge.notifySettings();
 	},
 	onOpen : function(conn, handshake) {
@@ -14526,7 +14531,7 @@ CA.IntelliSense.inner["default"] = {
 			"nausea": "反胃",
 			"night_vision": "夜视",
 			"poison": "中毒",
-			"regeneration": "生命回复",
+			"regeneration": "生命恢复",
 			"resistance": "抗性提升",
 			"saturation": "饱和",
 			"slow_falling": "缓降",
