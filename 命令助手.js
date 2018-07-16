@@ -13316,7 +13316,7 @@ MapScript.loadModule("WSServer", {
 	responsers : {}, 
 	connectedListener : null,
 	unload : function() {
-		this.stop();
+		if (this.isAvailable()) this.stop();
 	},
 	isAvailable : function() {
 		return this.server != null && this.running;
@@ -13392,14 +13392,14 @@ MapScript.loadModule("WSServer", {
 	onEvent : function(json) {
 		var callback = this.events[json.body.eventName];
 		if (callback != null) {
-			callback(json.body);
+			callback(json.body, json);
 		}
 	},
 	onResponse : function(json) {
 		var callback = this.responsers[json.header.requestId];
 		delete this.responsers[json.header.requestId];
 		if (callback != null) {
-			callback(json.body);
+			callback(json.body, json);
 		}
 	},
 	onError : function(json) {
@@ -13463,6 +13463,7 @@ MapScript.loadModule("WSServer", {
 		};
 		this.responsers[json.header.requestId] = callback;
 		this.conn.send(JSON.stringify(json));
+		return json.header.requestId;
 	}
 });
 
