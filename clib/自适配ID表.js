@@ -49,14 +49,16 @@ try {
 		for (i in lp) {
 			if (!lp[i].applicationInfo) continue;
 			f = true;
-			as = pm.getPackageInfo(lp[i].packageName, 1).activities;
-			for (j in as) {
-				if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
-					f = false;
-					break;
+			try { //非常神奇的Exception:Package manager has died
+				as = pm.getPackageInfo(lp[i].packageName, 1).activities;
+				for (j in as) {
+					if (as[j].name == "com.mojang.minecraftpe.MainActivity") {
+						f = false;
+						break;
+					}
 				}
-			}
-			if (f) continue;
+				if (f) continue;
+			} catch(e) {}
 			r.push({
 				text : pm.getApplicationLabel(lp[i].applicationInfo),
 				description : lp[i].versionName,

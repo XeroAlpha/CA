@@ -53,7 +53,7 @@ function initGZIP(s) {
 function exports() {
 	var min;
 	console.log("Running js-min...");
-	fs.writeFileSync(outputFile, min = initExport(fs.readFileSync(script)));
+	fs.writeFileSync(outputFile, min = initExport(fs.readFileSync(script, "utf-8")));
 	console.log("Compressing...");
 	fs.writeFileSync(exportFile, initGZIP(min));
 }
