@@ -19,6 +19,14 @@ input {
     border: 2px gray dotted;
     width: 75%;
 }
+a:link, a:visited {
+    color: lightblue;
+    text-decoration: underline;
+}
+a:hover, a:active {
+    color: white;
+    text-decoration: underline;
+}
 #about {
     color: gray;
     position: fixed;
@@ -37,6 +45,9 @@ input {
 }
 #question_body, #question_answer {
     animation: body_visible 0.5s ease 1.5s backwards;
+}
+#question_success {
+    animation: body_visible 0.5s;
 }
 @keyframes title_scale {
     from {letter-spacing: 20px}
@@ -114,13 +125,13 @@ var question_list = [{
     answer: ""
 }, {
     question: "如何替换位于(51,8,-56)的箱子内的第一格物品为苹果？",
-    answer: ""
+    answer: "replaceitem\\s+block\\s+51\\s+8\\s+-56\\s+slot\\.container\\s+0\\s+apple"
 }, {
     question: "如何替换最近玩家的主手物品为一块在冒险模式下只能放在草方块上的玻璃？",
     answer: ""
 }, {
     question: "如何用命令让最近玩家戴上钻石头盔？",
-    answer: ""
+    answer: "replaceitem\\s+entity\\s+@p\\s+slot\\.armor\\.head\\s+0\\s+diamond_helmet(\\s+\\d*)?"
 }, {
     question: "如何将所有玩家传送到以(17,?,5)为中心，半径为20的区域？",
     answer: ""
@@ -129,7 +140,7 @@ var question_list = [{
     answer: "title\\s+@p\\s+actionbar\\s+Hello"
 }, {
     question: "如何让下次标题瞬间显示，持续1s后瞬间消失？",
-    answer: ""
+    answer: "title\\s+(\\S+)\\s+times\\s+0\\s+20\\s+0"
 }, {
     question: "如何让一个名称为A的盔甲架不断旋转？",
     answer: ""
@@ -155,20 +166,30 @@ var cur = getDailyQuestion(date);
 window.onload = function() {
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
+    var answer_node = document.getElementById("question_answer");
     var input_node = document.getElementById("answer_box");
+    var success_node = document.getElementById("question_success");
     body_node.innerHTML = cur.question;
-    about_node.innerHTML = "下次更新问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库大小:" + question_list.length + "<br />命令助手 @ ProjectXero";
+    about_node.innerHTML = "下次更新问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库大小:" + question_list.length + "<br />命令助手讨论区 @ ProjectXero";
     if (window.localStorage && Number(window.localStorage.lastExpired) > Date.now()) {
         input_node.value = window.localStorage.lastInput;
     }
+    answer_node.style = "";
+    success_node.style = "display: none";
+    success_node.innerHTML = "";
 }
 window.onresize = function() {
     var about_node = document.getElementById("about");
     if (window.innerHeight < document.body.offsetHeight + about_node.offsetHeight) {
         about_node.style = "display: none";
     } else {
-        about_node.style = "animation: none;";
+        about_node.style = "animation: none";
     }
+}
+window.prevDay = function() {
+    date -= 86400000;
+    cur = getDailyQuestion(date);
+    window.onload();
 }
 window.nextDay = function() {
     date += 86400000;
@@ -195,6 +216,13 @@ function fixZero(s, n) {
     s = String(s);
     return n > s.length ? fixZero("0" + s, n) : s;
 }
+function success_action() {
+    var answer_node = document.getElementById("question_answer");
+    var success_node = document.getElementById("question_success");
+    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCPE命令助手讨论区</a>';
+    success_node.style = "";
+    answer_node.style = "display: none";
+}
 window.checkAnswer = function(answer) {
     if (answer != null) {
         var v = answer.value, t;
@@ -202,12 +230,16 @@ window.checkAnswer = function(answer) {
         if (window.localStorage) {
             window.localStorage.lastInput = answer.value;
             window.localStorage.lastExpired = getNextUpdateTime().getTime();
-        }        
-        if (t = new RegExp(cur.answer, "").exec(answer.value)) {
-            if (t[0].length != v.length) return;
-            var node = document.getElementById("question_answer");
-            node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code;
         }
+        if (cur.answer instanceof Function) {
+            if (cur.answer(v)) success_action();
+        } else {
+            if (t = new RegExp(cur.answer, "").exec(answer.value)) {
+                if (t[0].length != v.length) return;
+                success_action();
+            }
+        }
+        
     }
 }
 })();
@@ -221,6 +253,7 @@ window.checkAnswer = function(answer) {
 请填写你的答案<br />
 <input type="text" id="answer_box" onchange="checkAnswer(this)"></input>
 </div>
+<div id="question_success"></div>
 <div id="about"></div>
 </body>
 </html>
