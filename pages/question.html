@@ -13,12 +13,6 @@ h1, div {
     text-align: center;
     padding: 10px;
 }
-input {
-    background-color: black;
-    color: white;
-    border: 2px gray dotted;
-    width: 75%;
-}
 a:link, a:visited {
     color: lightblue;
     text-decoration: underline;
@@ -46,6 +40,12 @@ a:hover, a:active {
 #question_body, #question_answer {
     animation: body_visible 0.5s ease 1.5s backwards;
 }
+#answer_box {
+    background-color: black;
+    color: white;
+    border: 2px gray dotted;
+    width: 75%;
+}
 #question_success {
     animation: body_visible 0.5s;
 }
@@ -71,70 +71,117 @@ var question_list = [{
     answer: "clear\\s+@a\\[m=(survival|s|0)\\]\\s+tnt"
 }, {
     question: "如何复制(1,3,5)-(2,4,6)区域内所有的非空气方块到(-1,-9,-5)?",
-    answer: "clone\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+-1\\s+-9\\s+-5\\s+masked(\\s+(normal|force)?)?"
+    answer: "clone\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+-1\\s+-9\\s+-5\\s+masked(\\s+(normal|force))?"
 }, {
     question: "如何复制(7,17,2)-(9,18,3)区域内所有的泥土方块到当前位置？",
-    answer: "clone\\s+7\\s+17\\s+2\\s+9\\s+18\\s+3\\s+~\\s*~\\s*~\\s+filtered\\s+(normal|force)\\s+dirt(\\s+(0)?)?"
+    answer: "clone\\s+7\\s+17\\s+2\\s+9\\s+18\\s+3\\s+~\\s*~\\s*~\\s+filtered\\s+(normal|force)\\s+dirt(\\s+0)?"
 }, {
     question: "如何给予最近玩家无敌效果10秒？",
-    answer: "effect\\s+@p\\s+resistance\\s+10\\s+([1-9]\\d+|[5-9])(\\s+(true|false)?)?"
+    answer: "effect\\s+@p\\s+resistance\\s+10\\s+([1-9]\\d+|[5-9])(\\s+(true|false))?"
 }, {
     question: "如何给予所有玩家徒手攻击其他实体无伤的效果1分钟？",
-    answer: "effect\\s+@a\\s+weakness\\s+60(\\s+([1-9]\\d*(\\s+(true|false)?)?)?)?"
+    answer: "effect\\s+@a\\s+weakness\\s+60(\\s+[1-9]\\d*(\\s+(true|false))?)?"
 }, {
     question: "如何给予所有等级大于50级的玩家50s隐身效果且隐藏粒子？",
     answer: "effect\\s+@a\\[lm=50\\]\\s+invisibility\\s+50\\s+([1-9]\\d*)\\s+true"
 }, {
     question: "如何检测最近玩家手持物品是否是钓鱼竿？（钓鱼竿已被附魔为饵钓I）",
-    answer: "enchant\\s+@p\\s+lure(\\s+(1)?)?"
+    answer: "enchant\\s+@p\\s+lure(\\s+1)?"
 }, {
     question: "如何杀死所有站在岩浆块上的玩家？",
-    answer: "execute\\s+@a\\s+~\\s*~\\s*~\\s+detect\\s+~\\s*~-1\\s*~\\s+magma\\s+(-1|0)\\s+kill(\\s+(@s|@p)?)?"
+    answer: "execute\\s+@a\\s+~\\s*~\\s*~\\s+detect\\s+~\\s*~-1\\s*~\\s+magma\\s+(-1|0)\\s+kill(\\s+(@s|@p))?"
 }, {
     question: "如何将玩家A传送到玩家B前方两格？",
-    answer: ""
+    answer: "execute\\s+B\\s+~\\s+~\\s+~\\s+(tp|teleport)\\s+A\\s+\\^\\s+\\^\\s+\\^2" //?
 }, {
     question: "如何给予以(5,31,2)为中心，50格范围内的所有玩家“雷罚”一次？",
-    answer: ""
+    answer: function(str) {
+        var a = /execute\s+@a\[(.+?)\]\s+~\s+~\s+~\s+summon\s+lightning_bolt(\s+~\s+~\s+~)?/.exec(str);
+        if (!a) return false;
+        var i, p = parseSelector(a[1], {
+            noOtherPositiveKeys: true,
+            existsPositiveKeys: ["x", "y", "z", "r"],
+            noOtherNegativeKeys: true,
+            existsNegativeKeys: [],
+            numbericValues: ["x", "y", "z", "r"]
+        });
+        if (!p) return false;
+        var pos = p.positive;
+        return pos.x == 5 && pos.y == 32 && pos.z == 2 && pos.r == 50;
+    } 
 }, {
     question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？",
-    answer: ""
+    answer: "fill\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+air\\s+0\\s+replace\\s+normal\\s+stone(\\s+0)?"
 }, {
     question: "如何将以命令执行点为中心，清空半径为5格的立方体内的所有方块并在六面覆盖上玻璃？",
-    answer: ""
+    answer: "fill\\s+~-5\\s+~-5\\s+~-5\\s+~5\\s+~5\\s+~5\\s+glass\\s+0\\s+hollow"
 }, {
-    question: "如何设置所有非生存模式玩家为生存模式？",
-    answer: ""
+    question: "如何设置所有非生存模式玩家为生存模式？（不使用execute命令）",
+    answer: "gamemode\\s+(0|s|survival)\\s+@a\\[m=(0|s|survival)\\]"
 }, {
-    question: "如何把以(4,5,6)为中心，边长为5的正方体内的所有玩家变成生存模式？",
-    answer: ""
+    question: "如何把以(4,5,6)为中心，边长为4的正方体内的所有玩家变成生存模式？",
+    answer: function(str) {
+        var a = /gamemode\s+(0|s|survival)\s+@a\[(.+?)\]/.exec(str);
+        if (!a) return false;
+        var i, p = parseSelector(a[1], {
+            noOtherPositiveKeys: true,
+            existsPositiveKeys: ["x", "y", "z", "dx", "dy", "dz"],
+            noOtherNegativeKeys: true,
+            existsNegativeKeys: [],
+            numbericValues: ["x", "y", "z", "dx", "dy", "dz"]
+        });
+        if (!p) return false;
+        var pos = p.positive;
+        normalizeSelectorBox(pos);
+        return pos.x == 2 && pos.y == 3 && pos.z == 4 && pos.dx == 4 && pos.dy == 4 && pos.dz == 4;
+    }
 }, {
     question: "如何防止玩家淹死？（不使用effect命令）",
-    answer: ""
+    answer: "gamerule\\s+drowningdamage\\s+false"
 }, {
     question: "如何给予最近玩家一把在冒险模式下只能挖黑曜石的钻石镐？",
-    answer: ""
+    answer: function(str) {
+        var a = /give\s+@p\s+diamond_pickaxe\s+1\s+(\d+)\s+(.+)/.exec(str);
+        if (!a) return false;
+        var p = JSON.parse(a[2]);
+        if (!p) return false;
+        p = p["minecraft:can_destroy"];
+        if (!p) return false;
+        p = p.blocks;
+        if (!p) return false;
+        return Array.isArray(p) && p.length == 1 && p[0] == "obsidian";
+    }
 }, {
     question: "如何清除所有非玩家实体？",
-    answer: ""
+    answer: "kill\\s+@e\\[type!=player\\]"
 }, {
-    question: "如何使所有史莱姆在y坐标低于50时死亡？",
-    answer: ""
+    question: "如何使所有史莱姆在y坐标低于50时死亡？（不使用execute命令）",
+    answer: "" //错题
 }, {
     question: "如何在所有玩家耳边播放末影人死亡声？（每个玩家收到的音量相同）",
-    answer: ""
+    answer: "execute\\s+@a\\s+~\\s+~\\s+~\\s+playsound\\s+mob.endermen.death\\s+@s(\\s+~\\s+~\\s+~(\\s+\\d+(\\s+\\d+(\\s+\\d+)?)?)?)?"
 }, {
     question: "如何替换位于(51,8,-56)的箱子内的第一格物品为苹果？",
-    answer: "replaceitem\\s+block\\s+51\\s+8\\s+-56\\s+slot\\.container\\s+0\\s+apple"
+    answer: "replaceitem\\s+block\\s+51\\s+8\\s+-56\\s+slot\\.container\\s+0\\s+apple(\\s+1(\\s+0)?)?"
 }, {
     question: "如何替换最近玩家的主手物品为一块在冒险模式下只能放在草方块上的玻璃？",
-    answer: ""
+    answer: function(str) {
+        var a = /replaceitem\s+entity\s+@p\s+slot.weapon.mainhand\s+0\s+glass\s+1\s+0\s+(.+)/.exec(str);
+        if (!a) return false;
+        var p = JSON.parse(a[1]);
+        if (!p) return false;
+        p = p["minecraft:can_place_on"];
+        if (!p) return false;
+        p = p.blocks;
+        if (!p) return false;
+        return Array.isArray(p) && p.length == 1 && p[0] == "grass";
+    }
 }, {
     question: "如何用命令让最近玩家戴上钻石头盔？",
-    answer: "replaceitem\\s+entity\\s+@p\\s+slot\\.armor\\.head\\s+0\\s+diamond_helmet(\\s+\\d*)?"
+    answer: "replaceitem\\s+entity\\s+@p\\s+slot\\.armor\\.head\\s+0\\s+diamond_helmet(\\s+\\d+(\\s+\\d+)?)?" //?
 }, {
     question: "如何将所有玩家传送到以(17,?,5)为中心，半径为20的区域？",
-    answer: ""
+    answer: "spreadplayers\\s+17\\s+5\\s+(\\d+)\\s+20\\s+@a"
 }, {
     question: "如何在最近玩家的快捷栏上方显示“Hello”？",
     answer: "title\\s+@p\\s+actionbar\\s+Hello"
@@ -142,14 +189,40 @@ var question_list = [{
     question: "如何让下次标题瞬间显示，持续1s后瞬间消失？",
     answer: "title\\s+(\\S+)\\s+times\\s+0\\s+20\\s+0"
 }, {
-    question: "如何让一个名称为A的盔甲架不断旋转？",
-    answer: ""
+    question: "如何让所有名称为A的盔甲架不断旋转？",
+    answer: function(str) {
+        var a = /execute\s+@e\[(.+)\]\s+~\s+~\s+~\s+tp\s+~\s+~\s+~\s+~(-?\d+)(\s+~)?/.exec(str);
+        if (!a) return false;
+        var i, p = parseSelector(a[1], {
+            noOtherPositiveKeys: true,
+            existsPositiveKeys: ["type", "name"],
+            noOtherNegativeKeys: true,
+            existsNegativeKeys: []
+        });
+        if (!p) return false;
+        var pos = p.positive;
+        return pos.type == "armor_stand" && pos.name == "A";
+    }
 }, {
     question: "如何把以(7,8,9)为顶点，第五卦限方向里边长为6的正方体里的所有生物传送到(0,4,0)？（不懂什么叫卦限的自己百度）",
-    answer: ""
+    answer: function(str) {
+        var a = /tp\s+@e\[(.+?)\]\s+0\s+4\s+0/.exec(str);
+        if (!a) return false;
+        var i, p = parseSelector(a[1], {
+            noOtherPositiveKeys: true,
+            existsPositiveKeys: ["x", "y", "z", "dx", "dy", "dz"],
+            noOtherNegativeKeys: true,
+            existsNegativeKeys: [],
+            numbericValues: ["x", "y", "z", "dx", "dy", "dz"]
+        });
+        if (!p) return false;
+        var pos = p.positive;
+        normalizeSelectorBox(pos);
+        return pos.x == 7 && pos.y == 8 && pos.z == 3 && pos.dx == 6 && pos.dy == 6 && pos.dz == 6;
+    }
 }, {
     question: "如何让玩家等级不超过100级？（使用xp与execute命令）",
-    answer: ""
+    answer: "execute\\s+@a\\[lm=100\\]\\s+~\\s+~\\s+~\\s+xp\\s+-\\d+(L?)(\\s+@s)?"
 }];
 (function() {
 var i, j, seed = [question_list.length];
@@ -163,20 +236,29 @@ question_list.sort(function(a, b) {
 });
 var date = Date.now();
 var cur = getDailyQuestion(date);
+var isSuccessed;
 window.onload = function() {
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
     var answer_node = document.getElementById("question_answer");
     var input_node = document.getElementById("answer_box");
     var success_node = document.getElementById("question_success");
+    var setter_node = document.getElementById("day_box");
     body_node.innerHTML = cur.question;
-    about_node.innerHTML = "下次更新问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库大小:" + question_list.length + "<br />命令助手讨论区 @ ProjectXero";
-    if (window.localStorage && Number(window.localStorage.lastExpired) > Date.now()) {
-        input_node.value = window.localStorage.lastInput;
-    }
+    about_node.innerHTML = "下次更新问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库大小:" + question_list.length + " | 上次更新:2018年7月20日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
+    isSuccessed = false;
+    if (window.localStorage && Number(window.localStorage.lastExpired) > Date.now()) {
+        input_node.value = window.localStorage.lastInput;
+        input_node.onchange();
+    }
+    if (isSuccessed) {
+        success_node.style = "animation: body_visible 0.5s ease 1.5s backwards";
+    }
+    if (setter_node) setter_node.value = toSimpleDate(new Date(date - date % 86400000));
+    onresize();
 }
 window.onresize = function() {
     var about_node = document.getElementById("about");
@@ -186,15 +268,77 @@ window.onresize = function() {
         about_node.style = "animation: none";
     }
 }
-window.prevDay = function() {
-    date -= 86400000;
+window.offsetDay = function(n) {
+    if (!n || isNaN(n)) n = 0; 
+    date += 86400000 * n;
     cur = getDailyQuestion(date);
     window.onload();
 }
-window.nextDay = function() {
-    date += 86400000;
+window.setDay = function(d) {
+    date = new Date(d).getTime();
     cur = getDailyQuestion(date);
     window.onload();
+}
+window.dayControl = function() {
+    var control_node = document.getElementById("day_control");
+    if (!control_node) {
+        control_node = document.createElement("div");
+        control_node.id = "day_control";
+        control_node.innerHTML = '<button onclick="offsetDay(-1)">&lt;</button><input id="day_box" onchange="setDay(this.value)" /><button onclick="offsetDay(1)">&gt;</button>';
+        document.body.appendChild(control_node);
+    }
+    onload();
+}
+window.parseSelector = function(s, options) {
+    var positive = {}, negative = [], i;
+    try {
+        s.split(",").forEach(function(e) {
+            var i = e.indexOf("=");
+            if (i < 0) throw "Cannot find equals sign";
+            var a = e.slice(0, i), b = e.slice(i + 1);
+            if (b.startsWith("!")) {
+                negative.push({key: a, value: b.slice(1)});
+            } else {
+                positive[a] = b;
+            }
+        });
+        if (options) {
+            if (options.existsPositiveKeys) {
+                if (options.existsPositiveKeys.some((e) => !(e in positive))) throw "Necessary positive keys not found";
+                if (options.noOtherPositiveKeys && options.existsPositiveKeys.length != Object.keys(positive).length) throw "Redundant positive keys found";
+            }
+            if (options.existsNegativeKeys) {
+                var t, fl = options.existsNegativeKeys.slice(), no = options.noOtherNegativeKeys;
+                for (i in negative) {
+                    if ((t = fl.indexOf(negative[i].key)) >= 0) {
+                        fl.splice(t, 1);
+                    } else if (no) throw "Redundant negitive keys found";
+                }
+                if (fl.length > 0) throw "Necessary negative keys not found";
+            }
+            if (options.numbericValues) {
+                options.numbericValues.forEach(function(e) {
+                    positive[e] = Number(positive[e]);
+                    if (isNaN(positive[e])) {
+                        throw "A numberic values is non-numberic";
+                    }
+                });
+            }
+        }
+        return {positive: positive, negative: negative};
+    } catch(e) {}
+    return null;
+}
+window.normalizeSelectorBox = function(pos) {
+    if (pos.dx < 0) {
+        pos.dx = -pos.dx; pos.x -= pos.dx;
+    }
+    if (pos.dy < 0) {
+        pos.dy = -pos.dy; pos.y -= pos.dy;
+    }
+    if (pos.dz < 0) {
+        pos.dz = -pos.dz; pos.z -= pos.dz;
+    }
 }
 function random(seed) {
     return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
@@ -212,6 +356,9 @@ function getNextUpdateTime() {
 function toChineseDateTime(date) {
     return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日 " + fixZero(date.getHours(), 2) + ":" + fixZero(date.getMinutes(), 2) + ":" + fixZero(date.getSeconds(), 2);
 }
+function toSimpleDate(date) {
+    return date.getFullYear() + "-" + fixZero(date.getMonth() + 1, 2) + "-" + fixZero(date.getDate(), 2);
+}
 function fixZero(s, n) {
     s = String(s);
     return n > s.length ? fixZero("0" + s, n) : s;
@@ -222,6 +369,7 @@ function success_action() {
     success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCPE命令助手讨论区</a>';
     success_node.style = "";
     answer_node.style = "display: none";
+    isSuccessed = true;
 }
 window.checkAnswer = function(answer) {
     if (answer != null) {
