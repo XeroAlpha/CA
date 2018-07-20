@@ -245,7 +245,7 @@ window.onload = function() {
     var success_node = document.getElementById("question_success");
     var setter_node = document.getElementById("day_box");
     body_node.innerHTML = cur.question;
-    about_node.innerHTML = "下次更新问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库大小:" + question_list.length + " | 上次更新:2018年7月20日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年7月20日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -263,9 +263,9 @@ window.onload = function() {
 window.onresize = function() {
     var about_node = document.getElementById("about");
     if (window.innerHeight < document.body.offsetHeight + about_node.offsetHeight) {
-        about_node.style = "display: none";
+        about_node.style = "opacity: 0";
     } else {
-        about_node.style = "animation: none";
+        about_node.style = "opacity: 1";
     }
 }
 window.offsetDay = function(n) {
