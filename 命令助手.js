@@ -444,6 +444,7 @@ MapScript.loadModule("G", {
 	Color: android.graphics.Color,
 	ColorDrawable: android.graphics.drawable.ColorDrawable,
 	CompoundButton: android.widget.CompoundButton,
+	CycleInterpolator: android.view.animation.CycleInterpolator,
 	DecelerateInterpolator: android.view.animation.DecelerateInterpolator,
 	EditText: android.widget.EditText,
 	EditorInfo: android.view.inputmethod.EditorInfo,
@@ -875,7 +876,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			self.open = function() {
 				if (!CA.settings.topIcon) {
-					CA.showGen(CA.settings.noAnimationm);
+					CA.showGen(CA.settings.noAnimation);
 					CA.hideIcon();
 					if (CA.paste) CA.hidePaste();
 				} else if (PWM.getCount() > 0) {
@@ -9161,7 +9162,7 @@ MapScript.loadModule("Common", {
 			self.paint.setAntiAlias(true);
 			self.paint.setXfermode(G.PorterDuffXfermode(G.PorterDuff.Mode.DST_OUT));
 			self.cv = new G.Canvas();
-			self.frameRect = new G.Rect();
+			self.frameRect = new G.Rect(); 
 			self.frame = new G.FrameLayout(ctx);
 			self.frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -9193,6 +9194,72 @@ MapScript.loadModule("Common", {
 		}
 		self.queue.push(o);
 		if (!self.popup.isShowing()) self.next();
+	} catch(e) {erp(e)}})},
+	
+	toast : function self(str) {G.ui(function() {try {
+		if (!self.popup) {
+			self.show = function() {
+				if (!self.popup.isShowing()) self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
+				if (!CA.settings.noAnimation) {
+					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0);
+					animation.setInterpolator(new G.DecelerateInterpolator(1.0));
+					animation.setDuration(100);
+					self.text.startAnimation(animation);
+				}
+			}
+			self.hide = function() {
+				if (!self.popup.isShowing()) return;
+				if (CA.settings.noAnimation) {
+					self.popup.dismiss();
+				} else {
+					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1);
+					animation.setInterpolator(new G.AccelerateInterpolator(2.0));
+					animation.setDuration(100);
+					animation.setAnimationListener(new G.Animation.AnimationListener({
+						onAnimationEnd : function(a) {try {
+							self.popup.dismiss();
+						} catch(e) {erp(e)}},
+					}));
+					self.text.startAnimation(animation);
+				}
+			}
+			self.flash = function() {
+				var animation = new G.TranslateAnimation(0, 8 * G.dp, 0, 0);
+				animation.setInterpolator(new G.CycleInterpolator(2));
+				animation.setDuration(300);
+				self.text.startAnimation(animation);
+			}
+			self.toast = function(s) {
+				if (self.lastCbk) gHandler.removeCallbacks(self.lastCbk);
+				if (self.lastToast == s) self.flash();
+				self.lastToast = s;
+				self.text.setText(s instanceof java.lang.CharSequence ? s : String(s));
+				gHandler.postDelayed(self.lastCbk = function() {try {
+					self.hide();
+					self.lastCbk = null;
+					self.lastToast = "";
+				} catch(e) {erp(e)}}, 2000);
+			}
+			self.frame = new G.FrameLayout(ctx);
+			self.text = new G.TextView(ctx);
+			self.text.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+			self.text.setTextColor(G.Color.WHITE);
+			self.text.setTextSize(14);
+			self.text.setGravity(G.Gravity.CENTER);
+			self.text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
+			self.frame.addView(self.text);
+			self.popup = new G.PopupWindow(self.frame, -2, -2);
+			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			self.popup.setFocusable(false);
+			self.popup.setTouchable(false);
+			if (G.style == "Material") {
+				self.text.getLayoutParams().setMargins(8 * G.dp, 8 * G.dp, 8 * G.dp, 8 * G.dp);
+				self.text.setElevation(8 * G.dp);
+			}
+		}
+		if (!self.popup.isShowing()) self.show();
+		self.toast(str);
 	} catch(e) {erp(e)}})},
 	
 	fileCopy : function(src, dest) {
@@ -9270,9 +9337,9 @@ MapScript.loadModule("Common", {
 		return s.join("\n");
 	},
 	
-	toast : function self(s, dur) {G.ui(function() {try {
+	toastSystem : function self(s, dur) {G.ui(function() {try {
 		if (self.last) self.last.cancel();
-		(self.last = G.Toast.makeText(ctx, String(s), dur ? 1 : 0)).show();
+		(self.last = G.Toast.makeText(ctx, s instanceof java.lang.CharSequence ? s : String(s), dur ? 1 : 0)).show();
 	} catch(e) {erp(e)}})},
 	
 	postIME : function(v, delay) {
