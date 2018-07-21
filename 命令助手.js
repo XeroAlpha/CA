@@ -1064,6 +1064,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				gap : 10 * G.dp
 			},{
+				text : "插件",
+				hidden : function() {
+					return CA.PluginMenu.length == 0;
+				},
+				onclick : function(v) {
+					Common.showOperateDialog(CA.PluginMenu);
+				}
+			},{
 				text : "教程",
 				onclick : function(v) {
 					Tutorial.showList();
@@ -1713,18 +1721,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return g.concat(d);
 			}
-			self.refreshHistory = function() {
+			self.refreshHistory = function(force) {
 				if (CA.his.length == 0) {
 					self.hisEmpty = true;
 					self.history.setAdapter(EmptyAdapter);
 				} else {
-					self.hisAdapter.setArray(CA.his);
-					if (self.hisEmpty) self.history.setAdapter(self.hisAdapter.self);
+					if (self.hisEmpty || force) {
+						self.hisAdapter.setArray(CA.his);
+						self.history.setAdapter(self.hisAdapter.self);
+					} else {
+						self.hisAdapter.notifyChange();
+					}
 					self.hisEmpty = false;
 				}
 				if (CA.paste) CA.showPaste.refresh();
 			}
-			self.refreshFavorite = function() {
+			self.refreshFavorite = function(force) {
 				if (CA.fav.length == 0) {
 					self.favEmpty = true;
 					self.favorite.setAdapter(EmptyAdapter);
@@ -1780,8 +1792,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					key : "命令助手设置",
 					value : "/help"
 				}];
-				self.refreshHistory();
-				self.refreshFavorite();
+				self.refreshHistory(true);
+				self.refreshFavorite(true);
 				Common.showTutorial({
 					text : "左侧这里是使用命令的历史记录列表",
 					view : CA.settings.splitScreenMode ? self.history : self.linear,
@@ -1817,8 +1829,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					onDismiss : function() {
 						CA.his = lhis;
 						CA.fav = lfav;
-						self.refreshHistory();
-						self.refreshFavorite();
+						self.refreshHistory(true);
+						self.refreshFavorite(true);
 						self.scrollToLeft();
 					}
 				});
@@ -2305,7 +2317,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.list.setAdapter(EmptyAdapter);
 				} else {
 					if (self.adapter) {
-						self.adapter.setArray(CA.his);
+						self.adapter.notifyChange();
 					} else {
 						self.list.setAdapter(a = new SimpleListAdapter(CA.his, self.vmaker, self.vbinder));
 						self.adapter = SimpleListAdapter.getController(a);
@@ -3566,9 +3578,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.vbinder = function(holder, s, i, a) {
 				holder.self.setText(s);
 			}
-			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(CA.his, self.vmaker, self.vbinder));
 			self.refresh = function() {
-				self.adapter.setArray(CA.his);
+				self.adapter.notifyChange();
 			}
 			self.updateWidth = function(width) {
 				if (width > self.widthMax) width = self.widthMax;
@@ -5098,6 +5110,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}
 	},
+	PluginMenu : [],
 	
 	IntelliSense : {
 		UNINITIALIZED : 0,
@@ -5995,7 +6008,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (self.adptcon) {
 						self.adptcon.setArray(z.input);
 					} else {
-						var a = new SimpleListAdapter(z.input, self.vmaker, self.vbinder);
+						var a = new SimpleListAdapter(z.input.slice(), self.vmaker, self.vbinder);
 						self.adptcon = SimpleListAdapter.getController(a);
 						self.list.setAdapter(a);
 					}
@@ -7373,7 +7386,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var layout, title, i, adpt, list, add, reset, exit, popup;
 			if (!self.selectors) {
 				self.refresh = function(e, adpt) {
-					adpt.setArray(e.components);
+					adpt.notifyChange();
 				}
 				self.addParam = function(e, adpt) {
 					var i, a = [], c, cs = e.current_component;
@@ -8924,32 +8937,51 @@ MapScript.loadModule("Common", {
 		PWM.add(self.popup);
 	} catch(e) {erp(e)}})},
 	
-	showDebugDialog : function self(o) {G.ui(function() {try {
+	showDebugDialog : function self() {G.ui(function() {try {
 		if (!self.main) {
+			self.LINE_LIMIT = 200;
 			self.history = [];
+			self.lines = [];
+			self.vmaker = function(holder) {
+				var text = holder.text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				Common.applyStyle(text, "textview_default", 2);
+				return text;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text.setText(e);
+				holder.text.setPadding(10 * G.dp, i == 0 ? 10 * G.dp : 0, 10 * G.dp, i == a.length - 1 ? 10 * G.dp : 0);
+			}
 			self.cls = function() {
-				self.prompt.setText("");
-				self.ready();
+				self.lines.length = 0;
+				self.history.length = 0;
+				self.lines.push(new G.SpannableStringBuilder());
+				self.print("WSServer控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+				self.ready(null);
 			}
 			self.print = function(str, span) {
-				var t = new G.SpannableStringBuilder(self.prompt.getText());
+				var t = self.lines[self.lines.length - 1];
 				if (span) {
 					appendSSB(t, str, span);
 				} else {
 					t.append(str);
 				}
-				self.prompt.setText(t);
-				self.vscr.post(function() {try {
-					self.vscr.fullScroll(G.View.FOCUS_DOWN);
+				gHandler.post(function() {try {
+					self.prompt.smoothScrollToPosition(self.lines.length - 1);
 				} catch(e) {erp(e)}});
 			}
-			self.ready = function() {
-				self.print("\n>  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
+			self.ready = function(cmd) {
+				self.history[self.lines.length - 1] = cmd;
+				self.lines.push(new G.SpannableStringBuilder());
+				if (self.lines.length > self.LINE_LIMIT) {
+					self.lines.splice(0, self.lines.length - self.LINE_LIMIT - 1);
+					self.history.splice(0, self.history.length - self.LINE_LIMIT - 1);
+				}
+				self.hiscur = -1;
+				self.adapter.notifyChange();
+				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
 			self.exec = function(s) {
-				self.history.unshift(s);
-				self.print(s);
-				self.print("\n");
 				if (s.toLowerCase() == "exit") {
 					self.popup.dismiss();
 					return;
@@ -8959,7 +8991,7 @@ MapScript.loadModule("Common", {
 				} else if (s.toLowerCase() == "ls") {
 					JSONEdit.traceGlobal();
 				} else if (s.toLowerCase().startsWith("ls ")) {
-					JSONEdit.trace(eval(s.slice(3)));
+					JSONEdit.trace(eval.call(null, s.slice(3)));
 				} else if (s.toLowerCase().startsWith("cp ")) {
 					try {
 						var t = MapScript.toSource(eval.call(null, s.slice(3)));
@@ -8988,14 +9020,21 @@ MapScript.loadModule("Common", {
 					}
 				} else {
 					try {
-						var t = eval.call(null, s);
-						self.print(typeof t == "string" ? t : MapScript.toSource(t));
+						var t = eval(s);
+						self.print(Log.debug("D", t, 0).join("\n"));
 					} catch(e) {
 						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				}
-				self.ready();
+				self.ready(s);
 			}
+			function print(str) {
+				self.print(String(str));
+			}
+			function println(str) {
+				self.print(str + "\n");
+			}
+			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
@@ -9032,33 +9071,36 @@ MapScript.loadModule("Common", {
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			self.eval.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (!self.cmd.getText().length()) return true;
-				self.exec(String(self.cmd.getText()));
+				if (!self.cmd.getText().length()) return;
+				var s = String(self.cmd.getText());
+				self.print(s);
+				self.print("\n");
+				self.exec(s);
 				self.cmd.setText("");
-				return true;
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.eval);
 			
-			self.vscr = new G.ScrollView(ctx);
-			self.vscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			Common.applyStyle(self.vscr, "message_bg");
-			self.prompt = new G.TextView(ctx);
-			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			self.prompt.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.prompt, "textview_default", 2);
-			self.prompt.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
-				Common.showListChooser(self.history, function(i) {
-					self.cmd.setText(self.history[i]);
-				}, true);
+			self.prompt = new G.ListView(ctx);
+			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+			self.prompt.setDividerHeight(0);
+			Common.applyStyle(self.prompt, "message_bg");
+			self.prompt.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (self.history[pos]) {
+					self.history[self.lines.length - 1] = String(self.cmd.getText());
+					self.cmd.setText(self.history[pos]);
+					self.cmd.setSelection(self.cmd.length());
+				}
+			} catch(e) {erp(e)}}}));
+			self.prompt.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
+				Common.setClipboardText(self.lines[pos]);
+				Common.toast("内容已复制");
 				return true;
 			} catch(e) {return erp(e), true}}}));
-			self.vscr.addView(self.prompt);
-			
-			self.main.addView(self.vscr);
+			self.prompt.setAdapter(self.adapter.self);
+			self.main.addView(self.prompt);
 			self.main.addView(self.bar);
 			
-			self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-			self.ready();
+			self.cls();
 			PWM.registerResetFlag(self, "main");
 		}
 		if (self.popup) self.popup.dismiss();
@@ -9242,21 +9284,19 @@ MapScript.loadModule("Common", {
 			}
 			self.frame = new G.FrameLayout(ctx);
 			self.text = new G.TextView(ctx);
-			self.text.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+			self.text.setBackgroundColor(Common.argbInt(0xc0, 0, 0, 0));
 			self.text.setTextColor(G.Color.WHITE);
 			self.text.setTextSize(14);
 			self.text.setGravity(G.Gravity.CENTER);
 			self.text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
+			self.text.getLayoutParams().setMargins(8 * G.dp, 8 * G.dp, 8 * G.dp, 8 * G.dp);
 			self.frame.addView(self.text);
 			self.popup = new G.PopupWindow(self.frame, -2, -2);
 			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 			self.popup.setFocusable(false);
 			self.popup.setTouchable(false);
-			if (G.style == "Material") {
-				self.text.getLayoutParams().setMargins(8 * G.dp, 8 * G.dp, 8 * G.dp, 8 * G.dp);
-				self.text.setElevation(8 * G.dp);
-			}
+			if (G.style == "Material") self.text.setElevation(8 * G.dp);
 		}
 		if (!self.popup.isShowing()) self.show();
 		self.toast(str);
@@ -10500,7 +10540,7 @@ MapScript.loadModule("FilterListAdapter", (function() {
 MapScript.loadModule("SimpleListAdapter", (function() {
 	var r = function(arr, maker, binder, params) {
 		//arr是列表数组，maker(holder, params)生成基础view，binder(holder, element, index, array, params)修改view使其实现指定的界面
-		var src = arr.slice(), holders = [], dso = [], controller;
+		var src = arr, holders = [], dso = [], controller;
 		controller = new SimpleListAdapter.Controller(src, holders, dso, maker, binder, params);
 		return new G.ListAdapter({
 			getCount : function() {
@@ -10601,8 +10641,10 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 			}
 		},
 		setArray : function(a) {
-			this.array.length = 0;
-			for (i in a) this.array.push(a[i]);
+			if (this.array != a) {
+				this.array.length = 0;
+				for (i in a) this.array.push(a[i]);
+			}
 			this.notifyChange();
 		}
 	}
@@ -12957,7 +12999,9 @@ MapScript.loadModule("AndroidBridge", {
 				return WSServer.isAvailable() ? (WSServer.isConnected() ? "已连接" : "已启动") : "未启动";
 			},
 			onclick : function(fset) {
-				if (WSServer.isAvailable()) {
+				if (WSServer.isConnected()) {
+					WSServer.showConsole();
+				} else if (WSServer.isAvailable()) {
 					WSServer.howToUse();
 				} else {
 					WSServer.start();
@@ -13181,6 +13225,11 @@ MapScript.loadModule("AndroidBridge", {
 		text : "快捷栏",
 		onclick : function() {
 			CA.showQuickBar();
+		}
+	}, {
+		text : "退出命令助手",
+		onclick : function() {
+			CA.performExit();
 		}
 	}]
 });
@@ -13481,6 +13530,8 @@ MapScript.loadModule("WSServer", {
 			return;
 		}
 		this.conn = conn;
+		this.events = {};
+		this.responsers = {}; 
 		if (this.connectedListener) this.connectedListener(conn);
 		Common.toast("设备" + conn.getRemoteSocketAddress() + "已连接");
 		AndroidBridge.notifySettings();
@@ -13489,6 +13540,7 @@ MapScript.loadModule("WSServer", {
 		this.conn = null;
 		Common.toast("设备已断开");
 		AndroidBridge.notifySettings();
+		if (this.showConsole.onClose) this.showConsole.onClose();
 	},
 	onMessage : function(conn, message) {
 		var json = JSON.parse(message);
@@ -13501,7 +13553,7 @@ MapScript.loadModule("WSServer", {
 			this.onResponse(json);
 			break;
 			case "error":
-			this.onEvent(json);
+			this.onError(json);
 			break;
 		}
 	},
@@ -13519,10 +13571,10 @@ MapScript.loadModule("WSServer", {
 		}
 	},
 	onError : function(json) {
-		Common.toast("出现错误！错误代码：" + json.body.statusCode + "\n" + json.body.statusMessage)
+		Common.toast("出现错误！错误代码：" + json.body.statusCode + "\n" + json.body.statusMessage);
 	},
 	howToUse : function() {
-		Common.showTextDialog("WebSocket服务器已开启。请在客户端输入以下指令来连接到服务器。\n/connect " + this.getAddress() + "\n\n用法：\n长按复制/粘贴即可执行输入框中的命令");
+		Common.showTextDialog("WebSocket服务器已开启。请在客户端输入以下指令来连接到服务器。\n/connect " + this.getAddress() + "\n\n用法：\n长按复制/粘贴即可执行输入框中的命令\n\n如果显示无法连接请重启命令助手与Minecraft客户端。");
 	},
 	getIp : function() {
 		var wm = ctx.getSystemService(ctx.WIFI_SERVICE);
@@ -13580,7 +13632,189 @@ MapScript.loadModule("WSServer", {
 		this.responsers[json.header.requestId] = callback;
 		this.conn.send(JSON.stringify(json));
 		return json.header.requestId;
-	}
+	},
+	showConsole : function self() {G.ui(function() {try {
+		if (!self.main) {
+			self.LINE_LIMIT = 200;
+			self.history = [];
+			self.lines = [];
+			self.vmaker = function(holder) {
+				var text = holder.text = new G.TextView(ctx);
+				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				Common.applyStyle(text, "textview_default", 2);
+				return text;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text.setText(e);
+				holder.text.setPadding(10 * G.dp, i == 0 ? 10 * G.dp : 0, 10 * G.dp, i == a.length - 1 ? 10 * G.dp : 0);
+			}
+			self.cls = function() {
+				self.lines.length = 0;
+				self.history.length = 0;
+				self.lines.push(new G.SpannableStringBuilder());
+				self.print("WSServer控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+				self.ready(null);
+			}
+			self.print = function(str, span) {
+				var t = self.lines[self.lines.length - 1];
+				if (span) {
+					appendSSB(t, str, span);
+				} else {
+					t.append(str);
+				}
+				gHandler.post(function() {try {
+					self.prompt.smoothScrollToPosition(self.lines.length - 1);
+				} catch(e) {erp(e)}});
+			}
+			self.ready = function(cmd) {
+				self.history[self.lines.length - 1] = cmd;
+				self.lines.push(new G.SpannableStringBuilder());
+				if (self.lines.length > self.LINE_LIMIT) {
+					self.lines.splice(0, self.lines.length - self.LINE_LIMIT - 1);
+					self.history.splice(0, self.history.length - self.LINE_LIMIT - 1);
+				}
+				self.hiscur = -1;
+				self.adapter.notifyChange();
+				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
+			}
+			self.exec = function(s) {
+				if (s.toLowerCase() == "exit") {
+					self.popup.dismiss();
+					return;
+				} else if (s.toLowerCase() == "cls") {
+					self.cls();
+					return;
+				} else if (s.toLowerCase() == "close") {
+					WSServer.sendCommand("closewebsocket");
+				} else if (s.toLowerCase().startsWith("subscribe ")) {
+					WSServer.subscribeEvent(s.slice(10), function(body) {
+						G.ui(function() {try {
+							var t = body.eventName;
+							delete body.eventName;
+							self.print(Log.debug(t, body, 0).join("\n"), new G.ForegroundColorSpan(Common.theme.promptcolor));
+							self.ready(null);
+						}catch(e){erp(e)}});
+					});
+					self.print("Event subscribed!");
+				} else if (s.toLowerCase().startsWith("unsubscribe ")) {
+					WSServer.unsubscribeEvent(s.slice(12));
+					self.print("Event unsubscribed!");
+				} else if (s.toLowerCase().startsWith("/")) {
+					var startTime = Date.now();
+					WSServer.sendCommand(s.slice(1), function(body) {
+						var timer = Date.now() - startTime;
+						G.ui(function() {try {
+							self.print("Client responded in " + timer + "ms\n");
+							self.print(Log.debug("Command", body, 0).join("\n"));
+							self.ready(null);
+						}catch(e){erp(e)}});
+					});
+				} else {
+					try {
+						var t = eval(s);
+						self.print(Log.debug("D", t, 0).join("\n"));
+					} catch(e) {
+						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					}
+				}
+				self.ready(s);
+			}
+			self.onClose = function() {
+				G.ui(function() {try {
+					if (self.popup) self.popup.dismiss();
+				}catch(e){erp(e)}});
+			}
+			function send(cmd, callback) {
+				WSServer.sendCommand(cmd, callback);
+			}
+			function print(str) {
+				self.print(str);
+			}
+			function println(str) {
+				self.print(str + "\n");
+			}
+			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
+			
+			self.main = new G.LinearLayout(ctx);
+			self.main.setOrientation(G.LinearLayout.VERTICAL);
+			
+			self.bar = new G.LinearLayout(ctx);
+			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
+			Common.applyStyle(self.bar, "bar_float");
+			
+			self.cmd = new G.EditText(ctx);
+			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
+			self.cmd.setFocusableInTouchMode(true);
+			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
+			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+			Common.applyStyle(self.cmd, "edittext_default", 3);
+			self.bar.addView(self.cmd);
+			Common.postIME(self.cmd);
+			
+			self.eval = new G.TextView(ctx);
+			self.eval.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			self.eval.setGravity(G.Gravity.CENTER);
+			self.eval.setText(">");
+			self.eval.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.eval, "button_reactive", 3);
+			self.eval.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_DOWN:
+					Common.applyStyle(v, "button_reactive_pressed", 3);
+					break;
+					case e.ACTION_CANCEL:
+					case e.ACTION_UP:
+					Common.applyStyle(v, "button_reactive", 3);
+				}
+				return false;
+			} catch(e) {return erp(e), true}}}));
+			self.eval.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (!self.cmd.getText().length()) return;
+				var s = String(self.cmd.getText());
+				self.print(s);
+				self.print("\n");
+				self.exec(s);
+				self.cmd.setText("");
+			} catch(e) {erp(e)}}}));
+			self.bar.addView(self.eval);
+			
+			self.prompt = new G.ListView(ctx);
+			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+			self.prompt.setDividerHeight(0);
+			Common.applyStyle(self.prompt, "message_bg");
+			self.prompt.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (self.history[pos]) {
+					self.history[self.lines.length - 1] = String(self.cmd.getText());
+					self.cmd.setText(self.history[pos]);
+					self.cmd.setSelection(self.cmd.length());
+				}
+			} catch(e) {erp(e)}}}));
+			self.prompt.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
+				Common.setClipboardText(self.lines[pos]);
+				Common.toast("内容已复制");
+				return true;
+			} catch(e) {return erp(e), true}}}));
+			self.prompt.setAdapter(self.adapter.self);
+			self.main.addView(self.prompt);
+			self.main.addView(self.bar);
+			
+			self.cls();
+			PWM.registerResetFlag(self, "main");
+		}
+		if (!WSServer.isConnected()) return Common.toast("请先连接上WSServer");
+		if (self.popup) self.popup.dismiss();
+		self.popup = new G.PopupWindow(self.main, -1, -1);
+		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
+			self.popup = null;
+		} catch(e) {erp(e)}}}));
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup, "wsserver.Console");
+	} catch(e) {erp(e)}})},
 });
 
 "IGNORELN_START";
