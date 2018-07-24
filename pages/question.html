@@ -49,6 +49,14 @@ a:hover, a:active {
 #question_success {
     animation: body_visible 0.5s;
 }
+#check_button {
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+}
+.toast {
+    animation: toast_opacity 1.5s linear both;
+}
 @keyframes title_scale {
     from {letter-spacing: 20px}
     to {letter-spacing: 0px}
@@ -57,8 +65,26 @@ a:hover, a:active {
     from {opacity: 0}
     to {opacity: 1}
 }
+@keyframes toast_opacity {
+    0% {opacity: 0}
+    25% {opacity: 1}
+    75% {opacity: 1}
+    100% {opacity: 0}
+}
     </style>
-    <script>
+</head>
+<body>
+<h1 id="question_title">每 日 问 题</h1>
+<div id="question_usage">请使用一句命令来解答以下问题</div>
+<div id="question_body"></div>
+<div id="question_answer">
+请填写你的答案 <button id="check_button" onclick="checkAnswer(document.getElementById('answer_box'), true)">验证</button><br />
+<input type="text" id="answer_box" onchange="checkAnswer(this)"></input>
+<div id="question_failure">答案错误</div>
+</div>
+<div id="question_success"></div>
+<div id="about"></div>
+<script>
 /*
 别以为看到这儿就可以作弊了，这里的答案可都是正则表达式
 如果你有能力看懂正则表达式，区区命令又有何难？
@@ -153,7 +179,7 @@ var question_list = [{
     }
 }, {
     question: "如何清除所有非玩家实体？",
-    answer: "kill\\s+@e\\[type!=player\\]"
+    answer: "kill\\s+@e\\[type=!player\\]"
 }, {
     question: "如何使所有史莱姆在y坐标低于50时死亡？（不使用execute命令）",
     answer: "" //错题
@@ -243,12 +269,14 @@ window.onload = function() {
     var answer_node = document.getElementById("question_answer");
     var input_node = document.getElementById("answer_box");
     var success_node = document.getElementById("question_success");
+    var failure_node = document.getElementById("question_failure");
     var setter_node = document.getElementById("day_box");
     body_node.innerHTML = cur.question;
     about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年7月20日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
+    failure_node.style = "opacity: 0";
     isSuccessed = false;
     if (window.localStorage && Number(window.localStorage.lastExpired) > Date.now()) {
         input_node.value = window.localStorage.lastInput;
@@ -363,7 +391,7 @@ function fixZero(s, n) {
     s = String(s);
     return n > s.length ? fixZero("0" + s, n) : s;
 }
-function success_action() {
+function succeed_action() {
     var answer_node = document.getElementById("question_answer");
     var success_node = document.getElementById("question_success");
     success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCPE命令助手讨论区</a>';
@@ -371,7 +399,14 @@ function success_action() {
     answer_node.style = "display: none";
     isSuccessed = true;
 }
-window.checkAnswer = function(answer) {
+function failed_action() {
+    var failure_node = document.getElementById("question_failure");
+    failure_node.className = "";
+    setTimeout(function() {
+        failure_node.className = "toast";
+    }, 100);
+}
+window.checkAnswer = function(answer, fromButton) {
     if (answer != null) {
         var v = answer.value, t;
         v = v.replace(/^\//, "");
@@ -380,28 +415,16 @@ window.checkAnswer = function(answer) {
             window.localStorage.lastExpired = getNextUpdateTime().getTime();
         }
         if (cur.answer instanceof Function) {
-            if (cur.answer(v)) success_action();
+            if (cur.answer(v)) return succeed_action();
         } else {
             if (t = new RegExp(cur.answer, "").exec(answer.value)) {
-                if (t[0].length != v.length) return;
-                success_action();
+                if (t[0].length == v.length) return succeed_action();
             }
         }
-        
+        if (fromButton || v.length) failed_action();
     }
 }
 })();
-    </script>
-</head>
-<body>
-<h1 id="question_title">每 日 问 题</h1>
-<div id="question_usage">请使用一句命令来解答以下问题</div>
-<div id="question_body"></div>
-<div id="question_answer">
-请填写你的答案<br />
-<input type="text" id="answer_box" onchange="checkAnswer(this)"></input>
-</div>
-<div id="question_success"></div>
-<div id="about"></div>
+</script>
 </body>
 </html>
