@@ -8956,7 +8956,7 @@ MapScript.loadModule("Common", {
 				self.lines.length = 0;
 				self.history.length = 0;
 				self.lines.push(new G.SpannableStringBuilder());
-				self.print("WSServer控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+				self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
 				self.ready(null);
 			}
 			self.print = function(str, span) {
