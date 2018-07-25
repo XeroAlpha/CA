@@ -42,13 +42,15 @@ button {
 	background-color: black;
 	color: white;
 	border: 1px white solid;
+	border-radius: 5px;
+	padding: 10px 20px;
 }
 button:hover {
 	background-color: white;
 	color: black;
 }
 	</style>
-	<script src="./danmaku/danmaku.js"></script>
+	<script src="./js/danmaku.js"></script>
 	<script src="./js/jquery-3.3.1.min.js"></script>
 	<script>
 function resize() {
@@ -70,7 +72,8 @@ window.addEventListener("load", function() {
 		<div id="header_main">
 			<img id="logo" src="./img/logo.png" />
 		<h1>命令助手</h1>
-		<button style="padding: 10px" onclick="window.location='https://www.coolapk.com/game/com.xero.ca'">下载</button>
+		<button onclick="window.location='https://www.coolapk.com/game/com.xero.ca'">下载</button>
+		<button style="margin-left: 20px" onclick="window.location='https://git.oschina.net/projectxero/ca'">源码</button>
 		</div>
 	</div>
 </body>

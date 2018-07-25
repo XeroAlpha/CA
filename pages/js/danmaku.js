@@ -137,14 +137,15 @@ var dan, node;
 window.addEventListener("load", function() {
 	node = document.getElementById("danmaku_area");
 	dan = Danmaku.from(node).run(50);
-	setInterval(randomAddDanmaku, 1000);
+	setInterval(randomAddDanmaku, 500);
+	document.getElementById("logo").addEventListener("click", randomAddDanmaku);
 });
 function randomAddDanmaku() {
-	if (Math.random() * dan.danmaku.length > 20) return;
+	if (Math.random() * dan.danmaku.length > 10) return;
 	dan.add(
 		commands[Math.floor(Math.random() * commands.length)].replace(/</g, "&lt;").replace(/>/g, "&gt;"),
 		dan.tick,
-		Math.random() * 0.13 + 0.07,
+		Math.random() * 0.12 + 0.08,
 		Math.random() * node.clientHeight
 	);
 }
