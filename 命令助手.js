@@ -141,6 +141,8 @@ var MapScript = {
 				r = new Array();
 				for (i in x) r.push(toJSON(i, lev) + ":" + toJSON(x[i], lev - 1));
 				p = "{" + r.join(",") + "}";
+			} else if (x instanceof java.lang.CharSequence) {
+				p = _toJSON(String(x), lev);
 			} else {
 				p = String(x);
 			}
@@ -963,7 +965,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else {
 			PWM.addPopup(CA.icon);
 		}
-		if (self.tutor) self.tutor();
+		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
 		if (CA.icon) CA.icon.dismiss();
@@ -1451,7 +1453,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		animation.setInterpolator(new G.DecelerateInterpolator(2));
 		animation.setDuration(200);
 		CA.con.startAnimation(animation);
-		if (self.tutor) self.tutor();
+		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideGen : function() {G.ui(function() {try {
 		if (CA.gen) CA.gen.dismiss();
@@ -2003,7 +2005,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.linear.setTranslationX(self.tx = self.lx = 0);
 		CA.con.addView(CA.history);
 		self.layoutListener.onLayoutChange(CA.con, 0, 0, CA.con.getMeasuredWidth(), CA.con.getMeasuredHeight(), 0, 0, 0, 0);
-		if (self.tutor) self.tutor();
+		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideHistory : function() {G.ui(function() {try {
 		if (!CA.history) return;
@@ -8162,7 +8164,7 @@ MapScript.loadModule("Common", {
 					e.view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 					e.view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					e._title = new G.TextView(ctx);
-					e._title.setText(String(e.text));
+					e._title.setText(Common.toString(e.text));
 					e._title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
 					e._title.setFocusable(false);
 					e._title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -8170,7 +8172,7 @@ MapScript.loadModule("Common", {
 					e.view.addView(e._title);
 					if (e.description) {
 						e._description = new G.TextView(ctx);
-						e._description.setText(String(e.description));
+						e._description.setText(Common.toString(e.description));
 						e._description.setPadding(0, 3 * G.dp, 0, 0);
 						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
 						Common.applyStyle(e._description, "textview_prompt", 1);
@@ -8208,7 +8210,7 @@ MapScript.loadModule("Common", {
 		Common.applyStyle(layout, "message_bg");
 		if (s.title) {
 			title = new G.TextView(ctx);
-			title.setText(s.title);
+			title.setText(Common.toString(s.title));
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
 			Common.applyStyle(title, "textview_default", 4);
@@ -8216,14 +8218,14 @@ MapScript.loadModule("Common", {
 		}
 		if (s.description) {
 			text = new G.TextView(ctx);
-			text.setText(s.description);
+			text.setText(Common.toString(s.description));
 			text.setPadding(0, 0, 0, 10 * G.dp);
 			text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(text, "textview_prompt", 2);
 			layout.addView(text);
 		}
 		ret = new G.EditText(ctx);
-		if (s.defaultValue) ret.setText(s.defaultValue);
+		if (s.defaultValue) ret.setText(Common.toString(s.defaultValue));
 		ret.setSingleLine(Boolean(s.singleLine));
 		if (s.inputType) ret.setInputType(s.inputType);
 		if (s.keyListener) ret.setKeyListener(s.keyListener);
@@ -8263,7 +8265,7 @@ MapScript.loadModule("Common", {
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 5 * G.dp);
 		if (s.title) {
 			title = new G.TextView(ctx);
-			title.setText(s.title);
+			title.setText(Common.toString(s.title));
 			title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			title.setPadding(0, 0, 0, 10 * G.dp);
 			Common.applyStyle(title, "textview_default", 4);
@@ -8271,7 +8273,7 @@ MapScript.loadModule("Common", {
 		}
 		if (s.description) {
 			text = new G.TextView(ctx);
-			text.setText(s.description);
+			text.setText(Common.toString(s.description));
 			text.setPadding(0, 0, 0, 10 * G.dp);
 			text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			Common.applyStyle(text, "textview_prompt", 2);
@@ -8329,15 +8331,15 @@ MapScript.loadModule("Common", {
 			}
 			self.vbinder = function(holder, e) {
 				if (e instanceof Object) {
-					holder.title.setText(String(e.text));
+					holder.title.setText(Common.toString(e.text));
 					if (e.description) {
-						holder.desp.setText(String(e.description));
+						holder.desp.setText(Common.toString(e.description));
 						holder.desp.setVisibility(G.View.VISIBLE);
 					} else {
 						holder.desp.setVisibility(G.View.GONE);
 					}
 				} else {
-					holder.title.setText(String(e));
+					holder.title.setText(Common.toString(e));
 					holder.desp.setVisibility(G.View.GONE);
 				}
 			}
@@ -8403,7 +8405,7 @@ MapScript.loadModule("Common", {
 				setText : function(s) {
 					var o = this;
 					G.ui(function() {try {
-						o.text.setText(s);
+						o.text.setText(Common.toString(s));
 					} catch(e) {erp(e)}});
 				},
 				close : function() {
@@ -8916,7 +8918,7 @@ MapScript.loadModule("Common", {
 			Common.toast("拒绝访问\n" + e + ")");
 			return;
 		}
-		self.title.setText(String(o.title || "浏览"));
+		self.title.setText(Common.toString(o.title || "浏览"));
 		switch (o.type) {
 			case 1: //新建文件（保存）
 			self.exit.setVisibility(G.View.VISIBLE);
@@ -9029,7 +9031,7 @@ MapScript.loadModule("Common", {
 				self.ready(s);
 			}
 			function print(str) {
-				self.print(String(str));
+				self.print(Common.toString(str));
 			}
 			function println(str) {
 				self.print(str + "\n");
@@ -9275,7 +9277,7 @@ MapScript.loadModule("Common", {
 				if (self.lastCbk) gHandler.removeCallbacks(self.lastCbk);
 				if (self.lastToast == s) self.flash();
 				self.lastToast = s;
-				self.text.setText(s instanceof java.lang.CharSequence ? s : String(s));
+				self.text.setText(Common.toString(s));
 				gHandler.postDelayed(self.lastCbk = function() {try {
 					self.hide();
 					self.lastCbk = null;
@@ -9377,9 +9379,13 @@ MapScript.loadModule("Common", {
 		return s.join("\n");
 	},
 	
+	toString : function(s) {
+		return s instanceof java.lang.CharSequence ? s : String(s);
+	},
+	
 	toastSystem : function self(s, dur) {G.ui(function() {try {
 		if (self.last) self.last.cancel();
-		(self.last = G.Toast.makeText(ctx, s instanceof java.lang.CharSequence ? s : String(s), dur ? 1 : 0)).show();
+		(self.last = G.Toast.makeText(ctx, Common.toString(s), dur ? 1 : 0)).show();
 	} catch(e) {erp(e)}})},
 	
 	postIME : function(v, delay) {
@@ -12400,7 +12406,7 @@ MapScript.loadModule("SettingsCompat", {
 			} catch(e) {}
 		});
 		th.start();
-		th.join(50, 0);
+		th.join(100, 0);
 		if (th.getState() != java.lang.Thread.State.TERMINATED) th.interrupt();
 		if (is != null) {
 			try {
@@ -12736,17 +12742,6 @@ MapScript.loadModule("MCAdapter", {
 		} else {
 			Common.showConfirmDialog(z);
 		}
-	},
-	createShortcut : function(name, pkg) {
-		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
-		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
-		sc.setData(android.net.Uri.fromParts("package", pkg, null));
-		var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, String(name));
-		i.putExtra("duplicate", false);
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, sc);
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, com.xero.ca.R.drawable.icon));
-		ctx.sendBroadcast(i);
 	},
 	getPackageVersion : function(pkg) {
 		try {
