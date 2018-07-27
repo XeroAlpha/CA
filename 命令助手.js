@@ -645,6 +645,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					};
 				});
 			}
+			if (!f.settings.customExpression) f.settings.customExpression = [];
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 				f.settings.topIcon = true;
@@ -693,7 +694,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				tipsRead : 0,
 				iiMode : -1,
 				enabledLibrarys : Object.keys(this.IntelliSense.inner),
-				disabledLibrarys : []
+				disabledLibrarys : [],
+				customExpression : []
 			};
 			Common.loadTheme();
 			CA.checkFeatures();
@@ -3108,6 +3110,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (CA.settings.histroyCount) CA.his.splice(CA.settings.histroyCount);
 				}
 			},{
+				name : "管理自定义短语",
+				type : "custom",
+				get : function() {
+					return "共有" + CA.settings.customExpression.length + "条短语";
+				},
+				onclick : function(fset) {
+					CA.showCustomExpEdit(function() {
+						fset();
+					});
+				}
+			},{
 				name : "外观设置",
 				type : "tag"
 			},{
@@ -3516,7 +3529,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	showCustomExpression : function() {
-		if (!CA.settings.customExpression) CA.settings.customExpression = [];
 		var a = CA.PluginExpression.concat(CA.settings.customExpression, {
 			text : "(编辑自定义短语)",
 			custom : true
@@ -3583,7 +3595,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Common.applyStyle(self.linear, "container_default");
 			self.header = new G.LinearLayout(ctx);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
-			//self.header.setGravity(G.Gravity.CENTER);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(self.header, "bar_float");
 			self.title = new G.TextView(ctx);
@@ -8119,9 +8130,9 @@ MapScript.loadModule("Common", {
 	applyPopup : function(popup) {
 		if (CA.supportFloat) {
 			if (android.os.Build.VERSION.SDK_INT >= 26) {
-				self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+				popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
 			} else {
-				self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+				popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
 			}
 		}
 	},
