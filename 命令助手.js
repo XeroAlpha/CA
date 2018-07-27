@@ -769,12 +769,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (PWM.onResume()) return;
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
-					Common.toast("请选择智能模式");
 					CA.showModeChooser(function() {
 						v.postDelayed(function() {
 							self.open();
 						}, 150);
 					});
+					Common.toast("请选择智能模式");
 					return;
 				}
 				self.open();
@@ -957,7 +957,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
 		}
 		CA.icon = new G.PopupWindow(self.view, -2, -2);
-		if (CA.supportFloat) CA.icon.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(CA.icon);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
 		self.refreshPos();
 		if (CA.settings.topIcon) {
@@ -999,7 +999,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		CA.qbar = new G.PopupWindow(self.list, -2, -2);
 		CA.qbar.setFocusable(true);
-		if (CA.supportFloat) CA.qbar.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(CA.qbar);
 		CA.qbar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.RIGHT | G.Gravity.TOP, 0, 0);
 		PWM.addPopup(CA.qbar);
 	} catch(e) {erp(e)}})},
@@ -1428,7 +1428,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "main");
 		}
 		CA.gen = new G.PopupWindow(self.main, -1, -1);
-		if (CA.supportFloat) CA.gen.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(CA.gen);
 		CA.gen.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		CA.gen.setFocusable(true);
 		CA.gen.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NEEDED);
@@ -2520,7 +2520,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.refresh(pos);
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -2868,7 +2868,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.init(data);
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -3455,11 +3455,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				Common.replaceSelection(CA.cmd.getText(), v.getText().toString());
 			} catch(e) {erp(e)}}});
 			
+			self.tableline = [];
+			self.tableview = [];
 			for (i = 0; i < data.length; i++) {
-				l = new G.LinearLayout(ctx);
+				self.tableline.push(l = new G.LinearLayout(ctx));
 				l.setOrientation(G.LinearLayout.HORIZONTAL);
+				self.tableview.push([]);
 				for (j = 0; j < data[i].length; j++) {
-					b = new G.TextView(ctx);
+					self.tableview[i].push(b = new G.TextView(ctx));
 					b.setTextColor(frcolor);
 					b.setTextSize(Common.theme.textsize[2]);
 					b.setGravity(G.Gravity.CENTER);
@@ -3471,6 +3474,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				self.line.addView(l, lp1);
 			}
+			self.tableview[0].push(b = new G.TextView(ctx));
+			b.setTextColor(frcolor);
+			b.setTextSize(Common.theme.textsize[2]);
+			b.setGravity(G.Gravity.CENTER);
+			b.setTypeface(G.Typeface.MONOSPACE);
+			b.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
+			b.setText("..");
+			b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				CA.showCustomExpression();
+			} catch(e) {erp(e)}}}));
+			self.tableline[0].addView(b, lp2);
+			
 			self.exit = new G.TextView(ctx);
 			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.exit.setText("关闭");
@@ -3498,6 +3513,151 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (!CA.fcs) return;
 		CA.con.removeView(CA.fcs);
 		CA.fcs = null;
+	} catch(e) {erp(e)}})},
+	
+	showCustomExpression : function() {
+		if (!CA.settings.customExpression) CA.settings.customExpression = [];
+		var a = CA.PluginExpression.concat(CA.settings.customExpression, {
+			text : "(编辑自定义短语)",
+			custom : true
+		});
+		Common.showListChooser(a, function(i) {
+			var r;
+			if (!a[i]) return;
+			if (a[i].get) {
+				r = a[i].get();
+				if (r) Common.replaceSelection(CA.cmd.getText(), Common.toString(r));
+			} else if (a[i].custom) {
+				CA.showCustomExpEdit();
+			} else {
+				Common.replaceSelection(CA.cmd.getText(), Common.toString(a[i].text || a[i]));
+			}
+		});
+	},
+	showCustomExpEdit : function self(callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.adapter = null;
+			self.refresh = function() {
+				var a;
+				if (CA.settings.customExpression.length == 0) {
+					self.adapter = null;
+					self.list.setAdapter(EmptyAdapter);
+				} else {
+					if (self.adapter) {
+						self.adapter.notifyChange();
+					} else {
+						self.list.setAdapter(a = new SimpleListAdapter(CA.settings.customExpression, self.vmaker, self.vbinder));
+						self.adapter = SimpleListAdapter.getController(a);
+					}
+				}
+			}
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text = holder.text = new G.TextView(ctx);
+					del = new G.TextView(ctx);
+				layout.setGravity(G.Gravity.CENTER);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.HORIZONTAL);
+				text.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+				text.setMaxLines(2);
+				text.setEllipsize(G.TextUtils.TruncateAt.END);
+				Common.applyStyle(text, "textview_default", 3);
+				layout.addView(text);
+				del.setText("×");
+				del.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				del.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				Common.applyStyle(del, "textview_default", 2);
+				del.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					CA.settings.customExpression.splice(holder.pos, 1);
+					self.refresh();
+				} catch(e) {erp(e)}}}));
+				layout.addView(del);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i) {
+				holder.text.setText(e);
+			}
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			//self.header.setGravity(G.Gravity.CENTER);
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(self.header, "bar_float");
+			self.title = new G.TextView(ctx);
+			self.title.setText("自定义短语");
+			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1));
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title);
+			self.add = new G.TextView(ctx);
+			self.add.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			self.add.setText("添加");
+			self.add.setGravity(G.Gravity.CENTER);
+			self.add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.add, "button_highlight", 2);
+			self.add.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showInputDialog({
+					title : "添加自定义短语",
+					callback : function(s) {
+						if (!s) {
+							Common.toast("短语不能为空");
+							return;
+						}
+						if (CA.settings.customExpression.indexOf(s) >= 0) {
+							Common.toast("自定义短语“" + s + "”已存在");
+						} else {
+							CA.settings.customExpression.push(s);
+							self.refresh();
+						}
+					},
+					singleLine : true
+				});
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.add);
+			self.linear.addView(self.header);
+			
+			self.list = new G.ListView(ctx);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				Common.showInputDialog({
+					title : "编辑自定义短语",
+					callback : function(s) {
+						var i = CA.settings.customExpression.indexOf(s);
+						if (!s) {
+							CA.settings.customExpression.splice(pos, 1);
+							self.refresh();
+							return;
+						}
+						if (i >= 0 && i != pos) {
+							Common.toast("自定义短语“" + s + "”已存在");
+						} else if (i < 0) {
+							CA.settings.customExpression[pos] = s;
+							self.refresh();
+						}
+					},
+					singleLine : true,
+					defaultValue : CA.settings.customExpression[pos]
+				});
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list);
+			PWM.registerResetFlag(self, "linear");
+		}
+		if (self.popup) self.popup.dismiss();
+		self.refresh();
+		Common.initEnterAnimation(self.linear);
+		self.popup = new G.PopupWindow(self.linear, -1, -1);
+		Common.applyPopup(self.popup);
+		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+		self.popup.setFocusable(true);
+		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			PWM.remove(self.popup);
+			self.popup = null;
+			if (callback) callback();
+		} catch(e) {erp(e)}}}));
+		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
+		PWM.add(self.popup, "ca.CustomExpEdit");
 	} catch(e) {erp(e)}})},
 	
 	isMinecraftTextbox : function(packageName) {
@@ -3710,7 +3870,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.dir = 1;
 		}
 		CA.paste = new G.PopupWindow(self.bar, self.lparam.width + 16 * G.dp, -1);
-		if (CA.supportFloat) CA.paste.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(CA.paste);
 		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), self.gravity, 0, 0);
 		if (!CA.settings.noAnimation) self.animateShow();
 		PWM.addPopup(CA.paste);
@@ -3869,7 +4029,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "如果可行，连接服务器检测是否有更新",
 				onclick : function(v, tag) {
 					if (tag.data.mode == 0 || !tag.data.update) {
-						Common.toast("该拓展包暂不支持检测更新");
+						Common.toast("拓展包“" + tag.data.name + "”暂不支持检测更新");
 						return true;
 					}
 					self.postTask(function(cb) {new java.lang.Thread(function() {try {
@@ -3881,7 +4041,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								r = JSON.parse(Updater.queryPage(u));
 							}
 							if (!(r instanceof Object) || !Array.isArray(r.version)) {
-								Common.toast("该拓展包没有更新数据");
+								Common.toast("拓展包“" + tag.data.name + "”没有更新数据");
 								return cb(false);
 							}
 							for (i = 0; i < d.version.length; i++) {
@@ -3893,13 +4053,29 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								}
 							}
 							if (f) {
-								Common.toast("更新中……\n" + d.version.join(".") + " -> " + r.version.join("."));
-								Updater.download(r.url, tag.data.src);
-								cb(true, function() {
-									Common.toast("更新完成：" + r.version.join("."));
-								});
+								if (f.method == "intent") {
+									Common.showConfirmDialog({
+										title : "拓展包“" + tag.data.name + "”请求访问下方的链接，确定访问？",
+										description : String(r.uri),
+										callback : function(id) {
+											if (id != 0) return;
+											try {
+												ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.description)));
+												return;
+											} catch(e) {}
+											Common.toast("打开链接失败");
+										}
+									});
+									Common.toast("检测到更新：\n" + d.version.join(".") + " -> " + r.version.join("."));
+								} else {
+									Common.toast("更新中……\n" + d.version.join(".") + " -> " + r.version.join("."));
+									Updater.download(r.url, tag.data.src);
+									cb(true, function() {
+										Common.toast("更新完成：" + r.version.join("."));
+									});
+								}
 							} else {
-								Common.toast("已是最新版本：" + r.version.join("."));
+								Common.toast("拓展包“" + tag.data.name + "”已是最新版本：" + r.version.join("."));
 								cb(false);
 							}
 						} catch(e) {
@@ -3913,7 +4089,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "用JSON编辑器编辑该拓展包",
 				onclick : function(v, tag) {
 					if (tag.data.mode != 1) {
-						Common.toast("拓展包已被锁定，无法编辑");
+						Common.toast("拓展包“" + tag.data.name + "”已被锁定，无法编辑");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -3943,7 +4119,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "将该拓展包保存到一个新文件里",
 				onclick : function(v, tag) {
 					if (tag.data.hasError) {
-						Common.toast("该拓展包有错误，不能另存为");
+						Common.toast("拓展包“" + tag.data.name + "”有错误，请先解决错误再另存为");
 						return true;
 					}
 					Common.showFileDialog({
@@ -3959,7 +4135,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									}
 									CA.IntelliSense.disableLibrary(fp);
 									cb(true, function() {
-										Common.toast("当前拓展包已另存为" + fp);
+										Common.toast("拓展包“" + tag.data.name + "”已另存为" + fp);
 									});
 								} catch(e) {
 									Common.toast("文件保存失败，无法另存为\n" + e);
@@ -3974,11 +4150,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "创建该拓展包的副本（副本不会被认为与原拓展包相同）",
 				onclick : function(v, tag) {
 					if (tag.data.hasError) {
-						Common.toast("该拓展包有错误，不能创建副本");
+						Common.toast("拓展包“" + tag.data.name + "”有错误，不能创建副本");
 						return true;
 					}
 					if (tag.data.mode == 2) {
-						Common.toast("拓展包已被锁定，不能创建副本");
+						Common.toast("拓展包“" + tag.data.name + "”已被锁定，不能创建副本");
 						return true;
 					}
 					Common.showFileDialog({
@@ -3998,7 +4174,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									MapScript.saveJSON(fp, l);
 									CA.IntelliSense.enableLibrary(fp);
 									cb(true, function() {
-										Common.toast("当前拓展包的副本已创建" + fp);
+										Common.toast("拓展包“" + tag.data.name + "”的副本已创建" + fp);
 									});
 								} catch(e) {
 									Common.toast("文件保存失败，无法创建副本\n" + e);
@@ -4012,12 +4188,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text : "锁定",
 				description : "锁定拓展包，使其不能被编辑",
 				onclick : function(v, tag) {
-					if (tag.data.mode != 1) {
-						Common.toast("该拓展包已被锁定");
+					if (tag.data.hasError) {
+						Common.toast("拓展包“" + tag.data.name + "”有错误，不能锁定");
 						return true;
 					}
-					if (tag.data.hasError) {
-						Common.toast("该拓展包有错误，不能锁定");
+					if (tag.data.mode != 1) {
+						Common.toast("拓展包“" + tag.data.name + "”已被锁定");
 						return true;
 					}
 					Common.showConfirmDialog({
@@ -4029,7 +4205,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								try {
 									CA.IntelliSense.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
 									cb(true, function() {
-										Common.toast("该拓展包已锁定");
+										Common.toast("拓展包“" + tag.data.name + "”已被锁定");
 									});
 								} catch(e) {
 									Common.toast("文件保存失败\n" + e);
@@ -4044,7 +4220,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "使该拓展包较早加载",
 				onclick : function(v, tag) {
 					if (tag.data.index < 1) {
-						Common.toast("该拓展包已在顶端，无法继续上移");
+						Common.toast("拓展包“" + tag.data.name + "”已在顶端，无法继续上移");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -4058,7 +4234,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "使该拓展包较晚加载",
 				onclick : function(v, tag) {
 					if (tag.data.index > CA.settings.enabledLibrarys.length - 2) {
-						Common.toast("该拓展包已在底端，无法继续下移");
+						Common.toast("拓展包“" + tag.data.name + "”已在底端，无法继续下移");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -4074,7 +4250,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.postTask(function(cb) {
 						CA.IntelliSense.disableLibrary(tag.data.src);
 						cb(true, function() {
-							Common.toast("该拓展包已停用");
+							Common.toast("拓展包已停用");
 						});
 					});
 				}
@@ -4086,7 +4262,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.postTask(function(cb) {
 						CA.IntelliSense.enableLibrary(tag.data.src);
 						cb(true, function() {
-							Common.toast("该拓展包已启用");
+							Common.toast("拓展包已启用");
 						});
 					});
 				}
@@ -4221,7 +4397,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
@@ -5001,7 +5177,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -5113,6 +5289,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 	},
 	PluginMenu : [],
+	PluginExpression : [],
 	
 	IntelliSense : {
 		UNINITIALIZED : 0,
@@ -6157,7 +6334,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						info.push({
 							src : e,
 							index : i,
-							name : m = 0 ? e : (new java.io.File(e)).getName(),
+							name : m == 0 ? e : (new java.io.File(e)).getName(),
 							hasError : true,
 							mode : m,
 							error : err
@@ -7939,6 +8116,15 @@ MapScript.loadModule("Common", {
 			break;
 		}
 	},
+	applyPopup : function(popup) {
+		if (CA.supportFloat) {
+			if (android.os.Build.VERSION.SDK_INT >= 26) {
+				self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+			} else {
+				self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			}
+		}
+	},
 	
 	showChangeTheme : function self(update, dismiss) {G.ui(function() {try {
 		if (!self.linear) {
@@ -8055,7 +8241,7 @@ MapScript.loadModule("Common", {
 		self.modified = false;
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
@@ -8109,7 +8295,7 @@ MapScript.loadModule("Common", {
 		this.initEnterAnimation(frame);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new G.PopupWindow(frame, -1, -1);
-		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(popup);
 		popup.setFocusable(true);
 		if (!modal) popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		if (onDismiss) popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -8645,7 +8831,7 @@ MapScript.loadModule("Common", {
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
@@ -8902,7 +9088,7 @@ MapScript.loadModule("Common", {
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -9107,7 +9293,7 @@ MapScript.loadModule("Common", {
 		}
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.main, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -9224,7 +9410,7 @@ MapScript.loadModule("Common", {
 			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER));
 			self.frame.addView(self.text);
 			self.popup = new G.PopupWindow(self.frame, -1, -1);
-			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			Common.applyPopup(self.popup);
 			self.popup.setFocusable(true);
 			self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 			self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
@@ -9244,6 +9430,7 @@ MapScript.loadModule("Common", {
 		if (!self.popup) {
 			self.show = function() {
 				if (!self.popup.isShowing()) self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
+				self.frame.clearAnimation();
 				if (!CA.settings.noAnimation) {
 					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0);
 					animation.setInterpolator(new G.DecelerateInterpolator(1.0));
@@ -9274,8 +9461,15 @@ MapScript.loadModule("Common", {
 				self.text.startAnimation(animation);
 			}
 			self.toast = function(s) {
+				var lastShowing = self.popup.isShowing();
 				if (self.lastCbk) gHandler.removeCallbacks(self.lastCbk);
-				if (self.lastToast == s) self.flash();
+				if (!self.popup.isShowing()) self.show();
+				if (self.lastToast == s) {
+					self.flash();
+				} else if (lastShowing) {
+					self.popup.dismiss();
+					self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
+				}
 				self.lastToast = s;
 				self.text.setText(Common.toString(s));
 				gHandler.postDelayed(self.lastCbk = function() {try {
@@ -9295,12 +9489,11 @@ MapScript.loadModule("Common", {
 			self.text.getLayoutParams().setMargins(8 * G.dp, 8 * G.dp, 8 * G.dp, 8 * G.dp);
 			self.frame.addView(self.text);
 			self.popup = new G.PopupWindow(self.frame, -2, -2);
-			if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+			Common.applyPopup(self.popup);
 			self.popup.setFocusable(false);
 			self.popup.setTouchable(false);
 			if (G.style == "Material") self.text.setElevation(8 * G.dp);
 		}
-		if (!self.popup.isShowing()) self.show();
 		self.toast(str);
 	} catch(e) {erp(e)}})},
 	
@@ -9450,7 +9643,9 @@ MapScript.loadModule("Common", {
 MapScript.loadModule("Plugins", {
 	FEATURES : [
 		"injectable",
-		"observable"
+		"observable",
+		"mainMenuAppendable",
+		"userExpressionMenuAppendable"
 	],
 	modules : {},
 	observers : {
@@ -9960,7 +10155,7 @@ MapScript.loadModule("Tutorial", {
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
@@ -10152,7 +10347,7 @@ MapScript.loadModule("Tutorial", {
 		if (self.popup) self.popup.dismiss();
 		Common.initEnterAnimation(self.linear);
 		self.popup = new G.PopupWindow(self.list, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
@@ -11788,7 +11983,7 @@ MapScript.loadModule("JSONEdit", {
 				var p = new G.WindowManager.LayoutParams();
 				p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
 				p.flags = 0;
-				p.type = CA.supportFloat ? G.WindowManager.LayoutParams.TYPE_PHONE : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+				p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 				p.token = ctx.getWindow().getDecorView().getWindowToken();
 				p.format = G.PixelFormat.TRANSLUCENT;
 				p.height = -1;
@@ -11911,7 +12106,7 @@ MapScript.loadModule("JSONEdit", {
 		layout.addView(exit);
 		Common.initEnterAnimation(layout);
 		popup = new G.PopupWindow(layout, -1, -1);
-		if (CA.supportFloat) popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(popup);
 		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		popup.setFocusable(true);
 		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
@@ -12690,10 +12885,10 @@ MapScript.loadModule("MCAdapter", {
 	}],
 	listAdapters : function() {
 		var self = this;
-		Common.toast("请选择系统适用的适配器");
 		Common.showListChooser(this.adapters, function(id) {
 			self.adapters[id].callback.call(self);
 		});
+		Common.toast("请选择系统适用的适配器");
 	},
 	unpackAssets : function(fn, path) {
 		const BUFFER_SIZE = 4096;
@@ -13340,10 +13535,10 @@ MapScript.loadModule("NeteaseAdapter", {
 					} else if (res.publisher) {
 						callback(String(res.result), res.publisher);
 					} else {
-						Common.toast("请选择对应的发行商");
 						NeteaseAdapter.askPublisher(function(pub) {
 							callback(String(res.result), pub);
 						});
+						Common.toast("请选择对应的发行商");
 					}
 				});
 			} else {
@@ -13800,7 +13995,7 @@ MapScript.loadModule("WSServer", {
 		if (!WSServer.isConnected()) return Common.toast("请先连接上WSServer");
 		if (self.popup) self.popup.dismiss();
 		self.popup = new G.PopupWindow(self.main, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
+		Common.applyPopup(self.popup);
 		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 		self.popup.setFocusable(true);
 		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
