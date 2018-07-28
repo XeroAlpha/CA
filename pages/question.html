@@ -76,7 +76,7 @@ a:hover, a:active {
 <body>
 <h1 id="question_title">每 日 问 题</h1>
 <div id="question_usage">请使用一句命令来解答以下问题</div>
-<div id="question_body"></div>
+<div id="question_body">如果您看到这段文字，说明您无法运行JavaScript。请您检查您的浏览器设置</div>
 <div id="question_answer">
 请填写你的答案 <button id="check_button" onclick="checkAnswer(document.getElementById('answer_box'), true)">验证</button><br />
 <input type="text" id="answer_box" onchange="checkAnswer(this)"></input>
@@ -371,6 +371,23 @@ window.normalizeSelectorBox = function(pos) {
 function random(seed) {
     return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
 }
+window.wind = function wind(str, p) {
+    var seed = [str.length * p], seq = new Array(str.lenght), chs = new Array(str.lenght);
+    for (i = 0; i < str.length; i++) seq[i] = {index : i, code : random(seed)};
+    seq.sort(function(a, b) {
+        return a.code - b.code;
+    });
+    for (i = 0; i < str.length; i++) chs[seq[i].index] = str.charAt(i);
+    return chs.join("");
+}
+function unwind(str, p) {
+    var seed = [str.length * p], seq = [];
+    for (i = 0; i < str.length; i++) seq[i] = {char : str.charAt(i), code : random(seed)};
+    seq.sort(function(a, b) {
+        return a.code - b.code;
+    });
+    return seq.map(function(e) {return e.char}).join("");
+}
 function getDailyQuestion(time) {
     var seed = [Math.floor(Math.abs(time / 86400000))];
     random(seed);
@@ -417,7 +434,7 @@ window.checkAnswer = function(answer, fromButton) {
         if (cur.answer instanceof Function) {
             if (cur.answer(v)) return succeed_action();
         } else {
-            if (t = new RegExp(cur.answer, "").exec(answer.value)) {
+            if (t = new RegExp(cur.wp ? unwind(cur.answer, cur.wp) : cur.answer, "").exec(answer.value)) {
                 if (t[0].length == v.length) return succeed_action();
             }
         }

@@ -8545,14 +8545,14 @@ MapScript.loadModule("Common", {
 			Common.toast("没有可选的选项");
 			return;
 		}
-		if (optional && l.length == 1 && !callback(0)) return;
+		if (optional && l.length == 1 && !callback(0, l)) return;
 		frame = new G.FrameLayout(ctx);
 		Common.applyStyle(frame, "message_bg");
 		list = new G.ListView(ctx);
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		list.setAdapter(new SimpleListAdapter(l, self.vmaker, self.vbinder));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-			if (!callback(pos)) popup.dismiss();
+			if (!callback(pos, l)) popup.dismiss();
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
