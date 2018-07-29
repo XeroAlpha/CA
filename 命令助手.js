@@ -3442,12 +3442,40 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			var l, b, lp1, lp2, onclick;
 			var frcolor = G.Color.WHITE, bgcolor = G.Color.BLACK;
 			
+			self.setVisible = function(visible) {
+				if (visible) {
+					self.scr.setVisibility(G.View.VISIBLE);
+					self.hide.setVisibility(G.View.GONE);
+				} else {
+					self.scr.setVisibility(G.View.GONE);
+					self.hide.setVisibility(G.View.VISIBLE);
+				}
+			}
+			
 			self.frame = new G.FrameLayout(ctx);
-			self.frame.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+			self.frame.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.BOTTOM));
+			
+			self.hide = new G.TextView(ctx);
+			self.hide.setText("..");
+			self.hide.setTextColor(frcolor);
+			self.hide.setTextSize(Common.theme.textsize[2]);
+			self.hide.setGravity(G.Gravity.CENTER);
+			self.hide.setTypeface(G.Typeface.MONOSPACE);
+			self.hide.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			self.hide.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
+			self.hide.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.RIGHT));
+			self.hide.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.setVisible(true);
+			} catch(e) {erp(e)}}}));
+			self.hide.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
+				CA.showCustomExpression();
+				return true;
+			} catch(e) {erp(e)}}}));
+			self.frame.addView(self.hide);
 			
 			self.scr = new G.ScrollView(ctx);
 			self.scr.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
-			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.BOTTOM));
+			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 			
 			self.line = new G.LinearLayout(ctx);
 			self.line.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
@@ -3461,6 +3489,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.prompt.setTextSize(Common.theme.textsize[2]);
 			self.prompt.setPadding(20 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.prompt.setTypeface(G.Typeface.MONOSPACE);
+			self.prompt.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.setVisible(false);
+			} catch(e) {erp(e)}}}));
 			self.line.addView(self.prompt);
 			
 			lp2 = new G.LinearLayout.LayoutParams(0, -2, 1);
@@ -3480,7 +3511,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					b.setTextSize(Common.theme.textsize[2]);
 					b.setGravity(G.Gravity.CENTER);
 					b.setTypeface(G.Typeface.MONOSPACE);
-					b.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
+					b.setPadding(5 * G.dp, 10 * G.dp, 5 * G.dp, 10 * G.dp);
 					b.setText(FCString.parseFC(data[i][j]));
 					b.setOnClickListener(onclick);
 					l.addView(b, lp2);
@@ -3520,6 +3551,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (v) self.prompt.setText(FCString.parseFC(v));
 		if (CA.fcs) return CA.fcs.bringToFront();
 		CA.fcs = self.frame;
+		self.setVisible(true);
 		CA.con.addView(CA.fcs);
 	} catch(e) {erp(e)}})},
 	hideFCS : function() {G.ui(function() {try {
@@ -9441,6 +9473,7 @@ MapScript.loadModule("Common", {
 		if (!self.popup) {
 			self.show = function() {
 				if (!self.popup.isShowing()) self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
+				PWM.addPopup(self.popup);
 				self.frame.clearAnimation();
 				if (!CA.settings.noAnimation) {
 					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0);
@@ -9504,6 +9537,7 @@ MapScript.loadModule("Common", {
 			self.popup.setFocusable(false);
 			self.popup.setTouchable(false);
 			if (G.style == "Material") self.text.setElevation(8 * G.dp);
+			PWM.registerResetFlag(self, "popup");
 		}
 		self.toast(str);
 	} catch(e) {erp(e)}})},
