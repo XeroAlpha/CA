@@ -143,7 +143,7 @@ var question_list = [{
     answer: "fill\\s+~-5\\s+~-5\\s+~-5\\s+~5\\s+~5\\s+~5\\s+glass\\s+0\\s+hollow"
 }, {
     question: "如何设置所有非生存模式玩家为生存模式？（不使用execute命令）",
-    answer: "gamemode\\s+(0|s|survival)\\s+@a\\[m=(0|s|survival)\\]"
+    answer: "gamemode\\s+(0|s|survival)\\s+@a\\[m=!(0|s|survival)\\]"
 }, {
     question: "如何把以(4,5,6)为中心，边长为4的正方体内的所有玩家变成生存模式？",
     answer: function(str) {
