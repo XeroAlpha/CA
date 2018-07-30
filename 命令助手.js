@@ -11321,7 +11321,7 @@ MapScript.loadModule("ExpandableListAdapter", (function() {
 			return this.extend[pos].group;
 		},
 		isVisible : function(node) {
-			return this.findNote(node) >= 0;
+			return this.findNode(node) >= 0;
 		},
 		notifyChange : function() {
 			this.dso.forEach(function(e) {

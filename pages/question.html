@@ -137,7 +137,7 @@ var question_list = [{
     } 
 }, {
     question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？",
-    answer: "fill\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+air\\s+0\\s+replace\\s+normal\\s+stone(\\s+0)?"
+    answer: "fill\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+air\\s+0\\s+replace\\s+stone(\\s+0)?"
 }, {
     question: "如何将以命令执行点为中心，清空半径为5格的立方体内的所有方块并在六面覆盖上玻璃？",
     answer: "fill\\s+~-5\\s+~-5\\s+~-5\\s+~5\\s+~5\\s+~5\\s+glass\\s+0\\s+hollow"
@@ -276,7 +276,7 @@ window.onload = function() {
         return;
     }
     body_node.innerHTML = cur.question;
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年7月20日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年7月30日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
