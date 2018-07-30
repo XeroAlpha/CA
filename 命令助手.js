@@ -10534,7 +10534,7 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 				return 1;
 			},
 			hasStableIds : function() {
-				return true;
+				return false;
 			},
 			isEmpty : function() {
 				return src.length === 0;
@@ -10827,7 +10827,7 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 				return 1;
 			},
 			hasStableIds : function() {
-				return true;
+				return false;
 			},
 			isEmpty : function() {
 				return src.length === 0;
@@ -11220,22 +11220,17 @@ MapScript.loadModule("ExpandableListAdapter", (function() {
 			this.holders.length = 0;
 			this.notifyChange();
 		},
-		enableAlwaysExtend : function() {
-			this.alwaysExtend = true;
-			this.extendAll();
-		},
 		extendAll : function() {
 			extendNodeTree(this, this.root);
 		},
 		expand : function(pos, recursive) {
-			var i, e = this.extend[pos];
+			var e = this.extend[pos];
 			if (!e.group || e.expanded) return;
 			expandNode(this, [pos + 1], e, recursive ? 1 : 0);
 			makePointer(this);
 			this.notifyChange();
 		},
 		expandAll : function() {
-			var i, a = this.root.extend, e;
 			expandNode(this, [0], this.root, 1);
 			makePointer(this);
 			this.notifyChange();
