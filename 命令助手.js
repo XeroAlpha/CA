@@ -529,12 +529,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	fine : false,
 	
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
-	version : "1.1.1",
+	name : "CA",
+	author : "ProjectXero",
+	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
+	version : [1, 1, 1],
 	publishDate : "{DATE}",
 	help : '{HELP}',
-	tips : [],
+	tips : [],	
 	
 	initialize : function() {try {
+		this.plugin = Plugins.inject(this);
 		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
 		if (this.supportFloat) {
 			if (SettingsCompat.ensureCanFloat()) {
@@ -562,7 +566,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		} else if (this.hasFeature("version_1_1")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本较低（" + getMinecraftVersion() + "），可以使用命令，但没有ID表，且部分命令有bug。推荐升级您的Minecraft PE至1.2及以上，或者使用网易代理的我的世界最新版本。\n您也可在设置→拓展包→切换版本→自定义中设置版本为1.2。");
 		}
-		Common.toast("命令助手 " + this.version + " by ProjectXero\n\n" + this.getTip(), 1);
+		Common.toast("命令助手 " + this.version.join(".") + " by ProjectXero\n\n" + this.getTip(), 1);
 		this.fine = true;
 		this.screenChangeHook();
 	} catch(e) {erp(e)}},
@@ -2942,7 +2946,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "基于Rhino (" + MapScript.host + ")",
 				type : "custom",
 				get : function() {
-					return CA.version;
+					return CA.version.join(".");
 				},
 				onclick : function(fset) {
 					CA.showAboutDialog();
@@ -4719,7 +4723,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text : "命令助手",
 				bold : true
 			},
-			" - ", CA.publishDate, " (", CA.version, ")\n\n", {
+			" - ", CA.publishDate, " (", CA.version.join("."), ")\n\n", {
 				text : "Copyright ProjectXero 2017 - 2018",
 				bold : true
 			}]),
@@ -4728,7 +4732,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				"分享链接",
 				"加入交流群",
 				"提出意见/反馈bug",
-				"向作者捐助"
+				"向作者捐助",
+				"关闭"
 			],
 			callback : function(id) {
 				var t;
@@ -4767,6 +4772,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					case 4:
 					CA.showDonateDialog();
+					break;
+					case 5:
+					return;
 				}
 				offset = 30 * 24 * 60 * 60 * 1000; //30d
 			},
@@ -9694,10 +9702,14 @@ MapScript.loadModule("Plugins", {
 	],
 	modules : {},
 	observers : {
-		plugin : {
+		Plugin : {
 			inject : []
 		},
-		custom : {}
+		WSServer : {
+			connectionOpen : [],
+			connectionClose : []
+		},
+		Custom : {}
 	},
 	Plugin : {
 		get : function() {
@@ -9728,7 +9740,7 @@ MapScript.loadModule("Plugins", {
 			return this.modules[o.uuid].info;
 		} else {
 			if (o.core.init) o.core.init(o);
-			this.emit("plugin", "inject", o.uuid);
+			this.emit("Plugin", "inject", o.uuid);
 			return (this.modules[o.uuid] = o).info;
 		}
 	},
@@ -11499,7 +11511,7 @@ MapScript.loadModule("Updater", {
 				} else {
 					Common.showTextDialog(G.Html.fromHtml([
 						"<b>欢迎使用命令助手 公测版本</b>",
-						"<b>" + oldVer + " -> " + CA.publishDate + "</b>\t(" + CA.version + ")",
+						"<b>" + oldVer + " -> " + CA.publishDate + "</b>\t(" + CA.version.join(".") + ")",
 						"公测版容易出现bug。如果出现bug，欢迎加入命令助手讨论区向我反馈。",
 						"MCPE命令助手讨论区：" + Updater.toAnchor("207913610", "https://jq.qq.com/?_wv=1027&k=46Yl84D")
 					].join("<br />")));
@@ -12734,6 +12746,7 @@ MapScript.loadModule("MCAdapter", {
 	bundle : null,
 	updateListener : {},
 	ticker : 0,
+	wsdata : {},
 	onCreate : function() {
 		if (MapScript.host == "Android") {
 			this.getInfo = this.getInfo_Android;
@@ -12759,12 +12772,11 @@ MapScript.loadModule("MCAdapter", {
 		this.ticker = 5;
 	},
 	getInfo_Android : function(id) {
-		if (!this.bundle || !this.bundle.containsKey(id)) return null;
-		return this.bundle.get(id);
+		if (this.available_Adapter()) return this.getInfo_Adapter(id);
+		return this.getInfo_WSServer(id);
 	},
 	available_Android : function() {
-		if (this.bundle != null) return true;
-		return false;
+		return this.available_Adapter() || this.available_WSServer();
 	},
 	getInfo_ModPE : function(id) {
 		var p, b;
@@ -12793,6 +12805,37 @@ MapScript.loadModule("MCAdapter", {
 	},
 	available_ModPE : function() {
 		return this.inLevel;
+	},
+	getInfo_Adapter : function(id) {
+		if (!this.bundle || !this.bundle.containsKey(id)) return null;
+		return this.bundle.get(id);
+	},
+	available_Adapter : function() {
+		if (this.bundle != null) return true;
+		return false;
+	},
+	getInfo_WSServer: function(id) {
+		switch (id) {
+			case "playernames":
+			return [];
+			case "playerposition":
+			return this.wsdata.playerpos || [0, 0, 0];
+			case "playerrotation":
+			return [0, 0];
+			case "pointedblockpos":
+			return [0, 0, 0];
+			case "pointedblockinfo":
+			return [0, 0, 0];
+			case "levelbiome":
+			return "Unreachable";
+			case "levelbrightness":
+			return 0;
+			case "leveltime":
+			return 0;
+		}
+	},
+	available_WSServer: function() {
+		return WSServer.isConnected();
 	},
 	getInfo : function(id) {
 		return null;
@@ -12823,6 +12866,28 @@ MapScript.loadModule("MCAdapter", {
 		t.menu["（加载适配器以显示更多游戏相关信息……）"] = function() {
 			MCAdapter.listAdapters();
 		};
+	},
+	initWSServer : function() {
+		WSServer.subscribeEvent("PlayerTravelled", function(json) {
+			MCAdapter.onWSPlayerTravelled(json);
+			MCAdapter.notifyInfoUpdate();
+		});
+	},
+	distance : function(dx, dy, dz) {
+		return Math.sqrt(dx * dx + dy * dy + dz * dz);
+	},
+	onWSPlayerTravelled : function(json) {
+		var obj = json.measurements, x, y, z, d, o = this.wsdata.playerpos;
+		x = obj.PosAvgX; y = obj.PosAvgY; z = obj.PosAvgZ; 
+		if (o) {
+			d = obj.MetersTravelled / this.distance(x - o[0], y - o[1], z - o[2]);
+			x += (x - o[0]) * d;
+			y += (y - o[1]) * d;
+			z += (z - o[2]) * d;
+		} else {
+			this.wsdata.playerpos = o = [];
+		}
+		o[0] = x; o[1] = y; o[2] = z; 
 	},
 	askShortcut : function(name, pkg) {
 		var z = {
@@ -13705,11 +13770,11 @@ MapScript.loadModule("NeteaseAdapter", {
 MapScript.loadModule("WSServer", {
 	//Thanks to [jocopa3/PEWS-API](https://github.com/jocopa3/PEWS-API)
 	// and [LNSSPsd/MyAgent](https://github.com/LNSSPsd/MyAgent)
-	port : 19134,
+	startPort : 19134,
+	endPort : 19165,
 	conn : null,
 	events : {},
-	responsers : {}, 
-	connectedListener : null,
+	responsers : {},
 	unload : function() {
 		if (this.isAvailable()) this.stop();
 	},
@@ -13731,15 +13796,23 @@ MapScript.loadModule("WSServer", {
 				WSServer.onMessage(conn, message);
 			} catch(e) {erp(e)}},
 			onError : function(conn, err) {
-				erp(err);
+				if (err instanceof java.net.BindException && WSServer.port < WSServer.endPort) {
+					Common.toast("在端口" + WSServer.port + "上建立服务器失败，正在尝试其他端口");
+					WSServer.port++;
+					WSServer.start();
+					erp(err, true);
+				} else erp(err);
 			},
 			onStart : function() {try {
 				WSServer.onStart();
 			} catch(e) {erp(e)}}
 		});
 		this.server.setConnectionLostTimeout(-1);
+		this.server.setTcpNoDelay(true);
 	},
 	start : function() {
+		if (!this.port) this.port = this.startPort;
+		this.conn = null;
 		this.build(this.port);
 		this.server.start();
 	},
@@ -13757,20 +13830,23 @@ MapScript.loadModule("WSServer", {
 	onOpen : function(conn, handshake) {
 		if (this.conn != null) {
 			conn.close(1, "A client has been binded to CA.");
+			Common.toast("WebSocket服务器已拒绝设备" + conn.getRemoteSocketAddress() + "连接，因为本设备已经和其他设备连接");
 			return;
 		}
 		this.conn = conn;
 		this.events = {};
 		this.responsers = {}; 
-		if (this.connectedListener) this.connectedListener(conn);
 		Common.toast("设备" + conn.getRemoteSocketAddress() + "已连接");
 		AndroidBridge.notifySettings();
+		Plugins.emit("WSServer", "connectionOpen");
+		MCAdapter.initWSServer();
 	},
 	onClose : function(conn, code, reason, remote) {
 		this.conn = null;
 		Common.toast("设备已断开");
 		AndroidBridge.notifySettings();
 		if (this.showConsole.onClose) this.showConsole.onClose();
+		Plugins.emit("WSServer", "connectionClose");
 	},
 	onMessage : function(conn, message) {
 		var json = JSON.parse(message);
@@ -13790,14 +13866,20 @@ MapScript.loadModule("WSServer", {
 	onEvent : function(json) {
 		var callback = this.events[json.body.eventName];
 		if (callback != null) {
-			callback(json.body, json);
+			callback.forEach(function(e) {
+				try {
+					e(json.body, json);
+				} catch(e) {erp(e, true)}
+			});
 		}
 	},
 	onResponse : function(json) {
 		var callback = this.responsers[json.header.requestId];
 		delete this.responsers[json.header.requestId];
 		if (callback != null) {
-			callback(json.body, json);
+			try {
+				callback(json.body, json);
+			} catch(e) {erp(e, true)}
 		}
 	},
 	onError : function(json) {
@@ -13831,7 +13913,8 @@ MapScript.loadModule("WSServer", {
 	},
 	subscribeEvent : function(name, callback) {
 		if (!this.conn) return;
-		this.events[name] = callback;
+		if (!this.events[name]) this.events[name] = [];
+		this.events[name].push(callback);
 		this.conn.send(JSON.stringify({
 			header : this.buildHeader("subscribe"),
 			body : {
@@ -13839,15 +13922,19 @@ MapScript.loadModule("WSServer", {
 			}
 		}));
 	},
-	unsubscribeEvent : function(name) {
+	unsubscribeEvent : function(name, callback) {
 		if (!this.conn) return;
-		this.conn.send(JSON.stringify({
-			header : this.buildHeader("unsubscribe"),
-			body : {
-				eventName : name
-			}
-		}));
-		delete this.events[name];
+		var i = this.events[name].indexOf(callback);
+		if (i >= 0) this.events[name].splice(i, 1);
+		if (!this.events[name].length) {
+			this.conn.send(JSON.stringify({
+				header : this.buildHeader("unsubscribe"),
+				body : {
+					eventName : name
+				}
+			}));
+			delete this.events[name];
+		}
 	},
 	sendCommand : function(cmd, callback) {
 		if (!this.conn) return;
@@ -13868,6 +13955,7 @@ MapScript.loadModule("WSServer", {
 			self.LINE_LIMIT = 200;
 			self.history = [];
 			self.lines = [];
+			self.eventReceiver = {};
 			self.vmaker = function(holder) {
 				var text = holder.text = new G.TextView(ctx);
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
@@ -13917,7 +14005,8 @@ MapScript.loadModule("WSServer", {
 				} else if (s.toLowerCase() == "close") {
 					WSServer.sendCommand("closewebsocket");
 				} else if (s.toLowerCase().startsWith("subscribe ")) {
-					WSServer.subscribeEvent(s.slice(10), function(body) {
+					var name = s.slice(10);
+					WSServer.subscribeEvent(name, self.eventReceiver[name] = function(body) {
 						G.ui(function() {try {
 							var t = body.eventName;
 							delete body.eventName;
@@ -13927,7 +14016,8 @@ MapScript.loadModule("WSServer", {
 					});
 					self.print("Event subscribed!");
 				} else if (s.toLowerCase().startsWith("unsubscribe ")) {
-					WSServer.unsubscribeEvent(s.slice(12));
+					var name = s.slice(12);
+					WSServer.unsubscribeEvent(name, self.eventReceiver[name]);
 					self.print("Event unsubscribed!");
 				} else if (s.toLowerCase().startsWith("/")) {
 					var startTime = Date.now();
