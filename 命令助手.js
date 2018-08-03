@@ -1005,6 +1005,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}
 		CA.qbar = new G.PopupWindow(self.list, -2, -2);
 		CA.qbar.setFocusable(true);
+		CA.qbar.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+			CA.qbar = null;
+		} catch(e) {erp(e)}}}));
 		Common.applyPopup(CA.qbar);
 		CA.qbar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.RIGHT | G.Gravity.TOP, 0, 0);
 		PWM.addPopup(CA.qbar);
@@ -2480,8 +2483,19 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(self.header, "bar_float");
+			self.back = new G.TextView(ctx);
+			self.back.setText("< 返回");
+			self.back.setGravity(G.Gravity.CENTER);
+			self.back.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
+			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.back, "button_highlight", 2);
+			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.dismiss();
+				return true;
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.back);
 			self.title = new G.TextView(ctx);
-			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setPadding(0, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
@@ -2812,8 +2826,19 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(self.header, "bar_float");
+			self.back = new G.TextView(ctx);
+			self.back.setText("< 返回");
+			self.back.setGravity(G.Gravity.CENTER);
+			self.back.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
+			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.back, "button_highlight", 2);
+			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.dismiss();
+				return true;
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.back);
 			self.title = new G.TextView(ctx);
-			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setPadding(0, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
@@ -3633,9 +3658,20 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(self.header, "bar_float");
+			self.back = new G.TextView(ctx);
+			self.back.setText("< 返回");
+			self.back.setGravity(G.Gravity.CENTER);
+			self.back.setPadding(15 * G.dp, 0, 15 * G.dp, 0);
+			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.back, "button_highlight", 2);
+			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.dismiss();
+				return true;
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.back);
 			self.title = new G.TextView(ctx);
 			self.title.setText("自定义短语");
-			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+			self.title.setPadding(0, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1));
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
@@ -4564,7 +4600,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		const w = 32 * G.dp * size;
 		var frm = new G.FrameLayout(ctx);
 		var view = new G.ImageView(ctx);
-		var bmp = G.BitmapFactory.decodeFile(path);
+		var bmp;
+		try {
+			bmp = G.BitmapFactory.decodeFile(path);
+		} catch(e) {erp(e, true)}
 		if (bmp) {
 			view.setImageBitmap(bmp);
 		} else if (preview) {
