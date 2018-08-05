@@ -806,6 +806,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					v.postDelayed(self.longClick, longPressTimeout);
 					self.longClicked = true;
 					self.cancelAnimator();
+					self.layoutChanged();
 					return true;
 					case e.ACTION_UP:
 					if (touch.stead) {
@@ -814,6 +815,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 					}
 					case e.ACTION_CANCEL:
+					self.layoutChanged();
 					self.refreshPos();
 					CA.settings.iconX = self.cx;
 					CA.settings.iconY = self.cy;
@@ -823,7 +825,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.view.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-				var smChanged = self.updateScreenInfo();
+				self.layoutChanged(true);
+			} catch(e) {erp(e)}}}));
+			self.longClick = new java.lang.Runnable({run : function() {try {
+				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
+				self.longClicked = false;
+			} catch(e) {erp(e)}}});
+			self.layoutChanged = function(updateIcon) {
+				var smChanged = updateIcon && self.updateScreenInfo();
 				if (self.cx < 0) self.cx = 0;
 				if (self.cy < 0) self.cy = 0;
 				if (self.cx > self.scrWidth) self.cx = self.scrWidth;
@@ -832,15 +841,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.icon.setTranslationX(0);
 					self.refreshPos();
 				}
-			} catch(e) {erp(e)}}}));
-			self.longClick = new java.lang.Runnable({run : function() {try {
-				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
-				self.longClicked = false;
-			} catch(e) {erp(e)}}});
+			}
 			self.updateScreenInfo = function() {
 				var lw = self.scrWidth, lh = self.scrHeight;
-				self.scrWidth = Common.getScreenWidth();
-				self.scrHeight = Common.getScreenHeight();
+				var metrics = Common.getMetrics();
+				self.scrWidth = metrics[0];
+				self.scrHeight = metrics[1];
 				return lw != self.scrWidth || lh != self.scrHeight;
 			}
 			self.animateToPos = function(x, y, dur, interpolator, callback) {
@@ -958,7 +964,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.refreshIcon();
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
-			//ctx.getWindowManager().getDefaultDisplay().getRotation() == G.Surface.ROTATION_90
 			CA.settings.iconX = 0;
 			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
 		}
@@ -1018,7 +1023,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	} catch(e) {erp(e)}})},
 	
 	showGen : function self(noani) {G.ui(function() {try {
-		if (CA.gen) CA.gen.dismiss();
 		if (!self.main) {
 			self.cmdEdit = [{
 				text : "粘贴",
@@ -1432,24 +1436,20 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.main.addView(CA.con);
 			self.main.addView(self.bar);
 			
+			CA.gen = new PopupPage(self.main, "ca.Generator");
+			CA.gen.enterAnimation = null;
+			CA.gen.exitAnimation = null;
+			CA.gen.onExit = function() {
+				if (PWM.busy) return;
+				CA.screenChangeHook();
+				CA.trySave();
+			}
+			
 			PWM.registerResetFlag(CA, "con");
 			PWM.registerResetFlag(CA, "cmd");
 			PWM.registerResetFlag(self, "main");
 		}
-		CA.gen = new G.PopupWindow(self.main, -1, -1);
-		Common.applyPopup(CA.gen);
-		CA.gen.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		CA.gen.setFocusable(true);
-		CA.gen.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NEEDED);
-		CA.gen.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-		CA.gen.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			if (PWM.busy) return; //避免在dismiss过程中修改窗口数组
-			PWM.remove(CA.gen);
-			CA.screenChangeHook();
-			CA.trySave();
-		} catch(e) {erp(e)}}}));
-		CA.gen.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(CA.gen, "ca.Generator");
+		CA.gen.enter();
 		CA.cmd.setText(CA.cmd.getText());
 		self.activate(false);
 		if (noani) return;
@@ -1465,8 +1465,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideGen : function() {G.ui(function() {try {
-		if (CA.gen) CA.gen.dismiss();
-		CA.gen = null;
+		if (CA.gen.showing) CA.gen.exit();
 	} catch(e) {erp(e)}})},
 	
 	showHistory : function self() {G.ui(function() {try {
@@ -2490,7 +2489,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			Common.applyStyle(self.back, "button_highlight", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
@@ -2534,22 +2533,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.setFastScrollEnabled(true);
 				self.list.setFastScrollAlwaysVisible(false);
 			}
+			
+			self.popup = new PopupPage(self.linear, "ca.HistoryEdit");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
 		self.refresh(pos);
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-			if (callback) callback();
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "ca.HistoryEdit");
+		self.popup.onExit = callback;
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showFavoriteEdit : function self(data, callback) {G.ui(function() {try {
@@ -2833,7 +2824,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			Common.applyStyle(self.back, "button_highlight", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
@@ -2893,22 +2884,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.setFastScrollEnabled(true);
 				self.list.setFastScrollAlwaysVisible(false);
 			}
+			
+			self.popup = new PopupPage(self.linear, "ca.FavoriteEdit");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
 		self.init(data);
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-			if (callback) callback();
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "ca.FavoriteEdit");
+		self.popup.onExit = callback;
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	performExit : function() {G.ui(function() {try {
@@ -3665,7 +3648,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			Common.applyStyle(self.back, "button_highlight", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
@@ -3725,22 +3708,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
+			
+			self.popup = new PopupPage(self.linear, "ca.CustomExpEdit");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
 		self.refresh();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-			if (callback) callback();
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "ca.CustomExpEdit");
+		self.popup.onExit = callback;
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	isMinecraftTextbox : function(packageName) {
@@ -4472,26 +4447,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.popup = new PopupPage(self.linear, "ca.LibraryManage");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			callback();
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
 		self.refresh();
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "ca.LibraryManage");
+		self.popup.onExit = callback;
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showModeChooser : function self(callback) {
@@ -5189,7 +5155,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							if (e.length) CA.addHistory(e);
 						});
 						if (CA.history) CA.showHistory();
-						self.popup.dismiss();
+						self.popup.exit();
 						Common.toast("已保存至历史");
 					}
 				}, {
@@ -5219,7 +5185,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					text : "清空并关闭",
 					onclick : function() {
 						self.edit.setText("");
-						self.popup.dismiss();
+						self.popup.exit();
 					}
 				}]);
 				self.content_default = view;
@@ -5254,7 +5220,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.exit);
 			self.linear.addView(self.header);
@@ -5262,20 +5228,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.container.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.linear.addView(self.container);
 			
+			self.popup = new PopupPage(self.linear, "ca.BatchBuilder");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "ca.BatchBuilder");
+		self.popup.enter();
 		if (reset || !self.edit.length()) self.init(text || "");
 	} catch(e) {erp(e)}})},
 	BatchPattern : {
@@ -6323,11 +6280,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 					var a = CA.IntelliSense.output[CA.IntelliSense.input[pos - parent.getHeaderViewsCount()]];
 					if (a && !(a instanceof Function)) {
-						var rect;
+						var rect, metrics = Common.getMetrics();
 						if (self.lastToast) self.lastToast.cancel();
 						self.lastToast = G.Toast.makeText(ctx, String(a), 0);
 						view.getGlobalVisibleRect(rect = new G.Rect());
-						self.lastToast.setGravity(G.Gravity.CENTER, rect.centerX() - Common.getScreenWidth() / 2, rect.centerY() - Common.getScreenHeight() / 2);
+						self.lastToast.setGravity(G.Gravity.CENTER, rect.centerX() - metrics[0] / 2, rect.centerY() - metrics[1] / 2);
 						self.lastToast.show();
 					}
 					return true;
@@ -7857,9 +7814,8 @@ MapScript.loadModule("PWM", {
 		}
 		return false;
 	},
-	add : function(w, name) {
+	add : function(w) {
 		var v, wp;
-		if (name) Page.enter(w, name);
 		if (this.windows.indexOf(w) < 0) this.windows.push(w);
 		this.floats.forEach(function(e) {
 			if (!e.isShowing()) return;
@@ -7871,9 +7827,6 @@ MapScript.loadModule("PWM", {
 			PWM.wm.addView(v, wp);
 		});
 		this._notifyListeners("add", w);
-	},
-	remove : function(w) {
-		Page.exit(w);
 	},
 	addFloat : function(w) {
 		if (this.floats.indexOf(w) < 0) this.floats.push(w);
@@ -7982,52 +7935,89 @@ MapScript.loadModule("PWM", {
 	}
 });
 
-MapScript.loadModule("Page", {
-	stack : [],
-	enter : function(obj, name, listener, tag) {
-		var t;
-		if (this.stack.length) this.onPause(this.stack[this.stack.length - 1]);
-		this.stack.push(t = {
-			obj : obj,
-			name : name,
-			listener : listener,
-			tag : tag
-		});
-		this.onEnter(t);
-	},
-	exit : function(obj) {
-		var i;
-		for (i = this.stack.length - 1; i >= 0; i--) {
-			if (this.stack[i].obj != obj) continue;
-			this.stack.splice(i, this.stack.length - i).forEach(this.onExit, this);
-			if (i > 0) this.onResume(this.stack[i - 1]);
-			break;
-		}
-	},
-	onEnter : function(o) {
-		if (o.listener && o.listener.onEnter) o.listener.onEnter(o.obj, o.name, o.tag);
-		if (MapScript.host == "Android") TCAgent.onPageStart(ctx, o.name);
-	},
-	onExit : function(o) {
-		if (o.listener && o.listener.onExit) o.listener.onExit(o.obj, o.name, o.tag);
-		if (MapScript.host == "Android") TCAgent.onPageEnd(ctx, o.name);
-	},
-	onPause : function(o) {
-		if (o.listener && o.listener.onPause) o.listener.onPause(o.obj, o.name, o.tag);
-		if (MapScript.host == "Android") TCAgent.onPageEnd(ctx, o.name);
-	},
-	onResume : function(o) {
-		if (o.listener && o.listener.onResume) o.listener.onResume(o.obj, o.name, o.tag);
-		if (MapScript.host == "Android") TCAgent.onPageStart(ctx, o.name);
-	},
-	initialize : function(o) {
-		this.stack.length = 0;
-		this.enter(this, "screen");
-	},
-	unload : function(o) {
-		this.exit(this);
+MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的默认实现
+	var r = function(mainView, name, modal) {
+		this.mainView = mainView;
+		this.name = name || "Unnamed";
+		this.modal = modal;
+		this.enterAnimation = r.fadeInAnimation;
+		this.exitAnimation = r.fadeOutAnimation;
+		this.init();
 	}
-});
+	r.prototype = {
+		init : function() {
+			var self = this;
+			this.popup = new G.PopupWindow(this.mainView, -1, -1);
+			this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+				if (self.onExit) self.onExit();
+				self.showing = false;
+			} catch(e) {erp(e)}}}));
+			if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+			this.popup.setFocusable(true);
+			this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+			Common.applyPopup(this.popup);
+		},
+		enter : function(noAnimation) {
+			if (this.showing) this.popup.dismiss();
+			this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
+			if (!noAnimation && this.enterAnimation) {
+				this.enterAnimation(this.mainView, function() {
+					if (this.onEnter) this.onEnter();
+				});
+			} else {
+				if (this.onEnter) this.onEnter();
+			}
+			PWM.add(this.popup);
+			this.showing = true;
+		},
+		exit : function(noAnimation) {
+			var self = this;
+			if (!this.showing) return;
+			if (!noAnimation && this.exitAnimation) {
+				this.exitAnimation(this.mainView, function() {
+					self.popup.dismiss();
+				});
+			} else {
+				this.popup.dismiss();
+			}
+		},
+		resizable : function() {
+			return false;
+		},
+		show : function(noAnimation) {
+			this.enter(noAnimation);
+		},
+		hide : function(noAnimation) {
+			this.exit(noAnimation);
+		},
+		dismiss : function() {
+			this.exit(true);
+		}
+	};
+	r.pushPage = function(pageName) {}
+	r.popPage = function(pageName) {}
+	r.fadeInAnimation = function(v, callback) {
+		trans = new G.AlphaAnimation(0, 1);
+		trans.setDuration(150);
+		trans.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		v.startAnimation(trans);
+	}
+	r.fadeOutAnimation = function(v, callback) {
+		trans = new G.AlphaAnimation(1, 0);
+		trans.setDuration(150);
+		trans.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		v.startAnimation(trans);
+	}
+	return r;
+})());
 
 MapScript.loadModule("MemSaver", {
 	lru : [],
@@ -8318,35 +8308,27 @@ MapScript.loadModule("Common", {
 					if (self.update) self.update();
 					//此处无需dismiss。因为update会自动resetGUI()
 				} else {
-					self.popup.dismiss();
+					self.popup.exit();
 				}
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 			
+			self.popup = new PopupPage(self.linear, "common.ChangeTheme");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
 		self.update = update;
 		self.modified = false;
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		self.popup.onExit = function() {
 			if (!self.modified) Common.loadTheme(self.last);
 			if (dismiss) dismiss();
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
+		};
 		self.last = Common.theme.id;
 		self.lastalpha = CA.settings.alpha;
 		self.lasttsz = CA.settings.textSize;
 		self.refresh();
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "common.ChangeTheme");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	customVMaker : function(holder) {
@@ -8366,13 +8348,13 @@ MapScript.loadModule("Common", {
 		}
 	},
 	
-	showDialog : function(layout, width, height, onDismiss, modal) {
+	showDialog : function(layout, width, height, onExit, modal) {
 		var frame, popup, trans;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(this.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 			if (e.getAction() == e.ACTION_DOWN && !modal) {
-				popup.dismiss();
+				popup.exit();
 			}
 			return true;
 		} catch(e) {return erp(e), true}}}));
@@ -8382,17 +8364,10 @@ MapScript.loadModule("Common", {
 			return true;
 		} catch(e) {return erp(e), true}}}));
 		frame.addView(layout);
-		this.initEnterAnimation(frame);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new G.PopupWindow(frame, -1, -1);
-		Common.applyPopup(popup);
-		popup.setFocusable(true);
-		if (!modal) popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		if (onDismiss) popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			onDismiss();
-		} catch(e) {erp(e)}}}));
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(popup);
+		popup = new PopupPage(frame, "common.Dialog", modal);
+		popup.onExit = onExit;
+		popup.enter();
 		return popup;
 	},
 	
@@ -8750,7 +8725,7 @@ MapScript.loadModule("Common", {
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
 			self.refreshText = function() {
-				if (!self.popup) return;
+				if (self.popup.showing) return;
 				self.data.forEach(function(e, i) {
 					if (!e._view) return;
 					if (e.type == "text") {
@@ -8911,21 +8886,16 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.exit, "bar_float");
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 			
+			self.popup = new PopupPage(self.linear, "common.Settings");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		self.popup.onExit = function() {
 			self.data.forEach(function(e, i) {
 				switch (e.type) {
 					case "boolean":
@@ -8940,9 +8910,7 @@ MapScript.loadModule("Common", {
 				}
 			});
 			if (onSave) onSave();
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
+		};
 		self.data = data.filter(function(e) {
 			if (e.hidden && e.hidden()) return false;
 			return true;
@@ -8960,8 +8928,7 @@ MapScript.loadModule("Common", {
 			}
 		});
 		self.list.setAdapter(new RhinoListAdapter(self.data, self.adapter));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "common.Settings");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showFileDialog : function self(o) {G.ui(function() {try {
@@ -8983,13 +8950,17 @@ MapScript.loadModule("Common", {
 					Common.applyStyle(holder.self, "item_default", 3);
 				}
 			}
-			self.compare = function(a, b) {
+			self.compare = MapScript.host == "AutoJs" ? function(a, b) {
+				a = String(a.getName()).toLowerCase();
+				b = String(b.getName()).toLowerCase();
+				return a > b ? 1 : a < b ? -1 : 0;
+			} : function(a, b) {
 				return a.getName().compareToIgnoreCase(b.getName());
 			}
 			self.choose = function(e) {
 				var o = self.sets;
 				if (o.check && !o.check(e)) return false;
-				self.popup.dismiss();
+				self.popup.exit();
 				o.result = e;
 				if (o.callback) o.callback(o);
 				self.lastDir = o.curdir.getAbsolutePath();
@@ -9031,7 +9002,7 @@ MapScript.loadModule("Common", {
 			self.back.setPadding(20 * G.dp, 0, 20 * G.dp, 0);
 			Common.applyStyle(self.back, "button_highlight", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back, new G.LinearLayout.LayoutParams(-2, -1));
@@ -9173,18 +9144,11 @@ MapScript.loadModule("Common", {
 			self.inputbar.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -2));
 			self.linear.addView(self.inputbar, new G.LinearLayout.LayoutParams(-1, -2));
 			
+			self.popup = new PopupPage(self.linear, "common.FileChooser");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			if (o.onDismiss) o.onDismiss();
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
+		self.popup.onExit = o.onDismiss;
 		self.sets = o;
 		try {
 			o.curdir = new java.io.File(String(o.initDir ? o.initDir : self.lastDir));
@@ -9211,8 +9175,7 @@ MapScript.loadModule("Common", {
 			self.exit.setVisibility(G.View.GONE);
 			self.fname.setVisibility(G.View.GONE);
 		}
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showDebugDialog : function self() {G.ui(function() {try {
@@ -9378,20 +9341,12 @@ MapScript.loadModule("Common", {
 			self.main.addView(self.prompt);
 			self.main.addView(self.bar);
 			
+			self.popup = new PopupPage(self.main, "common.Console");
+			
 			self.cls();
 			PWM.registerResetFlag(self, "main");
 		}
-		if (self.popup) self.popup.dismiss();
-		self.popup = new G.PopupWindow(self.main, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "common.Console");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showWebViewDialog : function(s) {G.ui(function() {try {
@@ -9713,11 +9668,20 @@ MapScript.loadModule("Common", {
 		}
 	},
 	
+	getMetrics : function() {
+		var display = ctx.getSystemService(ctx.WINDOW_SERVICE).getDefaultDisplay(), out = new android.util.DisplayMetrics();
+		display.getMetrics(out);
+		var r = [out.widthPixels, out.heightPixels], rot = ctx.getResources().getConfiguration().orientation;
+		if (rot == android.content.res.Configuration.ORIENTATION_LANDSCAPE) r.reverse();
+		rot = display.getRotation();
+		if (rot == G.Surface.ROTATION_90 || rot == G.Surface.ROTATION_270) r.reverse();
+		return r;
+	},
 	getScreenHeight : function() {
-		return ctx.getResources().getDisplayMetrics().heightPixels;
+		return this.getMetrics()[1];
 	},
 	getScreenWidth : function() {
-		return ctx.getResources().getDisplayMetrics().widthPixels;
+		return this.getMetrics()[0];
 	},
 	
 	replaceSelection : function(s, text) {
@@ -10242,28 +10206,20 @@ MapScript.loadModule("Tutorial", {
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.dismiss();
+				self.popup.exit();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 			
+			self.popup = new PopupPage(self.linear, "tutorial.List");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.linear, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		self.popup.onExit = function() {
 			CA.trySave();
 			if (callback) callback();
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
+		};
 		self.refresh();
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "tutorial.List");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	showIntro : function(o, callback) {G.ui(function() {try {
@@ -10413,7 +10369,7 @@ MapScript.loadModule("Tutorial", {
 			self.exit.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (self.popup) self.popup.dismiss();
+				self.popup.exit();
 				//BUG: View显示卡顿，导致可以在dismissed的状态下点击按钮
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -1));
@@ -10433,29 +10389,21 @@ MapScript.loadModule("Tutorial", {
 					self.next();
 					break;
 					case "ending":
-					self.popup.dismiss();
+					self.popup.exit();
 					break;
 				}
 			} catch(e) {erp(e)}}}));
 			
+			self.popup = new PopupPage(self.list, "tutorial.Tutorial");
+			
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.linear);
-		self.popup = new G.PopupWindow(self.list, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setInputMethodMode(G.PopupWindow.INPUT_METHOD_NOT_NEEDED);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		self.popup.onExit = function() {
 			CA.trySave();
 			if (callback) callback();
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
+		};
 		self.init(o);
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "tutorial.Tutorial");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
 	getSettings : function(id) {
@@ -11950,18 +11898,6 @@ MapScript.loadModule("JSONEdit", {
 			
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			self.main.setFocusableInTouchMode(true);
-			self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
-				if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
-					if (JSONEdit.path.length > 1) {
-						JSONEdit.path.pop();
-						JSONEdit.refresh();
-					} else {
-						self.dismiss();
-					}
-				}
-				return false;
-			} catch(e) {return erp(e), true}}}));
 			
 			self.header = new G.LinearLayout(ctx);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -11974,7 +11910,7 @@ MapScript.loadModule("JSONEdit", {
 			self.back.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.back, "button_critical", 2);
 			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.dismiss();
+				self.popup.exit();
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
@@ -12064,41 +12000,68 @@ MapScript.loadModule("JSONEdit", {
 				JSONEdit.list.setFastScrollAlwaysVisible(false);
 			}
 			self.main.addView(JSONEdit.list);
-			self.getContentView = self.getRootView = function() {
-				return self.main;
+			
+			self.onBack = function() {
+				if (JSONEdit.path.length > 1) {
+					JSONEdit.path.pop();
+					JSONEdit.refresh();
+				} else {
+					self.popup.exit();
+				}
 			}
-			self.isShowing = function() {
-				return JSONEdit.edit != null;
-			}
-			self.show = function() {
-				var p = new G.WindowManager.LayoutParams();
-				p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
-				p.flags = 0;
-				p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
-				p.token = ctx.getWindow().getDecorView().getWindowToken();
-				p.format = G.PixelFormat.TRANSLUCENT;
-				p.height = -1;
-				p.width = -1;
-				p.x = 0;
-				p.y = 0;
-				PWM.wm.addView(self.main, p);
-				JSONEdit.edit = self;
-				PWM.add(self, "jsonedit.Main");
-			}
-			self.dismiss = function() {
-				PWM.remove(self);
-				JSONEdit.edit = null;
-				if (JSONEdit.updateListener) JSONEdit.updateListener();
-				PWM.wm.removeViewImmediate(self.main);
+			
+			if (MapScript.host == "Android") {
+				self.popup = new PopupPage(self.main, "jsonedit.Main");
+				self.popup.onBack = self.onBack;
+			} else {
+				self.main.setFocusableInTouchMode(true);
+				self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
+					if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
+						self.onBack();
+					}
+					return false;
+				} catch(e) {return erp(e), true}}}));
+				self.getContentView = self.getRootView = function() {
+					return self.main;
+				}
+				self.isShowing = function() {
+					return JSONEdit.edit != null;
+				}
+				self.enter = function() {
+					var p = new G.WindowManager.LayoutParams();
+					p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
+					p.flags = 0;
+					p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+					p.token = ctx.getWindow().getDecorView().getWindowToken();
+					p.format = G.PixelFormat.TRANSLUCENT;
+					p.height = -1;
+					p.width = -1;
+					p.x = 0;
+					p.y = 0;
+					Common.initEnterAnimation(self.main);
+					PWM.wm.addView(self.main, p);
+					JSONEdit.edit = self;
+					PWM.add(self);
+					PopupPage.pushPage("jsonedit.Main");
+				}
+				self.exit = function() {
+					JSONEdit.edit = null;
+					if (JSONEdit.updateListener) JSONEdit.updateListener();
+					PWM.wm.removeViewImmediate(self.main);
+					PopupPage.popPage("jsonedit.Main");
+				}
+				self.dismiss = function() {
+					self.exit();
+				}
+				self.popup = self;
 			}
 			
 			PWM.registerResetFlag(self, "main");
 		}
-		Common.initEnterAnimation(self.main);
-		self.show();
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	hideEdit : function() {G.ui(function() {try {
-		if (JSONEdit.edit) JSONEdit.edit.dismiss();
+		if (JSONEdit.edit) JSONEdit.edit.exit();
 		JSONEdit.edit = null;
 	} catch(e) {erp(e)}})},
 	showData : function(msg, data, callback) {G.ui(function() {try {
@@ -12188,7 +12151,7 @@ MapScript.loadModule("JSONEdit", {
 			if (callback) {
 				try {
 					callback(JSON.parse(ret.getText()));
-					popup.dismiss();
+					popup.exit();
 				} catch(e) {
 					Common.toast("解析JSON出错\n" + e);
 				}
@@ -12196,12 +12159,8 @@ MapScript.loadModule("JSONEdit", {
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		Common.initEnterAnimation(layout);
-		popup = new G.PopupWindow(layout, -1, -1);
-		Common.applyPopup(popup);
-		popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		popup.setFocusable(true);
-		popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(popup);
+		popup = new PopupPage(layout, "jsonedit.BatchEdit");
+		popup.enter();
 	} catch(e) {erp(e)}})},
 	showNewItem : function self(callback) {
 		if (!self.menu) {
@@ -14158,21 +14117,13 @@ MapScript.loadModule("WSServer", {
 			self.main.addView(self.prompt);
 			self.main.addView(self.bar);
 			
+			self.popup = new PopupPage(self.main, "wsserver.Console");
+			
 			self.cls();
 			PWM.registerResetFlag(self, "main");
 		}
 		if (!WSServer.isConnected()) return Common.toast("请先连接上WSServer");
-		if (self.popup) self.popup.dismiss();
-		self.popup = new G.PopupWindow(self.main, -1, -1);
-		Common.applyPopup(self.popup);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			PWM.remove(self.popup);
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup, "wsserver.Console");
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 });
 
