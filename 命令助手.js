@@ -532,7 +532,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 1, 1],
+	version : [1, 2, 0],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],	
@@ -1367,8 +1367,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			CA.cmd.getText().setSpan(self.spanWatcher, 0, CA.cmd.getText().length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			PWM.observe(function(action) {
-				if (action == "showAll") G.ui(function() {try {
+			PWM.on("showAll", function() {
+				G.ui(function() {try {
 					CA.cmd.setText(CA.cmd.getText());
 				} catch(e) {erp(e)}});
 			});
@@ -1437,13 +1437,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.main.addView(self.bar);
 			
 			CA.gen = new PopupPage(self.main, "ca.Generator");
-			CA.gen.enterAnimation = null;
-			CA.gen.exitAnimation = null;
-			CA.gen.onExit = function() {
+			CA.gen.enterAnimation(null);
+			CA.gen.exitAnimation(null);
+			CA.gen.on("exit", function() {
 				if (PWM.busy) return;
 				CA.screenChangeHook();
 				CA.trySave();
-			}
+			});
 			
 			PWM.registerResetFlag(CA, "con");
 			PWM.registerResetFlag(CA, "cmd");
@@ -3379,7 +3379,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},
 			hidden : function() {
 				try {
-					this.intent = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(this.path));
+					this.intent = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(this.path));
 				} catch(e) {}
 				return !this.intent;
 			}
@@ -3393,7 +3393,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			text : "打开",
 			intent : (function() {
 				try {
-					return new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.fromFile(f), "text/plain");
+					return new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(AndroidBridge.fileToUri(f), "text/plain");
 				} catch(e) {}
 			})(),
 			onclick : function() {
@@ -3411,7 +3411,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			text : "发送",
 			intent : (function() {
 				try {
-					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(f));
+					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(f));
 				} catch(e) {}
 			})(),
 			onclick : function() {
@@ -7797,15 +7797,56 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	}
 });
 
+MapScript.loadModule("EventSender", {
+	init : function(o) {
+		o.on = this.on;
+		o.off = this.off;
+		o.trigger = this.trigger;
+	},
+	on : function(name, f) {
+		if (!this.listener[name]) this.listener[name] = [];
+		if (this.listener[name].indexOf(f) < 0) this.listener[name].push(f);
+		return this;
+	},
+	off : function(name, f) {
+		var i, t;
+		if (this.listener[name]) {
+			if (arguments.length == 1) {
+				delete this.listener[name];
+			} else {
+				i = this.listener[name].indexOf(f);
+				if (i >= 0) this.listener[name].splice(i, 1);
+			}
+		}
+		return this;
+	},
+	trigger : function(name) {
+		var i, a;
+		if (this.listener[name]) {
+			a = this.listener[name];
+			for (i = a.length - 1; i >= 0; i--) {
+				a[i].apply(this, arguments);
+			}
+		}
+		return this;
+	}
+});
+
 MapScript.loadModule("PWM", {
 	windows : [],
 	floats : [],
 	popups : [],
-	listeners : [],
+	listener : {},
 	resetFlags : [],
 	intentBack : false,
 	busy : false,
 	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
+	onCreate : function() {
+		EventSender.init(this);
+	},
+	initialize : function() {
+		
+	},
 	onResume : function() {
 		if (this.intentBack) {
 			this.showAll();
@@ -7826,15 +7867,15 @@ MapScript.loadModule("PWM", {
 			PWM.wm.removeViewImmediate(v);
 			PWM.wm.addView(v, wp);
 		});
-		this._notifyListeners("add", w);
+		this.trigger("add", w);
 	},
 	addFloat : function(w) {
 		if (this.floats.indexOf(w) < 0) this.floats.push(w);
-		this._notifyListeners("addFloat", w);
+		this.trigger("addFloat", w);
 	},
 	addPopup : function(w) {
 		if (this.popups.indexOf(w) < 0) this.popups.push(w);
-		this._notifyListeners("addPopup", w);
+		this.trigger("addPopup", w);
 	},
 	hideAll : function() {
 		var v;
@@ -7846,7 +7887,7 @@ MapScript.loadModule("PWM", {
 			v.getRootView().setVisibility(G.View.GONE);
 		});
 		Common.hideIME();
-		this._notifyListeners("hideAll");
+		this.trigger("hideAll");
 	},
 	showAll : function() {
 		var v;
@@ -7856,7 +7897,7 @@ MapScript.loadModule("PWM", {
 			if (!v) return;
 			v.getRootView().setVisibility(G.View.VISIBLE);
 		});
-		this._notifyListeners("showAll");
+		this.trigger("showAll");
 	},
 	dismissAll : function() {
 		var v;
@@ -7866,7 +7907,7 @@ MapScript.loadModule("PWM", {
 			e.dismiss();
 		});
 		this.busy = false;
-		this._notifyListeners("dismissAll");
+		this.trigger("dismissAll");
 	},
 	dismissFloat : function() {
 		var v;
@@ -7876,7 +7917,7 @@ MapScript.loadModule("PWM", {
 			e.dismiss();
 		});
 		this.busy = false;
-		this._notifyListeners("dismissFloat");
+		this.trigger("dismissFloat");
 	},
 	dismissPopup : function() {
 		var v;
@@ -7886,7 +7927,7 @@ MapScript.loadModule("PWM", {
 			e.dismiss();
 		});
 		this.busy = false;
-		this._notifyListeners("dismissPopup");
+		this.trigger("dismissPopup");
 	},
 	getCount : function() {
 		var s = 0;
@@ -7918,20 +7959,6 @@ MapScript.loadModule("PWM", {
 			prop : prop,
 			value : value
 		});
-	},
-	observe : function(f) {
-		this.unobserve(f);
-		this.listeners.push(f);
-	},
-	unobserve : function(f) {
-		var t = this.listeners.indexOf(f);
-		if (t >= 0) this.listeners.splice(t, 1);
-	},
-	_notifyListeners : function() {
-		var args = arguments;
-		this.listeners.forEach(function(e) {
-			e.apply(null, args);
-		});
 	}
 });
 
@@ -7940,8 +7967,9 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 		this.mainView = mainView;
 		this.name = name || "Unnamed";
 		this.modal = modal;
-		this.enterAnimation = r.fadeInAnimation;
-		this.exitAnimation = r.fadeOutAnimation;
+		this._enterAnimation = r.fadeInAnimation;
+		this._exitAnimation = r.fadeOutAnimation;
+		this.listener = {};
 		this.init();
 	}
 	r.prototype = {
@@ -7949,7 +7977,7 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 			var self = this;
 			this.popup = new G.PopupWindow(this.mainView, -1, -1);
 			this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-				if (self.onExit) self.onExit();
+				r.popPage(self.popup);
 				self.showing = false;
 			} catch(e) {erp(e)}}}));
 			if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
@@ -7958,44 +7986,117 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 			Common.applyPopup(this.popup);
 		},
 		enter : function(noAnimation) {
+			var self = this;
 			if (this.showing) this.popup.dismiss();
 			this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
-			if (!noAnimation && this.enterAnimation) {
-				this.enterAnimation(this.mainView, function() {
-					if (this.onEnter) this.onEnter();
+			if (!noAnimation && this._enterAnimation) {
+				this._enterAnimation(this.mainView, function() {
+					r.pushPage(self.popup, self.name, self);
 				});
 			} else {
-				if (this.onEnter) this.onEnter();
+				r.pushPage(this.popup, this.name, this);
 			}
-			PWM.add(this.popup);
 			this.showing = true;
+			return this;
 		},
 		exit : function(noAnimation) {
 			var self = this;
-			if (!this.showing) return;
-			if (!noAnimation && this.exitAnimation) {
-				this.exitAnimation(this.mainView, function() {
+			if (!this.showing) return this;
+			if (!noAnimation && this._exitAnimation) {
+				this._exitAnimation(this.mainView, function() {
 					self.popup.dismiss();
 				});
 			} else {
 				this.popup.dismiss();
 			}
+			return this;
 		},
 		resizable : function() {
 			return false;
 		},
 		show : function(noAnimation) {
-			this.enter(noAnimation);
+			return this.enter(noAnimation);
 		},
 		hide : function(noAnimation) {
-			this.exit(noAnimation);
+			return this.exit(noAnimation);
 		},
 		dismiss : function() {
-			this.exit(true);
+			return this.exit(true);
+		},
+		requestShow : function() {
+			this.mainView.getRootView().setVisibility(G.View.VISIBLE);
+			return this;
+		},
+		requestHide : function() {
+			this.mainView.getRootView().setVisibility(G.View.GONE);
+			return this;
+		},
+		enterAnimation : function(f) {
+			this._enterAnimation = f;
+			return this;
+		},
+		exitAnimation : function(f) {
+			this._exitAnimation = f;
+			return this;
 		}
 	};
-	r.pushPage = function(pageName) {}
-	r.popPage = function(pageName) {}
+	EventSender.init(r.prototype);
+	r.visible = true;
+	r.stack = [];
+	r.listener = {};
+	r.pushPage = function(token, name, page) {
+		var t;
+		if (this.stack.length && this.stack[this.stack.length - 1].visible) {
+			this.stack[this.stack.length - 1].page.trigger("pause");
+		}
+		this.stack.push(t = {
+			token : token,
+			name : name,
+			page : page,
+			visible : true
+		});
+		page.trigger("enter");
+		this.trigger("pushPage", name, page);
+	}
+	r.popPage = function(token) {
+		var i;
+		for (i = this.stack.length - 1; i >= 0; i--) {
+			if (this.stack[i].token != token) continue;
+			this.stack.splice(i, this.stack.length - i).forEach(function(e) {
+				e.page.trigger("exit");
+			}, this);
+			if (i > 0 && this.visible) {
+				this.stack[i - 1].page.trigger("resume");
+			}
+			break;
+		}
+		this.trigger("popPage");
+	}
+	r.show = function() {
+		var i, e;
+		if (this.visible) return;
+		this.stack[this.stack.length - 1].page.trigger("resume");
+		for (i = 0; i < this.stack.length ; i++) {
+			e = this.stack[i];
+			if (e.visible) continue;
+			e.page.requestShow();
+			e.visible = true;
+		}
+		this.trigger("show");
+	}
+	r.hide = function() {
+		var i, e;
+		if (!this.visible) return;
+		this.stack[this.stack.length - 1].page.trigger("pause");
+		for (i = this.stack.length - 1; i >= 0; i--) {
+			e = this.stack[i];
+			if (!e.visible) continue;
+			e.page.requestHide();
+			e.visible = false;
+		}
+		this.trigger("hide");
+	}
+	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
 		trans = new G.AlphaAnimation(0, 1);
 		trans.setDuration(150);
@@ -8366,7 +8467,7 @@ MapScript.loadModule("Common", {
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new PopupPage(frame, "common.Dialog", modal);
-		popup.onExit = onExit;
+		if (onExit) popup.on("exit", onExit);
 		popup.enter();
 		return popup;
 	},
@@ -9255,7 +9356,7 @@ MapScript.loadModule("Common", {
 					fs.println(t);
 					fs.close();
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.fromFile(file)));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(file)));
 					} catch(e) {
 						Common.toast("文件已生成于" + file.getAbsolutePath());
 					}
@@ -12009,24 +12110,19 @@ MapScript.loadModule("JSONEdit", {
 					self.popup.exit();
 				}
 			}
+			EventSender.init(self);
+			self.listener = {};
 			
 			if (MapScript.host == "Android") {
 				self.popup = new PopupPage(self.main, "jsonedit.Main");
-				self.popup.onBack = self.onBack;
 			} else {
 				self.main.setFocusableInTouchMode(true);
 				self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
 					if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
-						self.onBack();
+						self.trigger("back");
 					}
 					return false;
 				} catch(e) {return erp(e), true}}}));
-				self.getContentView = self.getRootView = function() {
-					return self.main;
-				}
-				self.isShowing = function() {
-					return JSONEdit.edit != null;
-				}
 				self.enter = function() {
 					var p = new G.WindowManager.LayoutParams();
 					p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
@@ -12041,20 +12137,20 @@ MapScript.loadModule("JSONEdit", {
 					Common.initEnterAnimation(self.main);
 					PWM.wm.addView(self.main, p);
 					JSONEdit.edit = self;
-					PWM.add(self);
-					PopupPage.pushPage("jsonedit.Main");
+					PopupPage.pushPage(self, "jsonedit.Main", self);
 				}
 				self.exit = function() {
 					JSONEdit.edit = null;
 					if (JSONEdit.updateListener) JSONEdit.updateListener();
 					PWM.wm.removeViewImmediate(self.main);
-					PopupPage.popPage("jsonedit.Main");
+					PopupPage.popPage(self);
 				}
 				self.dismiss = function() {
 					self.exit();
 				}
 				self.popup = self;
 			}
+			self.popup.on("back", self.onBack);
 			
 			PWM.registerResetFlag(self, "main");
 		}
@@ -12932,7 +13028,7 @@ MapScript.loadModule("MCAdapter", {
 				return;
 			}
 			this.unpackAssets("adapter/ModPE.js", f);
-			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
+			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			ctx.startActivity(i);
 			this.askShortcut("BlockLauncher", i.getComponent().getPackageName());
 		}
@@ -12949,7 +13045,7 @@ MapScript.loadModule("MCAdapter", {
 				return;
 			}
 			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
-			i.setDataAndType(android.net.Uri.fromFile(f), "application/x-javascript");
+			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			ctx.startActivity(i);
 			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
 			Common.showTextDialog("因为多玩我的世界盒子采用了沙盒机制，该适配器可能无法与本体连接。");
@@ -12964,7 +13060,7 @@ MapScript.loadModule("MCAdapter", {
 				var i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
 				i.setClassName("com.zhekasmirnov.innercore", "zhekasmirnov.launcher.core.ExtractModActivity");
 				this.unpackAssets("adapter/InnerCore.icmod", f);
-				i.setDataAndType(android.net.Uri.fromFile(f), "application/icmod");
+				i.setDataAndType(AndroidBridge.fileToUri(f), "application/icmod");
 				ctx.startActivity(i);
 			} else if (!isNaN(ver)) {
 				var fs = [
@@ -13429,25 +13525,53 @@ MapScript.loadModule("AndroidBridge", {
 		this.intentCallback[intent.hashCode()] = callback;
 		ScriptActivity.startActivityForResult(intent, intent.hashCode());
 	},
-	uriToFile : function(uri) {
-		/*
-		 作者：Thresh0ld
-		 链接：http://www.jianshu.com/p/42de16d76721
-		 來源：简书
-		*/
+	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
+		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitkat = android.os.Build.VERSION.SDK_INT >= 19, docs;
 		if (uri.getScheme().equalsIgnoreCase("content")) {
-			var cursor;
+			if (isKitKat && android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
+				if (String(uri.getAuthority()) == "com.android.externalstorage.documents") {
+					docs = String(android.provider.DocumentsContract.getDocumentId(uri)).split(":");
+					if (docs[0] == "primary") {
+						return android.os.Environment.getExternalStorageDirectory() + "/" + split[1];
+					}
+				} else if (String(uri.getAuthority()) == "com.android.providers.downloads.documents") {
+					uri = android.content.ContentUris.withAppendedId(
+						android.net.Uri.parse("content://downloads/public_downloads"),
+						parseInt(android.provider.DocumentsContract.getDocumentId(uri))
+					);
+				} else if (String(uri.getAuthority()) ==  "com.android.providers.media.documents") {
+					docs = String(android.provider.DocumentsContract.getDocumentId(uri)).split(":");
+					if (docs[0] == "image") {
+						uri = android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+					} else if (docs[0] == "video") {
+						uri = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+					} else if (docs[0] == "audio") {
+						uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+					}
+					selection = "_id=?";
+					selectionArgs = [split[1]];
+				}
+			}
 			try {
-				cursor = ctx.getContentResolver().query(uri, ["_data"], null, null, null);
-				var column_index = cursor.getColumnIndexOrThrow("_data");
-				if (cursor.moveToFirst()) {
-					return String(cursor.getString(column_index));
+				cursor = ctx.getContentResolver().query(uri, ["_data"], selection, selectionArgs, null);
+				if (cursor && cursor.moveToFirst()) {
+					r = String(cursor.getString(cursor.getColumnIndexOrThrow("_data")));
 				}
 			} catch(e) {}
+			if (cursor) cursor.close();
+			return r;
 		} else if (uri.getScheme().equalsIgnoreCase("file")) {
 			return String(uri.getPath());
 		}
 		return null;
+	},
+	fileToUri : function(file) {
+		file = file instanceof java.io.File ? file : new java.io.File(file);
+		if (android.os.Build.VERSION.SDK_INT >= 24 && MapScript.host == "Android") {
+			return ScriptActivity.fileToUri(file);
+		} else {
+			return android.net.Uri.fromFile(file);
+		}
 	},
 	selectFile : function(mimeType, callback) {
 		var i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
