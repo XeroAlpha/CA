@@ -28,6 +28,6 @@
 * 宣传片： [bilibili:av14938870](http://www.bilibili.com/video/av14938870)
 * [正式版下载链接](http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919)
 
-## 生成b
+## 生成
 在当前目录下运行 `node script_export.js` 即可。
 文件会导出至 `/export` 。

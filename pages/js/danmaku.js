@@ -116,6 +116,7 @@ var Danmaku = {
 		node.style.top = y + "px";
 		node.style.left = this.node.clientWidth + "px";
 		node.style.whiteSpace = "nowrap";
+		node.style.willChange = "transform";
 		if (size) node.style.fontSize = size;
 		if (color) node.style.color = color;
 		if (f) f(node);

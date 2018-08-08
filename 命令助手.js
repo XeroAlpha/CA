@@ -586,7 +586,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			screenName = self.l;
 		}
 		if (!this.fine) return;
-		if (MapScript.host != "BlockLauncher" || !this.settings.autoHideIcon || (this.settings.topIcon && PWM.getCount() > 0)) return this.showIcon();
+		if (MapScript.host != "BlockLauncher" || !this.settings.autoHideIcon || (this.settings.topIcon && PopupPage.getCount() > 0)) return this.showIcon();
 		if (screenName == "chat_screen" || screenName == "command_block_screen" || (this.cmdstr.length && screenName == "hud_screen")) {
 			this.showIcon();
 		} else {
@@ -828,7 +828,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.layoutChanged(true);
 			} catch(e) {erp(e)}}}));
 			self.longClick = new java.lang.Runnable({run : function() {try {
-				if (self.longClicked && (PWM.getCount() == 0 || !self.lastState)) CA.showQuickBar();
+				if (self.longClicked && (PopupPage.getCount() == 0 || !self.lastState)) CA.showQuickBar();
 				self.longClicked = false;
 			} catch(e) {erp(e)}}});
 			self.layoutChanged = function(updateIcon) {
@@ -893,11 +893,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showGen(CA.settings.noAnimation);
 					CA.hideIcon();
 					if (CA.paste) CA.hidePaste();
-				} else if (PWM.getCount() > 0) {
+				} else if (PopupPage.getCount() > 0) {
 					if (self.lastState = !self.lastState) {
-						PWM.showAll();
+						PopupPage.show();
 					} else {
-						PWM.hideAll();
+						PopupPage.hide();
 					}
 				} else {
 					CA.showGen(CA.settings.noAnimation);
@@ -908,7 +908,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (CA.settings.iconAlpha) {
 					self.view.setAlpha(CA.settings.iconAlpha / 10);
 				} else {
-					self.view.setAlpha(self.lastState && PWM.getCount() > 0 ? 0.3 : 0.7);
+					self.view.setAlpha(self.lastState && PopupPage.getCount() > 0 ? 0.3 : 0.7);
 				}
 			}
 			self.refreshPos = function() {
@@ -1440,7 +1440,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.gen.enterAnimation(null);
 			CA.gen.exitAnimation(null);
 			CA.gen.on("exit", function() {
-				if (PWM.busy) return;
+				if (PopupPage.isBusy()) return;
 				CA.screenChangeHook();
 				CA.trySave();
 			});
@@ -3440,7 +3440,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	},
 	
 	resetGUI : function() {
-		PWM.dismissAll();
+		PopupPage.dismiss();
 		PWM.dismissFloat();
 		PWM.dismissPopup();
 		PWM.reset();
@@ -7802,6 +7802,7 @@ MapScript.loadModule("EventSender", {
 		o.on = this.on;
 		o.off = this.off;
 		o.trigger = this.trigger;
+		o.clearListeners = this.clearListeners;
 	},
 	on : function(name, f) {
 		if (!this.listener[name]) this.listener[name] = [];
@@ -7829,11 +7830,16 @@ MapScript.loadModule("EventSender", {
 			}
 		}
 		return this;
+	},
+	clearListeners : function() {
+		var i;
+		for (i in this.listener) {
+			delete this.listener[i];
+		}
 	}
 });
 
 MapScript.loadModule("PWM", {
-	windows : [],
 	floats : [],
 	popups : [],
 	listener : {},
@@ -7845,19 +7851,20 @@ MapScript.loadModule("PWM", {
 		EventSender.init(this);
 	},
 	initialize : function() {
-		
+		PopupPage.on("newPopup", function() {
+			PWM.onPageAdd();
+		});
 	},
 	onResume : function() {
 		if (this.intentBack) {
-			this.showAll();
+			PopupPage.show();
 			this.intentBack = false;
 			return true;
 		}
 		return false;
 	},
-	add : function(w) {
-		var v, wp;
-		if (this.windows.indexOf(w) < 0) this.windows.push(w);
+	onPageAdd : function() {
+		var v;
 		this.floats.forEach(function(e) {
 			if (!e.isShowing()) return;
 			v = e.getContentView();
@@ -7867,7 +7874,6 @@ MapScript.loadModule("PWM", {
 			PWM.wm.removeViewImmediate(v);
 			PWM.wm.addView(v, wp);
 		});
-		this.trigger("add", w);
 	},
 	addFloat : function(w) {
 		if (this.floats.indexOf(w) < 0) this.floats.push(w);
@@ -7876,38 +7882,6 @@ MapScript.loadModule("PWM", {
 	addPopup : function(w) {
 		if (this.popups.indexOf(w) < 0) this.popups.push(w);
 		this.trigger("addPopup", w);
-	},
-	hideAll : function() {
-		var v;
-		(this.windows = this.windows.filter(function(e) {
-			return e.isShowing();
-		})).forEach(function(e) {
-			v = e.getContentView();
-			if (!v) return;
-			v.getRootView().setVisibility(G.View.GONE);
-		});
-		Common.hideIME();
-		this.trigger("hideAll");
-	},
-	showAll : function() {
-		var v;
-		this.windows.forEach(function(e) {
-			if (!e.isShowing()) return;
-			v = e.getContentView();
-			if (!v) return;
-			v.getRootView().setVisibility(G.View.VISIBLE);
-		});
-		this.trigger("showAll");
-	},
-	dismissAll : function() {
-		var v;
-		this.busy = true;
-		this.windows.forEach(function(e) {
-			if (!e.isShowing()) return;
-			e.dismiss();
-		});
-		this.busy = false;
-		this.trigger("dismissAll");
 	},
 	dismissFloat : function() {
 		var v;
@@ -7929,16 +7903,11 @@ MapScript.loadModule("PWM", {
 		this.busy = false;
 		this.trigger("dismissPopup");
 	},
-	getCount : function() {
-		var s = 0;
-		this.windows.forEach(function(e) {
-			if (e.isShowing()) s++;
-		});
-		return s;
-	},
 	reset : function() {
-		this._notifyListeners("reset");
-		this.windows.length = this.floats.length = this.popups.length = this.listeners.length = 0;
+		this.trigger("reset");
+		this.floats.length = this.popups.length;
+		this.clearListeners();
+		PopupPage.reset();
 	},
 	resetUICache : function() {
 		this.resetFlags.forEach(function(e) {
@@ -8046,6 +8015,7 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 	r.listener = {};
 	r.pushPage = function(token, name, page) {
 		var t;
+		if (this.busy) return;
 		if (this.stack.length && this.stack[this.stack.length - 1].visible) {
 			this.stack[this.stack.length - 1].page.trigger("pause");
 		}
@@ -8057,9 +8027,11 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 		});
 		page.trigger("enter");
 		this.trigger("pushPage", name, page);
+		this.trigger("newPopup");
 	}
 	r.popPage = function(token) {
 		var i;
+		if (this.busy) return;
 		for (i = this.stack.length - 1; i >= 0; i--) {
 			if (this.stack[i].token != token) continue;
 			this.stack.splice(i, this.stack.length - i).forEach(function(e) {
@@ -8082,6 +8054,7 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 			e.page.requestShow();
 			e.visible = true;
 		}
+		this.visible = true;
 		this.trigger("show");
 	}
 	r.hide = function() {
@@ -8094,7 +8067,31 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 			e.page.requestHide();
 			e.visible = false;
 		}
+		this.visible = false;
 		this.trigger("hide");
+	}
+	r.dismiss = function() {
+		var i, e;
+		this.busy = true;
+		for (i = this.stack.length - 1; i >= 0; i--) {
+			e = this.stack[i];
+			e.page.exit();
+			e.page.trigger("exit");
+		}
+		this.stack.length = 0;
+		this.busy = false;
+		this.trigger("dismiss");
+	}
+	r.reset = function() {
+		this.dismiss();
+		this.trigger("reset");
+		this.clearListeners();
+	}
+	r.isBusy = function() {
+		return this.busy;
+	}
+	r.getCount = function() {
+		return this.stack.length;
 	}
 	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
@@ -12148,6 +12145,12 @@ MapScript.loadModule("JSONEdit", {
 				self.dismiss = function() {
 					self.exit();
 				}
+				self.requestShow = function() {
+					self.main.setVisibility(G.View.VISIBLE);
+				}
+				self.requestHide = function() {
+					self.main.setVisibility(G.View.GONE);
+				}
 				self.popup = self;
 			}
 			self.popup.on("back", self.onBack);
@@ -13318,8 +13321,8 @@ MapScript.loadModule("AndroidBridge", {
 		if (java.lang.Long.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException();
 	},
 	callHide : function() {
-		if (PWM.getCount() > 0) {
-			PWM.hideAll();
+		if (PopupPage.getCount() > 0) {
+			PopupPage.hide();
 			PWM.intentBack = true;
 		}
 	},
