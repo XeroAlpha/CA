@@ -24,9 +24,11 @@ function help() {
 }
 
 function addVersion(content, desp) {
+	var version = /version : \[(.*)\]/.exec(content)[1];
+	version = JSON.parse("[" + version + "]");
 	versions.push({
 		"version": curdate,
-		"belongs": /version : "(.*)"/.exec(content)[1],
+		"belongs": version.join("."),
 		"time": Date.now(),
 		"info": desp
 	});

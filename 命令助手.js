@@ -1367,11 +1367,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			CA.cmd.getText().setSpan(self.spanWatcher, 0, CA.cmd.getText().length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			PWM.on("showAll", function() {
-				G.ui(function() {try {
-					CA.cmd.setText(CA.cmd.getText());
-				} catch(e) {erp(e)}});
-			});
 			self.bar.addView(CA.cmd);
 			
 			self.clear = new G.TextView(ctx);
@@ -1443,6 +1438,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (PopupPage.isBusy()) return;
 				CA.screenChangeHook();
 				CA.trySave();
+			});
+			CA.gen.on("resume", function() {
+				G.ui(function() {try {
+					CA.cmd.setText(CA.cmd.getText());
+				} catch(e) {erp(e)}});
 			});
 			
 			PWM.registerResetFlag(CA, "con");
@@ -3379,7 +3379,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},
 			hidden : function() {
 				try {
-					this.intent = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(this.path));
+					this.intent = new android.content.Intent(android.content.Intent.ACTION_SEND)
+						.setType("text/plain")
+						.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(this.path))
+						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				} catch(e) {}
 				return !this.intent;
 			}
@@ -3393,7 +3396,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			text : "打开",
 			intent : (function() {
 				try {
-					return new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(AndroidBridge.fileToUri(f), "text/plain");
+					return new android.content.Intent(android.content.Intent.ACTION_VIEW)
+						.setDataAndType(AndroidBridge.fileToUri(f), "text/plain")
+						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				} catch(e) {}
 			})(),
 			onclick : function() {
@@ -3411,7 +3416,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			text : "发送",
 			intent : (function() {
 				try {
-					return new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(f));
+					return new android.content.Intent(android.content.Intent.ACTION_SEND)
+						.setType("text/plain")
+						.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(f))
+						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				} catch(e) {}
 			})(),
 			onclick : function() {
@@ -4118,7 +4126,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 										callback : function(id) {
 											if (id != 0) return;
 											try {
-												ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.description)));
+												ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.description))
+													.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 												return;
 											} catch(e) {}
 											Common.toast("打开链接失败");
@@ -4752,7 +4761,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					case 1:
 					t = "https://www.coolapk.com/game/190152";
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t)));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
+							.setType("text/plain")
+							.putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.setClipboardText(t);
 						Common.toast("下载链接已复制到剪贴板");
@@ -4760,7 +4772,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					case 2:
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("QQ群号已复制至剪贴板");
 						Common.setClipboardText("207913610");
@@ -4768,7 +4781,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					case 3:
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.showWebViewDialog({
 							url : "http://projectxero.mikecrm.com/CDOsI2C"
@@ -6186,7 +6200,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				"查看中文Wiki" : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.showWebViewDialog({
 							url : "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"
@@ -6195,7 +6210,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				"加入我们..." : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("QQ群号已复制至剪贴板");
 						Common.setClipboardText("207913610");
@@ -6203,7 +6219,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				"意见反馈" : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C")));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.showWebViewDialog({
 							url : "http://projectxero.mikecrm.com/CDOsI2C"
@@ -7931,7 +7948,7 @@ MapScript.loadModule("PWM", {
 	}
 });
 
-MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的默认实现
+MapScript.loadModule("PopupPage", (function() {
 	var r = function(mainView, name, modal) {
 		this.mainView = mainView;
 		this.name = name || "Unnamed";
@@ -7941,157 +7958,384 @@ MapScript.loadModule("PopupPage", (function() { //非Android宿主情况下的�
 		this.listener = {};
 		this.init();
 	}
-	r.prototype = {
-		init : function() {
-			var self = this;
-			this.popup = new G.PopupWindow(this.mainView, -1, -1);
-			this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-				r.popPage(self.popup);
-				self.showing = false;
-			} catch(e) {erp(e)}}}));
-			if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-			this.popup.setFocusable(true);
-			this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-			Common.applyPopup(this.popup);
-		},
-		enter : function(noAnimation) {
-			var self = this;
-			if (this.showing) this.popup.dismiss();
-			this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
-			if (!noAnimation && this._enterAnimation) {
-				this._enterAnimation(this.mainView, function() {
-					r.pushPage(self.popup, self.name, self);
-				});
-			} else {
-				r.pushPage(this.popup, this.name, this);
+	if (MapScript.host == "Android") {
+		r.defaultHolder = ScriptActivity.createFrameLayout({
+			dispatchKeyEvent : function(event) {
+				var state = r.defaultHolder.getKeyDispatcherState();
+				if (event.getKeyCode() == event.KEYCODE_BACK) {
+					if (!state) return 0;
+					if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+						state.startTracking(event, this);
+						return 1;
+					} else if (event.getAction() == event.ACTION_UP) {
+						if (state.isTracking(event) && !event.isCanceled()) {
+							r.back(r.defaultHolder);
+							return 1;
+						}
+					}
+					return 0;
+				} else {
+					return 0;
+				}
+			},
+			dispatchTouchEvent : function(event) {
+				return 0;
 			}
-			this.showing = true;
-			return this;
-		},
-		exit : function(noAnimation) {
-			var self = this;
-			if (!this.showing) return this;
-			if (!noAnimation && this._exitAnimation) {
-				this._exitAnimation(this.mainView, function() {
-					self.popup.dismiss();
-				});
-			} else {
-				this.popup.dismiss();
+		});
+		r.floatHolder = ScriptActivity.createFrameLayout({
+			dispatchKeyEvent : function(event) {
+				var state = r.floatHolder.getKeyDispatcherState();
+				if (event.getKeyCode() == event.KEYCODE_BACK) {
+					if (!state) return 0;
+					if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+						state.startTracking(event, this);
+						return 1;
+					} else if (event.getAction() == event.ACTION_UP) {
+						if (state.isTracking(event) && !event.isCanceled()) {
+							r.back(r.floatHolder);
+							return 1;
+						}
+					}
+					return 0;
+				} else {
+					return 0;
+				}
+			},
+			dispatchTouchEvent : function(event) {
+				return 0;
 			}
-			return this;
-		},
-		resizable : function() {
-			return false;
-		},
-		show : function(noAnimation) {
-			return this.enter(noAnimation);
-		},
-		hide : function(noAnimation) {
-			return this.exit(noAnimation);
-		},
-		dismiss : function() {
-			return this.exit(true);
-		},
-		requestShow : function() {
-			this.mainView.getRootView().setVisibility(G.View.VISIBLE);
-			return this;
-		},
-		requestHide : function() {
-			this.mainView.getRootView().setVisibility(G.View.GONE);
-			return this;
-		},
-		enterAnimation : function(f) {
-			this._enterAnimation = f;
-			return this;
-		},
-		exitAnimation : function(f) {
-			this._exitAnimation = f;
-			return this;
+		});
+		r.defaultVisible = false;
+		r.floatVisible = false;
+		r.defaultStack = [];
+		r.floatStack = [];
+		r.visible = true;
+		r.prototype = {
+			init : function() {},
+			enter : function(noAnimation) {
+				var self = this;
+				r.showPage(this);
+				if (!noAnimation && this._enterAnimation) {
+					this._enterAnimation(this.mainView, function() {
+						r.pushPage(self.name, self);
+					});
+				} else {
+					r.pushPage(this.name, this);
+				}
+				return this;
+			},
+			exit : function(noAnimation) {
+				var self = this;
+				if (!this.currentHolder) return this;
+				if (!noAnimation && this._exitAnimation) {
+					this._exitAnimation(this.mainView, function() {
+						self.dismiss();
+					});
+				} else {
+					this.dismiss();
+				}
+				return this;
+			},
+			resizable : function() {
+				return this.currentHolder == r.defaultHolder;
+			},
+			dismiss : function() {
+				if (!this.currentHolder) return this;
+				r.popPage(this);
+				r.hidePage(this);
+				return this;
+			},
+			requestShow : function() {
+				this.mainView.setVisibility(G.View.VISIBLE);
+				return this;
+			},
+			requestHide : function() {
+				this.mainView.setVisibility(G.View.GONE);
+				return this;
+			}
+		};
+		r.showView = function(view) {
+			var p = new G.WindowManager.LayoutParams();
+			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
+			p.flags |= p.FLAG_NOT_TOUCH_MODAL;
+			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+			p.token = ctx.getWindow().getDecorView().getWindowToken();
+			p.format = G.PixelFormat.TRANSLUCENT;
+			p.height = -1;
+			p.width = -1;
+			p.x = 0;
+			p.y = 0;
+			PWM.wm.addView(view, p);
+		};
+		r.hideView = function(view) {
+			PWM.wm.removeViewImmediate(view);
+		};
+		r.back = function(source) {
+			var stack = source == r.floatHolder ? r.floatStack : r.defaultStack, cancelEvent = false;
+			if (stack.length) {
+				stack[stack.length - 1].page.trigger("back", function() {
+					cancelEvent = true;
+				});
+				if (!cancelEvent) stack[stack.length - 1].page.exit();
+			}
 		}
+		r.showPage = function(page) {
+			if (page.currentHolder) page.currentHolder.removeView(page.mainView);
+			page.currentHolder = this.visible ? this.defaultHolder : this.floatHolder;
+			page.currentHolder.addView(page.mainView);
+			if (this.visible && !this.defaultVisible) {
+				this.showView(this.defaultHolder);
+				this.defaultVisible = true;
+				this.trigger("newPopup");
+			} else if (!this.visible && !this.floatVisible) {
+				this.showView(this.floatHolder);
+				this.floatVisible = true;
+				this.trigger("newPopup");
+			}
+			page.showing = true;
+		}
+		r.hidePage = function(page) {
+			var stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
+			page.currentHolder.removeView(page.mainView);
+			if (stack.length == 0) {
+				if (page.currentHolder == this.defaultHolder && this.defaultVisible) {
+					this.hideView(this.defaultHolder);
+					this.defaultVisible = false;
+					if (!this.visible) this.show();
+				} else if (page.currentHolder == this.floatHolder && this.floatVisible) {
+					this.hideView(this.floatHolder);
+					this.floatVisible = false;
+				}
+			}
+			page.showing = false;
+		}
+		r.pushPage = function(name, page) {
+			var t, stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
+			if (this.busy) return;
+			if (stack.length && stack[stack.length - 1].visible) {
+				stack[stack.length - 1].page.trigger("pause");
+			}
+			stack.push(t = {
+				name : name,
+				page : page
+			});
+			page.trigger("enter");
+			this.trigger("pushPage", name, page);
+		}
+		r.popPage = function(page) {
+			var i, stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
+			if (this.busy) return;
+			for (i = stack.length - 1; i >= 0; i--) {
+				if (stack[i].page != page) continue;
+				stack.splice(i, stack.length - i).forEach(function(e) {
+					e.page.trigger("exit");
+				}, this);
+				if (i > 0 && this.visible) {
+					stack[i - 1].page.trigger("resume");
+				}
+				break;
+			}
+			this.trigger("popPage", page);
+		}
+		r.show = function() {
+			var i, e;
+			if (this.visible) return;
+			this.visible = true;
+			if (this.floatStack.length) {
+				this.hideView(this.floatHolder);
+				this.floatVisible = false;
+				for (i = 0; i < this.floatStack.length; i++) {
+					this.showPage(this.floatStack[i].page);
+					this.defaultStack.push(this.floatStack[i]);
+				}
+				this.floatStack.length = 0;
+			} else {
+				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
+			}
+			this.defaultHolder.setVisibility(G.View.VISIBLE);
+			this.trigger("show");
+		}
+		r.hide = function() {
+			var i, e;
+			if (!this.visible) return;
+			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
+			this.defaultHolder.setVisibility(G.View.GONE);
+			this.visible = false;
+			this.trigger("hide");
+		}
+		r.dismiss = function() {
+			var i, e;
+			this.busy = true;
+			for (i = this.floatStack.length - 1; i >= 0; i--) {
+				e = this.floatStack[i];
+				e.page.trigger("exit");
+				this.hidePage(e.page);
+			}
+			for (i = this.defaultStack.length - 1; i >= 0; i--) {
+				e = this.defaultStack[i];
+				e.page.trigger("exit");
+				this.hidePage(e.page);
+			}
+			this.defaultStack.length = this.floatStack.length = 0;
+			this.busy = false;
+			this.trigger("dismiss");
+		}
+		r.reset = function() {
+			this.dismiss();
+			this.trigger("reset");
+			this.clearListeners();
+		}
+		r.getCount = function() {
+			return this.defaultStack.length + this.floatStack.length;
+		}
+	} else {
+		r.prototype = {
+			init : function() {
+				var self = this;
+				this.popup = new G.PopupWindow(this.mainView, -1, -1);
+				this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+					r.popPage(self);
+					self.showing = false;
+				} catch(e) {erp(e)}}}));
+				if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+				this.popup.setFocusable(true);
+				this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+				Common.applyPopup(this.popup);
+			},
+			enter : function(noAnimation) {
+				var self = this;
+				if (this.showing) this.popup.dismiss();
+				this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
+				if (!noAnimation && this._enterAnimation) {
+					this._enterAnimation(this.mainView, function() {
+						r.pushPage(self.name, self);
+					});
+				} else {
+					r.pushPage(this.name, this);
+				}
+				this.showing = true;
+				return this;
+			},
+			exit : function(noAnimation) {
+				var self = this;
+				if (!this.showing) return this;
+				if (!noAnimation && this._exitAnimation) {
+					this._exitAnimation(this.mainView, function() {
+						self.popup.dismiss();
+					});
+				} else {
+					this.popup.dismiss();
+				}
+				return this;
+			},
+			resizable : function() {
+				return false;
+			},
+			dismiss : function() {
+				return this.exit(true);
+			},
+			requestShow : function() {
+				this.mainView.getRootView().setVisibility(G.View.VISIBLE);
+				return this;
+			},
+			requestHide : function() {
+				this.mainView.getRootView().setVisibility(G.View.GONE);
+				return this;
+			}
+		};
+		r.visible = true;
+		r.stack = [];
+		r.pushPage = function(name, page) {
+			var t;
+			if (this.busy) return;
+			if (this.stack.length && this.stack[this.stack.length - 1].visible) {
+				this.stack[this.stack.length - 1].page.trigger("pause");
+			}
+			this.stack.push(t = {
+				name : name,
+				page : page,
+				visible : true
+			});
+			page.trigger("enter");
+			this.trigger("pushPage", name, page);
+			this.trigger("newPopup");
+		}
+		r.popPage = function(page) {
+			var i;
+			if (this.busy) return;
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				if (this.stack[i].page != page) continue;
+				this.stack.splice(i, this.stack.length - i).forEach(function(e) {
+					e.page.trigger("exit");
+				}, this);
+				if (i > 0 && this.visible) {
+					this.stack[i - 1].page.trigger("resume");
+				}
+				break;
+			}
+			this.trigger("popPage", page);
+		}
+		r.show = function() {
+			var i, e;
+			if (this.visible) return;
+			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("resume");
+			for (i = 0; i < this.stack.length ; i++) {
+				e = this.stack[i];
+				if (e.visible) continue;
+				e.page.requestShow();
+				e.visible = true;
+			}
+			this.visible = true;
+			this.trigger("show");
+		}
+		r.hide = function() {
+			var i, e;
+			if (!this.visible) return;
+			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("pause");
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				e = this.stack[i];
+				if (!e.visible) continue;
+				e.page.requestHide();
+				e.visible = false;
+			}
+			this.visible = false;
+			this.trigger("hide");
+		}
+		r.dismiss = function() {
+			var i, e;
+			this.busy = true;
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				e = this.stack[i];
+				e.page.trigger("exit");
+				e.page.exit();
+			}
+			this.stack.length = 0;
+			this.busy = false;
+			this.trigger("dismiss");
+		}
+		r.reset = function() {
+			this.dismiss();
+			this.trigger("reset");
+			this.clearListeners();
+		}
+		r.getCount = function() {
+			return this.stack.length;
+		}
+	}
+	r.prototype.show = r.enter;
+	r.prototype.hide = r.exit;
+	r.prototype.enterAnimation = function(f) {
+		this._enterAnimation = f;
+		return this;
+	};
+	r.prototype.exitAnimation = function(f) {
+		this._exitAnimation = f;
+		return this;
 	};
 	EventSender.init(r.prototype);
-	r.visible = true;
-	r.stack = [];
 	r.listener = {};
-	r.pushPage = function(token, name, page) {
-		var t;
-		if (this.busy) return;
-		if (this.stack.length && this.stack[this.stack.length - 1].visible) {
-			this.stack[this.stack.length - 1].page.trigger("pause");
-		}
-		this.stack.push(t = {
-			token : token,
-			name : name,
-			page : page,
-			visible : true
-		});
-		page.trigger("enter");
-		this.trigger("pushPage", name, page);
-		this.trigger("newPopup");
-	}
-	r.popPage = function(token) {
-		var i;
-		if (this.busy) return;
-		for (i = this.stack.length - 1; i >= 0; i--) {
-			if (this.stack[i].token != token) continue;
-			this.stack.splice(i, this.stack.length - i).forEach(function(e) {
-				e.page.trigger("exit");
-			}, this);
-			if (i > 0 && this.visible) {
-				this.stack[i - 1].page.trigger("resume");
-			}
-			break;
-		}
-		this.trigger("popPage");
-	}
-	r.show = function() {
-		var i, e;
-		if (this.visible) return;
-		this.stack[this.stack.length - 1].page.trigger("resume");
-		for (i = 0; i < this.stack.length ; i++) {
-			e = this.stack[i];
-			if (e.visible) continue;
-			e.page.requestShow();
-			e.visible = true;
-		}
-		this.visible = true;
-		this.trigger("show");
-	}
-	r.hide = function() {
-		var i, e;
-		if (!this.visible) return;
-		this.stack[this.stack.length - 1].page.trigger("pause");
-		for (i = this.stack.length - 1; i >= 0; i--) {
-			e = this.stack[i];
-			if (!e.visible) continue;
-			e.page.requestHide();
-			e.visible = false;
-		}
-		this.visible = false;
-		this.trigger("hide");
-	}
-	r.dismiss = function() {
-		var i, e;
-		this.busy = true;
-		for (i = this.stack.length - 1; i >= 0; i--) {
-			e = this.stack[i];
-			e.page.exit();
-			e.page.trigger("exit");
-		}
-		this.stack.length = 0;
-		this.busy = false;
-		this.trigger("dismiss");
-	}
-	r.reset = function() {
-		this.dismiss();
-		this.trigger("reset");
-		this.clearListeners();
-	}
 	r.isBusy = function() {
 		return this.busy;
-	}
-	r.getCount = function() {
-		return this.stack.length;
 	}
 	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
@@ -9353,7 +9597,10 @@ MapScript.loadModule("Common", {
 					fs.println(t);
 					fs.close();
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(file)));
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
+							.setType("text/plain")
+							.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(file))
+							.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("文件已生成于" + file.getAbsolutePath());
 					}
@@ -12112,11 +12359,15 @@ MapScript.loadModule("JSONEdit", {
 			
 			if (MapScript.host == "Android") {
 				self.popup = new PopupPage(self.main, "jsonedit.Main");
+				self.popup.on("back", function(name, cancelDefault) {
+					self.onBack();
+					cancelDefault();
+				});
 			} else {
 				self.main.setFocusableInTouchMode(true);
 				self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
 					if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
-						self.trigger("back");
+						self.onBack();
 					}
 					return false;
 				} catch(e) {return erp(e), true}}}));
@@ -12134,7 +12385,7 @@ MapScript.loadModule("JSONEdit", {
 					Common.initEnterAnimation(self.main);
 					PWM.wm.addView(self.main, p);
 					JSONEdit.edit = self;
-					PopupPage.pushPage(self, "jsonedit.Main", self);
+					PopupPage.pushPage("jsonedit.Main", self);
 				}
 				self.exit = function() {
 					JSONEdit.edit = null;
@@ -12153,7 +12404,6 @@ MapScript.loadModule("JSONEdit", {
 				}
 				self.popup = self;
 			}
-			self.popup.on("back", self.onBack);
 			
 			PWM.registerResetFlag(self, "main");
 		}
@@ -13032,6 +13282,7 @@ MapScript.loadModule("MCAdapter", {
 			}
 			this.unpackAssets("adapter/ModPE.js", f);
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
+			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 			ctx.startActivity(i);
 			this.askShortcut("BlockLauncher", i.getComponent().getPackageName());
 		}
@@ -13049,6 +13300,7 @@ MapScript.loadModule("MCAdapter", {
 			}
 			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
+			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
 			ctx.startActivity(i);
 			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
 			Common.showTextDialog("因为多玩我的世界盒子采用了沙盒机制，该适配器可能无法与本体连接。");
@@ -13064,6 +13316,7 @@ MapScript.loadModule("MCAdapter", {
 				i.setClassName("com.zhekasmirnov.innercore", "zhekasmirnov.launcher.core.ExtractModActivity");
 				this.unpackAssets("adapter/InnerCore.icmod", f);
 				i.setDataAndType(AndroidBridge.fileToUri(f), "application/icmod");
+				i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				ctx.startActivity(i);
 			} else if (!isNaN(ver)) {
 				var fs = [
@@ -13529,13 +13782,13 @@ MapScript.loadModule("AndroidBridge", {
 		ScriptActivity.startActivityForResult(intent, intent.hashCode());
 	},
 	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
-		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitkat = android.os.Build.VERSION.SDK_INT >= 19, docs;
+		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitKat = android.os.Build.VERSION.SDK_INT >= 19, docs;
 		if (uri.getScheme().equalsIgnoreCase("content")) {
 			if (isKitKat && android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 				if (String(uri.getAuthority()) == "com.android.externalstorage.documents") {
 					docs = String(android.provider.DocumentsContract.getDocumentId(uri)).split(":");
 					if (docs[0] == "primary") {
-						return android.os.Environment.getExternalStorageDirectory() + "/" + split[1];
+						return android.os.Environment.getExternalStorageDirectory() + "/" + docs[1];
 					}
 				} else if (String(uri.getAuthority()) == "com.android.providers.downloads.documents") {
 					uri = android.content.ContentUris.withAppendedId(
@@ -13552,7 +13805,7 @@ MapScript.loadModule("AndroidBridge", {
 						uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 					}
 					selection = "_id=?";
-					selectionArgs = [split[1]];
+					selectionArgs = [docs[1]];
 				}
 			}
 			try {
