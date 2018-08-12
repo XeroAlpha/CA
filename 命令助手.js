@@ -521,13 +521,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	assist : null,
 	fcs : null,
 	paste : null,
-	
+
 	his : null,
 	fav : null,
 	cmdstr : "",
 	settings : {},
 	fine : false,
-	
+
 	profilePath : MapScript.baseDir + "xero_commandassist.dat",
 	name : "CA",
 	author : "ProjectXero",
@@ -535,8 +535,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	version : [1, 2, 0],
 	publishDate : "{DATE}",
 	help : '{HELP}',
-	tips : [],	
-	
+	tips : [],
+
 	initialize : function() {try {
 		this.plugin = Plugins.inject(this);
 		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
@@ -657,7 +657,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
-			
+
 			this.IntelliSense.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 			});
@@ -982,7 +982,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.icon) CA.icon.dismiss();
 		CA.icon = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showQuickBar : function self() {G.ui(function() {try {
 		if (!self.list) {
 			self.list = new G.LinearLayout(ctx);
@@ -1021,7 +1021,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.qbar) CA.qbar.dismiss();
 		CA.qbar = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showGen : function self(noani) {G.ui(function() {try {
 		if (!self.main) {
 			self.cmdEdit = [{
@@ -1078,6 +1078,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			},{
 				gap : 10 * G.dp
+			},{
+				text : "切换全屏/悬浮窗",
+				hidden : function() {
+					return !PopupPage.supportResize;
+				},
+				onclick : function(v) {
+					PopupPage.setFullScreen(!PopupPage.isFullScreen());
+				}
 			},{
 				text : "插件",
 				hidden : function() {
@@ -1184,15 +1192,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 				self.tutor = null;
 			}
-			
+
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.bar = new G.LinearLayout(ctx);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.bar, "bar_float");
-			
+
 			self.add = new G.TextView(ctx);
 			self.add.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.add.setText("╋");
@@ -1210,7 +1218,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.add);
-			
+
 			CA.cmd = new G.EditText(ctx);
 			CA.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
 			if (CA.settings.genOpenedMenu) {
@@ -1328,7 +1336,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						});
 						CA.settings.genOpenedMenu = true;
 						touch.cbk = null;
-						touch(CA.cmd, G.MotionEvent.obtain(0, 0, G.MotionEvent.ACTION_CANCEL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+						CA.cmd.dispatchTouchEvent(G.MotionEvent.obtain(0, 0, G.MotionEvent.ACTION_CANCEL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 					} catch(e) {erp(e)}}}), 300);
 					break;
 					case e.ACTION_CANCEL:
@@ -1368,7 +1376,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {return erp(e), true}}}));
 			CA.cmd.getText().setSpan(self.spanWatcher, 0, CA.cmd.getText().length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 			self.bar.addView(CA.cmd);
-			
+
 			self.clear = new G.TextView(ctx);
 			self.clear.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.clear.setText("×");
@@ -1380,7 +1388,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.activate(false);
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.clear);
-			
+
 			self.copy = new G.TextView(ctx);
 			self.copy.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.copy.setGravity(G.Gravity.CENTER);
@@ -1396,7 +1404,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.cmd.setText("");
 			} catch(e) {erp(e)}}}));
 			if (MapScript.host == "Android") {
-				self.copy.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try { 
+				self.copy.setOnLongClickListener(new G.View.OnLongClickListener({onLongClick : function(v) {try {
 					if (WSServer.isConnected()) {
 						WSServer.sendCommand(String(CA.cmd.getText()), function(json) {
 							Common.toast("已执行！状态代码：" + json.statusCode + "\n" + json.statusMessage);
@@ -1423,14 +1431,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return false;
 			} catch(e) {return erp(e), false}}}));
 			self.bar.addView(self.copy);
-			
+
 			CA.con = new G.FrameLayout(ctx);
 			CA.con.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 			Common.applyStyle(CA.con, "container_default")
-			
+
 			self.main.addView(CA.con);
 			self.main.addView(self.bar);
-			
+
 			CA.gen = new PopupPage(self.main, "ca.Generator");
 			CA.gen.enterAnimation(null);
 			CA.gen.exitAnimation(null);
@@ -1444,7 +1452,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.cmd.setText(CA.cmd.getText());
 				} catch(e) {erp(e)}});
 			});
-			
+
 			PWM.registerResetFlag(CA, "con");
 			PWM.registerResetFlag(CA, "cmd");
 			PWM.registerResetFlag(self, "main");
@@ -1467,7 +1475,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	hideGen : function() {G.ui(function() {try {
 		if (CA.gen.showing) CA.gen.exit();
 	} catch(e) {erp(e)}})},
-	
+
 	showHistory : function self() {G.ui(function() {try {
 		if (!self.history) {
 			self.historyEdit = [{
@@ -1851,7 +1859,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.nulAdapter = new RhinoListAdapter([null], self.nula);
 			self.hisAdapter = SimpleListAdapter.getController(new SimpleListAdapter(CA.his, self.hismaker, self.hisbinder));
 			self.favAdapter = ExpandableListAdapter.control(new ExpandableListAdapter(self.favList = [], self.getFavChildren, self.favimaker, self.favibinder, self.favgmaker, self.favgbinder));
-			
+
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.tag1 = new G.TextView(ctx);
@@ -1941,7 +1949,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				if (self.tx < 0) self.linear.setTranslationX(self.tx = -self.screenWidth);
 			} catch(e) {erp(e)}}}));
-			if (G.style == "Material") { 
+			if (G.style == "Material") {
 				self.history.setVerticalScrollbarPosition(G.View.SCROLLBAR_POSITION_LEFT);
 				self.history.setFastScrollEnabled(true);
 				self.history.setFastScrollAlwaysVisible(false);
@@ -2020,7 +2028,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.con.removeView(CA.history);
 		CA.history = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showFavEditDialog : function self(o) {G.ui(function() {try {
 		if (!self.getChildren) {
 			self.getChildren = function(e, i, a, depth, params) {
@@ -2137,7 +2145,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			o.folder = param.selected;
 			if (o.callback) o.callback();
-			popup.dismiss();
+			popup.exit();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		param.selected = o.folder ? o.folder : adpt.getItem(0);
@@ -2159,9 +2167,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			title.setText(o.title || "移动收藏");
 			folder.removeHeaderView(linear);
 		}
-		popup = Common.showDialog(layout, -1, -2, o.onDismiss);
+		popup = PopupPage.showDialog("ca.FavEditDialog", layout, -1, -2);
+		if (o.onDismiss) popup.on("exit", o.onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showAssist : function self() {G.ui(function() {try {
 		if (CA.assist) return;
 		if (!self.con) {
@@ -2314,7 +2323,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.Assist.hide(); CA.IntelliSense.hide();
 		CA.assist = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showHistoryEdit : function self(pos, callback) {G.ui(function() {try {
 		if (!self.linear) {
 			self.adapter = null;
@@ -2498,7 +2507,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title);
-			
+
 			self.hscr = new G.HorizontalScrollView(ctx);
 			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.hscr.setHorizontalScrollBarEnabled(false);
@@ -2523,7 +2532,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.hscr.addView(self.bar);
 			self.header.addView(self.hscr);
 			self.linear.addView(self.header);
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (self.adapter) self.adapter.getHolder(view).check.performClick();
@@ -2533,16 +2542,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.setFastScrollEnabled(true);
 				self.list.setFastScrollAlwaysVisible(false);
 			}
-			
+
 			self.popup = new PopupPage(self.linear, "ca.HistoryEdit");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh(pos);
 		self.popup.onExit = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showFavoriteEdit : function self(data, callback) {G.ui(function() {try {
 		if (!self.linear) {
 			self.adapter = null;
@@ -2781,7 +2790,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				layout.addView(check);
 				edit.setImageResource(G.R.drawable.ic_menu_edit);
 				edit.setScaleType(G.ImageView.ScaleType.FIT_CENTER);
-				edit.setLayoutParams(G.LinearLayout.LayoutParams(24 * G.dp, -1));
+				edit.setLayoutParams(new G.LinearLayout.LayoutParams(24 * G.dp, -1));
 				edit.getLayoutParams().setMargins(5 * G.dp, 0, 5 * G.dp, 0);
 				edit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					self.editFav(holder.pos);
@@ -2857,7 +2866,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.hscr.addView(self.bar);
 			self.header.addView(self.hscr);
 			self.linear.addView(self.header);
-			
+
 			self.pathbar = new G.TextView(ctx);
 			self.pathbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.pathbar.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
@@ -2869,7 +2878,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.refresh();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.pathbar);
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (self.array[pos].children) {
@@ -2884,16 +2893,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.list.setFastScrollEnabled(true);
 				self.list.setFastScrollAlwaysVisible(false);
 			}
-			
+
 			self.popup = new PopupPage(self.linear, "ca.FavoriteEdit");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.init(data);
 		self.popup.onExit = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	performExit : function() {G.ui(function() {try {
 		unload();
 		if (MapScript.host == "AutoJs") {
@@ -2906,7 +2915,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}
 	} catch(e) {erp(e)}})},
-	
+
 	showContentView : function(canFloat) {G.ui(function() {try {
 		var layout, help, exit;
 		layout = new G.LinearLayout(ctx);
@@ -2931,7 +2940,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		ctx.setContentView(layout);
 		if (canFloat) ctx.moveTaskToBack(true);
 	} catch(e) {erp(e)}})},
-	
+
 	showSettings : function self() {G.ui(function() {try {
 		if (!self.data) {
 			self.getsettingbool = function() {
@@ -3343,7 +3352,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.trySave();
 		});
 	} catch(e) {erp(e)}})},
-	
+
 	importSettings : function(f) {
 		CA.resetGUI();
 		Common.fileCopy(f, new java.io.File(CA.profilePath));
@@ -3388,7 +3397,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}]);
 	},
-	
+
 	manageErrors : function() {
 		var f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "com.xero.ca.error.log");
 		if (!f.isFile()) return Common.toast("无错误记录");
@@ -3446,7 +3455,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Common.toast("错误信息已复制");
 		});
 	},
-	
+
 	resetGUI : function() {
 		PopupPage.dismiss();
 		PWM.dismissFloat();
@@ -3454,14 +3463,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		PWM.reset();
 		PWM.resetUICache();
 	},
-	
+
 	showFCS : function self(v) {G.ui(function() {try {
 		var i, j;
 		if (!self.prompt) {
 			var data = [["§", "§l§§l", "§m§§m", "§n§§n", "§o§§o", "§§k", "§§r"], ["§0§§0", "§1§§1", "§2§§2", "§3§§3", "§4§§4", "§5§§5", "§6§§6", "§7§§7"], ["§8§§8", "§9§§9", "§a§§a", "§b§§b", "§c§§c", "§d§§d", "§e§§e", "§f§§f"]];
 			var l, b, lp1, lp2, onclick;
 			var frcolor = G.Color.WHITE, bgcolor = G.Color.BLACK;
-			
+
 			self.setVisible = function(visible) {
 				if (visible) {
 					self.scr.setVisibility(G.View.VISIBLE);
@@ -3471,10 +3480,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.hide.setVisibility(G.View.VISIBLE);
 				}
 			}
-			
+
 			self.frame = new G.FrameLayout(ctx);
 			self.frame.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2, G.Gravity.BOTTOM));
-			
+
 			self.hide = new G.TextView(ctx);
 			self.hide.setText("..");
 			self.hide.setTextColor(frcolor);
@@ -3492,15 +3501,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.frame.addView(self.hide);
-			
+
 			self.scr = new G.ScrollView(ctx);
 			self.scr.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
 			self.scr.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
-			
+
 			self.line = new G.LinearLayout(ctx);
 			self.line.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 			self.line.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.prompt = new G.TextView(ctx);
 			self.prompt.setLayoutParams(lp1 = new G.LinearLayout.LayoutParams(-1, -2));
 			self.prompt.setTextColor(frcolor);
@@ -3513,12 +3522,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.setVisible(false);
 			} catch(e) {erp(e)}}}));
 			self.line.addView(self.prompt);
-			
+
 			lp2 = new G.LinearLayout.LayoutParams(0, -2, 1);
 			onclick = new G.View.OnClickListener({onClick : function(v) {try {
 				Common.replaceSelection(CA.cmd.getText(), v.getText().toString());
 			} catch(e) {erp(e)}}});
-			
+
 			self.tableline = [];
 			self.tableview = [];
 			for (i = 0; i < data.length; i++) {
@@ -3549,7 +3558,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.showCustomExpression();
 			} catch(e) {erp(e)}}}));
 			self.tableline[0].addView(b, lp2);
-			
+
 			self.exit = new G.TextView(ctx);
 			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.exit.setText("关闭");
@@ -3561,10 +3570,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.hideFCS();
 			} catch(e) {erp(e)}}}));
 			self.line.addView(self.exit);
-			
+
 			self.scr.addView(self.line);
 			self.frame.addView(self.scr);
-			
+
 			PWM.registerResetFlag(CA, "fcs");
 			PWM.registerResetFlag(self, "prompt");
 		}
@@ -3579,7 +3588,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		CA.con.removeView(CA.fcs);
 		CA.fcs = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showCustomExpression : function() {
 		var a = CA.PluginExpression.concat(CA.settings.customExpression, {
 			text : "(编辑自定义短语)",
@@ -3692,7 +3701,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.add);
 			self.linear.addView(self.header);
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				Common.showInputDialog({
@@ -3716,16 +3725,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list);
-			
+
 			self.popup = new PopupPage(self.linear, "ca.CustomExpEdit");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
 		self.popup.onExit = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	isMinecraftTextbox : function(packageName) {
 		return packageName == "net.zhuoweizhang.mcpelauncher.pro" ||
 		       packageName == "net.zhuoweizhang.mcpelauncher" ||
@@ -3793,7 +3802,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		}
 	},
-	
+
 	showPaste : function self() {G.ui(function() {try {
 		if (!self.bar) {
 			self.vmaker = function(holder) {
@@ -3945,7 +3954,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		if (CA.paste) CA.paste.dismiss();
 		CA.paste = null;
 	} catch(e) {erp(e)}})},
-	
+
 	showPasteDelaySet : function(callback) {
 		Common.showSlider({
 			max : 100,
@@ -3963,7 +3972,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			onDismiss : callback
 		});
 	},
-	
+
 	showLibraryMan : function self(callback) {G.ui(function() {try {
 		if (!self.linear) {
 			self.contextMenu = [{
@@ -4400,12 +4409,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			}
 			self.processing = false;
-			
+
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
 			Common.applyStyle(self.linear, "message_bg");
-			
+
 			self.header = new G.LinearLayout(ctx);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.header.setPadding(0, 0, 0, 10 * G.dp);
@@ -4417,14 +4426,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 				return true;
 			} catch(e) {erp(e)}}}));
-			
+
 			self.title = new G.TextView(ctx);
 			self.title.setText("管理拓展包");
 			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
-			
+
 			self.menu = new G.TextView(ctx);
 			self.menu.setText("▼");
 			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
@@ -4432,7 +4441,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Common.applyStyle(self.menu, "button_highlight", 3);
 			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var data = parent.getAdapter().getItem(pos);
@@ -4449,7 +4458,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			
+
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
@@ -4459,16 +4468,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.popup.exit();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.popup = new PopupPage(self.linear, "ca.LibraryManage");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
 		self.popup.onExit = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showModeChooser : function self(callback) {
 		if (self.popup) return;
 		if (!self.menu) {
@@ -4566,10 +4575,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} else {
 				self.selectIcon(callback);
 			}
-			popup.dismiss();
+			popup.exit();
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
-		popup = Common.showDialog(frame, -1, -1, onDismiss);
+		popup = PopupPage.showDialog("ca.IconChooser", frame, -1, -1);
+		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
 	customIcon : function(path, size, preview) {
 		const w = 32 * G.dp * size;
@@ -4858,15 +4868,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			popup.dismiss();
+			popup.exit();
 			bmp.recycle();
 			Common.toast("感谢您的支持！");
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		scr.addView(layout);
-		popup = Common.showDialog(scr, -2, -2);
+		popup = PopupPage.showDialog("ca.DonateDialog", scr, -2, -2);
 	} catch(e) {erp(e)}})},
-	
+
 	SpecialTips : [
 		function(d) {
 			if (d.getFullYear() > 2017 && d.getMonth() == 2 && d.getDate() == 20) return "命令助手" + (d.getFullYear() - 2017) + "周年！感谢你们的支持！";
@@ -4890,7 +4900,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		this.settings.tipsRead = isNaN(this.settings.tipsRead) ? 0 : (this.settings.tipsRead + 1) % this.tips.length;
 		return this.tips[this.settings.tipsRead];
 	},
-	
+
 	showBatchBuilder : function self(text, reset) {G.ui(function() {try {
 		if (!self.linear) {
 			self.variables = [];
@@ -5206,7 +5216,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				PWM.registerResetFlag(self, "content_default");
 				return view;
 			}
-			
+
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "container_default");
@@ -5241,9 +5251,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.container = new G.FrameLayout(ctx);
 			self.container.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.linear.addView(self.container);
-			
+
 			self.popup = new PopupPage(self.linear, "ca.BatchBuilder");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.popup.enter();
@@ -5351,7 +5361,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	},
 	PluginMenu : [],
 	PluginExpression : [],
-	
+
 	IntelliSense : {
 		UNINITIALIZED : 0,
 		ONLY_COMMAND_NAME : 1,
@@ -5359,7 +5369,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		COMMAND_WITH_PATTERN : 2,
 		UNKNOWN_PATTERN : -2,
 		inner : {},
-		
+
 		input : [],
 		output : [],
 		cmdname : "",
@@ -5413,11 +5423,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		}},
 		procCmd : function(s) {
 			var c, ca, t, i, pp, r;
-			
+
 			//分析命令结构 - 拆分
 			c = /^(\/)?(\S*)(\s+)?(.*)/.exec(s);
 			if (!c) return; //c = [匹配文本, 是否存在/, 命令名称, 是否存在命令名称后的空格, 命令参数]
-			
+
 			r = {
 				source : c[0],
 				cmdname : c[2],
@@ -5430,7 +5440,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				help : null,
 				canFinish : false
 			};
-			
+
 			if (c[3]) {
 				//分类 - 输入参数中
 				if (c[2] in this.library.commands) {
@@ -5449,22 +5459,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 			} else {
 				//分类 - 未输入参数
-				
+
 				//获得可选命令
 				t = this.library.command_snap;
 				ca = Object.keys(t).filter(function(e, i, a) {
 					return e.indexOf(c[2]) >= 0 || t[e].indexOf(c[2]) >= 0;
 				}).sort();
-				
+
 				if (ca.length) {
 					//分类 - 可选命令长度大于0
-					
+
 					ca.forEach(function(e, i, a) {
 						pp = new G.SpannableStringBuilder(c[1] ? "/" : "");
 						appendSSB(pp, e, new G.ForegroundColorSpan(Common.theme.highlightcolor));
 						t = this.library.commands[e];
 						while (t.alias) t = this.library.commands[t.alias];
-						
+
 						//存在无参数用法
 						if (!t.noparams) pp.append(" ...");
 						if (t.noparams && c[2] == e && t.noparams.description) { //当命令全输入且存在无参数用法时
@@ -5478,7 +5488,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						r.prompt.push(pp);
 						r.output[t.description ? e + " - "  + t.description : e] = (r.hasSlash ? "/" : "") + e + (t.noparams ?  "" : " ");
 					}, this);
-					
+
 					t = this.library.commands[ca[0]];
 					while (t.alias) t = this.library.commands[t.alias];
 					r.help = t.help ? t.help : "该命令帮助还未上线";
@@ -5494,7 +5504,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					r.help = "命令不存在";
 					r.mode = this.UNKNOWN_COMMAND;
 				}
-				
+
 				//设置列表内容及反应
 				r.input = Object.keys(r.output);
 			}
@@ -5502,34 +5512,34 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		},
 		procParams : function(c) {
 			var i, j, cm = this.library.commands[c.cmdname], ps, pa, ci, cp, t, f = true, k, u, ms, pp, cpl = [], nn = false, erm = [];
-			
+
 			//别名处理
 			while (cm.alias) cm = this.library.commands[cm.alias];
-			
+
 			c.help = cm.help ? cm.help : "该命令帮助还未上线";
 			ps = cm.patterns;
 			c.canFinish = false;
-			
+
 			//对每一种模式进行判断
 			for (i in ps) {
 				pa = ps[i].params;
 				ci = 0;
-				
+
 				//重置提示
 				pp = new G.SpannableStringBuilder((c.hasSlash ? "/" : "") + c.cmdname);
 				cpl.length = 0;
-				
+
 				//逐部分匹配参数
 				for (j = 0; j < pa.length; j++) {
 					cp = pa[j];
-					
+
 					//匹配参数
 					t = this.matchParam(cp, c.strParam.slice(ci));
-					
+
 					if (t && t.length >= 0 && ((/^\s?$/).test(c.strParam.slice(ci += t.length, ++ci)))) {
 						//分类 - 匹配成功
 						ci += (/^\s*/).exec(c.strParam.slice(ci))[0].length;
-						
+
 						if (ci > c.strParam.length) {
 							//分类 - 到达末尾
 							//处理提示与输入
@@ -5553,7 +5563,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							}
 							if (t.description || cp.description || ps[i].description || cm.description) appendSSB(pp, "\n" + (t.description ? String(t.description) : cp.description ? String(cp.description) : ps[i].description ? String(ps[i].description) : String(cm.description)), new G.ForegroundColorSpan(Common.theme.promptcolor));
 							//详情优先级：匹配函数动态产生 > 当前参数 > 当前用法 > 当前命令 > 不显示
-							
+
 							c.prompt.push(pp);
 							c.patterns.push(cpl);
 							break;
@@ -5640,7 +5650,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : true
 				};
 				break;
-				
+
 				case "nbt":
 				case "json":
 				r = {
@@ -5654,7 +5664,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : true
 				};
 				break;
-				
+
 				case "plain":
 				t = cp.name;
 				if (cp.prompt) t += " - " + cp.prompt;
@@ -5673,12 +5683,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					description : "不可为" + ps
 				};
 				break;
-				
+
 				case "selector":
 				r = this.procSelector(cp, ps);
 				if (!r || !(r.length >= 0)) return r;
 				break;
-				
+
 				case "uint":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				if (!(/^\d*$/).test(t)) return {
@@ -5689,7 +5699,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : t.length > 0
 				};
 				break;
-				
+
 				case "int":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				if (!(/^(\+|-)?\d*$/).test(t)) return {
@@ -5700,7 +5710,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : t.length && !isNaN(t)
 				};
 				break;
-				
+
 				case "float":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				if (!(t2 = (/^(\+|-)?(\d*\.)?(\d)*$/).exec(t))) return {
@@ -5711,7 +5721,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : t.length && t2[3]
 				};
 				break;
-				
+
 				case "relative":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				if (!(t2 = (/^(~)?((\+|-)?(\d*\.)?(\d)*)$/).exec(t))) return {
@@ -5726,12 +5736,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : t2[5] || t2[1] && !t2[2].length
 				};
 				break;
-				
+
 				case "position":
 				r = this.procPosition(cp, ps);
 				if (!r || !(r.length >= 0)) return r;
 				break;
-				
+
 				case "custom":
 				t = new RegExp(cp.input, "").exec(ps);
 				if (!t) return {
@@ -5742,7 +5752,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : new RegExp(cp.finish, "").test(ps)
 				};
 				break;
-				
+
 				case "enum":
 				if (!(t = cp.list instanceof Object ? cp.list : this.library.enums[cp.list])) throw "无法找到指定枚举类型";
 				r = {
@@ -5786,7 +5796,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					r.description = ps + "不是有效的元素";
 				}
 				break;
-				
+
 				case "command":
 				t = this.procCmd(ps);
 				if (!t) return {
@@ -5811,7 +5821,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 				break;
-				
+
 				case "string":
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				r = {
@@ -5819,7 +5829,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					canFinish : t.length > 0
 				};
 				break;
-				
+
 				default:
 				t = ps.search(" ") < 0 ? ps : ps.slice(0, ps.search(" "));
 				r = {
@@ -5840,43 +5850,43 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					case "int":
 					z += ":整数";
 					break;
-					
+
 					case "uint":
 					z += ":正整数";
 					break;
-					
+
 					case "float":
 					case "relative":
 					z += ":数值";
 					break;
-					
+
 					case "nbt":
 					z += ":数据标签";
 					break;
-					
+
 					case "rawjson":
 					z += ":文本JSON";
 					break;
-					
+
 					case "json":
 					z += ":JSON";
 					break;
-					
+
 					case "selector":
 					z += ":实体";
 					break;
-					
+
 					case "enum":
 					z += ":列表";
 					break;
-					
+
 					case "plain":
 					break;
-					
+
 					case "custom":
 					if (cp.vtype) z += ":" + cp.vtype;
 					break;
-					
+
 					case "position":
 					if (mt == 3) {
 						z += ":x y z";
@@ -5889,14 +5899,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (t[3]) t2[2] = t[3];
 					z += ":" + t2.join(" ");
 					break;
-					
+
 					case "command":
 					if (md) {
 						return md.tag;
 					}
 					z += ":命令";
 					break;
-					
+
 					case "text":
 					default:
 					z += ":文本";
@@ -6884,22 +6894,22 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			p = e.param;
 			hl = new G.LinearLayout(ctx);
 			hl.setOrientation(G.LinearLayout.HORIZONTAL);
-			hl.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
 			vl = new G.LinearLayout(ctx);
 			vl.setOrientation(G.LinearLayout.VERTICAL);
-			vl.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 1.0));
+			vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
 			vl.getLayoutParams().gravity = G.Gravity.CENTER;
 			name = new G.TextView(ctx);
 			name.setText(String(p.name) + (p.optional || p.canIgnore || p.chainOptional ? " (可选)" : ""));
-			name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+			name.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(name, "textview_default", 3);
 			vl.addView(name);
 			desp = new G.TextView(ctx);
 			desp.setText(p.description ? String(p.description) : CA.Assist.getParamType(p));
 			desp.setSingleLine(true);
 			desp.setEllipsize(G.TextUtils.TruncateAt.END);
-			desp.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+			desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			Common.applyStyle(desp, "textview_prompt", 1);
 			vl.addView(desp);
 			hl.addView(vl);
@@ -6909,7 +6919,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			e._text.setMaxEms(10);
 			e._text.setSingleLine(true);
 			e._text.setEllipsize(G.TextUtils.TruncateAt.END);
-			e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+			e._text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 			e._text.getLayoutParams().gravity = G.Gravity.CENTER;
 			Common.applyStyle(e._text, "textview_prompt", 2);
 			hl.addView(e._text);
@@ -7042,7 +7052,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				ret.setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 				var rela = new G.CheckBox(ctx);
 				rela.setChecked(Boolean(e.isRela));
-				rela.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+				rela.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 				rela.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
 				rela.setText("启用相对参数");
 				layout.addView(rela);
@@ -7140,10 +7150,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					if (t == null) return;
 					callback(String(t));
 				}
-				popup.dismiss();
+				popup.exit();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			popup = Common.showDialog(layout, -1, -2);
+			popup = PopupPage.showDialog("ca.assist.ParamEditor.Common", layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		editParamEnum : function(e, callback, onReset) {
 			var t = e.param.list instanceof Object ? e.param.list : CA.IntelliSense.library.enums[e.param.list];
@@ -7269,7 +7279,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				row.addView(ret[i]);
 				rela[i] = new G.CheckBox(ctx);
 				rela[i].setChecked(Boolean(e.rela[i]));
-				rela[i].setLayoutParams(G.TableRow.LayoutParams(-2, -2));
+				rela[i].setLayoutParams(new G.TableRow.LayoutParams(-2, -2));
 				rela[i].getLayoutParams().setMargins(0, 0, 10 * G.dp, 0)
 				rela[i].setText("~"); //BUG：CheckBox需重新着色
 				row.addView(rela[i]);
@@ -7277,7 +7287,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			screla = new G.CheckBox(ctx);
 			screla.setChecked(false);
-			screla.setLayoutParams(G.TableLayout.LayoutParams(-1, -2));
+			screla.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
 			screla.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
 			screla.setText("使用局部坐标（^左 ^上 ^前）");
 			screla.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
@@ -7296,7 +7306,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
-					popup.dismiss();
+					popup.exit();
 				} catch(e) {erp(e)}}}));
 				layout.addView(reset);
 			}
@@ -7316,10 +7326,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					r.push((e.screla ? "^" : e.rela[i] ?  "~" : "") + (isFinite(e.pos[i]) ? e.pos[i] : ""));
 				}
 				callback(r.join(" "));
-				popup.dismiss();
+				popup.exit();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			popup = Common.showDialog(layout, -1, -2);
+			popup = PopupPage.showDialog("ca.assist.ParamEditor.Position", layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		editParamSelector : function self(e, callback, onReset) {G.ui(function() {try {
 			var layout, title, i, label, list, add, reset, exit, popup;
@@ -7477,7 +7487,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			add.setText("+ 添加选择器参数");
 			add.setSingleLine(true);
 			add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			add.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			add.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			Common.applyStyle(add, "textview_default", 2);
 			list = new G.ListView(ctx);
 			list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
@@ -7499,7 +7509,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
-					popup.dismiss();
+					popup.exit();
 				} catch(e) {erp(e)}}}));
 				layout.addView(reset);
 			}
@@ -7514,12 +7524,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				callback(e.label + (e.label in self.selectors && e.selpar.length ? "[" + e.selpar.map(function(e) {
 					return e.name + "=" + (e.isInverted ? "!" : "") + e.text;
 				}).join(",") + "]" : ""));
-				popup.dismiss();
+				popup.exit();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
 			self.checkPar(label, list);
 			self.refresh(e, list);
-			popup = Common.showDialog(layout, -1, -2);
+			popup = PopupPage.showDialog("ca.assist.ParamEditor.Selector", layout, -1, -2);
 		} catch(e) {erp(e)}})},
 		smallVMaker : function(holder) {
 			var view = holder.view = new G.TextView(ctx);
@@ -7535,42 +7545,42 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			switch (cp.type) {
 				case "int":
 				return "整数";
-				
+
 				case "uint":
 				return "自然数";
-				
+
 				case "float":
 				case "relative":
 				return "数值";
-				
+
 				case "nbt":
 				return "数据标签";
-				
+
 				case "rawjson":
 				return "文本JSON";
-				
+
 				case "json":
 				return "JSON";
-				
+
 				case "selector":
 				return "实体";
-				
+
 				case "enum":
 				return "列表";
-				
+
 				case "plain":
 				return "常量";
-				
+
 				case "custom":
 				if (cp.vtype) return cp.vtype;
 				return "自定义类型";
-				
+
 				case "position":
 				return "坐标";
-				
+
 				case "command":
 				return "命令";
-				
+
 				case "text":
 				default:
 				return "文本";
@@ -7750,7 +7760,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			add.setText("+ 添加组件");
 			add.setSingleLine(true);
 			add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			add.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			add.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			Common.applyStyle(add, "button_default", 2);
 			list = new G.ListView(ctx);
 			list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
@@ -7772,7 +7782,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				Common.applyStyle(reset, "button_critical", 3);
 				reset.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 					onReset();
-					popup.dismiss();
+					popup.exit();
 				} catch(e) {erp(e)}}}));
 				layout.addView(reset);
 			}
@@ -7796,7 +7806,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 				callback(JSON.stringify(e.jsonData = o));
-				popup.dismiss();
+				popup.exit();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
 			if (!e.components) e.components = [];
@@ -7809,7 +7819,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			e.current_component = self.extendComponent(e.param.component);
 			adpt = RhinoListAdapter.getController(adpt);
 			self.refresh(e, adpt);
-			popup = Common.showDialog(layout, -1, -2);
+			popup = PopupPage.showDialog("ca.assist.ParamEditor.Component", layout, -1, -2);
 		} catch(e) {erp(e)}})}
 	}
 });
@@ -7824,6 +7834,7 @@ MapScript.loadModule("EventSender", {
 	on : function(name, f) {
 		if (!this.listener[name]) this.listener[name] = [];
 		if (this.listener[name].indexOf(f) < 0) this.listener[name].push(f);
+		if (this.__eventsender_observer__) this.__eventsender_observer__("on", name, f);
 		return this;
 	},
 	off : function(name, f) {
@@ -7836,6 +7847,7 @@ MapScript.loadModule("EventSender", {
 				if (i >= 0) this.listener[name].splice(i, 1);
 			}
 		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("off", name, f);
 		return this;
 	},
 	trigger : function(name) {
@@ -7846,6 +7858,7 @@ MapScript.loadModule("EventSender", {
 				a[i].apply(this, arguments);
 			}
 		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("trigger", name);
 		return this;
 	},
 	clearListeners : function() {
@@ -7853,6 +7866,7 @@ MapScript.loadModule("EventSender", {
 		for (i in this.listener) {
 			delete this.listener[i];
 		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("clear", name);
 	}
 });
 
@@ -7959,52 +7973,132 @@ MapScript.loadModule("PopupPage", (function() {
 		this.init();
 	}
 	if (MapScript.host == "Android") {
-		r.defaultHolder = ScriptActivity.createFrameLayout({
-			dispatchKeyEvent : function(event) {
-				var state = r.defaultHolder.getKeyDispatcherState();
-				if (event.getKeyCode() == event.KEYCODE_BACK) {
-					if (!state) return 0;
-					if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-						state.startTracking(event, this);
-						return 1;
-					} else if (event.getAction() == event.ACTION_UP) {
-						if (state.isTracking(event) && !event.isCanceled()) {
-							r.back(r.defaultHolder);
+		r.fullscreen = true;
+		r.consumed = false;
+		r.x = 0.25; r.y = 0.25;
+		r.width = 0.5; r.height = 0.5;
+		r.initialize = function() {G.ui(function() {try {
+			r.defaultWindow = ScriptActivity.createFrameLayout({
+				dispatchKeyEvent : function(event) {
+					var state = r.defaultWindow.getKeyDispatcherState();
+					if (event.getKeyCode() == event.KEYCODE_BACK) {
+						if (!state) return 0;
+						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+							state.startTracking(event, this);
 							return 1;
+						} else if (event.getAction() == event.ACTION_UP) {
+							if (state.isTracking(event) && !event.isCanceled()) {
+								r.back(r.defaultContainer);
+								return 1;
+							}
 						}
 					}
 					return 0;
-				} else {
+				},
+				dispatchTouchEvent : function(e) {
+					
 					return 0;
 				}
-			},
-			dispatchTouchEvent : function(event) {
-				return 0;
-			}
-		});
-		r.floatHolder = ScriptActivity.createFrameLayout({
-			dispatchKeyEvent : function(event) {
-				var state = r.floatHolder.getKeyDispatcherState();
-				if (event.getKeyCode() == event.KEYCODE_BACK) {
-					if (!state) return 0;
-					if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-						state.startTracking(event, this);
-						return 1;
-					} else if (event.getAction() == event.ACTION_UP) {
-						if (state.isTracking(event) && !event.isCanceled()) {
-							r.back(r.floatHolder);
+			});
+			r.defaultDecorLinear = new G.LinearLayout(ctx);
+			r.defaultDecorLinear.setOrientation(G.LinearLayout.VERTICAL);
+			r.defaultDecorLinear.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+			r.headerView = new G.LinearLayout(ctx);
+			r.headerView.setOrientation(G.LinearLayout.HORIZONTAL);
+			r.headerView.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 16 * G.dp));
+			r.defaultDecorLinear.addView(r.headerView);
+			r.defaultContainer = new G.FrameLayout(ctx);
+			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			r.defaultDecorLinear.addView(r.defaultContainer);
+			r.defaultWindow.addView(r.defaultDecorLinear);
+			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
+				dispatchKeyEvent : function(event) {
+					var state = r.floatWindow.getKeyDispatcherState();
+					if (event.getKeyCode() == event.KEYCODE_BACK) {
+						if (!state) return 0;
+						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+							state.startTracking(event, this);
 							return 1;
+						} else if (event.getAction() == event.ACTION_UP) {
+							if (state.isTracking(event) && !event.isCanceled()) {
+								r.back(r.defaultContainer);
+								return 1;
+							}
 						}
 					}
 					return 0;
-				} else {
+				},
+				dispatchTouchEvent : function(event) {
 					return 0;
 				}
-			},
-			dispatchTouchEvent : function(event) {
-				return 0;
+			});
+			r.touch = function(e) {
+
 			}
-		});
+		} catch(e) {erp(e)}})}
+		/*
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (touch.stead) {
+						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
+							break;
+						}
+						self.longClicked = false;
+						touch.stead = false;
+						self.animateTranslation(0);
+					}
+					if (CA.settings.iconDragMode == 2) break;
+					CA.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
+					break;
+					case e.ACTION_DOWN:
+					touch.offx = self.cx - (touch.lx = e.getRawX());
+					touch.offy = self.cy - (touch.ly = e.getRawY());
+					touch.stead = true;
+					v.postDelayed(self.longClick, longPressTimeout);
+					self.longClicked = true;
+					self.cancelAnimator();
+					self.layoutChanged();
+					return true;
+					case e.ACTION_UP:
+					if (touch.stead) {
+						if (e.getEventTime() - e.getDownTime() < longPressTimeout) {
+							v.performClick();
+						}
+					}
+					case e.ACTION_CANCEL:
+					self.layoutChanged();
+					self.refreshPos();
+					CA.settings.iconX = self.cx;
+					CA.settings.iconY = self.cy;
+					self.longClicked = false;
+				}
+				self.icon.dispatchTouchEvent(e);
+				return true;
+		*/
+		r.updateDefault = function() {
+			if (this.fullscreen) {
+				this.headerView.setVisibility(G.View.GONE);
+			} else {
+				Common.applyStyle(this.headerView, "bar_float_second");
+				this.headerView.setVisibility(G.View.VISIBLE);
+			}
+		}
+		r.setFullScreen = function(isFullScreen) {
+			var metrics;
+			if (isFullScreen) {
+				this.fullscreen = true;
+				this.updateView(this.defaultWindow, 0, 0, -1, -1);
+				r.updateDefault();
+			} else {
+				metrics = Common.getMetrics();
+				this.fullscreen = false;
+				this.updateView(this.defaultWindow, r.x * metrics[0], r.y * metrics[1], r.width * metrics[0], r.height * metrics[1]);
+				r.updateDefault();
+			}
+		}
+		r.isFullScreen = function(bool) {
+			return this.fullscreen;
+		}
 		r.defaultVisible = false;
 		r.floatVisible = false;
 		r.defaultStack = [];
@@ -8026,7 +8120,8 @@ MapScript.loadModule("PopupPage", (function() {
 			},
 			exit : function(noAnimation) {
 				var self = this;
-				if (!this.currentHolder) return this;
+				if (!this.currentContainer) return this;
+				r.popPage(this);
 				if (!noAnimation && this._exitAnimation) {
 					this._exitAnimation(this.mainView, function() {
 						self.dismiss();
@@ -8037,11 +8132,10 @@ MapScript.loadModule("PopupPage", (function() {
 				return this;
 			},
 			resizable : function() {
-				return this.currentHolder == r.defaultHolder;
+				return this.currentContainer == r.defaultContainer;
 			},
 			dismiss : function() {
-				if (!this.currentHolder) return this;
-				r.popPage(this);
+				if (!this.currentContainer) return this;
 				r.hidePage(this);
 				return this;
 			},
@@ -8054,24 +8148,30 @@ MapScript.loadModule("PopupPage", (function() {
 				return this;
 			}
 		};
-		r.showView = function(view) {
+		r.buildLayoutParams = function(x, y, width, height) {
 			var p = new G.WindowManager.LayoutParams();
 			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
 			p.flags |= p.FLAG_NOT_TOUCH_MODAL;
 			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 			p.token = ctx.getWindow().getDecorView().getWindowToken();
 			p.format = G.PixelFormat.TRANSLUCENT;
-			p.height = -1;
-			p.width = -1;
-			p.x = 0;
-			p.y = 0;
-			PWM.wm.addView(view, p);
+			p.height = height;
+			p.width = width;
+			p.x = x;
+			p.y = y;
+			return p;
+		}
+		r.showView = function(view, x, y, width, height) {
+			PWM.wm.addView(view, r.buildLayoutParams(x, y, width, height));
 		};
 		r.hideView = function(view) {
 			PWM.wm.removeViewImmediate(view);
 		};
+		r.updateView = function(view, x, y, width, height) {
+			PWM.wm.updateViewLayout(view, r.buildLayoutParams(x, y, width, height));
+		};
 		r.back = function(source) {
-			var stack = source == r.floatHolder ? r.floatStack : r.defaultStack, cancelEvent = false;
+			var stack = source == r.floatContainer ? r.floatStack : r.defaultStack, cancelEvent = false;
 			if (stack.length) {
 				stack[stack.length - 1].page.trigger("back", function() {
 					cancelEvent = true;
@@ -8080,40 +8180,50 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.showPage = function(page) {
-			if (page.currentHolder) page.currentHolder.removeView(page.mainView);
-			page.currentHolder = this.visible ? this.defaultHolder : this.floatHolder;
-			page.currentHolder.addView(page.mainView);
+			var metrics;
+			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
+			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
+			page.currentContainer.addView(page.mainView);
 			if (this.visible && !this.defaultVisible) {
-				this.showView(this.defaultHolder);
+				if (this.fullscreen) {
+					this.showView(this.defaultWindow, 0, 0, -1, -1);
+					r.updateDefault();
+				} else {
+					metrics = Common.getMetrics();
+					this.showView(this.defaultWindow, r.x * metrics[0], r.y * metrics[1], r.width * metrics[0], r.height * metrics[1]);
+					r.updateDefault();
+				}
 				this.defaultVisible = true;
 				this.trigger("newPopup");
 			} else if (!this.visible && !this.floatVisible) {
-				this.showView(this.floatHolder);
+				this.showView(this.floatWindow, 0, 0, -1, -1);
 				this.floatVisible = true;
 				this.trigger("newPopup");
 			}
 			page.showing = true;
 		}
 		r.hidePage = function(page) {
-			var stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
-			page.currentHolder.removeView(page.mainView);
+			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			page.currentContainer.removeView(page.mainView);
 			if (stack.length == 0) {
-				if (page.currentHolder == this.defaultHolder && this.defaultVisible) {
-					this.hideView(this.defaultHolder);
+				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
+					this.hideView(this.defaultWindow);
 					this.defaultVisible = false;
 					if (!this.visible) this.show();
-				} else if (page.currentHolder == this.floatHolder && this.floatVisible) {
-					this.hideView(this.floatHolder);
+				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
+					this.hideView(this.floatWindow);
 					this.floatVisible = false;
 				}
 			}
 			page.showing = false;
 		}
 		r.pushPage = function(name, page) {
-			var t, stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
+			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			if (this.busy) return;
-			if (stack.length && stack[stack.length - 1].visible) {
-				stack[stack.length - 1].page.trigger("pause");
+			if (stack.length) {
+				t = stack[stack.length - 1].page;
+				t.trigger("pause");
+				if (!page.dialog) t.requestHide();
 			}
 			stack.push(t = {
 				name : name,
@@ -8123,15 +8233,15 @@ MapScript.loadModule("PopupPage", (function() {
 			this.trigger("pushPage", name, page);
 		}
 		r.popPage = function(page) {
-			var i, stack = page.currentHolder == this.floatHolder ? this.floatStack : this.defaultStack;
+			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			if (this.busy) return;
 			for (i = stack.length - 1; i >= 0; i--) {
 				if (stack[i].page != page) continue;
-				stack.splice(i, stack.length - i).forEach(function(e) {
-					e.page.trigger("exit");
-				}, this);
+				stack[i].page.trigger("exit");
+				stack.splice(i, 1);
 				if (i > 0 && this.visible) {
 					stack[i - 1].page.trigger("resume");
+					stack[i - 1].page.requestShow();
 				}
 				break;
 			}
@@ -8142,7 +8252,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (this.visible) return;
 			this.visible = true;
 			if (this.floatStack.length) {
-				this.hideView(this.floatHolder);
+				this.hideView(this.floatWindow);
 				this.floatVisible = false;
 				for (i = 0; i < this.floatStack.length; i++) {
 					this.showPage(this.floatStack[i].page);
@@ -8152,14 +8262,14 @@ MapScript.loadModule("PopupPage", (function() {
 			} else {
 				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
 			}
-			this.defaultHolder.setVisibility(G.View.VISIBLE);
+			this.defaultWindow.setVisibility(G.View.VISIBLE);
 			this.trigger("show");
 		}
 		r.hide = function() {
 			var i, e;
 			if (!this.visible) return;
 			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
-			this.defaultHolder.setVisibility(G.View.GONE);
+			this.defaultWindow.setVisibility(G.View.GONE);
 			this.visible = false;
 			this.trigger("hide");
 		}
@@ -8188,6 +8298,24 @@ MapScript.loadModule("PopupPage", (function() {
 		r.getCount = function() {
 			return this.defaultStack.length + this.floatStack.length;
 		}
+		r.debug = function() {
+			var s = [];
+			s.push("PageManager[visible=" + this.visible + "]");
+			s.push("DefaultWindowPageManager[showing=" + this.defaultVisible + ",fullscreen=" + this.fullscreen + "]");
+			this.defaultStack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			s.push("FloatWindowPageManager[showing=" + this.floatVisible + ",fullscreen=true]");
+			this.floatStack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			return s.join("\n");
+		}
+		r.supportResize = true;
 	} else {
 		r.prototype = {
 			init : function() {
@@ -8321,6 +8449,19 @@ MapScript.loadModule("PopupPage", (function() {
 		r.getCount = function() {
 			return this.stack.length;
 		}
+		r.debug = function() {
+			var s = [];
+			s.push("PopupWindowPageManager[visible=" + this.visible + "]");
+			this.stack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.visible ? "V" : "") +
+					(e.page.showing ? "S" : "") +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			return s.join("\n");
+		}
+		r.supportResize =- false;
 	}
 	r.prototype.show = r.enter;
 	r.prototype.hide = r.exit;
@@ -8336,7 +8477,35 @@ MapScript.loadModule("PopupPage", (function() {
 	r.listener = {};
 	r.isBusy = function() {
 		return this.busy;
-	}
+	};
+	r.showDialog = function(name, layout, width, height, modal) {
+		var frame, popup;
+		frame = new G.FrameLayout(ctx);
+		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			if (e.getAction() == e.ACTION_DOWN && !modal) {
+				popup.exit();
+			}
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
+		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		frame.addView(layout);
+		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		popup = new r(frame, name, modal);
+		popup.on("resume", function() {
+			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+		});
+		popup.on("pause", function() {
+			frame.setBackground(null);
+		});
+		popup.dialog = true;
+		popup.enter();
+		return popup;
+	};
 	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
 		trans = new G.AlphaAnimation(0, 1);
@@ -8417,7 +8586,7 @@ MapScript.loadModule("Common", {
 		}
 	},
 	theme : null,
-	
+
 	/* BUG 修复
 	 * Android 8.0 颜色转换出错
 	 * 原因：Oreo版本新增了多个方法：
@@ -8436,7 +8605,7 @@ MapScript.loadModule("Common", {
 	setAlpha : function(color, alpha) {
 		return (new java.lang.Long((alpha << 24) | (color & 0xffffff))).intValue();
 	},
-	
+
 	loadTheme : function(id) {
 		var light = {
 			"bgcolor" : "#FAFAFA",
@@ -8547,7 +8716,7 @@ MapScript.loadModule("Common", {
 			}
 		}
 	},
-	
+
 	showChangeTheme : function self(update, dismiss) {G.ui(function() {try {
 		if (!self.linear) {
 			self.adapter = function(e, i, a) {
@@ -8609,12 +8778,12 @@ MapScript.loadModule("Common", {
 			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.title = new G.TextView(ctx);
 			self.title.setText("主题选择");
 			self.title.setGravity(G.Gravity.CENTER);
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setDividerHeight(0);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -8622,17 +8791,17 @@ MapScript.loadModule("Common", {
 				self.refresh();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			
+
 			self.exbar = new G.LinearLayout(ctx);
 			self.exbar.setOrientation(G.LinearLayout.HORIZONTAL);
-			
+
 			self.alpha = new G.TextView(ctx);
 			self.alpha.setGravity(G.Gravity.CENTER);
 			self.alpha.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.alphaSetting();
 			} catch(e) {erp(e)}}}));
 			self.exbar.addView(self.alpha, new G.LinearLayout.LayoutParams(-2, -2, 1));
-			
+
 			self.tsz = new G.TextView(ctx);
 			self.tsz.setGravity(G.Gravity.CENTER);
 			self.tsz.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
@@ -8640,7 +8809,7 @@ MapScript.loadModule("Common", {
 			} catch(e) {erp(e)}}}));
 			self.exbar.addView(self.tsz, new G.LinearLayout.LayoutParams(-2, -2, 1));
 			self.linear.addView(self.exbar, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
@@ -8655,9 +8824,9 @@ MapScript.loadModule("Common", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.popup = new PopupPage(self.linear, "common.ChangeTheme");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.update = update;
@@ -8672,7 +8841,7 @@ MapScript.loadModule("Common", {
 		self.refresh();
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	customVMaker : function(holder) {
 		var view = new G.TextView(ctx);
 		view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
@@ -8680,7 +8849,7 @@ MapScript.loadModule("Common", {
 		Common.applyStyle(view, "textview_default", 3);
 		return view;
 	},
-	
+
 	initEnterAnimation : function(v) {
 		var trans;
 		if (!CA.settings.noAnimation) {
@@ -8689,9 +8858,9 @@ MapScript.loadModule("Common", {
 			v.startAnimation(trans);
 		}
 	},
-	
+
 	showDialog : function(layout, width, height, onExit, modal) {
-		var frame, popup, trans;
+		var frame, popup;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(this.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
@@ -8709,10 +8878,17 @@ MapScript.loadModule("Common", {
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new PopupPage(frame, "common.Dialog", modal);
 		if (onExit) popup.on("exit", onExit);
+		popup.on("resume", function() {
+			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0)); Log.d("resume");
+		});
+		popup.on("pause", function() {
+			frame.setBackgroundColor(G.Color.TRANSPARENT); Log.d("pause");
+		});
+		popup.dialog = true;
 		popup.enter();
 		return popup;
 	},
-	
+
 	showTextDialog : function(s, onDismiss) {G.ui(function() {try {
 		var layout, scr, text, exit, popup;
 		layout = new G.LinearLayout(ctx);
@@ -8736,12 +8912,13 @@ MapScript.loadModule("Common", {
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			popup.dismiss();
+			popup.exit();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		popup = Common.showDialog(layout, -2, -2, onDismiss);
+		popup = PopupPage.showDialog("common.TextDialog", layout, -2, -2);
+		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showOperateDialog : function self(s, tag, onDismiss) {G.ui(function() {try {
 		var frame, list, popup;
 		if (!self.adapter) {
@@ -8767,7 +8944,7 @@ MapScript.loadModule("Common", {
 						e._description = new G.TextView(ctx);
 						e._description.setText(Common.toString(e.description));
 						e._description.setPadding(0, 3 * G.dp, 0, 0);
-						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+						e._description.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 						Common.applyStyle(e._description, "textview_prompt", 1);
 						e.view.addView(e._description);
 					}
@@ -8788,13 +8965,14 @@ MapScript.loadModule("Common", {
 		list.setAdapter(new RhinoListAdapter(s, self.adapter));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 			var e = s[pos];
-			if (e.onclick) if (!e.onclick(e.button, tag)) popup.dismiss();
+			if (e.onclick) if (!e.onclick(e.button, tag)) popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
-		popup = Common.showDialog(frame, -1, -2, onDismiss);
+		popup = PopupPage.showDialog("common.OperateDialog", frame, -1, -2);
+		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showInputDialog : function(s) {G.ui(function() {try {
 		var layout, title, text, ret, exit, popup;
 		layout = new G.LinearLayout(ctx);
@@ -8837,7 +9015,7 @@ MapScript.loadModule("Common", {
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			if (s.callback && s.callback(s.text = String(ret.getText()))) return true;
-			popup.dismiss();
+			popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
@@ -8845,9 +9023,10 @@ MapScript.loadModule("Common", {
 			ret.setMinWidth(0.5 * Common.getScreenWidth());
 		} catch(e) {erp(e)}}}));
 		s.text = null;
-		s.dialog = popup = Common.showDialog(layout, -2, -2, s.onDismiss);
+		s.dialog = popup = PopupPage.showDialog("common.InputDialog", layout, -2, -2);
+		if (s.onDismiss) popup.on("exit", s.onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showConfirmDialog : function(s) {G.ui(function() {try {
 		var scr, layout, title, text, skip, onClick, popup;
 		scr = new G.ScrollView(ctx);
@@ -8875,7 +9054,7 @@ MapScript.loadModule("Common", {
 		if (s.skip) {
 			skip = new G.CheckBox(ctx);
 			skip.setChecked(Boolean(s.canSkip));
-			skip.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+			skip.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 			skip.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
 			skip.setText("不再提示");
 			layout.addView(skip);
@@ -8883,7 +9062,7 @@ MapScript.loadModule("Common", {
 		onClick = function(i) {
 			if (s.skip) s.skip(skip.isChecked());
 			if (s.callback && s.callback(i)) return;
-			popup.dismiss();
+			popup.exit();
 		}
 		but = (s.buttons || ["确定", "取消"]).map(function(e, i) {
 			var b = new G.TextView(ctx);
@@ -8899,9 +9078,10 @@ MapScript.loadModule("Common", {
 			return b;
 		});
 		scr.addView(layout);
-		popup = Common.showDialog(scr, -2, -2, s.onDismiss);
+		popup = PopupPage.showDialog("common.ConfirmDialog", scr, -2, -2);
+		if (s.onDismiss) popup.on("exit", s.onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showListChooser : function self(l, callback, optional, onDismiss) {G.ui(function() {try {
 		var frame, list, popup;
 		if (!self.vmaker) {
@@ -8917,7 +9097,7 @@ MapScript.loadModule("Common", {
 				view.addView(title);
 				var desp = holder.desp = new G.TextView(ctx);
 				desp.setPadding(0, 3 * G.dp, 0, 0);
-				desp.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+				desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				Common.applyStyle(desp, "textview_prompt", 1);
 				view.addView(desp);
 				return view;
@@ -8948,13 +9128,14 @@ MapScript.loadModule("Common", {
 		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
 		list.setAdapter(new SimpleListAdapter(l, self.vmaker, self.vbinder));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-			if (!callback(pos, l)) popup.dismiss();
+			if (!callback(pos, l)) popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
-		popup = Common.showDialog(frame, -1, -2, onDismiss);
+		popup = PopupPage.showDialog("common.ListChooser", frame, -1, -2);
+		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showProgressDialog : function self(f, onCancel) {
 		if (!self.loadAnimation) {
 			self.loadAnimation = function(prg) {
@@ -8986,13 +9167,14 @@ MapScript.loadModule("Common", {
 				prg.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 4 * G.dp));
 				self.loadAnimation(prg);
 				layout.addView(prg);
-				o.popup = Common.showDialog(layout, 240 * G.dp, -2, function() {
+				o.popup = PopupPage.showDialog("common.ProgressDialog", layout, 240 * G.dp, -2, !o.onCancel);
+				o.popup.on("exit", function() {
 					if (!o.closed) {
 						o.cancelled = true;
 						if (typeof o.onCancel == "function") o.onCancel();
 					}
 					o.closed = true;
-				}, !o.onCancel);
+				});
 			} catch(e) {erp(e)}})},
 			self.controller = {
 				setText : function(s) {
@@ -9006,7 +9188,7 @@ MapScript.loadModule("Common", {
 					G.ui(function() {try {
 						if (o.closed) return;
 						o.closed = true;
-						o.popup.dismiss();
+						o.popup.exit();
 					} catch(e) {erp(e)}});
 				},
 				async : function(f) {
@@ -9027,7 +9209,7 @@ MapScript.loadModule("Common", {
 		if (f) o.async(f);
 		return o;
 	},
-	
+
 	showSlider : function self(o) {G.ui(function() {try {
 		var layout, seekbar, text, exit, popup;
 		layout = new G.LinearLayout(ctx);
@@ -9035,7 +9217,7 @@ MapScript.loadModule("Common", {
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		Common.applyStyle(layout, "message_bg");
 		seekbar = new G.SeekBar(ctx);
-		seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		seekbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		seekbar.setMax(o.max);
 		seekbar.setProgress(o.progress);
 		seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
@@ -9057,13 +9239,14 @@ MapScript.loadModule("Common", {
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			o.callback(seekbar.getProgress());
-			popup.dismiss();
+			popup.exit();
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		text.setText(o.prompt(o.progress));
-		popup = Common.showDialog(layout, -1, -2, o.onDismiss);
+		popup = PopupPage.showDialog("common.SliderDialog", layout, -1, -2);
+		if (o.onDismiss) popup.on("exit", o.onDismiss);
 	} catch(e) {erp(e)}})},
-	
+
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
 			self.refreshText = function() {
@@ -9088,22 +9271,22 @@ MapScript.loadModule("Common", {
 					case "custom":
 					hl = new G.LinearLayout(ctx);
 					hl.setOrientation(G.LinearLayout.HORIZONTAL);
-					hl.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+					hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
 					vl = new G.LinearLayout(ctx);
 					vl.setOrientation(G.LinearLayout.VERTICAL);
-					vl.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 1.0));
+					vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
 					vl.getLayoutParams().gravity = G.Gravity.CENTER;
 					e._name = new G.TextView(ctx);
 					e._name.setText(String(e.name));
 					e._name.setSingleLine(true);
-					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
+					e._name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 					Common.applyStyle(e._name, "textview_default", 3);
 					vl.addView(e._name);
 					if (e.description) {
 						e._description = new G.TextView(ctx);
 						e._description.setText(String(e.description));
-						e._description.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
+						e._description.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 						Common.applyStyle(e._description, "textview_prompt", 1);
 						vl.addView(e._description);
 					}
@@ -9112,13 +9295,13 @@ MapScript.loadModule("Common", {
 						e._text = new G.TextView(ctx);
 						e._text.setText(e.get ? String(e.get()) : "");
 						e._text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-						e._text.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
+						e._text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 						e._text.getLayoutParams().gravity = G.Gravity.CENTER;
 						Common.applyStyle(e._text, "textview_prompt", 2);
 						hl.addView(e._text);
 					} else {
 						e._box = new G.CheckBox(ctx);
-						e._box.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+						e._box.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 						e._box.getLayoutParams().gravity = G.Gravity.CENTER;
 						e._box.setChecked(e.get());
 						e._box.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
@@ -9134,14 +9317,14 @@ MapScript.loadModule("Common", {
 					return e._view = hl;
 					case "space":
 					e._sp = new G.Space(ctx);
-					e._sp.setLayoutParams(G.AbsListView.LayoutParams(-1, e.height));
+					e._sp.setLayoutParams(new G.AbsListView.LayoutParams(-1, e.height));
 					e._sp.setFocusable(true);
 					return e._view = e._sp;
 					case "tag":
 					e._tag = new G.TextView(ctx);
 					e._tag.setText(String(e.name));
 					e._tag.setPadding(20 * G.dp, 25 * G.dp, 0, 0);
-					e._tag.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+					e._tag.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					e._tag.setFocusable(true);
 					Common.applyStyle(e._tag, "textview_highlight", 2);
 					return e._view = e._tag;
@@ -9149,34 +9332,34 @@ MapScript.loadModule("Common", {
 					e._text = new G.TextView(ctx);
 					e._text.setText(String(e.get ? e.get() : e.text));
 					e._text.setPadding(20 * G.dp, 0, 20 * G.dp, 10 * G.dp);
-					e._text.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+					e._text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					e._text.setFocusable(true);
 					Common.applyStyle(e._text, "textview_prompt", 2);
 					return e._view = e._text;
 					case "seekbar":
 					vl = new G.LinearLayout(ctx);
 					vl.setOrientation(G.LinearLayout.VERTICAL);
-					vl.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+					vl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					vl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
 					hl = new G.LinearLayout(ctx);
 					hl.setOrientation(G.LinearLayout.HORIZONTAL);
-					hl.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+					hl.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 					hl.setPadding(0, 0, 0, 10 * G.dp);
 					hl.getLayoutParams().gravity = G.Gravity.CENTER;
 					e._name = new G.TextView(ctx);
 					e._name.setText(String(e.name));
-					e._name.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2));
+					e._name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 					Common.applyStyle(e._name, "textview_default", 3);
 					hl.addView(e._name);
 					e._progress = new G.TextView(ctx);
-					e._progress.setLayoutParams(G.LinearLayout.LayoutParams(-1, -1));
+					e._progress.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 					e._progress.setGravity(G.Gravity.CENTER | G.Gravity.RIGHT);
 					e._progress.setPadding(0, 0, 10 * G.dp, 0);
 					Common.applyStyle(e._progress, "textview_prompt", 2);
 					hl.addView(e._progress);
 					vl.addView(hl);
 					e._seekbar = new G.SeekBar(ctx);
-					e._seekbar.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+					e._seekbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 					e._seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
 						onProgressChanged : function(v, progress, fromUser) {try {
 							e._progress.setText(e.current ? e.current(progress) : progress);
@@ -9196,14 +9379,14 @@ MapScript.loadModule("Common", {
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "message_bg");
-			
+
 			self.title = new G.TextView(ctx);
 			self.title.setText("设置");
 			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.title, "bar_float");
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.title.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			
+
 			self.list = new G.ListView(ctx);
 			self.list.setDividerHeight(0);
 			self.list.addHeaderView(self.title);
@@ -9220,7 +9403,7 @@ MapScript.loadModule("Common", {
 				}
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			
+
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
@@ -9232,9 +9415,9 @@ MapScript.loadModule("Common", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.popup = new PopupPage(self.linear, "common.Settings");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.popup.onExit = function() {
@@ -9272,7 +9455,7 @@ MapScript.loadModule("Common", {
 		self.list.setAdapter(new RhinoListAdapter(self.data, self.adapter));
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showFileDialog : function self(o) {G.ui(function() {try {
 		if (!self.linear) {
 			self.vmaker = function() {
@@ -9280,7 +9463,7 @@ MapScript.loadModule("Common", {
 				name.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				name.setSingleLine(true);
 				name.setEllipsize(G.TextUtils.TruncateAt.END);
-				name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+				name.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				return name;
 			}
 			self.vbinder = function(holder, e) {
@@ -9333,11 +9516,11 @@ MapScript.loadModule("Common", {
 			}
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.header = new G.LinearLayout(ctx);
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.header, "bar_float");
-			
+
 			self.back = new G.TextView(ctx);
 			self.back.setText("< 返回");
 			self.back.setGravity(G.Gravity.CENTER);
@@ -9348,12 +9531,12 @@ MapScript.loadModule("Common", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back, new G.LinearLayout.LayoutParams(-2, -1));
-			
+
 			self.title = new G.TextView(ctx);
 			self.title.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.header.addView(self.title, new G.LinearLayout.LayoutParams(-2, -2));
-			
+
 			self.path = new G.TextView(ctx);
 			self.path.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
 			self.path.setPadding(15 * G.dp, 0, 5 * G.dp, 0);
@@ -9386,7 +9569,7 @@ MapScript.loadModule("Common", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.path, new G.LinearLayout.LayoutParams(0, -1, 1.0));
-			
+
 			self.newDir = new G.TextView(ctx);
 			self.newDir.setText("\ud83d\udcc1+"); //Emoji:Collapsed Folder
 			self.newDir.setGravity(G.Gravity.CENTER);
@@ -9414,7 +9597,7 @@ MapScript.loadModule("Common", {
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.newDir, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.list = new G.ListView(ctx);
 			Common.applyStyle(self.list, "message_bg");
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -9439,11 +9622,11 @@ MapScript.loadModule("Common", {
 				self.list.setFastScrollAlwaysVisible(false);
 			}
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			
+
 			self.inputbar = new G.LinearLayout(ctx);
 			self.inputbar.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.inputbar, "bar_float");
-			
+
 			self.fname = new G.EditText(ctx);
 			self.fname.setHint("文件名");
 			self.fname.setSingleLine(true);
@@ -9452,7 +9635,7 @@ MapScript.loadModule("Common", {
 			self.fname.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.fname, "edittext_default", 3);
 			self.inputbar.addView(self.fname, new G.LinearLayout.LayoutParams(0, -1, 1.0));
-			
+
 			self.exit = new G.TextView(ctx);
 			self.exit.setText("确定");
 			self.exit.setGravity(G.Gravity.CENTER);
@@ -9485,9 +9668,9 @@ MapScript.loadModule("Common", {
 			} catch(e) {erp(e)}}}));
 			self.inputbar.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -2));
 			self.linear.addView(self.inputbar, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.popup = new PopupPage(self.linear, "common.FileChooser");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.popup.onExit = o.onDismiss;
@@ -9519,7 +9702,7 @@ MapScript.loadModule("Common", {
 		}
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showDebugDialog : function self() {G.ui(function() {try {
 		if (!self.main) {
 			self.LINE_LIMIT = 200;
@@ -9566,7 +9749,7 @@ MapScript.loadModule("Common", {
 			}
 			self.exec = function(s) {
 				if (s.toLowerCase() == "exit") {
-					self.popup.dismiss();
+					self.popup.exit();
 					return;
 				} else if (s.toLowerCase() == "cls") {
 					self.cls();
@@ -9621,15 +9804,15 @@ MapScript.loadModule("Common", {
 				self.print(str + "\n");
 			}
 			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
-			
+
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.bar = new G.LinearLayout(ctx);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.bar, "bar_float");
-			
+
 			self.cmd = new G.EditText(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
 			self.cmd.setFocusableInTouchMode(true);
@@ -9638,7 +9821,7 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.bar.addView(self.cmd);
 			Common.postIME(self.cmd);
-			
+
 			self.eval = new G.TextView(ctx);
 			self.eval.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.eval.setGravity(G.Gravity.CENTER);
@@ -9665,7 +9848,7 @@ MapScript.loadModule("Common", {
 				self.cmd.setText("");
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.eval);
-			
+
 			self.prompt = new G.ListView(ctx);
 			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			self.prompt.setDividerHeight(0);
@@ -9685,15 +9868,15 @@ MapScript.loadModule("Common", {
 			self.prompt.setAdapter(self.adapter.self);
 			self.main.addView(self.prompt);
 			self.main.addView(self.bar);
-			
+
 			self.popup = new PopupPage(self.main, "common.Console");
-			
+
 			self.cls();
 			PWM.registerResetFlag(self, "main");
 		}
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showWebViewDialog : function(s) {G.ui(function() {try {
 		var layout, wv, ws, exit, popup;
 		layout = new G.LinearLayout(ctx);
@@ -9732,15 +9915,16 @@ MapScript.loadModule("Common", {
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			popup.dismiss();
+			popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		popup = Common.showDialog(layout, -1, -1, function() {
+		popup = PopupPage.showDialog("common.WebDialog", layout, -1, -1);
+		popup.on("exit", function() {
 			wv.destroy();
 		});
 	} catch(e) {erp(e)}})},
-	
+
 	showTutorial : function self(o) {gHandler.post(function() {try {
 		if (!self.popup) {
 			self.queue = [];
@@ -9782,7 +9966,7 @@ MapScript.loadModule("Common", {
 			self.paint.setAntiAlias(true);
 			self.paint.setXfermode(G.PorterDuffXfermode(G.PorterDuff.Mode.DST_OUT));
 			self.cv = new G.Canvas();
-			self.frameRect = new G.Rect(); 
+			self.frameRect = new G.Rect();
 			self.frame = new G.FrameLayout(ctx);
 			self.frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -9815,7 +9999,7 @@ MapScript.loadModule("Common", {
 		self.queue.push(o);
 		if (!self.popup.isShowing()) self.next();
 	} catch(e) {erp(e)}})},
-	
+
 	toast : function self(str) {G.ui(function() {try {
 		if (!self.popup) {
 			self.show = function() {
@@ -9888,7 +10072,7 @@ MapScript.loadModule("Common", {
 		}
 		self.toast(str);
 	} catch(e) {erp(e)}})},
-	
+
 	fileCopy : function(src, dest) {
 		const BUFFER_SIZE = 4096;
 		var fi, fo, buf, hr;
@@ -9901,7 +10085,7 @@ MapScript.loadModule("Common", {
 		fi.close();
 		fo.close();
 	},
-	
+
 	readFile : function(path, defaultValue, gzipped) {
 		try{
 			if (!(new java.io.File(path)).isFile()) return defaultValue;
@@ -9918,7 +10102,7 @@ MapScript.loadModule("Common", {
 			return defaultValue;
 		}
 	},
-	
+
 	saveFile : function(path, text, gzipped) {
 		var wr;
 		var f = new java.io.File(path).getParentFile();
@@ -9931,7 +10115,7 @@ MapScript.loadModule("Common", {
 		wr.write(new java.lang.String(text).getBytes());
 		wr.close();
 	},
-	
+
 	getFileSize : function(f, showBytes) {
 		var l = Number(f.length()), r;
 		if (l < 1000) {
@@ -9946,7 +10130,7 @@ MapScript.loadModule("Common", {
 		if (showBytes) r += " (" + l.toLocaleString() + " 字节)";
 		return r;
 	},
-	
+
 	traceStack : function() {
 		var s = [], i;
 		var ts = java.lang.Thread.getAllStackTraces();
@@ -9963,23 +10147,23 @@ MapScript.loadModule("Common", {
 		}
 		return s.join("\n");
 	},
-	
+
 	toString : function(s) {
 		return s instanceof java.lang.CharSequence ? s : String(s);
 	},
-	
+
 	toastSystem : function self(s, dur) {G.ui(function() {try {
 		if (self.last) self.last.cancel();
 		(self.last = G.Toast.makeText(ctx, Common.toString(s), dur ? 1 : 0)).show();
 	} catch(e) {erp(e)}})},
-	
+
 	postIME : function(v, delay) {
 		v.postDelayed(function() {try {
 			v.requestFocus();
 			ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(v, G.InputMethodManager.SHOW_IMPLICIT);
 		} catch(e) {erp(e)}}, isNaN(delay) ? 0 : delay);
 	},
-	
+
 	hideIME : function(v) {
 		var imm = ctx.getSystemService(ctx.INPUT_METHOD_SERVICE);
 		if (v) {
@@ -9988,7 +10172,7 @@ MapScript.loadModule("Common", {
 			if (imm.isActive()) imm.toggleSoftInput(0, imm.HIDE_NOT_ALWAYS);
 		}
 	},
-	
+
 	hasClipboardText : function() {
 		if (android.os.Build.VERSION.SDK_INT >= 11) {
 			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasPrimaryClip();
@@ -10012,7 +10196,7 @@ MapScript.loadModule("Common", {
 			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setText(text);
 		}
 	},
-	
+
 	getMetrics : function() {
 		var display = ctx.getSystemService(ctx.WINDOW_SERVICE).getDefaultDisplay(), out = new android.util.DisplayMetrics();
 		display.getMetrics(out);
@@ -10028,7 +10212,7 @@ MapScript.loadModule("Common", {
 	getScreenWidth : function() {
 		return this.getMetrics()[0];
 	},
-	
+
 	replaceSelection : function(s, text) {
 		var start = G.Selection.getSelectionStart(s);
 		var end = G.Selection.getSelectionEnd(s);
@@ -10554,9 +10738,9 @@ MapScript.loadModule("Tutorial", {
 				self.popup.exit();
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-			
+
 			self.popup = new PopupPage(self.linear, "tutorial.List");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.popup.onExit = function() {
@@ -10566,7 +10750,7 @@ MapScript.loadModule("Tutorial", {
 		self.refresh();
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	showIntro : function(o, callback) {G.ui(function() {try {
 		var linear, title, scr, desc, enter, popup;
 		linear = new G.LinearLayout(ctx);
@@ -10590,15 +10774,15 @@ MapScript.loadModule("Tutorial", {
 		enter.setPadding(0, 10 * G.dp, 20 * G.dp, 20 * G.dp);
 		Common.applyStyle(enter, "button_critical", 3);
 		enter.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			popup.dismiss();
+			popup.exit();
 			if (o.type == "tutorial") {
 				Tutorial.showTutorial(o, callback);
 			} // more: exam article
 		} catch(e) {erp(e)}}}));
 		linear.addView(enter, new G.LinearLayout.LayoutParams(-1, -2));
-		popup = Common.showDialog(linear, -1, -1);
+		popup = PopupPage.showDialog("tutorial.Intro", linear, -1, -1);
 	} catch(e) {erp(e)}})},
-	
+
 	showTutorial : function self(o, callback) {G.ui(function() {try {
 		if (!self.linear) {
 			self.adapter = function(e, i, a) {
@@ -10738,9 +10922,9 @@ MapScript.loadModule("Tutorial", {
 					break;
 				}
 			} catch(e) {erp(e)}}}));
-			
+
 			self.popup = new PopupPage(self.list, "tutorial.Tutorial");
-			
+
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.popup.onExit = function() {
@@ -10750,7 +10934,7 @@ MapScript.loadModule("Tutorial", {
 		self.init(o);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
-	
+
 	getSettings : function(id) {
 		if (!CA.settings.tutorialData) {
 			CA.settings.tutorialData = {};
@@ -11209,7 +11393,7 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 			this.holders.length = 0;
 			this.notifyChange();
 		},
-		getHolder : function(view) { 
+		getHolder : function(view) {
 			return this.holders[view.getTag()];
 		},
 		notifyChange : function() {
@@ -11606,7 +11790,7 @@ MapScript.loadModule("ExpandableListAdapter", (function() {
 		getGroupIndex : function(pos) {
 			return this.extend[pos].index;
 		},
-		getHolder : function(view) { 
+		getHolder : function(view) {
 			return this.holders[view.getTag()];
 		},
 		getVisibleChildren : function(pos, arr) {
@@ -11986,7 +12170,7 @@ MapScript.loadModule("ISegment", {
 			return self.writeLenientString(e, opt);
 		}).join(options.splitChar);
 	},
-	
+
 	rawJson : function self(o, variableMap) {
 		if (!self.coverSpan) {
 			self.coverSpan = function(src, span) {
@@ -12218,7 +12402,7 @@ MapScript.loadModule("JSONEdit", {
 		}
 		Common.showOperateDialog(self.menu);
 	},
-	
+
 	showEdit : function self() {G.ui(function() {try {
 		if (!self.main) {
 			self.drawDivider = function(height) {
@@ -12231,24 +12415,24 @@ MapScript.loadModule("JSONEdit", {
 				pa.setColor(Common.theme.promptcolor);
 				pa.setStrokeWidth(2);
 				pa.setAntiAlias(true);
-				
+
 				var ph = new G.Path();
 				ph.moveTo(0, 0);
 				ph.lineTo(width, width);
 				ph.lineTo(0, height);
 				cv.drawPath(ph, pa);
-				
+
 				return new G.BitmapDrawable(ctx.getResources(), bmp);
 			}
-			
+
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.header = new G.LinearLayout(ctx);
 			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.header, "bar_float");
-			
+
 			self.back = new G.TextView(ctx);
 			self.back.setText("< 返回");
 			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
@@ -12259,11 +12443,11 @@ MapScript.loadModule("JSONEdit", {
 				return true;
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.back);
-			
+
 			self.hscr = new G.HorizontalScrollView(ctx);
 			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.hscr.setHorizontalScrollBarEnabled(false);
-				
+
 			JSONEdit.pathbar = new G.LinearLayout(ctx);
 			self.back.measure(0, 0);
 			JSONEdit.pathbar.setDividerDrawable(self.drawDivider(self.back.getMeasuredHeight()));
@@ -12273,14 +12457,14 @@ MapScript.loadModule("JSONEdit", {
 			self.hscr.addView(JSONEdit.pathbar);
 			self.header.addView(self.hscr);
 			self.main.addView(self.header);
-			
+
 			self.create = new G.TextView(ctx);
 			self.create.setText("添加 / 粘贴 ...");
 			self.create.setGravity(G.Gravity.CENTER);
 			self.create.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-			self.create.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+			self.create.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			Common.applyStyle(self.create, "textview_default", 3);
-			
+
 			JSONEdit.list = new G.ListView(ctx);
 			JSONEdit.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			JSONEdit.list.addHeaderView(self.create);
@@ -12312,7 +12496,7 @@ MapScript.loadModule("JSONEdit", {
 					});
 					return true;
 				}
-				
+
 				var name = parent.getAdapter().getItem(pos);
 				var data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
 				JSONEdit.path[JSONEdit.path.length - 1].pos = JSONEdit.list.getFirstVisiblePosition();
@@ -12345,7 +12529,7 @@ MapScript.loadModule("JSONEdit", {
 				JSONEdit.list.setFastScrollAlwaysVisible(false);
 			}
 			self.main.addView(JSONEdit.list);
-			
+
 			self.onBack = function() {
 				if (JSONEdit.path.length > 1) {
 					JSONEdit.path.pop();
@@ -12356,7 +12540,7 @@ MapScript.loadModule("JSONEdit", {
 			}
 			EventSender.init(self);
 			self.listener = {};
-			
+
 			if (MapScript.host == "Android") {
 				self.popup = new PopupPage(self.main, "jsonedit.Main");
 				self.popup.on("back", function(name, cancelDefault) {
@@ -12404,7 +12588,7 @@ MapScript.loadModule("JSONEdit", {
 				}
 				self.popup = self;
 			}
-			
+
 			PWM.registerResetFlag(self, "main");
 		}
 		self.popup.enter();
@@ -12427,7 +12611,7 @@ MapScript.loadModule("JSONEdit", {
 		layout.addView(title);
 		if (typeof data == "boolean") {
 			ret = new G.CheckBox(ctx);
-			ret.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+			ret.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 			ret.getLayoutParams().setMargins(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp)
 			ret.setChecked(data);
 			ret.setText("True / False");
@@ -12466,11 +12650,11 @@ MapScript.loadModule("JSONEdit", {
 					callback(String(ret.getText()));
 				}
 			}
-			popup.dismiss();
+			popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		popup = Common.showDialog(layout, -2, -2);
+		popup = PopupPage.showDialog("jsonedit.DataEditor", layout, -2, -2);
 	} catch(e) {erp(e)}})},
 	showBatchEdit : function(data, callback) {G.ui(function() {try {
 		var frame, layout, title, text, ret, exit, popup;
@@ -12676,28 +12860,28 @@ MapScript.loadModule("JSONEdit", {
 		var hl, vl, name, data, more;
 		hl = new G.LinearLayout(ctx);
 		hl.setOrientation(G.LinearLayout.HORIZONTAL);
-		hl.setLayoutParams(G.AbsListView.LayoutParams(-1, -2));
+		hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 		hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
 		vl = new G.LinearLayout(ctx);
 		vl.setOrientation(G.LinearLayout.VERTICAL);
-		vl.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 1.0));
+		vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
 		vl.getLayoutParams().gravity = G.Gravity.CENTER;
 		name = holder.name = new G.TextView(ctx);
 		name.setEllipsize(G.TextUtils.TruncateAt.END);
-		name.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		name.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		Common.applyStyle(name, "textview_default", 3);
 		vl.addView(name);
 		data = holder.data = new G.TextView(ctx);
 		data.setMaxLines(2);
 		data.setEllipsize(G.TextUtils.TruncateAt.END);
-		data.setLayoutParams(G.LinearLayout.LayoutParams(-1, -2));
+		data.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		Common.applyStyle(data, "textview_prompt", 1);
 		vl.addView(data);
 		hl.addView(vl);
 		more = new G.TextView(ctx);
 		more.setText(">");
 		more.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-		more.setLayoutParams(G.LinearLayout.LayoutParams(-2, -2, 0));
+		more.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 		more.getLayoutParams().gravity = G.Gravity.CENTER;
 		Common.applyStyle(more, "button_secondary", 4);
 		more.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
@@ -12767,7 +12951,7 @@ MapScript.loadModule("SettingsCompat", {
 	// 原代码类型：Java/Android
 	// 现代码类型：JavaScript/Rhino/Android
 	// 由 ProjectXero (@XeroAlpha) 翻译，有改动
-	
+
 	SYSVER : android.os.Build.VERSION.SDK_INT,
 	ensureCanFloat : function() {
 		if (this.canDrawOverlays()) {
@@ -13225,7 +13409,7 @@ MapScript.loadModule("MCAdapter", {
 	},
 	onWSPlayerTravelled : function(json) {
 		var obj = json.measurements, x, y, z, d, o = this.wsdata.playerpos;
-		x = obj.PosAvgX; y = obj.PosAvgY; z = obj.PosAvgZ; 
+		x = obj.PosAvgX; y = obj.PosAvgY; z = obj.PosAvgZ;
 		if (o) {
 			d = obj.MetersTravelled / this.distance(x - o[0], y - o[1], z - o[2]);
 			x += (x - o[0]) * d;
@@ -13234,7 +13418,7 @@ MapScript.loadModule("MCAdapter", {
 		} else {
 			this.wsdata.playerpos = o = [];
 		}
-		o[0] = x; o[1] = y; o[2] = z; 
+		o[0] = x; o[1] = y; o[2] = z;
 	},
 	askShortcut : function(name, pkg) {
 		var z = {
@@ -13540,7 +13724,7 @@ MapScript.loadModule("AndroidBridge", {
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			Common.showDebugDialog();
 			break;
-			
+
 			default:
 			if (startByIntent && CA.settings.chainLaunch) {
 				t = ctx.getPackageManager().getLaunchIntentForPackage(CA.settings.chainLaunch);
@@ -13589,7 +13773,7 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
-		
+
 		o.splice(2, 0, {
 			name : "Android版设置",
 			type : "tag"
@@ -13959,8 +14143,10 @@ MapScript.loadModule("NeteaseAdapter", {
 			return "1.1.3.52"; //未确认
 		} else if (c < 840043535) { //1.6.1.43535
 			return "1.2.5.50";
-		} else {
+		} else if (c < 840045722) { //1.7.0.45722
 			return "1.4.1.5";
+		} else {
+			return "1.5.2.0";
 		}
 	},
 	askPackage : function(callback, canCustomize) {
@@ -14213,7 +14399,7 @@ MapScript.loadModule("WSServer", {
 		}
 		this.conn = conn;
 		this.events = {};
-		this.responsers = {}; 
+		this.responsers = {};
 		Common.toast("设备" + conn.getRemoteSocketAddress() + "已连接");
 		AndroidBridge.notifySettings();
 		Plugins.emit("WSServer", "connectionOpen");
@@ -14375,7 +14561,7 @@ MapScript.loadModule("WSServer", {
 			}
 			self.exec = function(s) {
 				if (s.toLowerCase() == "exit") {
-					self.popup.dismiss();
+					self.popup.exit();
 					return;
 				} else if (s.toLowerCase() == "cls") {
 					self.cls();
@@ -14419,7 +14605,7 @@ MapScript.loadModule("WSServer", {
 			}
 			self.onClose = function() {
 				G.ui(function() {try {
-					if (self.popup) self.popup.dismiss();
+					if (self.popup) self.popup.exit();
 				}catch(e){erp(e)}});
 			}
 			function send(cmd, callback) {
@@ -14432,15 +14618,15 @@ MapScript.loadModule("WSServer", {
 				self.print(str + "\n");
 			}
 			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
-			
+
 			self.main = new G.LinearLayout(ctx);
 			self.main.setOrientation(G.LinearLayout.VERTICAL);
-			
+
 			self.bar = new G.LinearLayout(ctx);
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.bar, "bar_float");
-			
+
 			self.cmd = new G.EditText(ctx);
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
 			self.cmd.setFocusableInTouchMode(true);
@@ -14449,7 +14635,7 @@ MapScript.loadModule("WSServer", {
 			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.bar.addView(self.cmd);
 			Common.postIME(self.cmd);
-			
+
 			self.eval = new G.TextView(ctx);
 			self.eval.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.eval.setGravity(G.Gravity.CENTER);
@@ -14476,7 +14662,7 @@ MapScript.loadModule("WSServer", {
 				self.cmd.setText("");
 			} catch(e) {erp(e)}}}));
 			self.bar.addView(self.eval);
-			
+
 			self.prompt = new G.ListView(ctx);
 			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 			self.prompt.setDividerHeight(0);
@@ -14496,9 +14682,9 @@ MapScript.loadModule("WSServer", {
 			self.prompt.setAdapter(self.adapter.self);
 			self.main.addView(self.prompt);
 			self.main.addView(self.bar);
-			
+
 			self.popup = new PopupPage(self.main, "wsserver.Console");
-			
+
 			self.cls();
 			PWM.registerResetFlag(self, "main");
 		}
@@ -17834,7 +18020,7 @@ CA.tips = [
 	"善用gamerule指令让你的世界更加精彩~",
 	"矿车也属于实体！~",
 	"夜视+失明能做出很棒的视觉效果！~",
-	
+
 	//by o绿叶o
 	"混凝土方块没有花纹！",
 	"可以试试彩色床，转换一下心情～",
@@ -17861,7 +18047,7 @@ CA.tips = [
 	"混凝土、物品栏的花纹都是沙子的花纹……←_←",
 	"石镐可以挖掉青金石。",
 	"黄金工具的效率更高，但耐久度很低。",
-	
+
 	//by ProjectXero
 	"潜影贝只是站错了阵营的好孩子～"
 ];
