@@ -177,7 +177,7 @@ var question_list = [{
     question: "如何清除所有非玩家实体？",
     answer: "kill\\s+@e\\[type=!player\\]"
 }, {
-    question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架",
+    question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架（不考虑运行环境限制）",
     answer: function(str) {
         return Math.abs(Number(str) - 6 * Math.pow(2, 6) * Math.pow(2, 384)) < 1e+115;
     }
@@ -243,6 +243,20 @@ var question_list = [{
     question: "如何让玩家等级不超过100级？（使用xp与execute命令）",
     answer: "execute\\s+@a\\[lm=100\\]\\s+~\\s+~\\s+~\\s+xp\\s+-\\d+(L?)(\\s+@s)?"
 }];
+function getQueryString() {
+	var url = location.search;
+	var r = {}, i, strs, t;
+	if ((t = url.indexOf("?")) >= 0) {
+		strs = url.slice(t + 1).split("&");
+		for(i in strs) {
+			t = strs[i].indexOf("=");
+			if (t >= 0) {
+				r[strs[i].slice(0, t)] = unescape(strs[i].slice(t + 1));
+			}
+		}
+	}
+	return r;
+}
 (function() {
 var i, j, seed = [question_list.length];
 var charcode = new Array(question_list.length);
@@ -253,7 +267,10 @@ for (i = 0; i < charcode.length; i++) {
 question_list.sort(function(a, b) {
     return charcode[a.index] - charcode[b.index];
 });
-var date = Date.now();
+var query = getQueryString();
+var date;
+if (query.date) date = Date.parse(query.date);
+if (isNaN(date)) date = Date.now();
 var cur = getDailyQuestion(date);
 var isSuccessed;
 window.onload = function() { 

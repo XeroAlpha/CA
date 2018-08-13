@@ -511,6 +511,803 @@ MapScript.loadModule("G", {
 });
 "IGNORELN_END";
 
+MapScript.loadModule("EventSender", {
+	init : function(o) {
+		o.on = this.on;
+		o.off = this.off;
+		o.trigger = this.trigger;
+		o.clearListeners = this.clearListeners;
+	},
+	on : function(name, f) {
+		if (!this.listener[name]) this.listener[name] = [];
+		if (this.listener[name].indexOf(f) < 0) this.listener[name].push(f);
+		if (this.__eventsender_observer__) this.__eventsender_observer__("on", name, f);
+		return this;
+	},
+	off : function(name, f) {
+		var i, t;
+		if (this.listener[name]) {
+			if (arguments.length == 1) {
+				delete this.listener[name];
+			} else {
+				i = this.listener[name].indexOf(f);
+				if (i >= 0) this.listener[name].splice(i, 1);
+			}
+		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("off", name, f);
+		return this;
+	},
+	trigger : function(name) {
+		var i, a;
+		if (this.listener[name]) {
+			a = this.listener[name];
+			for (i = a.length - 1; i >= 0; i--) {
+				a[i].apply(this, arguments);
+			}
+		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("trigger", name);
+		return this;
+	},
+	clearListeners : function() {
+		var i;
+		for (i in this.listener) {
+			delete this.listener[i];
+		}
+		if (this.__eventsender_observer__) this.__eventsender_observer__("clear", name);
+	}
+});
+
+MapScript.loadModule("PWM", {
+	floats : [],
+	popups : [],
+	listener : {},
+	resetFlags : [],
+	intentBack : false,
+	busy : false,
+	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
+	onCreate : function() {
+		EventSender.init(this);
+	},
+	initialize : function() {
+		PopupPage.on("newPopup", function() {
+			PWM.onPageAdd();
+		});
+	},
+	onResume : function() {
+		if (this.intentBack) {
+			PopupPage.show();
+			this.intentBack = false;
+			return true;
+		}
+		return false;
+	},
+	onPageAdd : function() {
+		var v;
+		this.floats.forEach(function(e) {
+			if (!e.isShowing()) return;
+			v = e.getContentView();
+			if (!v) return;
+			v = v.getRootView();
+			wp = v.getLayoutParams();
+			PWM.wm.removeViewImmediate(v);
+			PWM.wm.addView(v, wp);
+		});
+	},
+	addFloat : function(w) {
+		if (this.floats.indexOf(w) < 0) this.floats.push(w);
+		this.trigger("addFloat", w);
+	},
+	addPopup : function(w) {
+		if (this.popups.indexOf(w) < 0) this.popups.push(w);
+		this.trigger("addPopup", w);
+	},
+	dismissFloat : function() {
+		var v;
+		this.busy = true;
+		this.floats.forEach(function(e) {
+			if (!e.isShowing()) return;
+			e.dismiss();
+		});
+		this.busy = false;
+		this.trigger("dismissFloat");
+	},
+	dismissPopup : function() {
+		var v;
+		this.busy = true;
+		this.popups.forEach(function(e) {
+			if (!e.isShowing()) return;
+			e.dismiss();
+		});
+		this.busy = false;
+		this.trigger("dismissPopup");
+	},
+	reset : function() {
+		this.trigger("reset");
+		this.floats.length = this.popups.length;
+		this.clearListeners();
+		PopupPage.reset();
+	},
+	resetUICache : function() {
+		this.resetFlags.forEach(function(e) {
+			e.obj[e.prop] = e.value;
+		});
+	},
+	registerResetFlag : function(obj, prop, value) {
+		var i, e;
+		for (i in this.resetFlags) {
+			e = this.resetFlags[i];
+			if (e.obj == obj && e.prop == prop) {
+				e.value = value;
+				return;
+			}
+		}
+		this.resetFlags.push({
+			obj : obj,
+			prop : prop,
+			value : value
+		});
+	}
+});
+
+MapScript.loadModule("PopupPage", (function() {
+	var r = function(mainView, name, modal) {
+		this.mainView = mainView;
+		this.name = name || "Unnamed";
+		this.modal = modal;
+		this._enterAnimation = r.fadeInAnimation;
+		this._exitAnimation = r.fadeOutAnimation;
+		this.listener = {};
+		this.init();
+	}
+	if (MapScript.host == "Android") {
+		r.fullscreen = true;
+		r.consumed = false;
+		r.initialize = function() {G.ui(function() {try {
+			var vcfg = G.ViewConfiguration.get(ctx);
+			var longPressTimeout = vcfg.getLongPressTimeout();
+			var touchSlop = vcfg.getScaledTouchSlop();
+			r.defaultWindow = ScriptActivity.createFrameLayout({
+				dispatchKeyEvent : function(event) {
+					var state = r.defaultWindow.getKeyDispatcherState();
+					if (event.getKeyCode() == event.KEYCODE_BACK) {
+						if (!state) return 0;
+						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+							state.startTracking(event, this);
+							return 1;
+						} else if (event.getAction() == event.ACTION_UP) {
+							if (state.isTracking(event) && !event.isCanceled()) {
+								r.back(r.defaultContainer);
+								return 1;
+							}
+						}
+					}
+					return 0;
+				},
+				dispatchTouchEvent : function(e) {
+					return 0;
+				}
+			});
+			r.longClick = new java.lang.Runnable({run : function() {try {
+				if (r.longClicked) r.setFullScreen(true);
+				r.longClicked = false;
+			} catch(e) {erp(e)}}});
+			r.defaultDecorLinear = new G.LinearLayout(ctx);
+			r.defaultDecorLinear.setOrientation(G.LinearLayout.VERTICAL);
+			r.defaultDecorLinear.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+			r.headerView = new G.LinearLayout(ctx);
+			r.headerView.setOrientation(G.LinearLayout.HORIZONTAL);
+			r.headerView.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			r.titleView = new G.TextView(ctx);
+			r.titleView.setText("CA");
+			r.titleView.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			r.titleView.setSingleLine(true);
+			r.titleView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 2));
+			r.titleView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (touch.stead) {
+						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
+							break;
+						}
+						touch.stead = false;
+					}
+					r.updateView(r.defaultWindow, r.x = e.getRawX() + touch.offx, r.y = e.getRawY() + touch.offy, r.width, r.height);
+					break;
+					case e.ACTION_DOWN:
+					touch.offx = r.x - (touch.lx = e.getRawX());
+					touch.offy = r.y - (touch.ly = e.getRawY());
+					touch.stead = true;
+					Common.applyStyle(v, "button_reactive_pressed", 2);
+					break;
+					case e.ACTION_UP:
+					case e.ACTION_CANCEL:
+					Common.applyStyle(v, "button_reactive", 2);
+				}
+				return true;
+			} catch(e) {return erp(e), false}}}));
+			r.headerView.addView(r.titleView);
+			r.resizeView = new G.TextView(ctx);
+			r.resizeView.setText("■");
+			r.resizeView.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+			r.resizeView.setSingleLine(true);
+			r.resizeView.setGravity(G.Gravity.RIGHT);
+			r.resizeView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
+			r.resizeView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (touch.stead) {
+						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
+							break;
+						}
+						r.longClicked = false;
+						touch.stead = false;
+					}
+					break;
+					case e.ACTION_DOWN:
+					touch.offwidth = r.width - (touch.lx = e.getRawX());
+					touch.offheight = r.height + (touch.ly = e.getRawY());
+					touch.offy = r.y - touch.ly;
+					touch.stead = true;
+					v.postDelayed(r.longClick, longPressTimeout);
+					r.longClicked = true;
+					Common.applyStyle(v, "button_reactive_pressed", 2);
+					r.defaultStub.setVisibility(G.View.VISIBLE);
+					r.defaultContainer.setVisibility(G.View.GONE);
+					break;
+					case e.ACTION_UP:
+					case e.ACTION_CANCEL:
+					r.longClicked = false;
+					Common.applyStyle(v, "button_reactive", 2);
+					r.defaultStub.setVisibility(G.View.GONE);
+					r.defaultContainer.setVisibility(G.View.VISIBLE);
+					r.updateView(r.defaultWindow, r.x, r.y = e.getRawY() + touch.offy, r.width = e.getRawX() + touch.offwidth, r.height = touch.offheight - e.getRawY());
+				}
+				return true;
+			} catch(e) {return erp(e), false}}}));
+			r.headerView.addView(r.resizeView);
+			r.defaultDecorLinear.addView(r.headerView);
+			r.defaultContainer = new G.FrameLayout(ctx);
+			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			r.defaultDecorLinear.addView(r.defaultContainer);
+			r.defaultStub = new G.FrameLayout(ctx);
+			r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			r.defaultStub.setVisibility(G.View.GONE);
+			r.defaultDecorLinear.addView(r.defaultStub);
+			r.defaultWindow.addView(r.defaultDecorLinear);
+			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
+				dispatchKeyEvent : function(event) {
+					var state = r.floatWindow.getKeyDispatcherState();
+					if (event.getKeyCode() == event.KEYCODE_BACK) {
+						if (!state) return 0;
+						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
+							state.startTracking(event, this);
+							return 1;
+						} else if (event.getAction() == event.ACTION_UP) {
+							if (state.isTracking(event) && !event.isCanceled()) {
+								r.back(r.defaultContainer);
+								return 1;
+							}
+						}
+					}
+					return 0;
+				},
+				dispatchTouchEvent : function(event) {
+					return 0;
+				}
+			});
+		} catch(e) {erp(e)}})}
+		r.updateDefault = function() {
+			if (this.fullscreen) {
+				this.headerView.setVisibility(G.View.GONE);
+			} else {
+				Common.applyStyle(this.headerView, "bar_float_second");
+				Common.applyStyle(r.titleView, "button_reactive", 2);
+				Common.applyStyle(r.resizeView, "button_reactive", 2);
+				Common.applyStyle(r.defaultStub, "container_default");
+				this.headerView.setVisibility(G.View.VISIBLE);
+			}
+		}
+		r.setFullScreen = function(isFullScreen) {
+			if (isFullScreen) {
+				this.fullscreen = true;
+				this.updateView(this.defaultWindow, 0, 0, -1, -1);
+				r.updateDefault();
+			} else {
+				if (isNaN(r.x)) this.initPosition();
+				this.fullscreen = false;
+				this.updateView(this.defaultWindow, r.x, r.y, r.width, r.height);
+				r.updateDefault();
+			}
+		}
+		r.isFullScreen = function(bool) {
+			return this.fullscreen;
+		}
+		r.initPosition = function() {
+			var metrics = Common.getMetrics();
+			this.x = metrics[0] * 0.25;
+			this.y = metrics[1] * 0.25;
+			this.width = metrics[0] * 0.5;
+			this.height = metrics[1] * 0.5;
+		}
+		r.defaultVisible = false;
+		r.floatVisible = false;
+		r.defaultStack = [];
+		r.floatStack = [];
+		r.visible = true;
+		r.prototype = {
+			init : function() {},
+			enter : function(noAnimation) {
+				var self = this;
+				r.showPage(this);
+				if (!noAnimation && this._enterAnimation) {
+					this._enterAnimation(this.mainView, function() {
+						r.pushPage(self.name, self);
+					});
+				} else {
+					r.pushPage(this.name, this);
+				}
+				return this;
+			},
+			exit : function(noAnimation) {
+				var self = this;
+				if (!this.currentContainer) return this;
+				r.popPage(this);
+				if (!noAnimation && this._exitAnimation) {
+					this._exitAnimation(this.mainView, function() {
+						self.dismiss();
+					});
+				} else {
+					this.dismiss();
+				}
+				return this;
+			},
+			resizable : function() {
+				return this.currentContainer == r.defaultContainer;
+			},
+			dismiss : function() {
+				if (!this.currentContainer) return this;
+				r.hidePage(this);
+				return this;
+			},
+			requestShow : function() {
+				this.mainView.setVisibility(G.View.VISIBLE);
+				return this;
+			},
+			requestHide : function() {
+				this.mainView.setVisibility(G.View.GONE);
+				return this;
+			}
+		};
+		r.buildLayoutParams = function(view, x, y, width, height) {
+			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams();
+			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
+			p.flags |= p.FLAG_NOT_TOUCH_MODAL;
+			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+			p.token = ctx.getWindow().getDecorView().getWindowToken();
+			p.format = G.PixelFormat.TRANSLUCENT;
+			p.height = height;
+			p.width = width;
+			p.x = x;
+			p.y = y;
+			return p;
+		}
+		r.showView = function(view, x, y, width, height) {
+			PWM.wm.addView(view, r.buildLayoutParams(view, x, y, width, height));
+		};
+		r.hideView = function(view) {
+			PWM.wm.removeViewImmediate(view);
+		};
+		r.updateView = function(view, x, y, width, height) {
+			PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, x, y, width, height));
+		};
+		r.back = function(source) {
+			var stack = source == r.floatContainer ? r.floatStack : r.defaultStack, cancelEvent = false;
+			if (stack.length) {
+				stack[stack.length - 1].page.trigger("back", function() {
+					cancelEvent = true;
+				});
+				if (!cancelEvent) stack[stack.length - 1].page.exit();
+			}
+		}
+		r.showPage = function(page) {
+			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
+			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
+			page.currentContainer.addView(page.mainView);
+			if (this.visible && !this.defaultVisible) {
+				if (this.fullscreen) {
+					this.showView(this.defaultWindow, 0, 0, -1, -1);
+					r.updateDefault();
+				} else {
+					if (isNaN(r.x)) this.initPosition();
+					this.showView(this.defaultWindow, r.x, r.y, r.width, r.height);
+					r.updateDefault();
+				}
+				this.defaultVisible = true;
+				this.trigger("newPopup");
+			} else if (!this.visible && !this.floatVisible) {
+				this.showView(this.floatWindow, 0, 0, -1, -1);
+				this.floatVisible = true;
+				this.trigger("newPopup");
+			}
+			page.showing = true;
+		}
+		r.hidePage = function(page) {
+			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			page.currentContainer.removeView(page.mainView);
+			if (stack.length == 0) {
+				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
+					this.hideView(this.defaultWindow);
+					this.defaultVisible = false;
+					if (!this.visible) this.show();
+				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
+					this.hideView(this.floatWindow);
+					this.floatVisible = false;
+				}
+			}
+			page.showing = false;
+		}
+		r.pushPage = function(name, page) {
+			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			if (this.busy) return;
+			if (stack.length) {
+				t = stack[stack.length - 1].page;
+				t.trigger("pause");
+				if (!page.dialog) t.requestHide();
+			}
+			stack.push(t = {
+				name : name,
+				page : page
+			});
+			page.trigger("enter");
+			this.trigger("pushPage", name, page);
+		}
+		r.popPage = function(page) {
+			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			if (this.busy) return;
+			for (i = stack.length - 1; i >= 0; i--) {
+				if (stack[i].page != page) continue;
+				stack[i].page.trigger("exit");
+				stack.splice(i, 1);
+				if (i > 0 && this.visible) {
+					stack[i - 1].page.trigger("resume");
+					stack[i - 1].page.requestShow();
+				}
+				break;
+			}
+			this.trigger("popPage", page);
+		}
+		r.show = function() {
+			var i, e;
+			if (this.visible) return;
+			this.visible = true;
+			if (this.floatStack.length) {
+				this.hideView(this.floatWindow);
+				this.floatVisible = false;
+				for (i = 0; i < this.floatStack.length; i++) {
+					this.showPage(this.floatStack[i].page);
+					this.defaultStack.push(this.floatStack[i]);
+				}
+				this.floatStack.length = 0;
+			} else {
+				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
+			}
+			this.defaultWindow.setVisibility(G.View.VISIBLE);
+			this.trigger("show");
+		}
+		r.hide = function() {
+			var i, e;
+			if (!this.visible) return;
+			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
+			this.defaultWindow.setVisibility(G.View.GONE);
+			this.visible = false;
+			this.trigger("hide");
+		}
+		r.dismiss = function() {
+			var i, e;
+			this.busy = true;
+			for (i = this.floatStack.length - 1; i >= 0; i--) {
+				e = this.floatStack[i];
+				e.page.trigger("exit");
+				this.hidePage(e.page);
+			}
+			for (i = this.defaultStack.length - 1; i >= 0; i--) {
+				e = this.defaultStack[i];
+				e.page.trigger("exit");
+				this.hidePage(e.page);
+			}
+			this.defaultStack.length = this.floatStack.length = 0;
+			this.busy = false;
+			this.trigger("dismiss");
+		}
+		r.reset = function() {
+			this.dismiss();
+			this.trigger("reset");
+			this.clearListeners();
+		}
+		r.getCount = function() {
+			return this.defaultStack.length + this.floatStack.length;
+		}
+		r.debug = function() {
+			var s = [];
+			s.push("PageManager[visible=" + this.visible + "]");
+			s.push("DefaultWindowPageManager[showing=" + this.defaultVisible + ",fullscreen=" + this.fullscreen + "]");
+			this.defaultStack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			s.push("FloatWindowPageManager[showing=" + this.floatVisible + ",fullscreen=true]");
+			this.floatStack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			return s.join("\n");
+		}
+		r.supportResize = true;
+	} else {
+		r.prototype = {
+			init : function() {
+				var self = this;
+				this.popup = new G.PopupWindow(this.mainView, -1, -1);
+				this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+					r.popPage(self);
+					self.showing = false;
+				} catch(e) {erp(e)}}}));
+				if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
+				this.popup.setFocusable(true);
+				this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+				Common.applyPopup(this.popup);
+			},
+			enter : function(noAnimation) {
+				var self = this;
+				if (this.showing) this.popup.dismiss();
+				this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
+				if (!noAnimation && this._enterAnimation) {
+					this._enterAnimation(this.mainView, function() {
+						r.pushPage(self.name, self);
+					});
+				} else {
+					r.pushPage(this.name, this);
+				}
+				this.showing = true;
+				return this;
+			},
+			exit : function(noAnimation) {
+				var self = this;
+				if (!this.showing) return this;
+				if (!noAnimation && this._exitAnimation) {
+					this._exitAnimation(this.mainView, function() {
+						self.popup.dismiss();
+					});
+				} else {
+					this.popup.dismiss();
+				}
+				return this;
+			},
+			resizable : function() {
+				return false;
+			},
+			dismiss : function() {
+				return this.exit(true);
+			},
+			requestShow : function() {
+				this.mainView.getRootView().setVisibility(G.View.VISIBLE);
+				return this;
+			},
+			requestHide : function() {
+				this.mainView.getRootView().setVisibility(G.View.GONE);
+				return this;
+			}
+		};
+		r.visible = true;
+		r.stack = [];
+		r.pushPage = function(name, page) {
+			var t;
+			if (this.busy) return;
+			if (this.stack.length && this.stack[this.stack.length - 1].visible) {
+				this.stack[this.stack.length - 1].page.trigger("pause");
+			}
+			this.stack.push(t = {
+				name : name,
+				page : page,
+				visible : true
+			});
+			page.trigger("enter");
+			this.trigger("pushPage", name, page);
+			this.trigger("newPopup");
+		}
+		r.popPage = function(page) {
+			var i;
+			if (this.busy) return;
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				if (this.stack[i].page != page) continue;
+				this.stack.splice(i, this.stack.length - i).forEach(function(e) {
+					e.page.trigger("exit");
+				}, this);
+				if (i > 0 && this.visible) {
+					this.stack[i - 1].page.trigger("resume");
+				}
+				break;
+			}
+			this.trigger("popPage", page);
+		}
+		r.show = function() {
+			var i, e;
+			if (this.visible) return;
+			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("resume");
+			for (i = 0; i < this.stack.length ; i++) {
+				e = this.stack[i];
+				if (e.visible) continue;
+				e.page.requestShow();
+				e.visible = true;
+			}
+			this.visible = true;
+			this.trigger("show");
+		}
+		r.hide = function() {
+			var i, e;
+			if (!this.visible) return;
+			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("pause");
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				e = this.stack[i];
+				if (!e.visible) continue;
+				e.page.requestHide();
+				e.visible = false;
+			}
+			this.visible = false;
+			this.trigger("hide");
+		}
+		r.dismiss = function() {
+			var i, e;
+			this.busy = true;
+			for (i = this.stack.length - 1; i >= 0; i--) {
+				e = this.stack[i];
+				e.page.trigger("exit");
+				e.page.exit();
+			}
+			this.stack.length = 0;
+			this.busy = false;
+			this.trigger("dismiss");
+		}
+		r.reset = function() {
+			this.dismiss();
+			this.trigger("reset");
+			this.clearListeners();
+		}
+		r.getCount = function() {
+			return this.stack.length;
+		}
+		r.debug = function() {
+			var s = [];
+			s.push("PopupWindowPageManager[visible=" + this.visible + "]");
+			this.stack.forEach(function(e, i) {
+				s.push(i + ":" + e.name + "[" +
+					(e.visible ? "V" : "") +
+					(e.page.showing ? "S" : "") +
+					(e.page.modal ? "M" : "") +
+					"]" + e.page.mainView);
+			});
+			return s.join("\n");
+		}
+		r.supportResize =- false;
+	}
+	r.prototype.show = r.enter;
+	r.prototype.hide = r.exit;
+	r.prototype.enterAnimation = function(f) {
+		this._enterAnimation = f;
+		return this;
+	};
+	r.prototype.exitAnimation = function(f) {
+		this._exitAnimation = f;
+		return this;
+	};
+	EventSender.init(r.prototype);
+	r.listener = {};
+	r.isBusy = function() {
+		return this.busy;
+	};
+	r.showDialog = function(name, layout, width, height, modal) {
+		var frame, popup;
+		frame = new G.FrameLayout(ctx);
+		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			if (e.getAction() == e.ACTION_DOWN && !modal) {
+				popup.exit();
+			}
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
+		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		frame.addView(layout);
+		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		popup = new r(frame, name, modal);
+		popup.on("resume", function() {
+			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+		});
+		popup.on("pause", function() {
+			frame.setBackground(null);
+		});
+		popup.dialog = true;
+		popup.enter();
+		return popup;
+	};
+	EventSender.init(r);
+	r.fadeInAnimation = function(v, callback) {
+		trans = new G.AlphaAnimation(0, 1);
+		trans.setDuration(150);
+		trans.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		v.startAnimation(trans);
+	}
+	r.fadeOutAnimation = function(v, callback) {
+		trans = new G.AlphaAnimation(1, 0);
+		trans.setDuration(150);
+		trans.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		v.startAnimation(trans);
+	}
+	return r;
+})());
+
+MapScript.loadModule("MemSaver", {
+	lru : [],
+	onCreate : function() {
+		this.trimFunction = this.trimProto.bind(null, Function.prototype);
+	},
+	cache : function(target, onTrimMemory) {
+		target.__lru_onTrim__ = onTrimMemory;
+		if (this.lru.lastIndexOf(target) < 0) this.lru.push(target);
+	},
+	accessStart : function(target) {
+		var i;
+		target.__lru_accessing__ = true;
+		i = this.lru.lastIndexOf(target);
+		if (i >= 0) {
+			this.bringToEnd(i);
+		} else {
+			this.cache(target);
+		}
+	},
+	accessEnd : function(target) {
+		target.__lru_accessing__ = false;
+		if (this.needTrim()) this.startTrim();
+	},
+	startTrim : function () {
+		var i, a = this.lru;
+		for (i = a.length - 1; i >= 0; i--) {
+			if (!a[i].__lru_accessing__) {
+				if (a[i].__lru_onTrim__ && a[i].__lru_onTrim__(a[i])) a.splice(i, 1);
+			}
+		}
+	},
+	needTrim : function() {
+		return false;
+	},
+	trimProto : function(proto, obj) {
+		var a = Object.getOwnPropertyNames(obj), i;
+		for (i = 0; i < a.length; i++) {
+			if (a[i] in proto) continue;
+			delete obj[a[i]];
+		}
+	},
+	bringToEnd : function(index) {
+		var a = this.lru;
+		var i, t = a[index];
+		for (i = index + 1; i < a.length; i++) a[i - 1] = a[i];
+		a[a.length - 1] = t;
+	}
+});
+
 MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	icon : null,
 	qbar : null,
@@ -1434,7 +2231,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 
 			CA.con = new G.FrameLayout(ctx);
 			CA.con.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
-			Common.applyStyle(CA.con, "container_default")
+			Common.applyStyle(CA.con, "container_default");
 
 			self.main.addView(CA.con);
 			self.main.addView(self.bar);
@@ -7824,761 +8621,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	}
 });
 
-MapScript.loadModule("EventSender", {
-	init : function(o) {
-		o.on = this.on;
-		o.off = this.off;
-		o.trigger = this.trigger;
-		o.clearListeners = this.clearListeners;
-	},
-	on : function(name, f) {
-		if (!this.listener[name]) this.listener[name] = [];
-		if (this.listener[name].indexOf(f) < 0) this.listener[name].push(f);
-		if (this.__eventsender_observer__) this.__eventsender_observer__("on", name, f);
-		return this;
-	},
-	off : function(name, f) {
-		var i, t;
-		if (this.listener[name]) {
-			if (arguments.length == 1) {
-				delete this.listener[name];
-			} else {
-				i = this.listener[name].indexOf(f);
-				if (i >= 0) this.listener[name].splice(i, 1);
-			}
-		}
-		if (this.__eventsender_observer__) this.__eventsender_observer__("off", name, f);
-		return this;
-	},
-	trigger : function(name) {
-		var i, a;
-		if (this.listener[name]) {
-			a = this.listener[name];
-			for (i = a.length - 1; i >= 0; i--) {
-				a[i].apply(this, arguments);
-			}
-		}
-		if (this.__eventsender_observer__) this.__eventsender_observer__("trigger", name);
-		return this;
-	},
-	clearListeners : function() {
-		var i;
-		for (i in this.listener) {
-			delete this.listener[i];
-		}
-		if (this.__eventsender_observer__) this.__eventsender_observer__("clear", name);
-	}
-});
-
-MapScript.loadModule("PWM", {
-	floats : [],
-	popups : [],
-	listener : {},
-	resetFlags : [],
-	intentBack : false,
-	busy : false,
-	wm : ctx.getSystemService(ctx.WINDOW_SERVICE),
-	onCreate : function() {
-		EventSender.init(this);
-	},
-	initialize : function() {
-		PopupPage.on("newPopup", function() {
-			PWM.onPageAdd();
-		});
-	},
-	onResume : function() {
-		if (this.intentBack) {
-			PopupPage.show();
-			this.intentBack = false;
-			return true;
-		}
-		return false;
-	},
-	onPageAdd : function() {
-		var v;
-		this.floats.forEach(function(e) {
-			if (!e.isShowing()) return;
-			v = e.getContentView();
-			if (!v) return;
-			v = v.getRootView();
-			wp = v.getLayoutParams();
-			PWM.wm.removeViewImmediate(v);
-			PWM.wm.addView(v, wp);
-		});
-	},
-	addFloat : function(w) {
-		if (this.floats.indexOf(w) < 0) this.floats.push(w);
-		this.trigger("addFloat", w);
-	},
-	addPopup : function(w) {
-		if (this.popups.indexOf(w) < 0) this.popups.push(w);
-		this.trigger("addPopup", w);
-	},
-	dismissFloat : function() {
-		var v;
-		this.busy = true;
-		this.floats.forEach(function(e) {
-			if (!e.isShowing()) return;
-			e.dismiss();
-		});
-		this.busy = false;
-		this.trigger("dismissFloat");
-	},
-	dismissPopup : function() {
-		var v;
-		this.busy = true;
-		this.popups.forEach(function(e) {
-			if (!e.isShowing()) return;
-			e.dismiss();
-		});
-		this.busy = false;
-		this.trigger("dismissPopup");
-	},
-	reset : function() {
-		this.trigger("reset");
-		this.floats.length = this.popups.length;
-		this.clearListeners();
-		PopupPage.reset();
-	},
-	resetUICache : function() {
-		this.resetFlags.forEach(function(e) {
-			e.obj[e.prop] = e.value;
-		});
-	},
-	registerResetFlag : function(obj, prop, value) {
-		var i, e;
-		for (i in this.resetFlags) {
-			e = this.resetFlags[i];
-			if (e.obj == obj && e.prop == prop) {
-				e.value = value;
-				return;
-			}
-		}
-		this.resetFlags.push({
-			obj : obj,
-			prop : prop,
-			value : value
-		});
-	}
-});
-
-MapScript.loadModule("PopupPage", (function() {
-	var r = function(mainView, name, modal) {
-		this.mainView = mainView;
-		this.name = name || "Unnamed";
-		this.modal = modal;
-		this._enterAnimation = r.fadeInAnimation;
-		this._exitAnimation = r.fadeOutAnimation;
-		this.listener = {};
-		this.init();
-	}
-	if (MapScript.host == "Android") {
-		r.fullscreen = true;
-		r.consumed = false;
-		r.x = 0.25; r.y = 0.25;
-		r.width = 0.5; r.height = 0.5;
-		r.initialize = function() {G.ui(function() {try {
-			r.defaultWindow = ScriptActivity.createFrameLayout({
-				dispatchKeyEvent : function(event) {
-					var state = r.defaultWindow.getKeyDispatcherState();
-					if (event.getKeyCode() == event.KEYCODE_BACK) {
-						if (!state) return 0;
-						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-							state.startTracking(event, this);
-							return 1;
-						} else if (event.getAction() == event.ACTION_UP) {
-							if (state.isTracking(event) && !event.isCanceled()) {
-								r.back(r.defaultContainer);
-								return 1;
-							}
-						}
-					}
-					return 0;
-				},
-				dispatchTouchEvent : function(e) {
-					
-					return 0;
-				}
-			});
-			r.defaultDecorLinear = new G.LinearLayout(ctx);
-			r.defaultDecorLinear.setOrientation(G.LinearLayout.VERTICAL);
-			r.defaultDecorLinear.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
-			r.headerView = new G.LinearLayout(ctx);
-			r.headerView.setOrientation(G.LinearLayout.HORIZONTAL);
-			r.headerView.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 16 * G.dp));
-			r.defaultDecorLinear.addView(r.headerView);
-			r.defaultContainer = new G.FrameLayout(ctx);
-			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			r.defaultDecorLinear.addView(r.defaultContainer);
-			r.defaultWindow.addView(r.defaultDecorLinear);
-			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
-				dispatchKeyEvent : function(event) {
-					var state = r.floatWindow.getKeyDispatcherState();
-					if (event.getKeyCode() == event.KEYCODE_BACK) {
-						if (!state) return 0;
-						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-							state.startTracking(event, this);
-							return 1;
-						} else if (event.getAction() == event.ACTION_UP) {
-							if (state.isTracking(event) && !event.isCanceled()) {
-								r.back(r.defaultContainer);
-								return 1;
-							}
-						}
-					}
-					return 0;
-				},
-				dispatchTouchEvent : function(event) {
-					return 0;
-				}
-			});
-			r.touch = function(e) {
-
-			}
-		} catch(e) {erp(e)}})}
-		/*
-				switch (e.getAction()) {
-					case e.ACTION_MOVE:
-					if (touch.stead) {
-						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
-							break;
-						}
-						self.longClicked = false;
-						touch.stead = false;
-						self.animateTranslation(0);
-					}
-					if (CA.settings.iconDragMode == 2) break;
-					CA.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
-					break;
-					case e.ACTION_DOWN:
-					touch.offx = self.cx - (touch.lx = e.getRawX());
-					touch.offy = self.cy - (touch.ly = e.getRawY());
-					touch.stead = true;
-					v.postDelayed(self.longClick, longPressTimeout);
-					self.longClicked = true;
-					self.cancelAnimator();
-					self.layoutChanged();
-					return true;
-					case e.ACTION_UP:
-					if (touch.stead) {
-						if (e.getEventTime() - e.getDownTime() < longPressTimeout) {
-							v.performClick();
-						}
-					}
-					case e.ACTION_CANCEL:
-					self.layoutChanged();
-					self.refreshPos();
-					CA.settings.iconX = self.cx;
-					CA.settings.iconY = self.cy;
-					self.longClicked = false;
-				}
-				self.icon.dispatchTouchEvent(e);
-				return true;
-		*/
-		r.updateDefault = function() {
-			if (this.fullscreen) {
-				this.headerView.setVisibility(G.View.GONE);
-			} else {
-				Common.applyStyle(this.headerView, "bar_float_second");
-				this.headerView.setVisibility(G.View.VISIBLE);
-			}
-		}
-		r.setFullScreen = function(isFullScreen) {
-			var metrics;
-			if (isFullScreen) {
-				this.fullscreen = true;
-				this.updateView(this.defaultWindow, 0, 0, -1, -1);
-				r.updateDefault();
-			} else {
-				metrics = Common.getMetrics();
-				this.fullscreen = false;
-				this.updateView(this.defaultWindow, r.x * metrics[0], r.y * metrics[1], r.width * metrics[0], r.height * metrics[1]);
-				r.updateDefault();
-			}
-		}
-		r.isFullScreen = function(bool) {
-			return this.fullscreen;
-		}
-		r.defaultVisible = false;
-		r.floatVisible = false;
-		r.defaultStack = [];
-		r.floatStack = [];
-		r.visible = true;
-		r.prototype = {
-			init : function() {},
-			enter : function(noAnimation) {
-				var self = this;
-				r.showPage(this);
-				if (!noAnimation && this._enterAnimation) {
-					this._enterAnimation(this.mainView, function() {
-						r.pushPage(self.name, self);
-					});
-				} else {
-					r.pushPage(this.name, this);
-				}
-				return this;
-			},
-			exit : function(noAnimation) {
-				var self = this;
-				if (!this.currentContainer) return this;
-				r.popPage(this);
-				if (!noAnimation && this._exitAnimation) {
-					this._exitAnimation(this.mainView, function() {
-						self.dismiss();
-					});
-				} else {
-					this.dismiss();
-				}
-				return this;
-			},
-			resizable : function() {
-				return this.currentContainer == r.defaultContainer;
-			},
-			dismiss : function() {
-				if (!this.currentContainer) return this;
-				r.hidePage(this);
-				return this;
-			},
-			requestShow : function() {
-				this.mainView.setVisibility(G.View.VISIBLE);
-				return this;
-			},
-			requestHide : function() {
-				this.mainView.setVisibility(G.View.GONE);
-				return this;
-			}
-		};
-		r.buildLayoutParams = function(x, y, width, height) {
-			var p = new G.WindowManager.LayoutParams();
-			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
-			p.flags |= p.FLAG_NOT_TOUCH_MODAL;
-			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
-			p.token = ctx.getWindow().getDecorView().getWindowToken();
-			p.format = G.PixelFormat.TRANSLUCENT;
-			p.height = height;
-			p.width = width;
-			p.x = x;
-			p.y = y;
-			return p;
-		}
-		r.showView = function(view, x, y, width, height) {
-			PWM.wm.addView(view, r.buildLayoutParams(x, y, width, height));
-		};
-		r.hideView = function(view) {
-			PWM.wm.removeViewImmediate(view);
-		};
-		r.updateView = function(view, x, y, width, height) {
-			PWM.wm.updateViewLayout(view, r.buildLayoutParams(x, y, width, height));
-		};
-		r.back = function(source) {
-			var stack = source == r.floatContainer ? r.floatStack : r.defaultStack, cancelEvent = false;
-			if (stack.length) {
-				stack[stack.length - 1].page.trigger("back", function() {
-					cancelEvent = true;
-				});
-				if (!cancelEvent) stack[stack.length - 1].page.exit();
-			}
-		}
-		r.showPage = function(page) {
-			var metrics;
-			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
-			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
-			page.currentContainer.addView(page.mainView);
-			if (this.visible && !this.defaultVisible) {
-				if (this.fullscreen) {
-					this.showView(this.defaultWindow, 0, 0, -1, -1);
-					r.updateDefault();
-				} else {
-					metrics = Common.getMetrics();
-					this.showView(this.defaultWindow, r.x * metrics[0], r.y * metrics[1], r.width * metrics[0], r.height * metrics[1]);
-					r.updateDefault();
-				}
-				this.defaultVisible = true;
-				this.trigger("newPopup");
-			} else if (!this.visible && !this.floatVisible) {
-				this.showView(this.floatWindow, 0, 0, -1, -1);
-				this.floatVisible = true;
-				this.trigger("newPopup");
-			}
-			page.showing = true;
-		}
-		r.hidePage = function(page) {
-			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			page.currentContainer.removeView(page.mainView);
-			if (stack.length == 0) {
-				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
-					this.hideView(this.defaultWindow);
-					this.defaultVisible = false;
-					if (!this.visible) this.show();
-				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
-					this.hideView(this.floatWindow);
-					this.floatVisible = false;
-				}
-			}
-			page.showing = false;
-		}
-		r.pushPage = function(name, page) {
-			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			if (this.busy) return;
-			if (stack.length) {
-				t = stack[stack.length - 1].page;
-				t.trigger("pause");
-				if (!page.dialog) t.requestHide();
-			}
-			stack.push(t = {
-				name : name,
-				page : page
-			});
-			page.trigger("enter");
-			this.trigger("pushPage", name, page);
-		}
-		r.popPage = function(page) {
-			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			if (this.busy) return;
-			for (i = stack.length - 1; i >= 0; i--) {
-				if (stack[i].page != page) continue;
-				stack[i].page.trigger("exit");
-				stack.splice(i, 1);
-				if (i > 0 && this.visible) {
-					stack[i - 1].page.trigger("resume");
-					stack[i - 1].page.requestShow();
-				}
-				break;
-			}
-			this.trigger("popPage", page);
-		}
-		r.show = function() {
-			var i, e;
-			if (this.visible) return;
-			this.visible = true;
-			if (this.floatStack.length) {
-				this.hideView(this.floatWindow);
-				this.floatVisible = false;
-				for (i = 0; i < this.floatStack.length; i++) {
-					this.showPage(this.floatStack[i].page);
-					this.defaultStack.push(this.floatStack[i]);
-				}
-				this.floatStack.length = 0;
-			} else {
-				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
-			}
-			this.defaultWindow.setVisibility(G.View.VISIBLE);
-			this.trigger("show");
-		}
-		r.hide = function() {
-			var i, e;
-			if (!this.visible) return;
-			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
-			this.defaultWindow.setVisibility(G.View.GONE);
-			this.visible = false;
-			this.trigger("hide");
-		}
-		r.dismiss = function() {
-			var i, e;
-			this.busy = true;
-			for (i = this.floatStack.length - 1; i >= 0; i--) {
-				e = this.floatStack[i];
-				e.page.trigger("exit");
-				this.hidePage(e.page);
-			}
-			for (i = this.defaultStack.length - 1; i >= 0; i--) {
-				e = this.defaultStack[i];
-				e.page.trigger("exit");
-				this.hidePage(e.page);
-			}
-			this.defaultStack.length = this.floatStack.length = 0;
-			this.busy = false;
-			this.trigger("dismiss");
-		}
-		r.reset = function() {
-			this.dismiss();
-			this.trigger("reset");
-			this.clearListeners();
-		}
-		r.getCount = function() {
-			return this.defaultStack.length + this.floatStack.length;
-		}
-		r.debug = function() {
-			var s = [];
-			s.push("PageManager[visible=" + this.visible + "]");
-			s.push("DefaultWindowPageManager[showing=" + this.defaultVisible + ",fullscreen=" + this.fullscreen + "]");
-			this.defaultStack.forEach(function(e, i) {
-				s.push(i + ":" + e.name + "[" +
-					(e.page.modal ? "M" : "") +
-					"]" + e.page.mainView);
-			});
-			s.push("FloatWindowPageManager[showing=" + this.floatVisible + ",fullscreen=true]");
-			this.floatStack.forEach(function(e, i) {
-				s.push(i + ":" + e.name + "[" +
-					(e.page.modal ? "M" : "") +
-					"]" + e.page.mainView);
-			});
-			return s.join("\n");
-		}
-		r.supportResize = true;
-	} else {
-		r.prototype = {
-			init : function() {
-				var self = this;
-				this.popup = new G.PopupWindow(this.mainView, -1, -1);
-				this.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-					r.popPage(self);
-					self.showing = false;
-				} catch(e) {erp(e)}}}));
-				if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-				this.popup.setFocusable(true);
-				this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-				Common.applyPopup(this.popup);
-			},
-			enter : function(noAnimation) {
-				var self = this;
-				if (this.showing) this.popup.dismiss();
-				this.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
-				if (!noAnimation && this._enterAnimation) {
-					this._enterAnimation(this.mainView, function() {
-						r.pushPage(self.name, self);
-					});
-				} else {
-					r.pushPage(this.name, this);
-				}
-				this.showing = true;
-				return this;
-			},
-			exit : function(noAnimation) {
-				var self = this;
-				if (!this.showing) return this;
-				if (!noAnimation && this._exitAnimation) {
-					this._exitAnimation(this.mainView, function() {
-						self.popup.dismiss();
-					});
-				} else {
-					this.popup.dismiss();
-				}
-				return this;
-			},
-			resizable : function() {
-				return false;
-			},
-			dismiss : function() {
-				return this.exit(true);
-			},
-			requestShow : function() {
-				this.mainView.getRootView().setVisibility(G.View.VISIBLE);
-				return this;
-			},
-			requestHide : function() {
-				this.mainView.getRootView().setVisibility(G.View.GONE);
-				return this;
-			}
-		};
-		r.visible = true;
-		r.stack = [];
-		r.pushPage = function(name, page) {
-			var t;
-			if (this.busy) return;
-			if (this.stack.length && this.stack[this.stack.length - 1].visible) {
-				this.stack[this.stack.length - 1].page.trigger("pause");
-			}
-			this.stack.push(t = {
-				name : name,
-				page : page,
-				visible : true
-			});
-			page.trigger("enter");
-			this.trigger("pushPage", name, page);
-			this.trigger("newPopup");
-		}
-		r.popPage = function(page) {
-			var i;
-			if (this.busy) return;
-			for (i = this.stack.length - 1; i >= 0; i--) {
-				if (this.stack[i].page != page) continue;
-				this.stack.splice(i, this.stack.length - i).forEach(function(e) {
-					e.page.trigger("exit");
-				}, this);
-				if (i > 0 && this.visible) {
-					this.stack[i - 1].page.trigger("resume");
-				}
-				break;
-			}
-			this.trigger("popPage", page);
-		}
-		r.show = function() {
-			var i, e;
-			if (this.visible) return;
-			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("resume");
-			for (i = 0; i < this.stack.length ; i++) {
-				e = this.stack[i];
-				if (e.visible) continue;
-				e.page.requestShow();
-				e.visible = true;
-			}
-			this.visible = true;
-			this.trigger("show");
-		}
-		r.hide = function() {
-			var i, e;
-			if (!this.visible) return;
-			if (this.stack.length) this.stack[this.stack.length - 1].page.trigger("pause");
-			for (i = this.stack.length - 1; i >= 0; i--) {
-				e = this.stack[i];
-				if (!e.visible) continue;
-				e.page.requestHide();
-				e.visible = false;
-			}
-			this.visible = false;
-			this.trigger("hide");
-		}
-		r.dismiss = function() {
-			var i, e;
-			this.busy = true;
-			for (i = this.stack.length - 1; i >= 0; i--) {
-				e = this.stack[i];
-				e.page.trigger("exit");
-				e.page.exit();
-			}
-			this.stack.length = 0;
-			this.busy = false;
-			this.trigger("dismiss");
-		}
-		r.reset = function() {
-			this.dismiss();
-			this.trigger("reset");
-			this.clearListeners();
-		}
-		r.getCount = function() {
-			return this.stack.length;
-		}
-		r.debug = function() {
-			var s = [];
-			s.push("PopupWindowPageManager[visible=" + this.visible + "]");
-			this.stack.forEach(function(e, i) {
-				s.push(i + ":" + e.name + "[" +
-					(e.visible ? "V" : "") +
-					(e.page.showing ? "S" : "") +
-					(e.page.modal ? "M" : "") +
-					"]" + e.page.mainView);
-			});
-			return s.join("\n");
-		}
-		r.supportResize =- false;
-	}
-	r.prototype.show = r.enter;
-	r.prototype.hide = r.exit;
-	r.prototype.enterAnimation = function(f) {
-		this._enterAnimation = f;
-		return this;
-	};
-	r.prototype.exitAnimation = function(f) {
-		this._exitAnimation = f;
-		return this;
-	};
-	EventSender.init(r.prototype);
-	r.listener = {};
-	r.isBusy = function() {
-		return this.busy;
-	};
-	r.showDialog = function(name, layout, width, height, modal) {
-		var frame, popup;
-		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN && !modal) {
-				popup.exit();
-			}
-			return true;
-		} catch(e) {return erp(e), true}}}));
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {return erp(e), true}}}));
-		frame.addView(layout);
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new r(frame, name, modal);
-		popup.on("resume", function() {
-			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
-		});
-		popup.on("pause", function() {
-			frame.setBackground(null);
-		});
-		popup.dialog = true;
-		popup.enter();
-		return popup;
-	};
-	EventSender.init(r);
-	r.fadeInAnimation = function(v, callback) {
-		trans = new G.AlphaAnimation(0, 1);
-		trans.setDuration(150);
-		trans.setAnimationListener(new G.Animation.AnimationListener({
-			onAnimationEnd : function(a) {try {
-				if (callback) callback();
-			} catch(e) {erp(e)}},
-		}));
-		v.startAnimation(trans);
-	}
-	r.fadeOutAnimation = function(v, callback) {
-		trans = new G.AlphaAnimation(1, 0);
-		trans.setDuration(150);
-		trans.setAnimationListener(new G.Animation.AnimationListener({
-			onAnimationEnd : function(a) {try {
-				if (callback) callback();
-			} catch(e) {erp(e)}},
-		}));
-		v.startAnimation(trans);
-	}
-	return r;
-})());
-
-MapScript.loadModule("MemSaver", {
-	lru : [],
-	onCreate : function() {
-		this.trimFunction = this.trimProto.bind(null, Function.prototype);
-	},
-	cache : function(target, onTrimMemory) {
-		target.__lru_onTrim__ = onTrimMemory;
-		if (this.lru.lastIndexOf(target) < 0) this.lru.push(target);
-	},
-	accessStart : function(target) {
-		var i;
-		target.__lru_accessing__ = true;
-		i = this.lru.lastIndexOf(target);
-		if (i >= 0) {
-			this.bringToEnd(i);
-		} else {
-			this.cache(target);
-		}
-	},
-	accessEnd : function(target) {
-		target.__lru_accessing__ = false;
-		if (this.needTrim()) this.startTrim();
-	},
-	startTrim : function () {
-		var i, a = this.lru;
-		for (i = a.length - 1; i >= 0; i--) {
-			if (!a[i].__lru_accessing__) {
-				if (a[i].__lru_onTrim__ && a[i].__lru_onTrim__(a[i])) a.splice(i, 1);
-			}
-		}
-	},
-	needTrim : function() {
-		return false;
-	},
-	trimProto : function(proto, obj) {
-		var a = Object.getOwnPropertyNames(obj), i;
-		for (i = 0; i < a.length; i++) {
-			if (a[i] in proto) continue;
-			delete obj[a[i]];
-		}
-	},
-	bringToEnd : function(index) {
-		var a = this.lru;
-		var i, t = a[index];
-		for (i = index + 1; i < a.length; i++) a[i - 1] = a[i];
-		a[a.length - 1] = t;
-	}
-});
-
 MapScript.loadModule("Common", {
 	themelist : {
 		"light" : {
@@ -13443,12 +13485,7 @@ MapScript.loadModule("MCAdapter", {
 		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
 		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
 		sc.setData(android.net.Uri.fromParts("package", pkg, null));
-		var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, String(name));
-		i.putExtra("duplicate", false);
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, sc);
-		i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, com.xero.ca.R.drawable.icon));
-		ctx.sendBroadcast(i);
+		AndroidBridge.createShortcut(sc, name, com.xero.ca.R.drawable.icon_small);
 	},
 	adapters : [{
 		text : "ModPE适配器（通用）",
@@ -14020,6 +14057,31 @@ MapScript.loadModule("AndroidBridge", {
 			if (resultCode != ctx.RESULT_OK) return;
 			callback(AndroidBridge.uriToFile(data.getData()));
 		});
+	},
+	createShortcut : function(intent, name, icon) {
+		if (android.os.Build.VERSION.SDK_INT >= 26) {
+			var manager = ctx.getSystemService(ctx.SHORTCUT_SERVICE);
+			var shortcut = new android.content.pm.ShortcutInfo.Builder(ctx, name)
+				.setShortLabel(name)
+				.setLongLabel(name)
+				.setIcon(isNaN(icon) ? icon : android.graphics.drawable.Icon.createWithResource(ctx, icon))
+				.setIntent(intent)
+				.build();
+			var callback = android.app.PendingIntent.getBroadcast(ctx, 0,
+				manager.createShortcutResultIntent(shortcut), android.app.PendingIntent.FLAG_ONE_SHOT);
+			manager.requestPinShortcut(shortcut, callback.getIntentSender());
+		} else {
+			var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
+			i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, name);
+			i.putExtra("duplicate", false);
+			i.putExtra(android.content.Intent.EXTRA_SHORTCUT_INTENT, intent);
+			if (isNaN(icon)) {
+				i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON, icon);
+			} else {
+				i.putExtra(android.content.Intent.EXTRA_SHORTCUT_ICON_RESOURCE, android.content.Intent.ShortcutIconResource.fromContext(ctx, icon));
+			}
+			ctx.sendBroadcast(i);
+		}
 	},
 	startAccessibilitySvcByRoot : function() {
 		var s = String(android.provider.Settings.Secure.getString(ctx.getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)).split(":");

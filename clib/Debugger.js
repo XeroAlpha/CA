@@ -1,9 +1,38 @@
 Plugins.inject(function(o) {
 var port = 10523, server, connection;
-o.name = "在线调试器";
+o.name = "调试器";
 o.author = "ProjectXero";
 o.version = [1, 0, 0];
 o.uuid = "56b45fa6-ee17-43c4-968d-05c7bd3ee134";
+var preference = ctx.getSharedPreferences("user_settings", ctx.MODE_PRIVATE);
+o.menu = [{
+	text : "使用外置代码源",
+	hidden : function() {
+		return String(preference.getString("debugSource", "")).length > 0;
+	},
+	onclick : function() {
+		Common.showFileDialog({
+			type : 0,
+			callback : function(f) {
+				var intent = new android.content.Intent("com.xero.ca.DEBUG_EXEC")
+					.setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity"))
+					.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+				preference.edit().putString("debugSource", f.result.getAbsolutePath()).apply();
+				AndroidBridge.createShortcut(intent, "调试启动", com.xero.ca.R.drawable.icon_small);
+				Common.toast("源已更改，下次调试启动时生效");
+			}
+		});
+	}
+}, {
+	text : "使用内置代码源",
+	hidden : function() {
+		return !String(preference.getString("debugSource", "")).length;
+	},
+	onclick : function() {
+		preference.edit().remove("debugSource").apply();
+		Common.toast("源已更改，下次调试启动时生效");
+	}
+}];
 MapScript.loadModule("OnlineDebugger", {
 	unload : function() {
 		stopServer();
@@ -11,7 +40,7 @@ MapScript.loadModule("OnlineDebugger", {
 });
 try {
 	startServer();
-} catch(e) {erp(e)}
+} catch(e) {Common.toast(e)}
 function startServer() {
 	server = ScriptActivity.createWebSocketHelper(port, {
 		onOpen : function(conn, handshake) {try {
