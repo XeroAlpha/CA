@@ -39,6 +39,7 @@ a:hover, a:active {
 }
 #question_body, #question_answer {
     animation: body_visible 0.5s ease 1.5s backwards;
+    font-family: 'Courier New', Courier, monospace
 }
 #answer_box {
     background-color: black;
@@ -120,7 +121,7 @@ var question_list = [{
     question: "如何将玩家A传送到玩家B前方两格？",
     answer: "execute\\s+B\\s+~\\s+~\\s+~\\s+(tp|teleport)\\s+A\\s+\\^\\s+\\^\\s+\\^2" //?
 }, {
-    question: "如何给予以(5,31,2)为中心，50格范围内的所有玩家“雷罚”一次？",
+    question: "如何给予以(5,31,2)为中心，半径50格范围内的所有玩家“雷罚”一次？",
     answer: function(str) {
         var a = /execute\s+@a\[(.+?)\]\s+~\s+~\s+~\s+summon\s+lightning_bolt(\s+~\s+~\s+~)?/.exec(str);
         if (!a) return false;
@@ -133,7 +134,7 @@ var question_list = [{
         });
         if (!p) return false;
         var pos = p.positive;
-        return pos.x == 5 && pos.y == 32 && pos.z == 2 && pos.r == 50;
+        return pos.x == 5 && pos.y == 31 && pos.z == 2 && pos.r == 50;
     } 
 }, {
     question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？",
@@ -176,8 +177,10 @@ var question_list = [{
     question: "如何清除所有非玩家实体？",
     answer: "kill\\s+@e\\[type=!player\\]"
 }, {
-    question: "如何使所有史莱姆在y坐标低于50时死亡？（不使用execute命令）",
-    answer: "" //错题
+    question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架",
+    answer: function(str) {
+        return Math.abs(Number(str) - 6 * Math.pow(2, 6) * Math.pow(2, 384)) < 1e+115;
+    }
 }, {
     question: "如何在所有玩家耳边播放末影人死亡声？（每个玩家收到的音量相同）",
     answer: "execute\\s+@a\\s+~\\s+~\\s+~\\s+playsound\\s+mob.endermen.death\\s+@s(\\s+~\\s+~\\s+~(\\s+\\d+(\\s+\\d+(\\s+\\d+)?)?)?)?"
@@ -266,7 +269,7 @@ window.onload = function() {
         return;
     }
     body_node.innerHTML = cur.question;
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年7月30日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年8月13日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
