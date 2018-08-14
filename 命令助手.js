@@ -661,7 +661,7 @@ MapScript.loadModule("PopupPage", (function() {
 	}
 	if (MapScript.host == "Android") {
 		r.fullscreen = true;
-		r.consumed = false;
+		r.focusable = true;
 		r.initialize = function() {G.ui(function() {try {
 			var vcfg = G.ViewConfiguration.get(ctx);
 			var longPressTimeout = vcfg.getLongPressTimeout();
@@ -684,6 +684,22 @@ MapScript.loadModule("PopupPage", (function() {
 					return 0;
 				},
 				dispatchTouchEvent : function(e) {
+					switch (e.getAction()) {
+						case e.ACTION_DOWN:
+						if (!r.focusable) {
+							r.focusable = true;
+							r.resizeView.setVisibility(G.View.VISIBLE);
+							r.setFocusable(r.defaultWindow, true);
+						}						
+						break;
+						case e.ACTION_OUTSIDE:
+						if (r.focusable) {
+							r.focusable = false;
+							r.resizeView.setVisibility(G.View.GONE);
+							r.setFocusable(r.defaultWindow, false);
+						}	
+						break;
+					}
 					return 0;
 				}
 			});
@@ -701,7 +717,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.titleView.setText("CA");
 			r.titleView.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			r.titleView.setSingleLine(true);
-			r.titleView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 2));
+			r.titleView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
 			r.titleView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
@@ -731,7 +747,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.resizeView.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			r.resizeView.setSingleLine(true);
 			r.resizeView.setGravity(G.Gravity.RIGHT);
-			r.resizeView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
+			r.resizeView.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 			r.resizeView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
@@ -751,16 +767,19 @@ MapScript.loadModule("PopupPage", (function() {
 					v.postDelayed(r.longClick, longPressTimeout);
 					r.longClicked = true;
 					Common.applyStyle(v, "button_reactive_pressed", 2);
-					r.defaultStub.setVisibility(G.View.VISIBLE);
-					r.defaultContainer.setVisibility(G.View.GONE);
+					//r.defaultStub.setVisibility(G.View.VISIBLE);
+					//r.defaultContainer.setVisibility(G.View.GONE);
 					break;
 					case e.ACTION_UP:
 					case e.ACTION_CANCEL:
 					r.longClicked = false;
 					Common.applyStyle(v, "button_reactive", 2);
-					r.defaultStub.setVisibility(G.View.GONE);
-					r.defaultContainer.setVisibility(G.View.VISIBLE);
-					r.updateView(r.defaultWindow, r.x, r.y = e.getRawY() + touch.offy, r.width = e.getRawX() + touch.offwidth, r.height = touch.offheight - e.getRawY());
+					//r.defaultStub.setVisibility(G.View.GONE);
+					//r.defaultContainer.setVisibility(G.View.VISIBLE);
+					r.updateView(r.defaultWindow, r.x,
+						r.y = e.getRawY() + touch.offy,
+						r.width = Math.max(e.getRawX() + touch.offwidth, 30 * G.dp),
+						r.height = Math.max(touch.offheight - e.getRawY(), 30 * G.dp));
 				}
 				return true;
 			} catch(e) {return erp(e), false}}}));
@@ -769,10 +788,10 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultContainer = new G.FrameLayout(ctx);
 			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			r.defaultDecorLinear.addView(r.defaultContainer);
-			r.defaultStub = new G.FrameLayout(ctx);
-			r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			r.defaultStub.setVisibility(G.View.GONE);
-			r.defaultDecorLinear.addView(r.defaultStub);
+			//r.defaultStub = new G.FrameLayout(ctx);
+			//r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			//r.defaultStub.setVisibility(G.View.GONE);
+			//r.defaultDecorLinear.addView(r.defaultStub);
 			r.defaultWindow.addView(r.defaultDecorLinear);
 			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
 				dispatchKeyEvent : function(event) {
@@ -803,7 +822,7 @@ MapScript.loadModule("PopupPage", (function() {
 				Common.applyStyle(this.headerView, "bar_float_second");
 				Common.applyStyle(r.titleView, "button_reactive", 2);
 				Common.applyStyle(r.resizeView, "button_reactive", 2);
-				Common.applyStyle(r.defaultStub, "container_default");
+				//Common.applyStyle(r.defaultStub, "container_default");
 				this.headerView.setVisibility(G.View.VISIBLE);
 			}
 		}
@@ -877,11 +896,11 @@ MapScript.loadModule("PopupPage", (function() {
 				this.mainView.setVisibility(G.View.GONE);
 				return this;
 			}
-		};
+		}
 		r.buildLayoutParams = function(view, x, y, width, height) {
 			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams();
 			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
-			p.flags |= p.FLAG_NOT_TOUCH_MODAL;
+			p.flags |= p.FLAG_NOT_TOUCH_MODAL | p.FLAG_WATCH_OUTSIDE_TOUCH;
 			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 			p.token = ctx.getWindow().getDecorView().getWindowToken();
 			p.format = G.PixelFormat.TRANSLUCENT;
@@ -890,6 +909,15 @@ MapScript.loadModule("PopupPage", (function() {
 			p.x = x;
 			p.y = y;
 			return p;
+		}
+		r.setFocusable = function(view, focusable) {
+			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams();
+			if (focusable) {
+				p.flags &= ~p.FLAG_NOT_FOCUSABLE;
+			} else {
+				p.flags |= p.FLAG_NOT_FOCUSABLE;
+			}
+			PWM.wm.updateViewLayout(view, p);
 		}
 		r.showView = function(view, x, y, width, height) {
 			PWM.wm.addView(view, r.buildLayoutParams(view, x, y, width, height));
@@ -1625,7 +1653,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.layoutChanged(true);
 			} catch(e) {erp(e)}}}));
 			self.longClick = new java.lang.Runnable({run : function() {try {
-				if (self.longClicked && (PopupPage.getCount() == 0 || !self.lastState)) CA.showQuickBar();
+				if (self.longClicked) {
+					if (PopupPage.getCount() == 0 || !self.lastState) {
+						CA.showQuickBar();
+					} else {
+						PopupPage.setFullScreen(!PopupPage.isFullScreen());
+					}
+				}
 				self.longClicked = false;
 			} catch(e) {erp(e)}}});
 			self.layoutChanged = function(updateIcon) {

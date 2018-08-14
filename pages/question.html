@@ -150,7 +150,7 @@ var question_list = [{
     answer: function(str) {
         var a = /gamemode\s+(0|s|survival)\s+@a\[(.+?)\]/.exec(str);
         if (!a) return false;
-        var i, p = parseSelector(a[1], {
+        var i, p = parseSelector(a[2], {
             noOtherPositiveKeys: true,
             existsPositiveKeys: ["x", "y", "z", "dx", "dy", "dz"],
             noOtherNegativeKeys: true,
