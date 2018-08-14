@@ -76,7 +76,7 @@ a:hover, a:active {
 </head>
 <body>
 <h1 id="question_title">每 日 问 题</h1>
-<div id="question_usage">请使用一句命令来解答以下问题</div>
+<div id="question_usage"></div>
 <div id="question_body">如果您看到这段文字，说明您无法运行JavaScript。请您检查您的浏览器设置</div>
 <div id="question_answer" style="display: none">
 请填写你的答案 <button id="check_button" onclick="checkAnswer(document.getElementById('answer_box'), true)">验证</button><br />
@@ -180,7 +180,8 @@ var question_list = [{
     question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架（不考虑运行环境限制）",
     answer: function(str) {
         return Math.abs(Number(str) - 6 * Math.pow(2, 6) * Math.pow(2, 384)) < 1e+115;
-    }
+    },
+    answerType: "number"
 }, {
     question: "如何在所有玩家耳边播放末影人死亡声？（每个玩家收到的音量相同）",
     answer: "execute\\s+@a\\s+~\\s+~\\s+~\\s+playsound\\s+mob.endermen.death\\s+@s(\\s+~\\s+~\\s+~(\\s+\\d+(\\s+\\d+(\\s+\\d+)?)?)?)?"
@@ -277,6 +278,7 @@ window.onload = function() {
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
     var answer_node = document.getElementById("question_answer");
+    var usage_node = document.getElementById("question_usage");
     var input_node = document.getElementById("answer_box");
     var success_node = document.getElementById("question_success");
     var failure_node = document.getElementById("question_failure");
@@ -286,6 +288,7 @@ window.onload = function() {
         return;
     }
     body_node.innerHTML = cur.question;
+    usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题";
     about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年8月13日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";

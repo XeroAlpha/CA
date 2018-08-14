@@ -703,6 +703,7 @@ MapScript.loadModule("PopupPage", (function() {
 					return 0;
 				}
 			});
+			r.defaultWindow.setRoundRectRadius(8 * G.dp);
 			r.longClick = new java.lang.Runnable({run : function() {try {
 				if (r.longClicked) r.setFullScreen(true);
 				r.longClicked = false;
@@ -13658,6 +13659,7 @@ MapScript.loadModule("MCAdapter", {
 
 MapScript.loadModule("AndroidBridge", {
 	intentCallback : {},
+	permissionCallback : {length : 0},
 	onCreate : function() {
 		G.ui(this.initIcon);
 	},
@@ -13681,6 +13683,19 @@ MapScript.loadModule("AndroidBridge", {
 				PWM.onResume();
 				delete AndroidBridge.intentCallback[requestCode];
 				cb(resultCode, data);
+			} catch(e) {erp(e)}},
+			onRequestPermissionsResult : function(requestCode, permissions, grantResults) {try {
+				var i, succeed = [], failed = [], cb = AndroidBridge.permissionCallback[requestCode];
+				if (!cb) return;
+				delete AndroidBridge.permissionCallback[requestCode];
+				for (i in grantResults) {
+					if (grantResults[i] == 0) { // PERMISSION_GRANTED == 0
+						succeed.push(String(permissions[i]));
+					} else {
+						failed.push(String(permissions[i]));
+					}
+				}
+				cb(failed.length == 0, succeed, failed);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -14035,6 +14050,22 @@ MapScript.loadModule("AndroidBridge", {
 	startActivityForResult : function(intent, callback) {
 		this.intentCallback[intent.hashCode()] = callback;
 		ScriptActivity.startActivityForResult(intent, intent.hashCode());
+	},
+	requestPermissions : function(permissions, explanation, callback) {
+		var i, denied = [];
+		for (i = 0; i < permissions.length; i++) {
+			if (ScriptActivity.checkSelfPermission(permissions[i]) != 0) { // PERMISSION_GRANTED == 0
+				denied.push(permissions[i]);
+			}
+		}
+		if (denied.length) {
+			Common.showTextDialog("命令助手需要申请" + denied.length + "个权限。" + (explanation ? "\n" + explanation : ""), function() {
+				AndroidBridge.permissionCallback[AndroidBridge.permissionCallback.length++] = callback;
+				ScriptActivity.requestPermissionCompat(AndroidBridge.permissionCallback.length, denied);
+			});
+		} else {
+			callback(true, permissions.slice(), []);
+		}
 	},
 	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
 		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitKat = android.os.Build.VERSION.SDK_INT >= 19, docs;
