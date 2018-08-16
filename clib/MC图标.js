@@ -4,6 +4,7 @@ o.author = "ProjectXero";
 o.version = [1, 0, 0];
 o.uuid = "06b2fb31-668e-4693-92ad-c0ac8da3e7a9";
 o.description = "允许命令助手显示MC的图标";
+o.update = "https://projectxero.gitee.io/ca/clib/mcicon.json";
 o.feature("userExpressionMenuAppendable");
 var Icons = [
 	{
@@ -27,12 +28,14 @@ var Icons = [
 		"icon": "iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACOSURBVChTY2BAAg5aDP+RsbM2639keTgbJPH/z1kMbK/OgqoBrPDfzf//74hB8KNkFAzXAGLAFJ6ZKYrQANQE5oM0AtlgDWDFYBMlwJIQDchsiG1YFcMUImjKFUPdCHQCyFRkkzdWSECcAQJ++pxQBdDQgIUKUBNIIUZ426gwgCXQMSiSsEYMSAM6RlYIAHH+7pVbSXorAAAAAElFTkSuQmCC"
 	}
 ];
-CA.PluginExpression.push({
-	text : "MC图标",
-	get : function() {
-		showMCIcons();
-	}
-});
+o.init = function() {
+	CA.PluginExpression.push({
+		text : "MC图标",
+		get : function() {
+			showMCIcons();
+		}
+	});
+}
 function fixZero(s, n) {
     s = String(s);
     return n > s.length ? fixZero("0" + s, n) : s;

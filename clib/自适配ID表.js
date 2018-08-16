@@ -139,6 +139,7 @@ try {
 		"uuid": "04a9e9b2-8fae-4f30-84fa-d52f9457f4eb",
 		"version": [0, 0, 2],
 		"require": [],
+		"update" : "https://projectxero.gitee.io/ca/clib/autoid.json",
 		"menu" : menu
 	};
 	if (ret) {
@@ -159,7 +160,8 @@ try {
 		"description": "加载失败：" + e,
 		"uuid": "04a9e9b2-8fae-4f30-84fa-d52f9457f4eb",
 		"version": [0, 0, 2],
-		"require": []
+		"require": [],
+		"update" : "https://projectxero.gitee.io/ca/clib/autoid.json"
 	};
 }
 })()

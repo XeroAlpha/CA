@@ -622,6 +622,7 @@
 		"uuid": "41e7d897-8f85-441a-8a81-89573cd6cfaf",
 		"version": [0, 0, 5],
 		"require": [],
+		"update" : "https://projectxero.gitee.io/ca/clib/idmapeditor.json",
 		"menu" : [{
 			text : "切换资源包",
 			onclick : function() {
@@ -682,7 +683,8 @@
 		"description": "加载失败：" + e,
 		"uuid": "41e7d897-8f85-441a-8a81-89573cd6cfaf",
 		"version": [0, 0, 5],
-		"require": []
+		"require": [],
+		"update" : "https://projectxero.gitee.io/ca/clib/idmapeditor.json"
 	};
 }
 })()

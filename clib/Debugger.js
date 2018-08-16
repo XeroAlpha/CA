@@ -38,9 +38,11 @@ MapScript.loadModule("OnlineDebugger", {
 		stopServer();
 	}
 });
-try {
-	startServer();
-} catch(e) {Common.toast(e)}
+o.init = function() {
+	try {
+		startServer();
+	} catch(e) {Common.toast(e)}
+}
 function startServer() {
 	server = ScriptActivity.createWebSocketHelper(port, {
 		onOpen : function(conn, handshake) {try {

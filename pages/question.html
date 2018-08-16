@@ -211,7 +211,7 @@ var question_list = [{
 }, {
     question: "如何让所有名称为A的盔甲架不断旋转？",
     answer: function(str) {
-        var a = /execute\s+@e\[(.+)\]\s+~\s+~\s+~\s+tp\s+~\s+~\s+~\s+~(-?\d+)(\s+~)?/.exec(str);
+        var a = /execute\s+@e\[(.+)\]\s+~\s+~\s+~\s+tp\s+(@s\s+)?~\s+~\s+~\s+~(-?\d+)(\s+~)?/.exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], {
             noOtherPositiveKeys: true,

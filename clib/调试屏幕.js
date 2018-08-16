@@ -5,8 +5,9 @@ if (Date.parse(CA.publishDate) < Date.parse("2018-06-30")) return {
 	"author": "ProjectXero",
 	"description": "您的命令助手版本过低，无法启用调试屏幕。\n在屏幕上显示游戏相关信息。",
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 6],
-	"require": []
+	"version": [1, 0],
+	"require": [],
+	"update" : "https://projectxero.gitee.io/ca/clib/f3.json"
 };
 
 MapScript.loadModule("F3", {
@@ -436,7 +437,7 @@ MapScript.loadModule("F3", {
 	}, {
 		space : 10
 	}, {
-		prompt : "调试屏幕 V 0.6\n本模块由@ProjectXero制作"
+		prompt : "调试屏幕 V 1.0\n本模块由@ProjectXero制作"
 	}]
 });
 
@@ -1066,8 +1067,9 @@ return {
 	"author": "ProjectXero",
 	"description": "在屏幕上显示游戏相关信息。",
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 6],
+	"version": [1, 0],
 	"require": [],
+	"update" : "https://projectxero.gitee.io/ca/clib/f3.json",
 	"minCAVersion": "2017-12-15"
 };
 
@@ -1077,8 +1079,9 @@ return {
 	"author": "ProjectXero",
 	"description": "加载出错：" + e,
 	"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
-	"version": [0, 6],
+	"version": [1, 0],
 	"require": [],
+	"update" : "https://projectxero.gitee.io/ca/clib/f3.json",
 	"menu" : [{
 		text : "查看错误",
 		onClick : function() {
