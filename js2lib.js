@@ -9,9 +9,11 @@ function main(src, dest) {
 	dh.writeInt32BE(Math.floor(date / 0xffffffff), 7);
 	dh.writeInt32BE(date & 0xffffffff, 11);
 	s = zlib.gzipSync(s);
-	o = fs.createWriteStream(dest);
-	o.write(dh);
-	o.end(s);
+	o = Buffer.alloc(dh.length + s.length);
+	dh.copy(o, 0);
+	s.copy(o, dh.length);
+	if (dest) fs.writeFileSync(dest, o);
+	return o;
 }
 
 // JavaScript Document

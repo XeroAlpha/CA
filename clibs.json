@@ -35,5 +35,9 @@
 		"description": "",
 		"uuid": "41e7d897-8f85-441a-8a81-89573cd6cfaf",
 		"version": [0, 0, 5]
-	}]
+	}],
+	"signKey": "clib/libsource.pem",
+	"verifyKey": "clib/libsourcepub.pem",
+	"maintainer": "ProjectXero",
+	"details": "本站托管于Gitee\n++官方拓展包源++"
 }
