@@ -1437,10 +1437,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} else {
 				Common.loadTheme(f.settings.theme);
 			}
-			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.IntelliSense.inner);
+			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.Library.inner);
 			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
 			if (f.settings.libPath) {
-				this.IntelliSense.enableLibrary(f.settings.libPath);
+				this.Library.enableLibrary(f.settings.libPath);
 				delete f.settings.libPath;
 			}
 			if (f.library) {
@@ -1449,15 +1449,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					callback : function(f) {
 						var t;
 						MapScript.saveJSON(t = String(f.result.getAbsolutePath()), f.l);
-						CA.IntelliSense.enableLibrary(t);
-						CA.IntelliSense.initLibrary();
+						CA.Library.enableLibrary(t);
+						CA.Library.initLibrary();
 						Common.toast("命令库已保存");
 					},
 					l : f.library
 				});
 				Common.showTextDialog("兼容性警告\n\n由于版本更新，命令助手已不再支持旧版无文件基础的自定义命令库，请选择一个位置来保存当前的命令库，以避免不必要的数据丢失。\n\n您也可以选择忽略。");
 			}
-			Object.keys(this.IntelliSense.inner).forEach(function(e) {
+			Object.keys(this.Library.inner).forEach(function(e) {
 				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) this.enabledLibrarys.push(e);
 			}, this.settings);
 			if (isNaN(f.settings.firstUse)) {
@@ -1484,7 +1484,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
 
-			this.IntelliSense.initLibrary(function(flag) {
+			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 			});
 			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
@@ -1523,13 +1523,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				iconAlpha : 0,
 				tipsRead : 0,
 				iiMode : -1,
-				enabledLibrarys : Object.keys(this.IntelliSense.inner),
+				enabledLibrarys : Object.keys(this.Library.inner),
 				disabledLibrarys : [],
 				customExpression : []
 			};
 			Common.loadTheme();
 			CA.checkFeatures();
-			this.IntelliSense.initLibrary();
+			this.Library.initLibrary();
 		}
 	},
 	save : function() {
@@ -4815,7 +4815,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						type : 0,
 						callback : function(f) {
 							self.postTask(function(cb) {
-								if (!CA.IntelliSense.enableLibrary(String(f.result.getAbsolutePath()))) {
+								if (!CA.Library.enableLibrary(String(f.result.getAbsolutePath()))) {
 									Common.toast("无法导入该拓展包，可能文件不存在");
 									cb(false);
 									return;
@@ -4845,7 +4845,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 										"version": [0, 0, 1],
 										"require": []
 									});
-									CA.IntelliSense.enableLibrary(fp);
+									CA.Library.enableLibrary(fp);
 									cb(true, function() {
 										Common.toast("拓展包已新建：" + fp);
 									});
@@ -4861,6 +4861,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				text : "刷新",
 				description : "刷新所有的拓展包",
 				onclick : function(v, tag) {
+					CA.Library.clearCache();
 					self.postTask(function(cb) {
 						cb(true, function() {
 							Common.toast("刷新成功");
@@ -4883,12 +4884,30 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "忽略版本",
 				description : "暂时忽略版本限制",
+				hidden : function() {
+					return CA.Library.ignoreVersion;
+				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						CA.IntelliSense.ignoreVersion = true;
+						CA.Library.ignoreVersion = true;
 						CA.checkFeatures();
 						cb(true, function() {
-							Common.toast("版本限制已关闭，重新打开游戏即可恢复。");
+							Common.toast("版本限制已关闭");
+						});
+					});
+				}
+			},{
+				text : "取消忽略版本",
+				description : "取消忽略版本限制",
+				hidden : function() {
+					return !CA.Library.ignoreVersion;
+				},
+				onclick : function(v, tag) {
+					self.postTask(function(cb) {
+						CA.Library.ignoreVersion = false;
+						CA.checkFeatures();
+						cb(true, function() {
+							Common.toast("版本限制已开启");
 						});
 					});
 				}
@@ -4897,8 +4916,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "将拓展包列表恢复为默认",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						CA.settings.enabledLibrarys = Object.keys(CA.IntelliSense.inner);
+						CA.settings.enabledLibrarys = Object.keys(CA.Library.inner);
 						CA.settings.disabledLibrarys = [];
+						CA.Library.clearCache();
 						cb(true, function() {
 							Common.toast("已恢复为默认拓展包列表");
 						});
@@ -4914,7 +4934,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						return true;
 					}
 					self.postTask(function(cb) {
-						CA.IntelliSense.removeLibrary(tag.data.src);
+						CA.Library.removeLibrary(tag.data.src);
 						cb(true, function() {
 							Common.toast("该拓展包已从列表中移除");
 						});
@@ -4946,6 +4966,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								r = tag.data.update();
 							} else if (typeof u == "string") {
 								r = JSON.parse(Updater.queryPage(u));
+							} else {
+								//r = findInLocalSource();
 							}
 							if (!(r instanceof Object) || !Array.isArray(r.version)) {
 								Common.toast("拓展包“" + tag.data.name + "”没有更新数据");
@@ -4960,7 +4982,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								}
 							}
 							if (f) {
+								CA.Library.clearCache(tag.data.src);
 								if (f.method == "intent") {
+									cb(true);
 									Common.showConfirmDialog({
 										title : "拓展包“" + tag.data.name + "”请求访问下方的链接，确定访问？",
 										description : String(r.uri),
@@ -4979,7 +5003,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									Common.toast("更新中……\n" + d.version.join(".") + " -> " + r.version.join("."));
 									Updater.download(r.url, tag.data.src);
 									cb(true, function() {
-										Common.toast("更新完成：" + r.version.join("."));
+										if (r.message) {
+											Common.showTextDialog("更新完成：" + r.version.join(".") + "\n" + r.message);
+										} else {
+											Common.toast("更新完成：" + r.version.join("."));
+										}
 									});
 								}
 							} else {
@@ -4997,7 +5025,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "用JSON编辑器编辑该拓展包",
 				onclick : function(v, tag) {
 					if (tag.data.mode != 1) {
-						Common.toast("拓展包“" + tag.data.name + "”已被锁定，无法编辑");
+						Common.toast("拓展包“" + tag.data.name + "”只读，无法编辑");
 						return true;
 					}
 					self.postTask(function(cb) {
@@ -5010,6 +5038,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								try {
 									self.processing = true;
 									MapScript.saveJSON(tag.data.src, a);
+									CA.Library.clearCache(tag.data.src);
 									cb(true, function() {
 										Common.toast("加载成功！");
 									});
@@ -5037,11 +5066,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								var fp = String(f.result.getAbsolutePath());
 								try {
 									if (tag.data.mode == 0) {
-										MapScript.saveJSON(fp, CA.IntelliSense.inner[tag.data.src]);
+										MapScript.saveJSON(fp, CA.Library.inner[tag.data.src]);
 									} else {
 										Common.fileCopy(new java.io.File(tag.data.src), f.result);
 									}
-									CA.IntelliSense.disableLibrary(fp);
+									CA.Library.clearCache(fp);
+									CA.Library.disableLibrary(fp);
 									cb(true, function() {
 										Common.toast("拓展包“" + tag.data.name + "”已另存为" + fp);
 									});
@@ -5061,7 +5091,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						Common.toast("拓展包“" + tag.data.name + "”有错误，不能创建副本");
 						return true;
 					}
-					if (tag.data.mode == 2) {
+					if (tag.data.mode >= 2) {
 						Common.toast("拓展包“" + tag.data.name + "”已被锁定，不能创建副本");
 						return true;
 					}
@@ -5072,7 +5102,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								var fp = String(f.result.getAbsolutePath()), l;
 								try {
 									if (tag.data.mode == 0) {
-										l = Object.copy(CA.IntelliSense.inner[tag.data.src]);
+										l = Object.copy(CA.Library.inner[tag.data.src]);
 									} else {
 										l = MapScript.readJSON(tag.data.src, null);
 										if (!(l instanceof Object)) throw "无法读取文件";
@@ -5080,7 +5110,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 									l.name = String(l.name) + " 的副本";
 									l.uuid = String(java.util.UUID.randomUUID().toString());
 									MapScript.saveJSON(fp, l);
-									CA.IntelliSense.enableLibrary(fp);
+									CA.Library.clearCache(fp);
+									CA.Library.enableLibrary(fp);
 									cb(true, function() {
 										Common.toast("拓展包“" + tag.data.name + "”的副本已创建" + fp);
 									});
@@ -5101,7 +5132,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						return true;
 					}
 					if (tag.data.mode != 1) {
-						Common.toast("拓展包“" + tag.data.name + "”已被锁定");
+						Common.toast("拓展包“" + tag.data.name + "”无法锁定");
 						return true;
 					}
 					Common.showConfirmDialog({
@@ -5111,7 +5142,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							if (id != 0) return;
 							self.postTask(function(cb) {
 								try {
-									CA.IntelliSense.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
+									CA.Library.savePrefixed(tag.data.src, MapScript.readJSON(tag.data.src));
+									CA.Library.clearCache(tag.data.src);
 									cb(true, function() {
 										Common.toast("拓展包“" + tag.data.name + "”已被锁定");
 									});
@@ -5156,7 +5188,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "停用该拓展包",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						CA.IntelliSense.disableLibrary(tag.data.src);
+						CA.Library.clearCache(tag.data.src);
+						CA.Library.disableLibrary(tag.data.src);
 						cb(true, function() {
 							Common.toast("拓展包已停用");
 						});
@@ -5168,7 +5201,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				description : "启用该拓展包",
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						CA.IntelliSense.enableLibrary(tag.data.src);
+						CA.Library.enableLibrary(tag.data.src);
 						cb(true, function() {
 							Common.toast("拓展包已启用");
 						});
@@ -5186,38 +5219,40 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 			}].concat(self.enabledMenu);
-			self.adapter = function(e, i, a) {
+			self.vmaker = function(holder) {
 				var layout = new G.LinearLayout(ctx),
-					text1 = new G.TextView(ctx),
-					text2 = new G.TextView(ctx);
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
 				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				layout.setOrientation(G.LinearLayout.VERTICAL);
 				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : "") + e.name + (e.disabled || e.hasError ? "" : " (已启用)"));
 				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
 				text1.setSingleLine(true);
-				Common.applyStyle(text1, e.disabled ? "item_disabled" : e.hasError ? "item_critical" : "item_default", 3);
 				layout.addView(text1);
 				text2.setPadding(0, 5 * G.dp, 0, 0);
 				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-				text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
 				Common.applyStyle(text2, "textview_prompt", 1);
 				layout.addView(text2);
 				return layout;
 			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : e.mode == 3 ? "[官方] " : "") + e.name + (e.disabled || e.hasError ? "" : " (已启用)"));
+				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : e.hasError ? "item_critical" : "item_default", 3);
+				holder.text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
+			}
 			self.refresh = function() {
 				var arr = CA.IntelliSense.library.info.concat(CA.settings.disabledLibrarys.map(function(e, i, a) {
-					var k = e in CA.IntelliSense.inner;
+					var k = e in CA.Library.inner;
 					return {
 						src : e,
 						index : i,
 						mode : k ? 0 : -1,
-						name : k ? CA.IntelliSense.inner[e].name : (new java.io.File(e)).getName(),
+						name : k ? CA.Library.inner[e].name : (new java.io.File(e)).getName(),
 						disabled : true
 					};
 				}));
-				self.list.setAdapter(new RhinoListAdapter(arr, self.adapter));
+				self.adpt.setArray(arr);
 			}
 			self.postTask = function(f) {
 				if (self.processing) {
@@ -5228,9 +5263,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				progress.setText("正在处理……");
 				self.processing = true;
 				f(function(success, callback) {
-					if (!success) return self.processing = false;
+					if (!success) {
+						progress.close();
+						return self.processing = false;
+					}
 					progress.setText("正在刷新命令库……");
-					CA.IntelliSense.initLibrary(function() {
+					CA.Library.initLibrary(function() {
 						progress.close();
 						G.ui(function() {try {
 							self.refresh();
@@ -5241,6 +5279,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			}
 			self.processing = false;
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
 
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
@@ -5273,9 +5312,24 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			Common.applyStyle(self.menu, "button_highlight", 3);
 			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.more = new G.TextView(ctx);
+			self.more.setText("显示在线拓展包……");
+			self.more.setGravity(G.Gravity.CENTER);
+			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.more, "textview_prompt", 2);
 
 			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.addFooterView(self.more);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.more) {
+					CA.showOnlineLib(function() {G.ui(function() {try {
+						self.refresh();
+					} catch(e) {erp(e)}})});
+					return;
+				}
 				var data = parent.getAdapter().getItem(pos);
 				var mnu = data.disabled ? self.disabledMenu : data.hasError ? self.errMenu : self.enabledMenu;
 				if (data.menu) {
@@ -5309,7 +5363,195 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		self.popup.onExit = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
+	
+	showOnlineLib : function self(callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "刷新",
+				onclick : function(v, tag) {
+					self.reload();
+				}
+			}, {
+				text : "查看源信息",
+				hidden : function() {
+					return !self.libsrc;
+				},
+				onclick : function(v, tag) {
+					var s = [];
+					s.push("地址 : " + self.libsrc.url);
+					s.push("上次更新时间 : " + Updater.toChineseDate(self.libsrc.lastUpdate));
+					s.push("库大小 : " + self.libsrc.libCount);
+					s.push("由 " + self.libsrc.maintainer + " 维护");
+					if (self.libsrc.details) s.push(self.libsrc.details);
+					Common.showTextDialog(s.join("\n"));
+				}
+			}];
+			self.itemMenu = [{
+				text : "下载",
+				onclick : function(v, tag) {
+					Common.showProgressDialog(function(dia) {
+						var path;
+						dia.setText("正在下载拓展包: " + tag.data.name);
+						try {
+							path = CA.Library.downloadLib(tag.data, self.libsrc);
+							CA.Library.clearCache(path);
+							CA.Library.enableLibrary(path);
+						} catch(e) {
+							Common.toast("下载拓展包“" + tag.data.name + "”失败\n" + e);
+						}
+						Common.toast("拓展包“" + tag.data.name + "”已下载并启用");
+					});
+				}
+			},{
+				text : "查看信息",
+				onclick : function(v, tag) {
+					
+				}
+			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text1.setEllipsize(G.TextUtils.TruncateAt.MIDDLE);
+				text1.setSingleLine(true);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text1.setText(e.name);
+				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : "item_default", 3);
+				holder.text2.setText((e.disabled ? "目前您使用的版本不支持此命令库\n\n" : "") + "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description ? "\n\n" + e.description : ""));
+			}
+			self.reload = function() {
+				if (self.loading) return Common.toast("正在加载中……");
+				if (MapScript.host != "Android") return Common.toast("您目前的版本不允许访问在线命令库，请使用命令助手App版");
+				self.loading = true;
+				self.libs.length = 0;
+				self.pages = 0;
+				self.adpt.notifyChange();
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var src = Date.now() < self.accessExpired ? self.libsrc : CA.Library.requestLibSource(CA.Library.getOriginSourceUrl());
+					self.accessExpired = Date.now() + 60000;
+					self.loading = false;
+					if (!src) return Common.toast("拓展包源加载失败");
+					self.libsrc = src;
+					self.appendPage(true);
+				});
+			}
+			self.appendPage = function(sync) {
+				if (!sync) {
+					var progress = Common.showProgressDialog();
+					progress.setText("正在加载……");
+					progress.async(function() {
+						self.appendPage(true);
+					});
+				} else {
+					if (self.loading) return Common.toast("正在加载中……");
+					var i, off = self.libs.length, page = CA.Library.requestLibIndex(self.libsrc, self.pages);
+					if (!page) return Common.toast("拓展包列表加载失败");
+					self.pages++;
+					G.ui(function() {try {
+						self.libs.length += page.length;
+						for (i = 0; i < page.length; i++) {
+							page[i].disabled = page[i].desperated ||
+								(page[i].minSupport && Date.parse(page[i].minSupport) > Date.parse(CA.publishDate)) ||
+								(page[i].maxSupport && Date.parse(page[i].maxSupport) < Date.parse(CA.publishDate));
+							self.libs[i + off] = page[i];
+						}
+						self.adpt.notifyChange();
+						if (self.libsrc.nextPage) self.more.setText("查看剩余" + (self.libsrc.libCount - self.libs.length) + "个拓展包……");
+						if (self.libsrc.nextPage && !self.moreVisible) {
+							self.moreVisible = true;
+							self.list.addFooterView(self.more);
+						} else if (!self.libsrc.nextPage && self.moreVisible) {
+							self.moreVisible = false;
+							self.list.removeFooterView(self.more);
+						}
+					} catch(e) {erp(e)}});
+				}
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.libs = [], self.vmaker, self.vbinder));
+			self.accessExpired = -Infinity;
 
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(self.linear, "message_bg");
+
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(0, 0, 0, 10 * G.dp);
+			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showOperateDialog(self.contextMenu);
+				return true;
+			} catch(e) {erp(e)}}}));
+
+			self.title = new G.TextView(ctx);
+			self.title.setText("在线拓展包");
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+
+			self.menu = new G.TextView(ctx);
+			self.menu.setText("▼");
+			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			self.menu.setGravity(G.Gravity.CENTER);
+			Common.applyStyle(self.menu, "button_highlight", 3);
+			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.more = new G.TextView(ctx);
+			self.more.setGravity(G.Gravity.CENTER);
+			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.more, "textview_prompt", 2);
+
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.more) {
+					self.appendPage();
+					return;
+				}
+				var data = parent.getAdapter().getItem(pos);
+				Common.showOperateDialog(self.itemMenu, {
+					pos : parseInt(pos),
+					data : data,
+					callback : function() {}
+				});
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("确定");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+
+			self.popup = new PopupPage(self.linear, "ca.OnlineLibSource");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		self.popup.onExit = callback;
+		self.popup.enter();
+		self.reload();
+	} catch(e) {erp(e)}})},
+	
 	showModeChooser : function self(callback) {
 		if (self.popup) return;
 		if (!self.menu) {
@@ -5552,7 +5794,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	checkFeatures : function() {
 		var i;
 		for (i in this.Features) {
-			this.Features[i].flag = this.IntelliSense.checkPackVer(this.Features[i]);
+			this.Features[i].flag = this.Library.checkPackVer(this.Features[i]);
 		}
 	},
 	hasFeature : function(feature) {
@@ -5623,11 +5865,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					break;
 					case 3:
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C"))
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://projectxero.mikecrm.com/CDOsI2C"))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.showWebViewDialog({
-							url : "http://projectxero.mikecrm.com/CDOsI2C"
+							url : "https://projectxero.mikecrm.com/CDOsI2C"
 						});
 					}
 					break;
@@ -6193,6 +6435,634 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	},
 	PluginMenu : [],
 	PluginExpression : [],
+	
+	Library : {
+		inner : {},
+		cache : {},
+		initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
+			var info, flag = true, t, t2, lib;
+			CA.IntelliSense.library = lib = {
+				commands : {},
+				command_snap : {},
+				enums : {},
+				selectors : {},
+				json : {},
+				help : {},
+				tutorials : [],
+				info : info = []
+			};
+			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
+				var m = 0, v, cur, resolved, stat;
+				try {
+					if (CA.Library.cache[e]) {
+						cur = CA.Library.cache[e].data;
+						m = CA.Library.cache[e].mode;
+					} else {
+						if ((v = CA.Library.shouldVerifySigned(e)) == 0) {
+							throw "未被验证的拓展包";
+						}
+						cur = CA.Library.inner[e] || (m = 3, CA.Library.loadSignedV1(e, null)) || (m = 2, CA.Library.loadPrefixed(e, null)) || (m = 1, MapScript.readJSON(e, null, false)) || (m = 2, MapScript.readJSON(e, null, true));
+						if (!cur) throw "无法读取或解析拓展包";
+						if (!(cur instanceof Object)) throw "错误的拓展包格式";
+						CA.Library.cache[e] = {
+							data : cur,
+							mode : m
+						};
+					}
+					resolved = true;
+					if ((v = CA.Library.checkPackVer(cur)) != 0) throw v > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
+					if (cur.minCAVersion && Date.parse(CA.publishDate) < Date.parse(cur.minCAVersion)) throw "命令助手版本过低";
+					stat = CA.Library.statLib(cur);
+					CA.Library.loadLibrary(lib, cur, stat);
+					info.push({
+						src : e,
+						index : i,
+						name : cur.name,
+						author : cur.author,
+						description : cur.description,
+						uuid : cur.uuid,
+						version : cur.version,
+						update : cur.update,
+						menu : cur.menu,
+						mode : m,
+						stat : stat,
+						loaded : true
+					});
+				} catch(err) {
+					flag = false;
+					if (resolved) {
+						info.push({
+							src : e,
+							index : i,
+							name : cur.name,
+							version : cur.version,
+							update : cur.update,
+							menu : cur.menu,
+							hasError : true,
+							mode : m,
+							error : err
+						});
+					} else {
+						info.push({
+							src : e,
+							index : i,
+							name : m == 0 ? e : (new java.io.File(e)).getName(),
+							hasError : true,
+							mode : m,
+							error : err
+						});
+					}
+				}
+			}, this);
+			//快捷操作
+			t = lib.commands;
+			Object.keys(t).forEach(function(e) {
+				t2 = e;
+				while (t[t2].alias) t2 = t[t2].alias;
+				t2 = t[t2];
+				lib.command_snap[e] = t2.description ? t2.description : "";
+			});
+			Tutorial.library = lib.tutorials;
+			if (callback) callback(flag);
+		} catch(e) {erp(e)}}}))).start()},
+		clearCache : function(src) {
+			if (src) {
+				delete this.cache[src];
+			} else {
+				this.cache = {};
+			}
+		},
+		enableLibrary : function(name) {
+			var a, p;
+			if (!(name in CA.Library.inner) && !(new java.io.File(name)).isFile()) return false;
+			a = CA.settings.disabledLibrarys;
+			p = a.indexOf(name);
+			if (p >= 0) a.splice(p, 1);
+			a = CA.settings.enabledLibrarys;
+			p = a.indexOf(name);
+			if (p < 0) a.push(name);
+			return true;
+		},
+		disableLibrary : function(name) {
+			var a, p;
+			a = CA.settings.enabledLibrarys;
+			p = a.indexOf(name);
+			if (p >= 0) a.splice(p, 1);
+			a = CA.settings.disabledLibrarys;
+			p = a.indexOf(name);
+			if (p < 0) a.unshift(name);
+			return true;
+		},
+		removeLibrary : function(name) {
+			var a, p;
+			a = CA.settings.enabledLibrarys;
+			p = a.indexOf(name);
+			if (p >= 0) a.splice(p, 1);
+			a = CA.settings.disabledLibrarys;
+			p = a.indexOf(name);
+			if (p >= 0) a.splice(p, 1);
+			return true;
+		},
+		loadLibrary : function(cur, l, stat) {
+			var c, i, t, lib = CA.IntelliSense.library;
+			this.checkLibrary(l);
+			if (lib.info.some(function(e) {
+				return l.uuid == e.uuid;
+			})) throw "已存在相同的拓展包";
+			if (l.require.some(function(e1) {
+				return !lib.info.some(function(e2) {
+					return e1 == e2.uuid;
+				});
+			}, this)) throw "前提包并未全部加载，请检查加载顺序及拓展包列表";
+			this.joinPack(cur, Object.copy(l)); //创建副本
+			if (!l.versionPack) return;
+			c = l.versionPack;
+			for (i in c) {
+				t = this.joinPack(cur, c[i]); //加载版本包
+				if (stat && t) stat.availablePack++;
+			}
+		},
+		loadPrefixed : function(path, defaultValue) {
+			try{
+				if (!(new java.io.File(path)).isFile()) return defaultValue;
+				var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
+				rd = new java.io.FileInputStream(path);
+				while (start.length) {
+					if (rd.read() != start.shift()) {
+						rd.close();
+						return defaultValue;
+					}
+				}
+				rd.skip(8);
+				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
+				while (q = rd.readLine()) s.push(q);
+				rd.close();
+				return eval("(" + s.join("\n") + ")");
+			} catch(e) {
+				return defaultValue;
+			}
+		},
+		savePrefixed : function(path, object) {
+			var wr, ar;
+			var f = new java.io.File(path).getParentFile();
+			if (f) f.mkdirs();
+			wr = new java.io.FileOutputStream(path);
+			ar = java.nio.ByteBuffer.allocate(15); //LIBRARY
+			ar.put([0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59]).putLong((new java.util.Date()).getTime());
+			wr.write(ar.array());
+			wr = new java.util.zip.GZIPOutputStream(wr);
+			wr.write(new java.lang.String(MapScript.toSource(object)).getBytes());
+			wr.close();
+		},
+		checkLibrary : (function() {
+			var stack = null, last = null;
+			var e = function(d) {
+				throw {
+					message : d,
+					stack : stack,
+					source : last,
+					toString : function() {
+						return this.stack.join("->") + this.message;
+					}
+				}
+			}
+			var checkObject = function(o) {
+				if (!o || !(o instanceof Object)) e("不是对象");
+			}
+			var checkArray = function(o) {
+				if (!Array.isArray(o)) e("不是数组");
+			}
+			var checkUnsignedInt = function(o) {
+				if (!(/^\d+$/).test(o)) e("不是正整数");
+			}
+			var checkString = function(o) {
+				if (!(typeof o === "string")) e("不是字符串");
+			}
+			var checkNotEmptyString = function(o) {
+				checkString(o);
+				if (!o) e("是空字符串");
+			}
+			var iterateArray = function(o, iter) {
+				var l = stack.length, i;
+				checkArray(o);
+				stack.length = l + 1;
+				for (i = 0; i < o.length; i++) {
+					stack[l] = i;
+					iter(o[i]);
+				}
+				stack.length = l;
+			}
+			return function(a) {
+				var i;
+				stack = ["根"]; last = a;
+				checkObject(a);
+				stack.push("名称(name)");
+				checkNotEmptyString(a.name);
+				stack[1] = "作者(author)";
+				checkNotEmptyString(a.author);
+				stack[1] = "简介(description)";
+				checkString(a.description);
+				stack[1] = "UUID(uuid)";
+				checkNotEmptyString(a.uuid);
+				stack[1] = "版本(version)";
+				iterateArray(a.version, checkUnsignedInt);
+				stack[1] = "前提包(require)";
+				iterateArray(a.require, checkNotEmptyString);
+			}
+		})(),
+		checkPackVer : (function() {
+			var a;
+			var opt = function(a) {
+				return a == "*" ? Infinity : isNaN(a) ? -1 : parseInt(a);
+			}
+			var compare = function (b) {
+				var n, i, p1, p2;
+				b = String(b).split(".");
+				n = Math.max(a.length, b.length);
+				for (i = 0; i < n; i++) {
+					p1 = opt(a[i]); p2 = opt(b[i]);
+					if (p1 < p2) {
+						return -1; //pe版本过低
+					} else if (p1 > p2) {
+						return 1; //拓展包版本过低
+					}
+				}
+				return 0;
+			}
+			var inRange = function(min, max) {
+				if (min && compare(min) < 0) return -1;
+				if (max && compare(max) > 0) return 1;
+				return 0;
+			}
+			return function(o) {
+				var r = 0, i, n, e;
+				if (this.ignoreVersion) return 0;
+				a = getMinecraftVersion().split(".");
+				if (o.minSupportVer || o.maxSupportVer) {
+					r = inRange(o.minSupportVer, o.maxSupportVer);
+					if (r != 0) return r; //这两个参数是总范围
+				}
+				if (Array.isArray(o.supportVer)) {
+					n = o.supportVer.length;
+					r = 1;
+					for (i = 0; i < n; i++) {
+						e = o.supportVer[i];
+						r = Math.min(r, inRange(e.min, e.max)); //趋向返回游戏版本过低
+						if (r == 0) return 0; //这段只要存在一个范围符合条件就返回0
+					}
+				}
+				return r;
+			}
+		})(),
+		joinPack : (function() {
+			var joinCmd = function(src, o) {
+				var i, op, sp, t;
+				if (o.description) src.description = o.description;
+				if (o.help) src.help = o.help;
+				if (o.noparams) src.noparams = o.noparams;
+				if (o.patterns) {
+					op = o.patterns;
+					sp = src.patterns;
+					if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法合并";
+					if (Array.isArray(op)) {
+						for (i in op) {
+							t = sp.indexOf(op[i]);
+							if (t < 0) sp.push(op[i]);
+						}
+					} else {
+						for (i in op) sp[i] = op[i];
+					}
+				}
+			}
+			var filterCmd = function(src, o) {
+				var i, t, op, sp, t;
+				if (o.noparams) delete src.noparams;
+				if (o.patterns) {
+					op = o.patterns;
+					sp = src.patterns;
+					if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法过滤";
+					if (Array.isArray(op)) {
+						for (i in op) {
+							t = sp.indexOf(op[i]);
+							if (t >= 0) sp.splice(t, 1);
+						}
+					} else {
+						for (i in op) delete sp[i];
+					}
+				}
+			}
+			var joinEnum = function(src, o) {
+				var i, t;
+				if (Array.isArray(src) && Array.isArray(o)) {
+					for (i in o) {
+						t = src.indexOf(o[i]);
+						if (t < 0) src.push(o[i]);
+					}
+				} else if (Array.isArray(src) && !Array.isArray(o)) {
+					throw "枚举列表格式不一致，无法合并";
+				} else if (!Array.isArray(src) && Array.isArray(o)) {
+					for (i in o) if (!src[o[i]]) src[o[i]] = "";
+				} else {
+					for (i in o) if (!src[i] || o[i] != "") src[i] = o[i];
+				}
+			}
+			var filterEnum = function(src, o) {
+				var i, t, f = Array.isArray(o) ? o : Object.keys(o);
+				if (Array.isArray(src)) {
+					for (i in f) {
+						t = src.indexOf(f[i]);
+						if (t >= 0) src.splice(t, 1);
+					}
+				} else {
+					for (i in f) delete src[f[i]];
+				}
+			}
+			var parseAliasEnum = function(g, o) {
+				if (typeof o != "string") return o;
+				if (!(o in g.enums)) throw "无效的枚举引用";
+				return g.enums[o];
+			}
+			return function(cur, l) {
+				if (this.checkPackVer(l) != 0) return false;
+				var i;
+				if (!(l.commands instanceof Object)) l.commands = {};
+				if (!(l.enums instanceof Object)) l.enums = {};
+				if (!(l.selectors instanceof Object)) l.selectors = {};
+				if (!(l.help instanceof Object)) l.help = {};
+				for (i in l.commands) {
+					if (l.mode == "remove") {
+						if (l.commands[i]) {
+							filterCmd(cur.commands[i], l.commands[i]);
+						} else {
+							delete cur.commands[i];
+						}
+					} else if ((i in cur.commands) && l.mode != "overwrite") {
+						joinCmd(cur.commands[i], l.commands[i]);
+					} else {
+						cur.commands[i] = l.commands[i];
+					}
+				}
+				for (i in l.enums) {
+					if (l.mode == "remove") {
+						if (l.enums[i]) {
+							filterEnum(cur.enums[i], parseAliasEnum(cur, l.enums[i]));
+						} else {
+							delete cur.enums[i];
+						}
+					} else if ((i in cur.enums) && l.mode != "overwrite") {
+						joinEnum(cur.enums[i], parseAliasEnum(cur, l.enums[i]));
+					} else {
+						cur.enums[i] = parseAliasEnum(cur, l.enums[i]);
+					}
+				}
+				for (i in l.selectors) {
+					if (l.mode == "remove") {
+						delete cur.selectors[i];
+					} else {
+						cur.selectors[i] = l.selectors[i];
+					}
+				}
+				for (i in l.json) {
+					if (l.mode == "remove") {
+						delete cur.json[i];
+					} else {
+						cur.json[i] = l.json[i];
+					}
+				}
+				for (i in l.help) {
+					if (l.mode == "remove") {
+						delete cur.help[i];
+					} else {
+						cur.help[i] = l.help[i];
+					}
+				}
+				for (i in l.tutorials) {
+					if (l.mode != "remove") {
+						cur.tutorials.push(l.tutorials[i]);
+					}
+				}
+				return true;
+			}
+		})(),
+		statLib : (function() {
+			var stat;
+			function calcCmd(c) {
+				var i;
+				if (!c) return;
+				stat.command++;
+				if (c.noparams) stat.pattern++;
+				for (i in c.patterns) { // patterns 是 可枚举类型 包括但不限于 数组、对象
+					stat.pattern++;
+				}
+			}
+			function calcSelectors(c) {
+				if (!c) return;
+				stat.selector += Object.keys(c).length;
+			}
+			function calcEnum(c) {
+				if (!c) return 0;
+				return typeof c == "string" ? 0 : Array.isArray(c) ? c.length : Object.keys(c).length;
+			}
+			function calcEnums(c) {
+				var i;
+				if (!c) return;
+				for (i in c) {
+					stat.enums++;
+					stat.enumitem += calcEnum(c[i]);
+				}
+			}
+			function calcCommands(k) {
+				var i;
+				if (!k) return;
+				for (i in k) {
+					calcCmd(k[i]);
+				}
+			}
+			function toString() {
+				return ["命令数:", this.command, "\n枚举数:", this.enums, "\n选择器数:", this.selector, "\n版本包数:", this.availablePack, "/", this.versionPack, "\n命令模式数:", this.pattern, "\n枚举项目数:", this.enumitem].join("");
+			}
+			return function (l) {
+				var i;
+				stat = {
+					availablePack : 0,
+					command : 0,
+					versionPack : 0,
+					enums : 0,
+					selector : 0,
+					pattern : 0,
+					enumitem : 0,
+					toString : toString
+				}
+				calcCommands(l.commands);
+				calcEnums(l.enums);
+				calcSelectors(l.selectors);
+				for (i in l.versionPack) {
+					if ("commands" in l.versionPack[i]) calcCommands(l.versionPack[i].commands);
+					if ("enums" in l.versionPack[i]) calcEnums(l.versionPack[i].enums);
+					if ("selectors" in l.versionPack[i]) calcSelectors(l.versionPack[i].selectors);
+					stat.versionPack++;
+				}
+				return stat;
+			}
+		})(),
+		requestLibSource : function(url) {
+			var info, infourl;
+			if (url.slice(-1) != "/") url += "/";
+			infourl = url + "info.json";
+			try {
+				info = JSON.parse(Updater.queryPage(infourl));
+			} catch(e) {
+				return;
+			}
+			info.pages = [];
+			info.nextPage = info.indexPages > 0 ? info.index : null;
+			info.pageCount = info.indexPages;
+			info.libCount = info.indexLibs;
+			info.url = url;
+			return info;
+		},
+		requestLibIndex : function(info, pageNo) {
+			var page;
+			if (pageNo < 0 || pageNo >= info.indexPages) return;
+			if (pageNo < info.pages.length) return info.pages[pageNo];
+			try {
+				while (true) {
+					page = JSON.parse(Updater.queryPage(info.nextPage));
+					if (page.pageNo != info.pages.length || page.sourceId != info.sourceId) throw "Not a regular library source";
+					info.nextPage = page.nextPage;
+					info.pages.push(page.content);
+					if (pageNo < info.pages.length) return info.pages[pageNo];
+				}
+			} catch(e) {
+				return;
+			}
+		},
+		getOriginSourceUrl : function() {
+			return "https://projectxero.gitee.io/ca/clib/";
+		},
+		getVerify : function(source) {
+			return source.verifyObject ? source.verifyObject : (source.verifyObject = this.downloadAsArray(source.pubkey));
+		},
+		arrayStartsWith : function(array, start) {
+			var i;
+			if (array.length < start.length) return false;
+			for (i = 0; i < start.length; i++) {
+				if (start[i] != array[i]) return false;
+			}
+			return true;
+		},
+		readAsArray : function(stream, keep) {
+			var BUFFER_SIZE = 4096;
+			var os, buf, hr;
+			os = new java.io.ByteArrayOutputStream();
+			buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
+			while ((hr = stream.read(buf)) > 0) os.write(buf, 0, hr);
+			if (!keep) stream.close();
+			return os.toByteArray();
+		},
+		downloadAsArray : function(url) {
+			var url = new java.net.URL(url);
+			var conn = url.openConnection();
+			conn.setConnectTimeout(5000);
+			conn.setUseCaches(false);
+			conn.setRequestMethod("GET");
+			conn.connect();
+			return this.readAsArray(conn.getInputStream());
+		},
+		downloadLib : function(libinfo, source) {
+			var arr = this.downloadAsArray(libinfo.downloadurl), digest, os, bytes;
+			digest = java.security.MessageDigest.getInstance("SHA-1");
+			digest.update(arr);
+			if (libinfo.sha1 != android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP)) {
+				throw "文件校验失败";
+			}
+			if (this.arrayStartsWith(arr, [0x53, 0x49, 0x47, 0x4e, 0x4c, 0x49, 0x42, 0x30, 0x31])) { //SIGNLIB01
+				var verify = this.getVerify(source);
+				var signature = java.security.Signature.getInstance("SHA256withRSA");
+				var keyFactory = java.security.KeyFactory.getInstance("RSA");
+				var keySpec = new java.security.spec.X509EncodedKeySpec(verify);
+				signature.initVerify(keyFactory.generatePublic(keySpec));
+				var signlen = 256;
+				var dataStart = 9 + signlen;
+				signature.update(arr, dataStart, arr.length - dataStart);
+				if (!signature.verify(arr, 9, signlen)) throw "库的签名不正确";
+				new java.io.File(MapScript.baseDir + "libs").mkdirs();
+				os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
+				os.write(new java.lang.String("LIBSIGN01").getBytes("UTF-8"));
+				bytes = new java.lang.String(source.sourceId).getBytes("UTF-8");
+				var buf = java.nio.ByteBuffer.allocate(4);
+				buf.order(java.nio.ByteOrder.BIG_ENDIAN);
+				buf.putInt(bytes.length);
+				os.write(buf.array());
+				os.write(bytes);
+				os.write(arr, 9, arr.length - 9);
+				os.close();
+				digest = java.security.MessageDigest.getInstance("SHA-1");
+				digest.update(arr, 9, arr.length - 9);
+				bytes = digest.digest();
+				digest.update(ctx.getVerifyKey());
+				digest.update(bytes);
+				bytes = digest.digest();
+				os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib.hash");
+				os.write(bytes);
+				os.close();
+			} else {
+				new java.io.File(MapScript.baseDir + "libs").mkdirs();
+				os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
+				os.write(arr);
+				os.close();
+			}
+			return MapScript.baseDir + "libs/" + libinfo.uuid + ".lib";
+		},
+		shouldVerifySigned : function(path) {
+			if (!(new java.io.File(path)).isFile()) return -1;
+			var i, arr = this.readAsArray(new java.io.FileInputStream(path)), digest, bytes, buf;
+			if (this.arrayStartsWith(arr, [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31])) { //LIBSIGN01
+				buf = java.nio.ByteBuffer.wrap(arr);
+				var sourceSize = buf.getInt(9);
+				if (!(new java.io.File(path + ".hash")).isFile()) return 0;
+				digest = java.security.MessageDigest.getInstance("SHA-1");
+				digest.update(arr, 13 + sourceSize, arr.length - 13 - sourceSize);
+				bytes = digest.digest();
+				digest.update(ctx.getVerifyKey());
+				digest.update(bytes);
+				bytes = digest.digest();
+				arr = this.readAsArray(new java.io.FileInputStream(path + ".hash"));
+				if (arr.length != bytes.length) return 0;
+				for (i = 0; i < arr.length; i++) {
+					if (arr[i] != bytes[i]) return 0;
+				}
+				return 1;
+			} else return -1;
+		},
+		verifySignedV1 : function() {
+			var source = this.requestLibSource(this.getOriginSourceUrl());
+			
+		},
+		loadSignedV1 : function(path, defaultValue) {
+			try{
+				if (!(new java.io.File(path)).isFile()) return defaultValue;
+				var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31]; //LIBSIGN01
+				rd = new java.io.FileInputStream(path);
+				while (start.length) {
+					if (rd.read() != start.shift()) {
+						rd.close();
+						return defaultValue;
+					}
+				}
+				var buf = java.nio.ByteBuffer.allocate(4);
+				buf.order(java.nio.ByteOrder.BIG_ENDIAN);
+				rd.read(buf.array());
+				rd.skip(buf.getInt(0) + 256 + 8);
+				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
+				while (q = rd.readLine()) s.push(q);
+				rd.close();
+				return eval("(" + s.join("\n") + ")");
+			} catch(e) {erp(e);
+				return defaultValue;
+			}
+		},
+	},
 
 	IntelliSense : {
 		UNINITIALIZED : 0,
@@ -6200,7 +7070,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		UNKNOWN_COMMAND : -1,
 		COMMAND_WITH_PATTERN : 2,
 		UNKNOWN_PATTERN : -2,
-		inner : {},
 
 		input : [],
 		output : [],
@@ -7184,448 +8053,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				pp.append(this.prompt[i]);
 			}
 			Common.showTextDialog(pp);
-		},
-		initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-			var info, flag = true, t, t2;
-			CA.IntelliSense.library = {
-				commands : {},
-				command_snap : {},
-				enums : {},
-				selectors : {},
-				json : {},
-				help : {},
-				tutorials : [],
-				info : info = []
-			};
-			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
-				var m = 0, v, cur, resolved, stat;
-				try {
-					cur = CA.IntelliSense.inner[e] || (m = 1, MapScript.readJSON(e, null, false)) || (m = 2, MapScript.readJSON(e, null, true)) || (m = 2, CA.IntelliSense.loadPrefixed(e, null));
-					if (!cur) throw "无法读取或解析拓展包";
-					if (!(cur instanceof Object)) throw "错误的拓展包格式";
-					resolved = true;
-					if ((v = CA.IntelliSense.checkPackVer(cur)) != 0) throw v > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
-					if (cur.minCAVersion && Date.parse(CA.publishDate) < Date.parse(cur.minCAVersion)) throw "命令助手版本过低";
-					stat = CA.IntelliSense.statLib(cur);
-					CA.IntelliSense.loadLibrary(CA.IntelliSense.library, cur, stat);
-					info.push({
-						src : e,
-						index : i,
-						name : cur.name,
-						author : cur.author,
-						description : cur.description,
-						uuid : cur.uuid,
-						version : cur.version,
-						update : cur.update,
-						menu : cur.menu,
-						mode : m,
-						stat : stat,
-						loaded : true
-					});
-				} catch(err) {
-					flag = false;
-					if (resolved) {
-						info.push({
-							src : e,
-							index : i,
-							name : cur.name,
-							version : cur.version,
-							update : cur.update,
-							menu : cur.menu,
-							hasError : true,
-							mode : m,
-							error : err
-						});
-					} else {
-						info.push({
-							src : e,
-							index : i,
-							name : m == 0 ? e : (new java.io.File(e)).getName(),
-							hasError : true,
-							mode : m,
-							error : err
-						});
-					}
-				}
-			}, this);
-			//快捷操作
-			t = CA.IntelliSense.library.commands;
-			Object.keys(t).forEach(function(e) {
-				t2 = e;
-				while (t[t2].alias) t2 = t[t2].alias;
-				t2 = t[t2];
-				CA.IntelliSense.library.command_snap[e] = t2.description ? t2.description : "";
-			});
-			Tutorial.library = CA.IntelliSense.library.tutorials;
-			if (callback) callback(flag);
-		} catch(e) {erp(e)}}}))).start()},
-		enableLibrary : function(name) {
-			var a, p;
-			if (!(name in this.inner) && !(new java.io.File(name)).isFile()) return false;
-			a = CA.settings.disabledLibrarys;
-			p = a.indexOf(name);
-			if (p >= 0) a.splice(p, 1);
-			a = CA.settings.enabledLibrarys;
-			p = a.indexOf(name);
-			if (p < 0) a.push(name);
-			return true;
-		},
-		disableLibrary : function(name) {
-			var a, p;
-			a = CA.settings.enabledLibrarys;
-			p = a.indexOf(name);
-			if (p >= 0) a.splice(p, 1);
-			a = CA.settings.disabledLibrarys;
-			p = a.indexOf(name);
-			if (p < 0) a.unshift(name);
-			return true;
-		},
-		removeLibrary : function(name) {
-			var a, p;
-			a = CA.settings.enabledLibrarys;
-			p = a.indexOf(name);
-			if (p >= 0) a.splice(p, 1);
-			a = CA.settings.disabledLibrarys;
-			p = a.indexOf(name);
-			if (p >= 0) a.splice(p, 1);
-			return true;
-		},
-		loadLibrary : function(cur, l, stat) {
-			var c, i, t;
-			this.checkLibrary(l);
-			if (this.library.info.some(function(e) {
-				return l.uuid == e.uuid;
-			})) throw "已存在相同的拓展包";
-			if (l.require.some(function(e1) {
-				return !this.library.info.some(function(e2) {
-					return e1 == e2.uuid;
-				});
-			}, this)) throw "前提包并未全部加载，请检查加载顺序及拓展包列表";
-			this.joinPack(cur, Object.copy(l)); //创建副本
-			if (!l.versionPack) return;
-			c = l.versionPack;
-			for (i in c) {
-				t = this.joinPack(cur, c[i]); //加载版本包
-				if (stat && t) stat.availablePack++;
-			}
-		},
-		loadPrefixed : function(path, defaultValue) {
-			try{
-				if (!(new java.io.File(path)).isFile()) return defaultValue;
-				var rd, s = [], q, dp;
-				rd = new java.io.FileInputStream(path);
-				rd.skip(15);
-				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
-				while (q = rd.readLine()) s.push(q);
-				rd.close();
-				return eval("(" + s.join("\n") + ")");
-			} catch(e) {
-				return defaultValue;
-			}
-		},
-		savePrefixed : function(path, object) {
-			var wr, ar;
-			var f = new java.io.File(path).getParentFile();
-			if (f) f.mkdirs();
-			wr = new java.io.FileOutputStream(path);
-			ar = java.nio.ByteBuffer.allocate(15); //LIBRARY
-			ar.put([0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59]).putLong((new java.util.Date()).getTime());
-			wr.write(ar.array());
-			wr = new java.util.zip.GZIPOutputStream(wr);
-			wr.write(new java.lang.String(MapScript.toSource(object)).getBytes());
-			wr.close();
-		},
-		checkLibrary : (function() {
-			var stack = null, last = null;
-			var e = function(d) {
-				throw {
-					message : d,
-					stack : stack,
-					source : last,
-					toString : function() {
-						return this.stack.join("->") + this.message;
-					}
-				}
-			}
-			var checkObject = function(o) {
-				if (!o || !(o instanceof Object)) e("不是对象");
-			}
-			var checkArray = function(o) {
-				if (!Array.isArray(o)) e("不是数组");
-			}
-			var checkUnsignedInt = function(o) {
-				if (!(/^\d+$/).test(o)) e("不是正整数");
-			}
-			var checkString = function(o) {
-				if (!(typeof o === "string")) e("不是字符串");
-			}
-			var checkNotEmptyString = function(o) {
-				checkString(o);
-				if (!o) e("是空字符串");
-			}
-			var iterateArray = function(o, iter) {
-				var l = stack.length, i;
-				checkArray(o);
-				stack.length = l + 1;
-				for (i = 0; i < o.length; i++) {
-					stack[l] = i;
-					iter(o[i]);
-				}
-				stack.length = l;
-			}
-			return function(a) {
-				var i;
-				stack = ["根"]; last = a;
-				checkObject(a);
-				stack.push("名称(name)");
-				checkNotEmptyString(a.name);
-				stack[1] = "作者(author)";
-				checkNotEmptyString(a.author);
-				stack[1] = "简介(description)";
-				checkString(a.description);
-				stack[1] = "UUID(uuid)";
-				checkNotEmptyString(a.uuid);
-				stack[1] = "版本(version)";
-				iterateArray(a.version, checkUnsignedInt);
-				stack[1] = "前提包(require)";
-				iterateArray(a.require, checkNotEmptyString);
-			}
-		})(),
-		checkPackVer : (function() {
-			var a;
-			var opt = function(a) {
-				return a == "*" ? Infinity : isNaN(a) ? -1 : parseInt(a);
-			}
-			var compare = function (b) {
-				var n, i, p1, p2;
-				b = String(b).split(".");
-				n = Math.max(a.length, b.length);
-				for (i = 0; i < n; i++) {
-					p1 = opt(a[i]); p2 = opt(b[i]);
-					if (p1 < p2) {
-						return -1; //pe版本过低
-					} else if (p1 > p2) {
-						return 1; //拓展包版本过低
-					}
-				}
-				return 0;
-			}
-			var inRange = function(min, max) {
-				if (min && compare(min) < 0) return -1;
-				if (max && compare(max) > 0) return 1;
-				return 0;
-			}
-			return function(o) {
-				var r = 0, i, n, e;
-				if (this.ignoreVersion) return 0;
-				a = getMinecraftVersion().split(".");
-				if (o.minSupportVer || o.maxSupportVer) {
-					r = inRange(o.minSupportVer, o.maxSupportVer);
-					if (r != 0) return r; //这两个参数是总范围
-				}
-				if (Array.isArray(o.supportVer)) {
-					n = o.supportVer.length;
-					r = 1;
-					for (i = 0; i < n; i++) {
-						e = o.supportVer[i];
-						r = Math.min(r, inRange(e.min, e.max)); //趋向返回游戏版本过低
-						if (r == 0) return 0; //这段只要存在一个范围符合条件就返回0
-					}
-				}
-				return r;
-			}
-		})(),
-		joinPack : (function() {
-			var joinCmd = function(src, o) {
-				var i, op, sp, t;
-				if (o.description) src.description = o.description;
-				if (o.help) src.help = o.help;
-				if (o.noparams) src.noparams = o.noparams;
-				if (o.patterns) {
-					op = o.patterns;
-					sp = src.patterns;
-					if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法合并";
-					if (Array.isArray(op)) {
-						for (i in op) {
-							t = sp.indexOf(op[i]);
-							if (t < 0) sp.push(op[i]);
-						}
-					} else {
-						for (i in op) sp[i] = op[i];
-					}
-				}
-			}
-			var filterCmd = function(src, o) {
-				var i, t, op, sp, t;
-				if (o.noparams) delete src.noparams;
-				if (o.patterns) {
-					op = o.patterns;
-					sp = src.patterns;
-					if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法过滤";
-					if (Array.isArray(op)) {
-						for (i in op) {
-							t = sp.indexOf(op[i]);
-							if (t >= 0) sp.splice(t, 1);
-						}
-					} else {
-						for (i in op) delete sp[i];
-					}
-				}
-			}
-			var joinEnum = function(src, o) {
-				var i, t;
-				if (Array.isArray(src) && Array.isArray(o)) {
-					for (i in o) {
-						t = src.indexOf(o[i]);
-						if (t < 0) src.push(o[i]);
-					}
-				} else if (Array.isArray(src) && !Array.isArray(o)) {
-					throw "枚举列表格式不一致，无法合并";
-				} else if (!Array.isArray(src) && Array.isArray(o)) {
-					for (i in o) if (!src[o[i]]) src[o[i]] = "";
-				} else {
-					for (i in o) if (!src[i] || o[i] != "") src[i] = o[i];
-				}
-			}
-			var filterEnum = function(src, o) {
-				var i, t, f = Array.isArray(o) ? o : Object.keys(o);
-				if (Array.isArray(src)) {
-					for (i in f) {
-						t = src.indexOf(f[i]);
-						if (t >= 0) src.splice(t, 1);
-					}
-				} else {
-					for (i in f) delete src[f[i]];
-				}
-			}
-			var parseAliasEnum = function(g, o) {
-				if (typeof o != "string") return o;
-				if (!(o in g.enums)) throw "无效的枚举引用";
-				return g.enums[o];
-			}
-			return function(cur, l) {
-				if (this.checkPackVer(l) != 0) return false;
-				var i;
-				if (!(l.commands instanceof Object)) l.commands = {};
-				if (!(l.enums instanceof Object)) l.enums = {};
-				if (!(l.selectors instanceof Object)) l.selectors = {};
-				if (!(l.help instanceof Object)) l.help = {};
-				for (i in l.commands) {
-					if (l.mode == "remove") {
-						if (l.commands[i]) {
-							filterCmd(cur.commands[i], l.commands[i]);
-						} else {
-							delete cur.commands[i];
-						}
-					} else if ((i in cur.commands) && l.mode != "overwrite") {
-						joinCmd(cur.commands[i], l.commands[i]);
-					} else {
-						cur.commands[i] = l.commands[i];
-					}
-				}
-				for (i in l.enums) {
-					if (l.mode == "remove") {
-						if (l.enums[i]) {
-							filterEnum(cur.enums[i], parseAliasEnum(cur, l.enums[i]));
-						} else {
-							delete cur.enums[i];
-						}
-					} else if ((i in cur.enums) && l.mode != "overwrite") {
-						joinEnum(cur.enums[i], parseAliasEnum(cur, l.enums[i]));
-					} else {
-						cur.enums[i] = parseAliasEnum(cur, l.enums[i]);
-					}
-				}
-				for (i in l.selectors) {
-					if (l.mode == "remove") {
-						delete cur.selectors[i];
-					} else {
-						cur.selectors[i] = l.selectors[i];
-					}
-				}
-				for (i in l.json) {
-					if (l.mode == "remove") {
-						delete cur.json[i];
-					} else {
-						cur.json[i] = l.json[i];
-					}
-				}
-				for (i in l.help) {
-					if (l.mode == "remove") {
-						delete cur.help[i];
-					} else {
-						cur.help[i] = l.help[i];
-					}
-				}
-				for (i in l.tutorials) {
-					if (l.mode != "remove") {
-						cur.tutorials.push(l.tutorials[i]);
-					}
-				}
-				return true;
-			}
-		})(),
-		statLib : (function() {
-			var stat;
-			function calcCmd(c) {
-				var i;
-				if (!c) return;
-				stat.command++;
-				if (c.noparams) stat.pattern++;
-				for (i in c.patterns) { // patterns 是 可枚举类型 包括但不限于 数组、对象
-					stat.pattern++;
-				}
-			}
-			function calcSelectors(c) {
-				if (!c) return;
-				stat.selector += Object.keys(c).length;
-			}
-			function calcEnum(c) {
-				if (!c) return 0;
-				return typeof c == "string" ? 0 : Array.isArray(c) ? c.length : Object.keys(c).length;
-			}
-			function calcEnums(c) {
-				var i;
-				if (!c) return;
-				for (i in c) {
-					stat.enums++;
-					stat.enumitem += calcEnum(c[i]);
-				}
-			}
-			function calcCommands(k) {
-				var i;
-				if (!k) return;
-				for (i in k) {
-					calcCmd(k[i]);
-				}
-			}
-			function toString() {
-				return ["命令数:", this.command, "\n枚举数:", this.enums, "\n选择器数:", this.selector, "\n版本包数:", this.availablePack, "/", this.versionPack, "\n命令模式数:", this.pattern, "\n枚举项目数:", this.enumitem].join("");
-			}
-			return function (l) {
-				var i;
-				stat = {
-					availablePack : 0,
-					command : 0,
-					versionPack : 0,
-					enums : 0,
-					selector : 0,
-					pattern : 0,
-					enumitem : 0,
-					toString : toString
-				}
-				calcCommands(l.commands);
-				calcEnums(l.enums);
-				calcSelectors(l.selectors);
-				for (i in l.versionPack) {
-					if ("commands" in l.versionPack[i]) calcCommands(l.versionPack[i].commands);
-					if ("enums" in l.versionPack[i]) calcEnums(l.versionPack[i].enums);
-					if ("selectors" in l.versionPack[i]) calcSelectors(l.versionPack[i].selectors);
-					stat.versionPack++;
-				}
-				return stat;
-			}
-		})()
+		}
 	},
 	Assist : {
 		active : false,
@@ -10348,6 +10776,7 @@ MapScript.loadModule("Plugins", {
 		if (o.uuid in this.modules) {
 			return this.modules[o.uuid].info;
 		} else {
+			if (o.init) o.init(o);
 			if (o.core.init) o.core.init(o);
 			this.emit("Plugin", "inject", o.uuid);
 			return (this.modules[o.uuid] = o).info;
@@ -10360,6 +10789,7 @@ MapScript.loadModule("Plugins", {
 		if (!o.description) o.description = o.core.description || "";
 		if (!o.author) o.author = o.core.author || "Anonymous";
 		if (!o.uuid) o.uuid = o.core.uuid || (o.author + ":" + o.name);
+		if (!o.update) o.update = o.core.update || "store";
 		if (!Array.isArray(o.version)) o.version = o.core.version || [0];
 		if (!Array.isArray(o.require)) o.require = o.core.require || [];
 		if (!Array.isArray(o.menu)) o.menu = o.core.menu || [];
@@ -10379,6 +10809,7 @@ MapScript.loadModule("Plugins", {
 			uuid : o.uuid,
 			version : o.version,
 			require : o.require,
+			update : o.update,
 			menu : o.menu
 		};
 		if (!CA.settings.moduleSettings) CA.settings.moduleSettings = {};
@@ -12024,6 +12455,7 @@ MapScript.loadModule("Updater", {
 		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
 		while ((hr = is.read(buf)) > 0) os.write(buf, 0, hr);
 		os.close();
+		is.close();
 	},
 	toChineseDate : function(d) {
 		return new java.text.SimpleDateFormat("yyyy'年'MM'月'dd'日' HH:mm").format(new java.util.Date(d));
@@ -13740,7 +14172,7 @@ MapScript.loadModule("AndroidBridge", {
 					NeteaseAdapter.mcVersion = String(data.getString("version"));
 					Common.toast("正在切换拓展包版本，请稍候……");
 					CA.checkFeatures();
-					CA.IntelliSense.initLibrary(function(flag) {
+					CA.Library.initLibrary(function(flag) {
 						if (flag) {
 							Common.toast("拓展包加载完毕");
 						} else {
@@ -13778,11 +14210,11 @@ MapScript.loadModule("AndroidBridge", {
 				title : "确定加载拓展包“" + t + "”？",
 				callback : function(id) {
 					if (id != 0) return onReturn();
-					if (!CA.IntelliSense.enableLibrary(String(t))) {
+					if (!CA.Library.enableLibrary(String(t))) {
 						Common.toast("无法导入该拓展包，可能文件不存在");
 						return onReturn();
 					}
-					CA.IntelliSense.initLibrary(function() {
+					CA.Library.initLibrary(function() {
 						Common.toast("导入成功！");
 						CA.showLibraryMan(onReturn);
 					});
@@ -14821,7 +15253,7 @@ MapScript.loadModule("WSServer", {
 });
 
 "IGNORELN_START";
-CA.IntelliSense.inner["default"] = {
+CA.Library.inner["default"] = {
 	"name": "默认命令库",
 	"author": "CA制作组",
 	"description": "该命令库基于Minecraft PE 1.4.0 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
@@ -15928,10 +16360,6 @@ CA.IntelliSense.inner["default"] = {
 			"smite": "亡灵杀手",
 			"thorns": "荆棘",
 			"unbreaking": "耐久"
-		},
-		"gamerule_string": {},
-		"gamerule_int": {
-			"maxcommandchainlength": "最大连锁命令方块链长度"
 		},
 		"gamerule_bool": {
 			"commandblockoutput": "命令执行时是否在控制台进行文本提示",
@@ -17770,11 +18198,482 @@ CA.IntelliSense.inner["default"] = {
 					}
 				}
 			}
-		}
+		},
+		"1.5.0.1": {
+			"enums": {
+				"gamerule_int": {
+					"maxcommandchainlength": "最大连锁命令方块链长度"
+				}
+			},
+			"commands": {
+				"gamerule": {
+					"patterns": {
+						"query_int": {
+							"description": "查询指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								}
+							]
+						},
+						"set_int": {
+							"description": "设置指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								},
+								{
+									"type": "int",
+									"name": "值"
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.5.0.1"
+		},
+		"1.7": {
+			"minSupportVer": "1.7.0.2",
+			"enums": {
+				"scoreboard_criteria": {
+					"dummy": "虚拟型准则，只能通过命令修改分数"
+				},
+				"scoreboard_display_slot_sortable": {
+					"list": "玩家列表",
+					"sidebar": "侧边栏"
+				},
+				"scoreboard_display_slot": {
+					"belowName": "名称下方"
+				},
+				"scoreboard_player": {
+					"*": "所有正在被记分板追踪的对象"
+				},
+				"scoreboard_sort_order": {
+					"ascending": "升序排列",
+					"descending": "降序排列"
+				},
+				"gamerule_bool": {
+					"commandblocksenabled": "启用命令方块"
+				}
+			},
+			"selectors": {
+				"scores": {
+					"type": "string",
+					"name": "记分板分数"
+				}
+			},
+			"commands": {
+				"scoreboard": {
+					"description": "管理记分板的记分项、对象等",
+					"patterns": {
+						"objectives_list": {
+							"description": "列出所有存在的记分项，以及它们的显示名称与准则",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives list",
+									"prompt": "列出所有记分项"
+								}
+							]
+						},
+						"objectives_add": {
+							"description": "创建一个带有指定名称、指定准则和可选的显示名称的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives add",
+									"prompt": "创建记分项"
+								},
+								{
+									"type": "string",
+									"name": "名称"
+								},
+								{
+									"type": "string",
+									"name": "准则",
+									"suggestion": "scoreboard_criteria"
+								},
+								{
+									"type": "text",
+									"name": "显示名称",
+									"optional": "true"
+								}
+							]
+						},
+						"objectives_remove": {
+							"description": "删除指定名称的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives remove",
+									"prompt": "删除记分项"
+								},
+								{
+									"type": "string",
+									"name": "名称"
+								}
+							]
+						},
+						"objectives_setdisplay_sortable": {
+							"description": "设置指定显示位置显示的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives setdisplay",
+									"prompt": "设置显示位置"
+								},
+								{
+									"type": "enum",
+									"name": "显示位置",
+									"list": "scoreboard_display_slot_sortable"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": "true"
+								},
+								{
+									"type": "enum",
+									"name": "排序方式",
+									"optional": "true",
+									"list": "scoreboard_sort_order"
+								},
+							]
+						},
+						"objectives_setdisplay": {
+							"description": "设置指定显示位置显示的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives setdisplay",
+									"prompt": "设置显示位置"
+								},
+								{
+									"type": "enum",
+									"name": "显示位置",
+									"list": "scoreboard_display_slot"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": "true"
+								}
+							]
+						},
+						"players_list": {
+							"description": "显示所有被记分板系统追踪的对象或显示指定对象的所有分数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players list",
+									"prompt": "列出对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								}
+							]
+						},
+						"players_set": {
+							"description": "设置指定对象指定记分项的分数为指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players set",
+									"prompt": "设置对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "分数"
+								}
+							]
+						},
+						"players_add": {
+							"description": "将指定对象指定记分项的分数增加指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players add",
+									"prompt": "增加对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "增加分数"
+								}
+							]
+						},
+						"players_remove": {
+							"description": "将指定对象指定记分项的分数扣除指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players remove",
+									"prompt": "扣除对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "扣除分数"
+								}
+							]
+						},
+						"players_reset": {
+							"description": "删除指定对象指定记分项或所有记分项的分数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players reset",
+									"prompt": "删除对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": true
+								}
+							]
+						},
+						"players_test_min": {
+							"description": "当指定对象指定记分项的分数在大于等于指定值时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷大",
+									"optional": true
+								}
+							]
+						},
+						"players_test_max": {
+							"description": "当指定对象指定记分项的分数在小于等于指定值时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷小"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_test_range": {
+							"description": "当指定对象指定记分项的分数在指定范围内时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_test_norange": {
+							"description": "当指定对象指定记分项的分数存在时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷小"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷大",
+									"optional": true
+								}
+							]
+						},
+						"players_random": {
+							"description": "设置指定对象指定记分项的分数为指定范围内的一个随机整数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players random",
+									"prompt": "随机设置对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_operation": {
+							"description": "对两个对象的记分项分数进行操作",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players operation",
+									"prompt": "对两个对象的记分项分数进行操作"
+								},
+								{
+									"type": "selector",
+									"name": "对象①",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项①"
+								},
+								{
+									"type": "enum",
+									"name": "操作方式",
+									"list": {
+										"+=": "加法:把对象②的分数加到对象①的分数上",
+										"-=": "减法:在对象①的分数上减去对象②的分数",
+										"*=": "乘法:将对象①的分数设为对象①的分数与对象②分数的乘积",
+										"/=": "除法:将对象①的分数设为被对象②的分数整除后的结果",
+										"%=": "求余:将对象①的分数设为被对象②的分数除后得到的余数",
+										"=": "赋值:把对象①的分数设为对象②的分数",
+										"<": "取较小值:如果对象②的分数比对象①的分数小，则把对象①的分数设为对象②的分数",
+										">": "取较大值:如果对象②的分数比对象①的分数大，则把对象①的分数设为对象②的分数",
+										"><": "交换对象②与对象①的分数"
+									}
+								},
+								{
+									"type": "selector",
+									"name": "对象②",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项②"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E8%AE%B0%E5%88%86%E6%9D%BF#.E5.91.BD.E4.BB.A4.E5.88.97.E8.A1.A8"
+				}
+			}
+		},
 	}
 };
 
-CA.IntelliSense.inner["addition"] = {
+CA.Library.inner["addition"] = {
 	"name": "补充命令库",
 	"author": "CA制作组",
 	"description": "该命令库是默认命令库的补充，包括了只能在多人游戏中使用的命令。",
@@ -17972,44 +18871,11 @@ CA.IntelliSense.inner["addition"] = {
 				}
 			},
 			"minSupportVer": "1.2.5.12"
-		},
-		"1.5.0.1": {
-			"commands": {
-				"gamerule": {
-					"patterns": {
-						"query_int": {
-							"description": "查询指定游戏规则的值",
-							"params": [
-								{
-									"type": "enum",
-									"name": "规则名",
-									"list": "gamerule_int"
-								}
-							]
-						},
-						"set_int": {
-							"description": "设置指定游戏规则的值",
-							"params": [
-								{
-									"type": "enum",
-									"name": "规则名",
-									"list": "gamerule_int"
-								},
-								{
-									"type": "int",
-									"name": "值"
-								}
-							]
-						}
-					}
-				}
-			},
-			"minSupportVer": "1.5.0.1"
 		}
 	}
 };
 
-CA.IntelliSense.inner["basicedu"] = {
+CA.Library.inner["basicedu"] = {
 	"name": "基本命令教程",
 	"author": "ProjectXero",
 	"description": "该教程为命令初学者提供了入门级别的教程。",
