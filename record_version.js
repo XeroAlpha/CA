@@ -16,6 +16,13 @@ var script = cwd + "/命令助手.js";
 var updatefile = cwd + "/update.json";
 var changelog = cwd + "/Changelog.txt";
 
+var sources = {
+	"酷安网（最推荐）": "https://www.coolapk.com/game/com.xero.ca",
+	"百度网盘（备用）": "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919",
+	"体验版（加群207913610获得）": "https://jq.qq.com/?_wv=1027&k=5Zc39Sa",
+	"源代码(Git@OSC)": "https://gitee.com/projectxero/ca/blob/master/%E5%91%BD%E4%BB%A4%E5%8A%A9%E6%89%8B.js"
+};
+
 function help() {
 	console.log("node record_version.js [<details>]");
 	console.log(" <details> changes of this revision, splitted by Chinese semi-colon(；)");
@@ -49,12 +56,7 @@ function makeUpdate() {
 		"version": lv.version,
 		"belongs": lv.belongs,
 		"info": t.join("\n"),
-		"downloads": {
-			"酷安网（最推荐）": "https://www.coolapk.com/game/com.xero.ca",
-			"百度网盘（备用）": "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919",
-			"体验版（加群207913610获得）": "https://jq.qq.com/?_wv=1027&k=5Zc39Sa",
-			"源代码(Git@OSC)": "https://gitee.com/projectxero/ca/blob/master/%E5%91%BD%E4%BB%A4%E5%8A%A9%E6%89%8B.js"
-		}
+		"downloads": sources
 	}));
 }
 

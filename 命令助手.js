@@ -553,7 +553,7 @@ MapScript.loadModule("EventSender", {
 		for (i in this.listener) {
 			delete this.listener[i];
 		}
-		if (this.__eventsender_observer__) this.__eventsender_observer__("clear", name);
+		if (this.__eventsender_observer__) this.__eventsender_observer__("clear");
 	}
 });
 
@@ -650,9 +650,11 @@ MapScript.loadModule("PWM", {
 });
 
 MapScript.loadModule("PopupPage", (function() {
+	var id = 0;
 	var r = function(mainView, name, modal) {
 		this.mainView = mainView;
-		this.name = name || "Unnamed";
+		this.name = name || ("Unnamed@" + id);
+		this.id = id++;
 		this.modal = modal;
 		this._enterAnimation = r.fadeInAnimation;
 		this._exitAnimation = r.fadeOutAnimation;
@@ -838,6 +840,7 @@ MapScript.loadModule("PopupPage", (function() {
 				this.updateView(this.defaultWindow, r.x, r.y, r.width, r.height);
 				r.updateDefault();
 			}
+			r.trigger("fullscreenChanged", isFullScreen);
 		}
 		r.isFullScreen = function(bool) {
 			return this.fullscreen;
@@ -858,13 +861,15 @@ MapScript.loadModule("PopupPage", (function() {
 			init : function() {},
 			enter : function(noAnimation) {
 				var self = this;
+				if (this.showing) return this;
+				this.showing = true;
 				r.showPage(this);
+				r.pushPage(this.name, this);
 				if (!noAnimation && this._enterAnimation) {
-					this._enterAnimation(this.mainView, function() {
-						r.pushPage(self.name, self);
+					this.currentAnimation = this._enterAnimation(this.mainView, function() {
+						this.currentAnimation = null;
+						r.pageShown(self);
 					});
-				} else {
-					r.pushPage(this.name, this);
 				}
 				return this;
 			},
@@ -872,8 +877,10 @@ MapScript.loadModule("PopupPage", (function() {
 				var self = this;
 				if (!this.currentContainer) return this;
 				r.popPage(this);
+				this.showing = false;
 				if (!noAnimation && this._exitAnimation) {
-					this._exitAnimation(this.mainView, function() {
+					this.currentAnimation = this._exitAnimation(this.mainView, function() {
+						this.currentAnimation = null;
 						self.dismiss();
 					});
 				} else {
@@ -887,6 +894,7 @@ MapScript.loadModule("PopupPage", (function() {
 			dismiss : function() {
 				if (!this.currentContainer) return this;
 				r.hidePage(this);
+				r.trigger("pageHide", this);
 				return this;
 			},
 			requestShow : function() {
@@ -958,7 +966,6 @@ MapScript.loadModule("PopupPage", (function() {
 				this.floatVisible = true;
 				this.trigger("newPopup");
 			}
-			page.showing = true;
 		}
 		r.hidePage = function(page) {
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
@@ -973,37 +980,54 @@ MapScript.loadModule("PopupPage", (function() {
 					this.floatVisible = false;
 				}
 			}
-			page.showing = false;
 		}
 		r.pushPage = function(name, page) {
 			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			if (this.busy) return;
 			if (stack.length) {
-				t = stack[stack.length - 1].page;
-				t.trigger("pause");
-				if (!page.dialog) t.requestHide();
+				t = stack[stack.length - 1];
+				t.page.trigger("pause");
+				TCAgent.onPageEnd(ctx, t.name);
 			}
 			stack.push(t = {
 				name : name,
 				page : page
 			});
 			page.trigger("enter");
+			TCAgent.onPageStart(ctx, name);
 			this.trigger("pushPage", name, page);
 		}
 		r.popPage = function(page) {
-			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			var t, i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			if (this.busy) return;
 			for (i = stack.length - 1; i >= 0; i--) {
 				if (stack[i].page != page) continue;
-				stack[i].page.trigger("exit");
+				t = stack[i];
 				stack.splice(i, 1);
+				t.page.trigger("exit");
+				TCAgent.onPageEnd(ctx, t.name);
 				if (i > 0 && this.visible) {
-					stack[i - 1].page.trigger("resume");
-					stack[i - 1].page.requestShow();
+					t = stack[i - 1];
+					t.page.trigger("resume");
+					TCAgent.onPageStart(ctx, t.name);
+					while (--i >= 0) {
+						stack[i].page.requestShow();
+						if (!stack[i].page.dialog) break;
+					}
 				}
 				break;
 			}
 			this.trigger("popPage", page);
+		}
+		r.pageShown = function(page) {
+			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			if (stack.length > 1) {
+				if (!page.dialog) {
+					i = stack.length - 1;
+					while (i-- > 0) stack[i].page.requestHide();
+				}
+			}
+			this.trigger("pageShown", page);
 		}
 		r.show = function() {
 			var i, e;
@@ -1274,6 +1298,7 @@ MapScript.loadModule("PopupPage", (function() {
 			} catch(e) {erp(e)}},
 		}));
 		v.startAnimation(trans);
+		return new r.ViewAnimationController(v, trans);
 	}
 	r.fadeOutAnimation = function(v, callback) {
 		trans = new G.AlphaAnimation(1, 0);
@@ -1284,6 +1309,16 @@ MapScript.loadModule("PopupPage", (function() {
 			} catch(e) {erp(e)}},
 		}));
 		v.startAnimation(trans);
+		return new r.ViewAnimationController(v, trans);
+	}
+	r.ViewAnimationController = function(v, ani) {
+		this.view = v;
+		this.animation = ani;
+	}
+	r.ViewAnimationController.prototype = {
+		cancel : function() {
+			this.view.clearAnimation();
+		}
 	}
 	return r;
 })());
@@ -1977,7 +2012,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showPaste(0);
 				} else if (CA.settings.pasteMode == 2) {
 					self.performClose(function() {
-						CA.performPaste(s, true);
+						gHandler.postDelayed(function() {try {
+							CA.performPaste(s, true);
+						} catch(e) {erp(e)}}, 100);
 					});
 					return;
 				}
@@ -3380,7 +3417,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh(pos);
-		self.popup.onExit = callback;
+		if (callback) self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -3731,7 +3768,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.init(data);
-		self.popup.onExit = callback;
+		self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -4563,7 +4600,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		self.popup.onExit = callback;
+		self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -4928,11 +4965,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.itemMenu = [{
 				text : "移除",
 				description : "将该拓展包从列表中移除",
+				hidden : function(tag) {
+					return tag.data.mode == 0;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.mode == 0) {
-						Common.toast("内置拓展包无法删除");
-						return true;
-					}
 					self.postTask(function(cb) {
 						CA.Library.removeLibrary(tag.data.src);
 						cb(true, function() {
@@ -4954,11 +4990,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.enabledMenu = [{
 				text : "检测更新",
 				description : "如果可行，连接服务器检测是否有更新",
+				hidden : function(tag) {
+					return tag.data.mode == 0 || !tag.data.update;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.mode == 0 || !tag.data.update) {
-						Common.toast("拓展包“" + tag.data.name + "”暂不支持检测更新");
-						return true;
-					}
 					self.postTask(function(cb) {new java.lang.Thread(function() {try {
 						var r, d = tag.data, u = d.update, i, f = false, dl;
 						try {
@@ -5023,11 +5058,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "编辑",
 				description : "用JSON编辑器编辑该拓展包",
+				hidden : function(tag) {
+					return tag.data.mode != 1;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.mode != 1) {
-						Common.toast("拓展包“" + tag.data.name + "”只读，无法编辑");
-						return true;
-					}
 					self.postTask(function(cb) {
 						var a = MapScript.readJSON(tag.data.src, {});
 						if (!(a instanceof Object)) a = {};
@@ -5086,15 +5120,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "创建副本",
 				description : "创建该拓展包的副本（副本不会被认为与原拓展包相同）",
+				hidden : function(tag) {
+					return tag.data.hasError || tag.data.mode >= 2;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.hasError) {
-						Common.toast("拓展包“" + tag.data.name + "”有错误，不能创建副本");
-						return true;
-					}
-					if (tag.data.mode >= 2) {
-						Common.toast("拓展包“" + tag.data.name + "”已被锁定，不能创建副本");
-						return true;
-					}
 					Common.showFileDialog({
 						type : 1,
 						callback : function(f) {
@@ -5126,15 +5155,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "锁定",
 				description : "锁定拓展包，使其不能被编辑",
+				hidden : function(tag) {
+					return tag.data.hasError || tag.data.mode != 1;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.hasError) {
-						Common.toast("拓展包“" + tag.data.name + "”有错误，不能锁定");
-						return true;
-					}
-					if (tag.data.mode != 1) {
-						Common.toast("拓展包“" + tag.data.name + "”无法锁定");
-						return true;
-					}
 					Common.showConfirmDialog({
 						title : "确定锁定拓展包“" + tag.data.name + "”？",
 						description : "*此操作无法撤销",
@@ -5158,11 +5182,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "上移",
 				description : "使该拓展包较早加载",
+				hidden : function(tag) {
+					return tag.data.index < 1;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.index < 1) {
-						Common.toast("拓展包“" + tag.data.name + "”已在顶端，无法继续上移");
-						return true;
-					}
 					self.postTask(function(cb) {
 						var a = CA.settings.enabledLibrarys;
 						a.splice(tag.data.index - 1, 0, a.splice(tag.data.index, 1)[0]);
@@ -5172,11 +5195,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			},{
 				text : "下移",
 				description : "使该拓展包较晚加载",
+				hidden : function(tag) {
+					return tag.data.index > CA.settings.enabledLibrarys.length - 2;
+				},
 				onclick : function(v, tag) {
-					if (tag.data.index > CA.settings.enabledLibrarys.length - 2) {
-						Common.toast("拓展包“" + tag.data.name + "”已在底端，无法继续下移");
-						return true;
-					}
 					self.postTask(function(cb) {
 						var a = CA.settings.enabledLibrarys;
 						a.splice(tag.data.index + 1, 0, a.splice(tag.data.index, 1)[0]);
@@ -5326,7 +5348,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (view == self.more) {
 					CA.showOnlineLib(function() {G.ui(function() {try {
-						self.refresh();
+						self.refresh();Log.d("refresh");
 					} catch(e) {erp(e)}})});
 					return;
 				}
@@ -5360,7 +5382,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		self.popup.onExit = callback;
+		self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
@@ -5398,14 +5420,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							CA.Library.enableLibrary(path);
 						} catch(e) {
 							Common.toast("下载拓展包“" + tag.data.name + "”失败\n" + e);
+							return;
 						}
-						Common.toast("拓展包“" + tag.data.name + "”已下载并启用");
+						var progress = Common.showProgressDialog();
+						progress.setText("正在刷新命令库...");
+						CA.Library.initLibrary(function() {
+							progress.close();
+							Common.toast("拓展包“" + tag.data.name + "”已下载并启用");
+						});
 					});
-				}
-			},{
-				text : "查看信息",
-				onclick : function(v, tag) {
-					
 				}
 			}];
 			self.vmaker = function(holder) {
@@ -5426,7 +5449,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return layout;
 			}
 			self.vbinder = function(holder, e, i, a) {
-				holder.text1.setText(e.name);
+				holder.text1.setText((e.installed ? "[已安装] " : "") + e.name);
 				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : "item_default", 3);
 				holder.text2.setText((e.disabled ? "目前您使用的版本不支持此命令库\n\n" : "") + "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description ? "\n\n" + e.description : ""));
 			}
@@ -5466,6 +5489,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							page[i].disabled = page[i].desperated ||
 								(page[i].minSupport && Date.parse(page[i].minSupport) > Date.parse(CA.publishDate)) ||
 								(page[i].maxSupport && Date.parse(page[i].maxSupport) < Date.parse(CA.publishDate));
+							page[i].installed = CA.Library.findByUUID(page[i].uuid);
 							self.libs[i + off] = page[i];
 						}
 						self.adpt.notifyChange();
@@ -5525,11 +5549,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return;
 				}
 				var data = parent.getAdapter().getItem(pos);
-				Common.showOperateDialog(self.itemMenu, {
-					pos : parseInt(pos),
-					data : data,
-					callback : function() {}
-				});
+				if (!data.installed) {
+					Common.showOperateDialog(self.itemMenu, {
+						pos : parseInt(pos),
+						data : data,
+						callback : function() {}
+					});
+				}
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
@@ -5547,7 +5573,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.onExit = callback;
+		self.popup.on("exit", callback);
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -6566,9 +6592,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		loadLibrary : function(cur, l, stat) {
 			var c, i, t, lib = CA.IntelliSense.library;
 			this.checkLibrary(l);
-			if (lib.info.some(function(e) {
-				return l.uuid == e.uuid;
-			})) throw "已存在相同的拓展包";
+			if (CA.Library.findByUUID(l.uuid)) throw "已存在相同的拓展包";
 			if (l.require.some(function(e1) {
 				return !lib.info.some(function(e2) {
 					return e1 == e2.uuid;
@@ -6581,6 +6605,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				t = this.joinPack(cur, c[i]); //加载版本包
 				if (stat && t) stat.availablePack++;
 			}
+		},
+		findByUUID : function(uuid) {
+			var i, a = CA.IntelliSense.library.info;
+			for (i = 0; i < a.length; i++) {
+				if (uuid == a[i].uuid) return a[i];
+			}
+			return null;
 		},
 		loadPrefixed : function(path, defaultValue) {
 			try{
@@ -7062,6 +7093,32 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return defaultValue;
 			}
 		},
+		requestUpdate : function(libinfo, callback) {
+			var r, u = libinfo.update, i, f = false;
+			try { 
+				if (typeof u == "function") {
+					r = libinfo.update();
+				} else if (typeof u == "string") {
+					r = JSON.parse(Updater.queryPage(u));
+				} else {
+					//r = findInLocalSource(libinfo.uuid);
+				}
+				if (!(r instanceof Object) || !Array.isArray(r.version)) {
+					return callback(-1);
+				}
+				for (i = 0; i < libinfo.version.length; i++) {
+					if (libinfo.version[i] > r.version[i]) {
+						break;
+					} else if (libinfo.version[i] < r.version[i]) {
+						f = true;
+						break;
+					}
+				}
+				callback(f ? 1 : 0, r);
+			} catch(e) {
+				callback(-2, e);
+			}
+		}
 	},
 
 	IntelliSense : {
@@ -9336,10 +9393,10 @@ MapScript.loadModule("Common", {
 		}
 		self.update = update;
 		self.modified = false;
-		self.popup.onExit = function() {
+		self.popup.on("exit", function() {
 			if (!self.modified) Common.loadTheme(self.last);
 			if (dismiss) dismiss();
-		};
+		});
 		self.last = Common.theme.id;
 		self.lastalpha = CA.settings.alpha;
 		self.lasttsz = CA.settings.textSize;
@@ -9384,10 +9441,10 @@ MapScript.loadModule("Common", {
 		popup = new PopupPage(frame, "common.Dialog", modal);
 		if (onExit) popup.on("exit", onExit);
 		popup.on("resume", function() {
-			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0)); Log.d("resume");
+			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		});
 		popup.on("pause", function() {
-			frame.setBackgroundColor(G.Color.TRANSPARENT); Log.d("pause");
+			frame.setBackgroundColor(G.Color.TRANSPARENT);
 		});
 		popup.dialog = true;
 		popup.enter();
@@ -9925,7 +9982,7 @@ MapScript.loadModule("Common", {
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.onExit = function() {
+		self.popup.on("exit", function() {
 			self.data.forEach(function(e, i) {
 				switch (e.type) {
 					case "boolean":
@@ -9940,7 +9997,7 @@ MapScript.loadModule("Common", {
 				}
 			});
 			if (onSave) onSave();
-		};
+		});
 		self.data = data.filter(function(e) {
 			if (e.hidden && e.hidden()) return false;
 			return true;
@@ -10178,7 +10235,7 @@ MapScript.loadModule("Common", {
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.onExit = o.onDismiss;
+		if (o.onDismiss) self.popup.on("exit", o.onDismiss);
 		self.sets = o;
 		try {
 			o.curdir = new java.io.File(String(o.initDir ? o.initDir : self.lastDir));
@@ -11251,10 +11308,10 @@ MapScript.loadModule("Tutorial", {
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.onExit = function() {
+		self.popup.on("exit", function() {
 			CA.trySave();
 			if (callback) callback();
-		};
+		});
 		self.refresh();
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
@@ -11435,10 +11492,10 @@ MapScript.loadModule("Tutorial", {
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.onExit = function() {
+		self.popup.on("exit", function() {
 			CA.trySave();
 			if (callback) callback();
-		};
+		});
 		self.init(o);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
@@ -12497,16 +12554,7 @@ MapScript.loadModule("Updater", {
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			Updater.getUpdateInfo(function(flag, date, info) {
 				if (flag > 0) {
-					Common.showTextDialog(G.Html.fromHtml([
-						"<b>命令助手更新啦！</b><br />",
-						"<b>最新版本：" + info.version + "</b>\t(" + info.belongs + ")",
-						"发布时间：" + Updater.toChineseDate(info.time),
-						"<br /><b>下载地址：</b><br /><ul>" + Object.keys(info.downloads).map(function(e) {
-							return "<li>" + Updater.toAnchor(e, info.downloads[e]) + "</li>";
-						}).join("<br />"),
-						"</ul><br />最近更新内容：",
-						info.info.replace(/\n/g, "<br />")
-					].join("<br />")));
+					Updater.showUpdateDialog(info);
 				} else if (!silently) {
 					if (flag == 0) {
 						Common.toast("当前已经是最新版本：" + date);
@@ -12520,6 +12568,66 @@ MapScript.loadModule("Updater", {
 			Updater.checking = false;
 		} catch(e) {erp(e)}}}));
 		thread.start();
+	},
+	showUpdateDialog : function(info) {
+		var hasHotfix = MapScript.host == "Android" && info.hotfix && info.hotfix.shell == ScriptActivity.getShellVersion();
+		Common.showConfirmDialog({
+			title : "命令助手更新啦！", 
+			description : ISegment.rawJson({
+				extra : [{
+					text : "最新版本：" + info.version,
+					bold : true
+				},
+				"\n发布时间：", String(Updater.toChineseDate(info.time)),
+				"\n最近更新内容：\n", info.info],
+				color : "textcolor"
+			}),
+			buttons : hasHotfix ? [
+				"快速更新",
+				"手动更新",
+				"稍后提醒"
+			] : [
+				"手动更新",
+				"稍后提醒"
+			],
+			callback : function(id) {
+				if (hasHotfix) {
+					if (id == 0) {
+						Common.showProgressDialog(function(dia) {
+							dia.setText("下载中……");
+							try {
+								Updater.download(info.hotfix.url, MapScript.baseDir + "core.js");
+								Updater.download(info.hotfix.sign, MapScript.baseDir + "core.sign");
+								Common.toast("更新成功，将在下次启动时生效");
+							} catch(e) {
+								Common.toast("下载更新失败\n" + e);
+							}
+						});
+					} else if (id == 1) {
+						Updater.chooseUpdateSource(info);
+					}
+				} else {
+					if (id == 0) Updater.chooseUpdateSource(info);
+				}
+			}
+		});
+	},
+	chooseUpdateSource : function(info) {
+		var i, d = [];
+		for (i in info.downloads) {
+			d.push({
+				text : i,
+				description : info.downloads[i]
+			});
+			Common.showListChooser(d, function(i) {
+				try {
+					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(d[i].description))
+						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch(e) {
+					Common.toast("打开链接失败\n" + e);
+				}
+			});
+		}
 	},
 	showNewVersionInfo : function(oldVer) {
 		this.checking = true;
@@ -12557,7 +12665,7 @@ MapScript.loadModule("Updater", {
 		}
 	},
 	initialize : function() {
-		if (Math.random() > 0.8 && this.isConnected() && !(CA.settings.nextCheckUpdate < Date.now())) {
+		if (this.isConnected() && !(CA.settings.nextCheckUpdate < Date.now())) {
 			this.checkUpdate(function() {
 				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600;
 			}, true);
@@ -12566,7 +12674,7 @@ MapScript.loadModule("Updater", {
 	latest : null,
 	lastcheck : null,
 	checking : false,
-	url : "http://git.oschina.net/projectxero/ca/raw/master/update.json"
+	url : "https://projectxero.gitee.io/ca/hotfix.json"
 });
 
 MapScript.loadModule("ISegment", {
@@ -12652,7 +12760,7 @@ MapScript.loadModule("ISegment", {
 			} else if (skipchars.indexOf(c) >= 0) {
 				r.push("\\" + c);
 			} else if (c < " " || c > "~") { //not in 0x20-0x7e
-				r.push("\\u" + this.alignStringEnd(cc.toString(16), 4, "0"));
+				r.push("\\u" + this.alignStringEnd(c.toString(16), 4, "0"));
 			} else {
 				r.push(c);
 			}
@@ -14253,8 +14361,10 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	},
 	verifyApk : function() {
-		if (ctx.getPackageName() != "com.xero.ca") throw new java.lang.SecurityException();
+		if (ctx.getPackageName() != "com.xero.ca") throw new java.lang.SecurityException("101");
 		AndroidBridge.verifySign();
+		AndroidBridge.verifyContext();
+		if (AndroidBridge.HOTFIX) return;
 		AndroidBridge.verifyDex();
 	},
 	verifySign : function() {
@@ -14265,15 +14375,38 @@ MapScript.loadModule("AndroidBridge", {
 				md.update(sn[i].toByteArray());
 				vc.push(android.util.Base64.encodeToString(md.digest(), android.util.Base64.NO_WRAP));
 			}
-			if (vc.join("") != "HmzSXz/O6M/qIPo8mvhmFuXusTaKk3caC/vjP+ymxzw=") throw 0;
+			if (vc.join("") != "HmzSXz/O6M/qIPo8mvhmFuXusTaKk3caC/vjP+ymxzw=") throw 102;
 		} catch(e) {
-			throw new java.lang.SecurityException();
+			throw new java.lang.SecurityException(String(e));
+		}
+	},
+	verifyContext : function() {
+		try {
+			var cls = ctx.getApplicationContext().getClass();
+			if (cls != com.xero.ca.XApplication) throw 104;
+			if (this.findDeclaredMethodClass(cls, ["attachBaseContext", android.content.Context], android.app.Application)) throw 105;
+			if (this.findDeclaredMethodClass(cls, ["onCreate"], android.app.Application) != com.xero.ca.XApplication) throw 106;
+			cls = ctx.getClass();
+			if (cls != com.xero.ca.MainActivity) throw 107;
+			if (this.findDeclaredMethodClass(cls, ["attachBaseContext", android.content.Context], com.xero.ca.MainActivity)) throw 108;
+			if (this.findDeclaredMethodClass(cls, ["onCreate", android.os.Bundle], com.xero.ca.MainActivity) != com.xero.ca.MainActivity) throw 109;
+		} catch(e) {
+			throw new java.lang.SecurityException(String(e));
 		}
 	},
 	verifyDex : function() {
 		var zf = new java.util.zip.ZipFile(ctx.getPackageCodePath());
 		var e = zf.getEntry("classes.dex");
-		if (java.lang.Long.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException();
+		if (java.lang.Long.toHexString(e.getCrc()) != "$dexCrc$") throw new java.lang.SecurityException("103");
+	},
+	findDeclaredMethodClass : function self(cls, params, parent) {
+		try {
+			var method = cls.getDeclaredMethod.apply(cls, params);
+			return cls;
+		} catch(e) {}
+		if (!parent) parent = java.lang.Object;
+		if (cls == java.lang.Object || cls == parent) return null;
+		return self(cls.getSuperclass(), params, parent);
 	},
 	callHide : function() {
 		if (PopupPage.getCount() > 0) {
