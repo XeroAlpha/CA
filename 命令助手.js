@@ -569,7 +569,7 @@ MapScript.loadModule("PWM", {
 		EventSender.init(this);
 	},
 	initialize : function() {
-		PopupPage.on("newPopup", function() {
+		PopupPage.on("addPopup", function() {
 			PWM.onPageAdd();
 		});
 	},
@@ -692,13 +692,15 @@ MapScript.loadModule("PopupPage", (function() {
 							r.focusable = true;
 							r.resizeView.setVisibility(G.View.VISIBLE);
 							r.setFocusable(r.defaultWindow, true);
-						}						
+							r.trigger("focus");
+						}
 						break;
 						case e.ACTION_OUTSIDE:
 						if (r.focusable) {
 							r.focusable = false;
 							r.resizeView.setVisibility(G.View.GONE);
 							r.setFocusable(r.defaultWindow, false);
+							r.trigger("blur");
 						}	
 						break;
 					}
@@ -783,6 +785,7 @@ MapScript.loadModule("PopupPage", (function() {
 						r.y = e.getRawY() + touch.offy,
 						r.width = Math.max(e.getRawX() + touch.offwidth, 30 * G.dp),
 						r.height = Math.max(touch.offheight - e.getRawY(), 30 * G.dp));
+					r.trigger("resize");
 				}
 				return true;
 			} catch(e) {return erp(e), false}}}));
@@ -960,11 +963,11 @@ MapScript.loadModule("PopupPage", (function() {
 					r.updateDefault();
 				}
 				this.defaultVisible = true;
-				this.trigger("newPopup");
+				this.trigger("addPopup");
 			} else if (!this.visible && !this.floatVisible) {
 				this.showView(this.floatWindow, 0, 0, -1, -1);
 				this.floatVisible = true;
-				this.trigger("newPopup");
+				this.trigger("addPopup");
 			}
 		}
 		r.hidePage = function(page) {
@@ -973,10 +976,12 @@ MapScript.loadModule("PopupPage", (function() {
 			if (stack.length == 0) {
 				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
 					this.hideView(this.defaultWindow);
+					this.trigger("removePopup");
 					this.defaultVisible = false;
 					if (!this.visible) this.show();
 				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
 					this.hideView(this.floatWindow);
+					this.trigger("removePopup");
 					this.floatVisible = false;
 				}
 			}
@@ -1099,6 +1104,9 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.supportResize = true;
 	} else {
+		r.isFullScreen = function() {
+			return true;
+		}
 		r.prototype = {
 			init : function() {
 				var self = this;
@@ -1168,7 +1176,7 @@ MapScript.loadModule("PopupPage", (function() {
 			});
 			page.trigger("enter");
 			this.trigger("pushPage", name, page);
-			this.trigger("newPopup");
+			this.trigger("addPopup");
 		}
 		r.popPage = function(page) {
 			var i;
@@ -1184,6 +1192,7 @@ MapScript.loadModule("PopupPage", (function() {
 				break;
 			}
 			this.trigger("popPage", page);
+			this.trigger("removePopup");
 		}
 		r.show = function() {
 			var i, e;
@@ -1243,7 +1252,7 @@ MapScript.loadModule("PopupPage", (function() {
 			});
 			return s.join("\n");
 		}
-		r.supportResize =- false;
+		r.supportResize = false;
 	}
 	r.prototype.show = r.enter;
 	r.prototype.hide = r.exit;
@@ -1690,7 +1699,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {erp(e)}}}));
 			self.longClick = new java.lang.Runnable({run : function() {try {
 				if (self.longClicked) {
-					if (PopupPage.getCount() == 0 || !self.lastState) {
+					if (PopupPage.getCount() == 0 || !PopupPage.visible) {
 						CA.showQuickBar();
 					} else {
 						PopupPage.setFullScreen(!PopupPage.isFullScreen());
@@ -1761,10 +1770,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.hideIcon();
 					if (CA.paste) CA.hidePaste();
 				} else if (PopupPage.getCount() > 0) {
-					if (self.lastState = !self.lastState) {
-						PopupPage.show();
-					} else {
+					if (PopupPage.visible) {
 						PopupPage.hide();
+					} else {
+						PopupPage.show();
 					}
 				} else {
 					CA.showGen(CA.settings.noAnimation);
@@ -1775,7 +1784,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (CA.settings.iconAlpha) {
 					self.view.setAlpha(CA.settings.iconAlpha / 10);
 				} else {
-					self.view.setAlpha(self.lastState && PopupPage.getCount() > 0 ? 0.3 : 0.7);
+					self.view.setAlpha(PopupPage.visible && PopupPage.getCount() > 0 && PopupPage.isFullScreen() ? 0.3 : 0.7);
 				}
 			}
 			self.refreshPos = function() {
@@ -1805,6 +1814,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				self.refreshAlpha();
 				self.refreshPos();
 			}
+			self.iconUpdate = function() {
+				if (!CA.icon) return;
+				self.refreshAlpha();
+			}
 			self.tutor = CA.settings.tutor_icon ? null : function() {
 				var off = [self.cx, self.cy];
 				Common.showTutorial({
@@ -1822,11 +1835,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 				self.tutor = null;
 			}
-			self.lastState = true;
 			PWM.registerResetFlag(CA, "icon");
 			PWM.registerResetFlag(self, "view");
+			PopupPage.on("addPopup", self.iconUpdate)
+				.on("removePopup", self.iconUpdate)
+				.on("fullscreenChanged", self.iconUpdate);
 		}
-		if (CA.icon) return self.refreshAlpha();
+		if (CA.icon) return;
 		self.updateScreenInfo();
 		self.refreshIcon();
 		if (isNaN(CA.settings.iconX)) {
@@ -18409,7 +18424,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "objectives list",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "list",
 									"prompt": "列出所有记分项"
 								}
 							]
@@ -18419,7 +18439,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "objectives add",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "add",
 									"prompt": "创建记分项"
 								},
 								{
@@ -18443,7 +18468,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "objectives remove",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
 									"prompt": "删除记分项"
 								},
 								{
@@ -18457,8 +18487,13 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "objectives setdisplay",
-									"prompt": "设置显示位置"
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "setdisplay",
+									"prompt": "设置记分项显示位置"
 								},
 								{
 									"type": "enum",
@@ -18483,8 +18518,13 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "objectives setdisplay",
-									"prompt": "设置显示位置"
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "setdisplay",
+									"prompt": "设置记分项显示位置"
 								},
 								{
 									"type": "enum",
@@ -18503,7 +18543,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players list",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "list",
 									"prompt": "列出对象分数"
 								},
 								{
@@ -18519,7 +18564,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players set",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "set",
 									"prompt": "设置对象分数"
 								},
 								{
@@ -18543,7 +18593,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players add",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "add",
 									"prompt": "增加对象分数"
 								},
 								{
@@ -18567,7 +18622,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players remove",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
 									"prompt": "扣除对象分数"
 								},
 								{
@@ -18591,7 +18651,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players reset",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "reset",
 									"prompt": "删除对象分数"
 								},
 								{
@@ -18612,7 +18677,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players test",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
 									"prompt": "测试对象分数"
 								},
 								{
@@ -18642,7 +18712,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players test",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
 									"prompt": "测试对象分数"
 								},
 								{
@@ -18671,7 +18746,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players test",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
 									"prompt": "测试对象分数"
 								},
 								{
@@ -18699,7 +18779,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players test",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
 									"prompt": "测试对象分数"
 								},
 								{
@@ -18730,7 +18815,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players random",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "random",
 									"prompt": "随机设置对象分数"
 								},
 								{
@@ -18758,7 +18848,12 @@ CA.Library.inner["default"] = {
 							"params": [
 								{
 									"type": "plain",
-									"name": "players operation",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "operation",
 									"prompt": "对两个对象的记分项分数进行操作"
 								},
 								{
