@@ -7,7 +7,7 @@
 		"description": "自适配ID表可以允许用户在ID表超前或者滞后的情况下查看方块、物品和声音的ID。",
 		"uuid": "04a9e9b2-8fae-4f30-84fa-d52f9457f4eb",
 		"version": [0, 0, 2],
-		"requirement": "如果您使用的版本的ID是正确的，请不要安装这个拓展包"
+		"requirement": "自适配ID表仅适用于使用我的世界版本低于1.2的用户，高于1.2版本的很可能会出现部分方块和物品翻译错误、声音ID无翻译的现象"
 	}, {
 		"id": "mcicon",
 		"src": "clib/MC图标.js",

@@ -708,6 +708,7 @@ MapScript.loadModule("PopupPage", (function() {
 				}
 			});
 			r.defaultWindow.setRoundRectRadius(8 * G.dp);
+			r.defaultWindow.setContentDescription("DefaultWindow");
 			r.longClick = new java.lang.Runnable({run : function() {try {
 				if (r.longClicked) r.setFullScreen(true);
 				r.longClicked = false;
@@ -820,6 +821,7 @@ MapScript.loadModule("PopupPage", (function() {
 					return 0;
 				}
 			});
+			r.floatWindow.setContentDescription("FloatWindow");
 		} catch(e) {erp(e)}})}
 		r.updateDefault = function() {
 			if (this.fullscreen) {
@@ -910,7 +912,7 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.buildLayoutParams = function(view, x, y, width, height) {
-			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams();
+			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams(), title = view.getContentDescription();
 			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
 			p.flags |= p.FLAG_NOT_TOUCH_MODAL | p.FLAG_WATCH_OUTSIDE_TOUCH;
 			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
@@ -920,6 +922,7 @@ MapScript.loadModule("PopupPage", (function() {
 			p.width = width;
 			p.x = x;
 			p.y = y;
+			if (title) p.setTitle(title);
 			return p;
 		}
 		r.setFocusable = function(view, focusable) {
@@ -1426,6 +1429,20 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				});
 			}
+		}
+		if (MapScript.host == "Android") {
+			AndroidBridge.requestPermissions([
+				"android.permission.READ_EXTERNAL_STORAGE",
+				"android.permission.WRITE_EXTERNAL_STORAGE"
+			], "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等", function(flag, success, denied, sync) {
+				if (sync) return;
+				if (flag) {
+					CA.load();
+					Common.toast("权限请求成功，已重新加载配置");
+				} else {
+					Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
+				}
+			});
 		}
 		this.load();
 		this.checkFeatures();
@@ -3783,7 +3800,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.init(data);
-		self.popup.on("exit", callback);
+		if (callback) self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -4615,7 +4632,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		self.popup.on("exit", callback);
+		if (callback) self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -4985,7 +5002,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
+						var f = new java.io.File(tag.data.src);
 						CA.Library.removeLibrary(tag.data.src);
+						if (tag.data.src.startsWith(MapScript.baseDir + "libs/")) {
+							f.delete();
+							new java.io.File(tag.data.src + ".hash").delete();
+						}
 						cb(true, function() {
 							Common.toast("该拓展包已从列表中移除");
 						});
@@ -5397,7 +5419,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		self.popup.on("exit", callback);
+		if (callback) self.popup.on("exit", callback);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
@@ -5426,24 +5448,18 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.itemMenu = [{
 				text : "下载",
 				onclick : function(v, tag) {
-					Common.showProgressDialog(function(dia) {
-						var path;
-						dia.setText("正在下载拓展包: " + tag.data.name);
-						try {
-							path = CA.Library.downloadLib(tag.data, self.libsrc);
-							CA.Library.clearCache(path);
-							CA.Library.enableLibrary(path);
-						} catch(e) {
-							Common.toast("下载拓展包“" + tag.data.name + "”失败\n" + e);
-							return;
-						}
-						var progress = Common.showProgressDialog();
-						progress.setText("正在刷新命令库...");
-						CA.Library.initLibrary(function() {
-							progress.close();
-							Common.toast("拓展包“" + tag.data.name + "”已下载并启用");
+					if (tag.data.requirement) {
+						Common.showConfirmDialog({
+							title : "确定下载拓展包“" + tag.data.name + "”？",
+							description : "使用要求: " + tag.data.requirement,
+							callback : function(id) {
+								if (id != 0) return;
+								self.downloadLib(tag.data);
+							}
 						});
-					});
+					} else {
+						self.downloadLib(tag.data);
+					}
 				}
 			}];
 			self.vmaker = function(holder) {
@@ -5519,6 +5535,26 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					} catch(e) {erp(e)}});
 				}
 			}
+			self.downloadLib = function(data) {
+				Common.showProgressDialog(function(dia) {
+					var path;
+					dia.setText("正在下载拓展包: " + data.name);
+					try {
+						path = CA.Library.downloadLib(data, self.libsrc);
+						CA.Library.clearCache(path);
+						CA.Library.enableLibrary(path);
+					} catch(e) {
+						Common.toast("下载拓展包“" + data.name + "”失败\n" + e);
+						return;
+					}
+					var progress = Common.showProgressDialog();
+					progress.setText("正在刷新命令库...");
+					CA.Library.initLibrary(function() {
+						progress.close();
+						Common.toast("拓展包“" + data.name + "”已下载并启用");
+					});
+				});
+			}
 			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.libs = [], self.vmaker, self.vbinder));
 			self.accessExpired = -Infinity;
 
@@ -5588,7 +5624,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.on("exit", callback);
+		if (callback) self.popup.on("exit", callback);
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -7080,10 +7116,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return 1;
 			} else return -1;
-		},
-		verifySignedV1 : function() {
-			var source = this.requestLibSource(this.getOriginSourceUrl());
-			
 		},
 		loadSignedV1 : function(path, defaultValue) {
 			try{
@@ -10645,7 +10677,6 @@ MapScript.loadModule("Common", {
 			self.popup.setFocusable(false);
 			self.popup.setTouchable(false);
 			if (G.style == "Material") self.text.setElevation(8 * G.dp);
-			PWM.registerResetFlag(self, "popup");
 		}
 		self.toast(str);
 	} catch(e) {erp(e)}})},
@@ -14250,7 +14281,7 @@ MapScript.loadModule("AndroidBridge", {
 						failed.push(String(permissions[i]));
 					}
 				}
-				cb(failed.length == 0, succeed, failed);
+				cb(failed.length == 0, succeed, failed, false);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -14640,12 +14671,14 @@ MapScript.loadModule("AndroidBridge", {
 		}
 		if (denied.length) {
 			Common.showTextDialog("命令助手需要申请" + denied.length + "个权限。" + (explanation ? "\n" + explanation : ""), function() {
-				AndroidBridge.permissionCallback[AndroidBridge.permissionCallback.length++] = callback;
-				ScriptActivity.requestPermissionCompat(AndroidBridge.permissionCallback.length, denied);
+				var code = AndroidBridge.permissionCallback.length++;
+				AndroidBridge.permissionCallback[code] = callback;
+				ScriptActivity.requestPermissionsCompat(code, denied);
 			});
 		} else {
-			callback(true, permissions.slice(), []);
+			callback(true, permissions.slice(), [], true);
 		}
+		return denied.length;
 	},
 	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
 		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitKat = android.os.Build.VERSION.SDK_INT >= 19, docs;
@@ -14965,15 +14998,21 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.x19",
 		"com.netease.mc.aligames",
 		"com.netease.mc.bili",
-		"com.netease.mc.mi",
 		"com.netease.mc.baidu",
 		"com.tencent.tmgp.wdsj666",
 		"com.netease.mc.m4399",
 		"com.netease.mc.wdsj.yyxx.yyh",
 		"com.netease.mc.qihoo",
+		"com.netease.wdsj.yyxx.mzw",
+		"com.netease.wdsj.yyxx.downjoy",
+		"com.netease.wdsj.yyxx.sougou",
+		"com.netease.mc.mi",
 		"com.netease.mc.huawei",
 		"com.netease.mc.vivo",
 		"com.netease.mc.nearme.gamecenter",
+		"com.netease.mc.lenovo",
+		"com.netease.mc.coolpad",
+		"com.netease.mc.am",
 		"com.mojang.minecraftpe",
 		"com.zhekasmirnov.innercore"
 	],
@@ -14988,10 +15027,6 @@ MapScript.loadModule("NeteaseAdapter", {
 		},
 		"com.netease.mc.bili" : {
 			desc : "网易-Bilibili游戏版",
-			publisher : "Netease"
-		},
-		"com.netease.mc.mi" : {
-			desc : "网易-小米应用商店版",
 			publisher : "Netease"
 		},
 		"com.netease.mc.baidu" : {
@@ -15014,6 +15049,22 @@ MapScript.loadModule("NeteaseAdapter", {
 			desc : "网易-360手机助手版",
 			publisher : "Netease"
 		},
+		"com.netease.wdsj.yyxx.mzw" : {
+			desc : "网易-拇指玩版",
+			publisher : "Netease"
+		},
+		"com.netease.wdsj.yyxx.downjoy" : {
+			desc : "网易-当乐版",
+			publisher : "Netease"
+		},
+		"com.netease.wdsj.yyxx.sougou" : {
+			desc : "网易-搜狗应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.mi" : {
+			desc : "网易-小米应用商店版",
+			publisher : "Netease"
+		},
 		"com.netease.mc.huawei" : {
 			desc : "网易-华为应用商店版",
 			publisher : "Netease"
@@ -15024,6 +15075,18 @@ MapScript.loadModule("NeteaseAdapter", {
 		},
 		"com.netease.mc.nearme.gamecenter" : {
 			desc : "网易-OPPO应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.lenovo" : {
+			desc : "网易-乐商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.coolpad" : {
+			desc : "网易-酷派应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mc.am" : {
+			desc : "网易-金立应用商店版",
 			publisher : "Netease"
 		},
 		"com.mojang.minecraftpe" : {

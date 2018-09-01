@@ -11,15 +11,25 @@ var sourceDir = "pages/clib/";
 
 function main() {
 	console.log("Reading config...");
-	var i, s, libs = JSON.parse(fs.readFileSync("clibs.json", "utf-8"));
+	var i, s, libs = JSON.parse(fs.readFileSync("clibs.json", "utf-8")), libslock;
+	try {
+		libslock = JSON.parse(fs.readFileSync("clibs_lock.json", "utf-8"));
+	} catch(e) {}
+	if (!libslock) libslock = {
+		clib : {}
+	};
 	var index = [], map = {};
 	for (i in libs.public) {
 		if (libs.public[i].src) {
 			console.log("Compiling " + libs.public[i].name);
-			if (libs.signKey) {
-				js2signlib(libs.public[i].src, libs.signKey, sourceDir + libs.public[i].id + ".lib");
-			} else {
-				js2lib(libs.public[i].src, sourceDir + libs.public[i].id + ".lib");
+			s = digestSHA1(fs.readFileSync(libs.public[i].src));
+			if (libslock.clib[libs.public[i].uuid] != s) {
+				if (libs.signKey) {
+					js2signlib(libs.public[i].src, libs.signKey, sourceDir + libs.public[i].id + ".lib");
+				} else {
+					js2lib(libs.public[i].src, sourceDir + libs.public[i].id + ".lib");
+				}
+				libslock.clib[libs.public[i].uuid] = s;
 			}
 		}
 		console.log("Indexing " + libs.public[i].name);
@@ -30,10 +40,14 @@ function main() {
 	for (i in libs.private) {
 		if (libs.private[i].src) {
 			console.log("Compiling " + libs.private[i].name);
-			if (libs.signKey) {
-				js2signlib(libs.private[i].src, libs.signKey, sourceDir + libs.private[i].id + ".lib");
-			} else {
-				js2lib(libs.private[i].src, sourceDir + libs.private[i].id + ".lib");
+			s = digestSHA1(fs.readFileSync(libs.private[i].src));
+			if (libslock.clib[libs.private[i].uuid] != s) {
+				if (libs.signKey) {
+					js2signlib(libs.private[i].src, libs.signKey, sourceDir + libs.private[i].id + ".lib");
+				} else {
+					js2lib(libs.private[i].src, sourceDir + libs.private[i].id + ".lib");
+				}
+				libslock.clib[libs.private[i].uuid] = s;
 			}
 		}
 		console.log("Indexing " + libs.private[i].name);
@@ -89,6 +103,7 @@ function main() {
 		maintainer : libs.maintainer || sourceUrl,
 		details : libs.details
 	}));
+	fs.writeFileSync("clibs_lock.json", JSON.stringify(libslock));
 }
 
 function toIndex(o) {
