@@ -13226,6 +13226,9 @@ MapScript.loadModule("JSONEdit", {
 					self.onBack();
 					cancelDefault();
 				});
+				self.popup.on("exit", function() {
+					if (JSONEdit.updateListener) JSONEdit.updateListener();
+				});
 			} else {
 				self.main.setFocusableInTouchMode(true);
 				self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
