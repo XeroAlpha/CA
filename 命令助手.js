@@ -973,10 +973,10 @@ MapScript.loadModule("PopupPage", (function() {
 				this.trigger("addPopup");
 			}
 		}
-		r.hidePage = function(page) {
+		r.hidePage = function(page, notRemoveWindow) {
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			page.currentContainer.removeView(page.mainView);
-			if (stack.length == 0) {
+			if (stack.length == 0 && !notRemoveWindow) {
 				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
 					this.hideView(this.defaultWindow);
 					this.trigger("removePopup");
@@ -1069,14 +1069,28 @@ MapScript.loadModule("PopupPage", (function() {
 			for (i = this.floatStack.length - 1; i >= 0; i--) {
 				e = this.floatStack[i];
 				e.page.trigger("exit");
-				this.hidePage(e.page);
+				TCAgent.onPageEnd(ctx, e.name);
+				this.hidePage(e.page, true);
+				e.page.showing = false;
 			}
 			for (i = this.defaultStack.length - 1; i >= 0; i--) {
 				e = this.defaultStack[i];
 				e.page.trigger("exit");
-				this.hidePage(e.page);
+				TCAgent.onPageEnd(ctx, e.name);
+				this.hidePage(e.page, true);
+				e.page.showing = false;
 			}
 			this.defaultStack.length = this.floatStack.length = 0;
+			if (this.defaultVisible) {
+				this.hideView(this.defaultWindow);
+				this.trigger("removePopup");
+				this.defaultVisible = false;
+			}
+			if (this.floatVisible) {
+				this.hideView(this.floatWindow);
+				this.trigger("removePopup");
+				this.floatVisible = false;
+			}
 			this.busy = false;
 			this.trigger("dismiss");
 		}
@@ -9085,15 +9099,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						return e.text;
 					}
 				}
-				self.adapter = function(e, i, a, tag) {
+				self.vmaker = function(holder, params) {
 					var view = new G.LinearLayout(ctx),
-						text = new G.TextView(ctx),
+						text = holder.text = new G.TextView(ctx),
 						del = new G.TextView(ctx);
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					view.setOrientation(G.LinearLayout.HORIZONTAL);
 					view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 					text.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
-					text.setText((e._id ? e.param.name + "：" : "") + e.text);
 					text.setSingleLine(true);
 					text.setEllipsize(G.TextUtils.TruncateAt.END);
 					text.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
@@ -9104,10 +9117,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					del.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 					Common.applyStyle(del, "textview_default", 2);
 					del.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-						tag.delete(i);
+						params.delete(holder.pos);
 					} catch(e) {erp(e)}}}));
 					view.addView(del);
 					return view;
+				}
+				self.vbinder = function(holder, e, i, a) {
+					holder.text.setText((e._id ? e.param.name + "：" : "") + e.text);
 				}
 			}
 			layout = new G.LinearLayout(ctx);
@@ -9174,14 +9190,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
 			if (!e.components) e.components = [];
-			list.setAdapter(adpt = new RhinoListAdapter(e.components, self.adapter, {
+			list.setAdapter(adpt = new SimpleListAdapter(e.components, self.vmaker, self.vbinder, {
 				delete : function(i) {
 					e.components.splice(i, 1);
 					self.refresh(e, adpt);
 				}
 			}));
 			e.current_component = self.extendComponent(e.param.component);
-			adpt = RhinoListAdapter.getController(adpt);
+			adpt = SimpleListAdapter.getController(adpt);
 			self.refresh(e, adpt);
 			popup = PopupPage.showDialog("ca.assist.ParamEditor.Component", layout, -1, -2);
 		} catch(e) {erp(e)}})}
@@ -17803,7 +17819,7 @@ CA.Library.inner["default"] = {
 									"type": "enum",
 									"name": "格子类型",
 									"list": {
-										"slot.armor": "盔甲",
+										"slot.armor": "马铠",
 										"slot.armor.chest": "胸甲",
 										"slot.armor.feet": "靴子",
 										"slot.armor.head": "头盔",
