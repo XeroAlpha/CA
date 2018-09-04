@@ -723,7 +723,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.titleView.setText("CA");
 			r.titleView.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
 			r.titleView.setSingleLine(true);
-			r.titleView.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1));
+			r.titleView.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1));
 			r.titleView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
@@ -784,13 +784,16 @@ MapScript.loadModule("PopupPage", (function() {
 					//r.defaultContainer.setVisibility(G.View.VISIBLE);
 					r.updateView(r.defaultWindow, r.x,
 						r.y = e.getRawY() + touch.offy,
-						r.width = Math.max(e.getRawX() + touch.offwidth, 30 * G.dp),
-						r.height = Math.max(touch.offheight - e.getRawY(), 30 * G.dp));
+						r.width = Math.max(e.getRawX() + touch.offwidth, r.minWidth),
+						r.height = Math.max(touch.offheight - e.getRawY(), r.minHeight));
 					r.trigger("resize");
 				}
 				return true;
 			} catch(e) {return erp(e), false}}}));
 			r.headerView.addView(r.resizeView);
+			r.headerView.measure(0, 0);
+			r.minWidth = r.headerView.getMeasuredWidth();
+			r.minHeight = r.headerView.getMeasuredHeight();
 			r.defaultDecorLinear.addView(r.headerView);
 			r.defaultContainer = new G.FrameLayout(ctx);
 			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
