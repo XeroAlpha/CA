@@ -500,6 +500,7 @@ MapScript.loadModule("G", {
 	TranslateAnimation: android.view.animation.TranslateAnimation,
 	Typeface: android.graphics.Typeface,
 	TypefaceSpan: android.text.style.TypefaceSpan,
+	URLSpan: android.text.style.URLSpan,
 	UnderlineSpan: android.text.style.UnderlineSpan,
 	ValueAnimator: android.animation.ValueAnimator,
 	View: android.view.View,
@@ -11480,6 +11481,14 @@ MapScript.loadModule("Tutorial", {
 						command : e.command,
 						view : self.generateCopyable(ISegment.rawJson({command : e.command}, null))
 					};
+				} else if (e.link) {
+					t = e.prompt || e.link;
+					return {
+						type : "link",
+						prompt : t,
+						url : e.link,
+						view : self.generateText(ISegment.rawJson(t, sets.varmap), false)
+					};
 				}
 				return {
 					type : "unknown",
@@ -11541,6 +11550,14 @@ MapScript.loadModule("Tutorial", {
 					case "command":
 					Common.setClipboardText(e.command);
 					Common.toast("内容已复制");
+					break;
+					case "link":
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(e.url))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.toast("打开链接失败\n" + e);
+					}
 					break;
 					case "step.manual":
 					self.sets.progress++;
@@ -12732,7 +12749,7 @@ MapScript.loadModule("Updater", {
 	initialize : function() {
 		if (this.isConnected() && !(CA.settings.nextCheckUpdate < Date.now())) {
 			this.checkUpdate(function() {
-				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600;
+				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600 * 1000;
 			}, true);
 		}
 	},
@@ -12889,6 +12906,7 @@ MapScript.loadModule("ISegment", {
 			if (o.extra) {
 				result.append(self(o.extra, variableMap));
 			}
+			if (o.link) self.coverSpan(result, new G.URLSpan(o.link));
 			if (o.color) self.coverSpan(result, new G.ForegroundColorSpan(o.color in Common.theme ? Common.theme[o.color] : G.Color.parseColor(o.color)));
 			if (o.bgcolor) self.coverSpan(result, new G.BackgroundColorSpan(o.bgcolor in Common.theme ? Common.theme[o.bgcolor] : G.Color.parseColor(o.bgcolor)));
 			if (o.bold) self.coverSpan(result, new G.StyleSpan(G.Typeface.BOLD));
@@ -19280,6 +19298,154 @@ CA.Library.inner["basicedu"] = {
 				"恭喜你，成功地完成了你的第一个命令！\n\n",
 				"本教程只是一个开始，之后会有更多的教程加入。"
 			]
+		}]
+	}, {
+		"name": "记分板基础 - (1) 初识记分板",
+		"description": "本教程将告诉你1.7版本新增的记分板的功能与用途。",
+		"id": "xero.scoreboard.intro",
+		"type": "tutorial",
+		"intro": [
+			{
+				"text": "请使用基岩版1.7及以上版本并启动实验性功能",
+				"bold": true,
+				"color": "criticalcolor"
+			},
+			"，因为本教程需要以下功能：",
+			"\n- 命令方块",
+			"\n- scoreboard命令",
+			"\n\n在2018年8月23日，Mojang发布了1.7.0.2测试版，首次加入了",
+			{
+				"text": "记分板",
+				"bold": true,
+				"color": "highlightcolor"
+			},
+			"，这一Java版极其重要的特性。",
+			"\n接下来您将了解记分板的结构与如何控制记分板的命令。",
+			"\n\n另外在本教程中你还能了解到1.7.0.2更新了记分板的哪些内容。"
+		],
+		"segments": [{
+			"text": [
+				{
+					"text": "记分板",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"是Minecraft内部的一个复杂游戏机制。它可以储存分数，侦测事件，计算数字。简而言之，它就是Minecraft里的变量。"
+			],
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"记分板里存储了记分项和每个对象(之后会讲述)的记分项的分数。每个记分项由",
+				{
+					"text": "名称",
+					"bold": true
+				},
+				"、",
+				{
+					"text": "显示名称",
+					"bold": true
+				},
+				"、",
+				{
+					"text": "准则",
+					"bold": true
+				},
+				"组成。"
+			],
+			"stepMode": "manual"
+		}, {
+			"text": [
+				{
+					"text": "名称",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"就是用于区分记分项的唯一ID，区分大小写并且不允许包含空格。",
+				"\n\n",
+				{
+					"text": "显示名称",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"显示名称则用于向用户表示这个记分项的用途，或者实现其他特殊功能。",
+				"\n\n",
+				{
+					"text": "准则",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"描述了这个记分项的行为，例如何时增加分数，能否修改分数等。"
+			],
+			"stepMode": "manual"
+		}, {
+			"text": [
+				{
+					"text": "对象",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"是记分板命令作用的目标，包括任何玩家，任何实体，甚至是不在线或不存在的玩家。",
+				"\n\n",
+				"记分板的",
+				{
+					"text": "分数",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"范围可正可负，范围很大，且全都是整数。"
+			],
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"在Java版中，记分板支持统计玩家死亡次数、玩家血量、击杀数量、移动距离等。但是目前在基岩版1.7.0.3中只支持",
+				{
+					"text": "虚拟型准则",
+					"bold": true,
+					"color": "highlightcolor"
+				},
+				"，只允许通过命令来修改分数。",
+				"\n\n通过记分板，我们可以：",
+				"\n- 动态对实体进行标记",
+				"\n- 统计某种事件发生的次数",
+				"\n- 计时",
+				"\n- 计数（例如实体数量或者方块数量）",
+				"\n- 实现某些需要复杂数学运算机制",
+				"\n……（这些是我随便想出的几种用法）"
+			],
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"恭喜你，成功地完成了这一课！\n\n",
+				"教程的剩余内容将在近期在“在线拓展包”内放出。敬请期待！"
+			],
+		}, {
+			"prompt": [
+				"也欢迎各位关注教程作者的B站号：",
+				{
+					"text": "@XeroAlpha",
+					"link": "http://space.bilibili.com/76999418"
+				}
+			],
+			"link": "http://space.bilibili.com/76999418",
+			"stepMode": "manual"
+		}, {
+			"text": [
+				"附：基岩版1.7.0.2更新中加入的记分板功能：",
+				"\n1. 记分项的创建/移除/设置显示位置/列表（目前仅支持虚拟型dummy）",
+				"\n2. 对象的列出/增加/扣除/删除/测试/操作",
+				"\n3. 选择器scores={objective=score}",
+				"\n4. 与java版不同，基岩版有一条命令/scoreboard players random",
+				"\n其中的scores选择器格式为：",
+				"\nscores={判据1,判据2,...,判据n}（所有判据都成立才算满足条件）",
+				"\n判据格式:",
+				"\n- 相等: 记分项=分数",
+				"\n- 不等: 记分项=!分数",
+				"\n- 大于等于: 记分项=最小分数..",
+				"\n- 小于等于: 记分项=..最大分数",
+				"\n- 区间: 记分项=最小分数..最大分数",
+				"\n所以说，队伍没有出，标签也没有出，得等下次更新。"
+			],
+			"stepMode": "manual"
 		}]
 	}]
 };
