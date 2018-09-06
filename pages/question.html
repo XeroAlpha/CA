@@ -92,90 +92,101 @@ a:hover, a:active {
 */
 var question_list = [{
     question: "如何检测最近玩家是否携带了命令方块？",
-    answer: "clear\\s+@p\\s+command_block\\s+(-1|\\d+)\\s+0"
+    answer: "os\\c_+slopdl+0++asnca@b-\\c\\\\1mmrkes",
+    wp: 128476
 }, {
-    question: "如何清除所有生存模式玩家携带的TNT？",
-    answer: "clear\\s+@a\\[m=(survival|s|0)\\]\\s+tnt"
+    question: "如何复制(1,3,5)-(2,4,6)区域内所有的非空气方块到(-1,-9,-5)-(0,-8,-4)?（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
+    answer: "4+c5sss+ss\\sk-lmo3-+(\\ss\\s5dar+++\\(m+\\)\\\\)osocnn92?+\\\\e+\\+|e-a11\\lsr6f+se",
+    wp: 58187
 }, {
-    question: "如何复制(1,3,5)-(2,4,6)区域内所有的非空气方块到(-1,-9,-5)?",
-    answer: "clone\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+-1\\s+-9\\s+-5\\s+masked(\\s+(normal|force))?"
+    question: "如何复制(7,17,2)-(9,18,3)区域内所有的泥土方块，使复制后(7,17,2)位置的方块被复制到当前位置？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
+    answer: "sl7+)20s+s\\\\(tr\\\\si+s\\1~cno1s|+a73ro(+e\\sesi++f8+t\\r9d\\ss\\n+\\mels?+rce)o+ld~s\\~+\\+\\sf",
+    wp: 135596
 }, {
-    question: "如何复制(7,17,2)-(9,18,3)区域内所有的泥土方块到当前位置？",
-    answer: "clone\\s+7\\s+17\\s+2\\s+9\\s+18\\s+3\\s+~\\s*~\\s*~\\s+filtered\\s+(normal|force)\\s+dirt(\\s+0)?"
-}, {
-    question: "如何给予最近玩家无敌效果10秒？",
-    answer: "effect\\s+@p\\s+resistance\\s+10\\s+([1-9]\\d+|[5-9])(\\s+(true|false))?"
+    question: "如何给予最近玩家无敌效果10秒且隐藏粒子？",
+    answer: "f@p)[sd+1f90c\\\\n5]as|u+eetesi\\cr\\[1-+\\s]t+-\\rss+e(+tse9",
+    wp: 76347
 }, {
     question: "如何给予所有玩家徒手攻击其他实体无伤的效果1分钟？",
-    answer: "effect\\s+@a\\s+weakness\\s+60(\\s+[1-9]\\d*(\\s+(true|false))?)?"
-}, {
-    question: "如何给予所有等级大于50级的玩家50s隐身效果且隐藏粒子？",
-    answer: "effect\\s+@a\\[lm=50\\]\\s+invisibility\\s+50\\s+([1-9]\\d*)\\s+true"
+    answer: ")\\+ws\\rt9(tfs]+a\\?-+|+eks0\\6s@1?ec*sen((fs\\l)uf)a\\a+sesdee[",
+    wp: 69161
 }, {
     question: "如何检测最近玩家手持物品是否是钓鱼竿？（钓鱼竿已被附魔为饵钓I）",
-    answer: "enchant\\s+@p\\s+lure(\\s+1)?"
+    answer: "th@en+\\slsu(er)s\\1?\\ac++np",
+    wp: 220506
 }, {
-    question: "如何杀死所有站在岩浆块上的玩家？",
-    answer: "execute\\s+@a\\s+~\\s*~\\s*~\\s+detect\\s+~\\s*~-1\\s*~\\s+magma\\s+(-1|0)\\s+kill(\\s+(@s|@p))?"
+    question: "如何杀死所有站在灰色羊毛上的玩家？（命令执行点为玩家所在坐标）",
+    answer: "p\\+tc~t*xss\\+slkt~@seso~*s-+\\cs\\~)eos~lsa+is~\\(s+ese\\7w\\+\\\\+l\\++sd@(\\1+e|u\\)@?",
+    wp: 127666
 }, {
     question: "如何将玩家A传送到玩家B前方两格？",
-    answer: "execute\\s+B\\s+~\\s+~\\s+~\\s+(tp|teleport)\\s+A\\s+\\^\\s+\\^\\s+\\^2" //?
+    answer: "e\\\\+2se~\\\\l(~+spBt\\u\\^x\\pss\\es|+\\+s++tt\\crse^+\\e)to^~s+\\sA+",
+    wp: 217990
 }, {
     question: "如何给予以(5,31,2)为中心，半径50格范围内的所有玩家“雷罚”一次？",
-    answer: function(str) {
-        var a = /execute\s+@a\[(.+?)\]\s+~\s+~\s+~\s+summon\s+lightning_bolt(\s+~\s+~\s+~)?/.exec(str);
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind(")u$+(\\+anog[\\ms.s++~?o_~+tstgseteul^ih(+b\\]+~ess\\+n\\\\lxm\\\\~\\@+cs)sn?+~s\\~si\\", 5140), "").exec(str);
         if (!a) return false;
-        var i, p = parseSelector(a[1], {
-            noOtherPositiveKeys: true,
-            existsPositiveKeys: ["x", "y", "z", "r"],
-            noOtherNegativeKeys: true,
-            existsNegativeKeys: [],
-            numbericValues: ["x", "y", "z", "r"]
-        });
+        var i, p = parseSelector(a[1], [
+            {
+                type: "equalsPositiveKeys",
+                keys: ["x", "y", "z", "r"]
+            }, {
+                type: "noNegativeKeys"
+            }, {
+                type: "numbericPositiveKeys",
+                keys: ["x", "y", "z", "r"]
+            }
+        ]);
         if (!p) return false;
         var pos = p.positive;
         return pos.x == 5 && pos.y == 31 && pos.z == 2 && pos.r == 50;
     } 
 }, {
-    question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？",
-    answer: "fill\\s+1\\s+3\\s+5\\s+2\\s+4\\s+6\\s+air\\s+0\\s+replace\\s+stone(\\s+0)?"
+    question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
+    answer: "+\\6t\\a+\\s\\p\\o3)+s++i+s4s+fs\\nse\\e5\\sia+0s1+0scs(slel?\\\\+rlsr2+\\",
+    wp: 95363
 }, {
-    question: "如何将以命令执行点为中心，清空半径为5格的立方体内的所有方块并在六面覆盖上玻璃？",
-    answer: "fill\\s+~-5\\s+~-5\\s+~-5\\s+~5\\s+~5\\s+~5\\s+glass\\s+0\\s+hollow"
+    question: "如何将以命令执行点为中心，清空半径为5格的立方体内的所有方块并在六面覆盖上玻璃？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
+    answer: "\\+5fls+~+~-s\\+s5is++gsl50a\\ow\\\\ls5~~55\\\\l+-s-+\\+sss\\~~ohls",
+    wp: 137681
 }, {
-    question: "如何设置所有非生存模式玩家为生存模式？（不使用execute命令）",
-    answer: "gamemode\\s+(0|s|survival)\\s+@a\\[m=!(0|s|survival)\\]"
+    question: "如何设置所有非生存模式玩家为生存模式？",
+    answer: "v]vs\\au+ia[|roe|l\\m!srm0)eau=s0s(i@a)s(m\\g\\+|vslv|d",
+    wp: 53514
 }, {
     question: "如何把以(4,5,6)为中心，边长为4的正方体内的所有玩家变成生存模式？",
-    answer: function(str) {
-        var a = /gamemode\s+(0|s|survival)\s+@a\[(.+?)\]/.exec(str);
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind("av[@is+e)mdog\\ssm\\\\$.a+0r+v)eul(^]||(s\\?a", 193440), "").exec(str);
         if (!a) return false;
-        var i, p = parseSelector(a[2], {
-            noOtherPositiveKeys: true,
-            existsPositiveKeys: ["x", "y", "z", "dx", "dy", "dz"],
-            noOtherNegativeKeys: true,
-            existsNegativeKeys: [],
-            numbericValues: ["x", "y", "z", "dx", "dy", "dz"]
-        });
+        var i, p = parseSelector(a[2], [
+            {
+                type: "equalsPositiveKeys",
+                keys: ["x", "y", "z", "dx", "dy", "dz"]
+            }, {
+                type: "noNegativeKeys"
+            }, {
+                type: "numbericPositiveKeys",
+                keys: ["x", "y", "z", "dx", "dy", "dz"]
+            }
+        ]);
         if (!p) return false;
         var pos = p.positive;
         normalizeSelectorBox(pos);
         return pos.x == 2 && pos.y == 3 && pos.z == 4 && pos.dx == 4 && pos.dy == 4 && pos.dz == 4;
     }
 }, {
-    question: "如何防止玩家淹死？（不使用effect命令）",
-    answer: "gamerule\\s+drowningdamage\\s+false"
+    question: "如何防止玩家溺死？（即氧气条走完后不伤血）",
+    answer: "rgmddamgllesanef+wonua\\si\\+reesga",
+    wp: 227173
 }, {
     question: "如何给予最近玩家一把在冒险模式下只能挖黑曜石的钻石镐？",
-    answer: function(str) {
-        var a = /give\s+@p\s+diamond_pickaxe\s+1\s+(\d+)\s+(.+)/.exec(str);
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind(".++\\sso\\+gddvsmkn\\+(_@i\\^\\ssp)(a\\ei1+dc)ixea+p$+", 182399), "").exec(str);
         var p = JSON.parse(a[2]);
-        p = p["minecraft:can_destroy"].blocks;
+        p = p[unwind("ctrfrt_mai:nyecadnoes", 228413)].blocks;
         return Array.isArray(p) && p.length == 1 && p[0] == "obsidian";
     }
-}, {
-    question: "如何清除所有非玩家实体？",
-    answer: "kill\\s+@e\\[type=!player\\]"
 }, {
     question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架（不考虑运行环境限制）",
     answer: function(str) {
@@ -183,58 +194,66 @@ var question_list = [{
     },
     answerType: "number"
 }, {
-    question: "如何在所有玩家耳边播放末影人死亡声？（每个玩家收到的音量相同）",
-    answer: "execute\\s+@a\\s+~\\s+~\\s+~\\s+playsound\\s+mob.endermen.death\\s+@s(\\s+~\\s+~\\s+~(\\s+\\d+(\\s+\\d+(\\s+\\d+)?)?)?)?"
+    question: "如何在所有玩家耳边播放一次末影人死亡声？（每个玩家收到的音量相同）",
+    answer: "+\\e@m)ac\\o?s+p~)t~?b.)n?sd@edtse+d\\xuyshs\\+)es+sda.oernl+en+ua\\?~\\m\\s+ss+\\e(\\s+\\d+(\\s+\\d+(\\~\\(\\s+\\ss~+~+",
+    wp: 207803
 }, {
-    question: "如何替换位于(51,8,-56)的箱子内的第一格物品为苹果？",
-    answer: "replaceitem\\s+block\\s+51\\s+8\\s+-56\\s+slot\\.container\\s+0\\s+apple(\\s+1(\\s+0)?)?"
+    question: "如何替换位于(51,8,-56)的箱子内的第五格物品为一个潮涌核心？",
+    answer: "ot)?)0\\+iincrs\\++l8ee+e1\\s+e\\sp-56mc+slot\\.soltaan?r\\s+4\\s+conduit(\\sb1(\\s+s\\kc5",
+    wp: 179748
 }, {
-    question: "如何替换最近玩家的主手物品为一块在冒险模式下只能放在草方块上的玻璃？",
-    answer: function(str) {
-        var a = /replaceitem\s+entity\s+@p\s+slot.weapon.mainhand\s+0\s+glass\s+1\s+0\s+(.+)/.exec(str);
+    question: "如何替换最近玩家的快捷栏第一格为一块在冒险模式下只能放在草方块上的玻璃？",
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind("be)\\+gt+oos\\+ey0l\\rs\\esp\\l+ss.lia++csh@\\r\\t^(s0ise++ts$nsamt.\\+pt1sa", 112768)).exec(str);
         var p = JSON.parse(a[1]);
-        p = p["minecraft:can_place_on"].blocks;
+        p = p[unwind("cefano:ap_tlincar_necm", 183864)].blocks;
         return Array.isArray(p) && p.length == 1 && p[0] == "grass";
     }
 }, {
-    question: "如何用命令让最近玩家戴上钻石头盔？",
-    answer: "replaceitem\\s+entity\\s+@p\\s+slot\\.armor\\.head\\s+0\\s+diamond_helmet(\\s+\\d+(\\s+\\d+)?)?" //?
+    question: "如何用命令让半径30格内的随机一个玩家戴上钻石头盔？",
+    answer: "_i+\\)s?)\\s+p3+nrh]om+ya0dre[\\st?=os\\\\\\\\eele+.l.\\\\(0e+s\\ad@tsmc\\t+idsrar+rt+\\s(menaihotdmeld\\",
+    wp: 87365
 }, {
     question: "如何将所有玩家传送到以(17,?,5)为中心，半径为20的区域？",
-    answer: "spreadplayers\\s+17\\s+5\\s+(\\d+)\\s+20\\s+@a"
+    answer: "py+se57r\\es\\a\\a@l0\\s1s2ss++)r+dsa(d+\\\\+p",
+    wp: 26258
 }, {
-    question: "如何在最近玩家的快捷栏上方显示“Hello”？",
-    answer: "title\\s+@p\\s+actionbar\\s+Hello"
-}, {
-    question: "如何让下次标题瞬间显示，持续1s后瞬间消失？",
-    answer: "title\\s+(\\S+)\\s+times\\s+0\\s+20\\s+0"
+    question: "如何让显示给所有玩家的下次标题瞬间显示，持续1s后瞬间消失？",
+    answer: "ts+\\\\ltt\\esa\\+\\00@+2is+sei0sms+",
+    wp: 9415
 }, {
     question: "如何让所有名称为A的盔甲架不断旋转？",
-    answer: function(str) {
-        var a = /execute\s+@e\[(.+)\]\s+~\s+~\s+~\s+tp\s+(@s\s+)?~\s+~\s+~\s+~(-?\d+)(\s+~)?/.exec(str);
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind(")+e~\\+?)~+ss\\+()\\s?]~~es~s\\s.\\~e+s\\++~css@x-~+)(\\s^t+p+[t\\\\++\\($(\\d+es\\@\\su?\\", 233200), "").exec(str);
         if (!a) return false;
-        var i, p = parseSelector(a[1], {
-            noOtherPositiveKeys: true,
-            existsPositiveKeys: ["type", "name"],
-            noOtherNegativeKeys: true,
-            existsNegativeKeys: []
-        });
+        var i, p = parseSelector(a[1], [
+            {
+                type: "equalsPositiveKeys",
+                keys: ["type", "name"]
+            }, {
+                type: "noNegativeKeys"
+            }
+        ]);
         if (!p) return false;
         var pos = p.positive;
         return pos.type == "armor_stand" && pos.name == "A";
     }
 }, {
     question: "如何把以(7,8,9)为顶点，第五卦限方向里边长为6的正方体里的所有生物传送到(0,4,0)？（不懂什么叫卦限的自己百度）",
-    answer: function(str) {
-        var a = /tp\s+@e\[(.+?)\]\s+0\s+4\s+0/.exec(str);
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind("$p4se.\\+[\\\\?()++\\]ss@\\s^+0+0t\\", 1921), "").exec(str);
         if (!a) return false;
-        var i, p = parseSelector(a[1], {
-            noOtherPositiveKeys: true,
-            existsPositiveKeys: ["x", "y", "z", "dx", "dy", "dz"],
-            noOtherNegativeKeys: true,
-            existsNegativeKeys: [],
-            numbericValues: ["x", "y", "z", "dx", "dy", "dz"]
-        });
+        var i, p = parseSelector(a[1], [
+            {
+                type: "equalsPositiveKeys",
+                keys: ["x", "y", "z", "dx", "dy", "dz"]
+            }, {
+                type: "noNegativeKeys"
+            }, {
+                type: "numbericPositiveKeys",
+                keys: ["x", "y", "z", "dx", "dy", "dz"]
+            }
+        ]);
         if (!p) return false;
         var pos = p.positive;
         normalizeSelectorBox(pos);
@@ -242,21 +261,58 @@ var question_list = [{
     }
 }, {
     question: "如何让玩家等级不超过100级？（使用xp与execute命令）",
-    answer: "execute\\s+@a\\[lm=100\\]\\s+~\\s+~\\s+~\\s+xp\\s+-\\d+(L?)(\\s+@s)?"
+    answer: "\\01du+]+es~\\@0\\+~-e[s+a+\\lmcx\\@=?+sess\\\\?s)~t)s\\+\\s(L(x+\\p",
+    wp: 21138
+}, {
+    question: "如何让记分项aaa显示在侧边栏并使分数升序排序？",
+    answer: "asbndce\\vaaeosae\\r+eas+ddjcos\\rsd\\gpobtssa+s+ciieaslbirteyn\\s+is",
+    wp: 138038
+}, {
+    question: "如何让不在线的玩家Mark的记分项mark小于等于50时执行成功，否则失败？",
+    answer: "+so\\a+pst\\bd\\srs\\a5c++smkrysessotM\\e0+r*\\s+\\kearral",
+    wp: 75357
+}, {
+    question: "如何检测所有记分项mark大于等于30，但time小于等于20的玩家？（使用testfor命令）",
+    answer: function(str, unwind) {
+        var a = new RegExp(unwind("s[tf(t+sea])\\\\o@\\+.r", 205070), "").exec(str);
+        if (!a) return false;
+        var i, p = parseSelector(a[1], [
+            {
+                type: "equalsPositiveKeys",
+                keys: ["scores"]
+            }, {
+                type: "noNegativeKeys"
+            }, {
+                type: "scoresKey",
+                key: "scores"
+            }
+        ]);
+        if (!p) return false;
+        var sk = p.positive.scores;
+        return sk.mark.type == "geq" && sk.mark.score == 30 && sk.time.type == "leq" && sk.time.score == 20;
+    }
+}, {
+    question: "如何设置所有记分项mark不等于255的玩家的记分项mark的分数为255？",
+    answer: "+rsr\\b\\s\\so}y\\e@5l+k{cs\\dsar]m=s2\\esk+a[co5a5=e+tr\\2\\!r\\amssseaorp5+",
+    wp: 38145
+}, {
+    question: "如何交换玩家A和玩家B的记分项mark的分数？",
+    answer: "++ps\\a++e\\amr\\+moarssa+skore|Apsrkrs<sy)c+oeB>s(naB\\+\\t\\r+\\A<lr>i\\abd\\sso+sm\\sk",
+    wp: 221180
 }];
 function getQueryString() {
-	var url = location.search;
-	var r = {}, i, strs, t;
-	if ((t = url.indexOf("?")) >= 0) {
-		strs = url.slice(t + 1).split("&");
-		for(i in strs) {
-			t = strs[i].indexOf("=");
-			if (t >= 0) {
-				r[strs[i].slice(0, t)] = unescape(strs[i].slice(t + 1));
-			}
-		}
-	}
-	return r;
+    var url = location.search;
+    var r = {}, i, strs, t;
+    if ((t = url.indexOf("?")) >= 0) {
+        strs = url.slice(t + 1).split("&");
+        for(i in strs) {
+            t = strs[i].indexOf("=");
+            if (t >= 0) {
+                r[strs[i].slice(0, t)] = unescape(strs[i].slice(t + 1));
+            }
+        }
+    }
+    return r;
 }
 (function() {
 var i, j, seed = [question_list.length];
@@ -274,7 +330,7 @@ if (query.date) date = Date.parse(query.date);
 if (isNaN(date)) date = Date.now();
 var cur = getDailyQuestion(date);
 var isSuccessed;
-window.onload = function() { 
+function reload() { 
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
     var answer_node = document.getElementById("question_answer");
@@ -288,8 +344,8 @@ window.onload = function() {
         return;
     }
     body_node.innerHTML = cur.question;
-    usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题";
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年8月13日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年9月6日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -303,7 +359,13 @@ window.onload = function() {
         success_node.style = "animation: body_visible 0.5s ease 1.5s backwards";
     }
     if (setter_node) setter_node.value = toSimpleDate(new Date(date - date % 86400000));
+}
+window.onload = function() {
+    reload();
     onresize();
+    if (query.daycontrol) {
+        dayControl();
+    }
 }
 window.onresize = function() {
     var about_node = document.getElementById("about");
@@ -317,12 +379,12 @@ window.offsetDay = function(n) {
     if (!n || isNaN(n)) n = 0; 
     date += 86400000 * n;
     cur = getDailyQuestion(date);
-    window.onload();
+    reload();
 }
 window.setDay = function(d) {
     date = new Date(d).getTime();
     cur = getDailyQuestion(date);
-    window.onload();
+    reload();
 }
 window.dayControl = function() {
     var control_node = document.getElementById("day_control");
@@ -332,12 +394,152 @@ window.dayControl = function() {
         control_node.innerHTML = '<button onclick="offsetDay(-1)">&lt;</button><input id="day_box" onchange="setDay(this.value)" /><button onclick="offsetDay(1)">&gt;</button>';
         document.body.appendChild(control_node);
     }
-    onload();
+    reload();
 }
-window.parseSelector = function(s, options) {
-    var positive = {}, negative = [], i;
+window.windText = function(s) {
+    s = String(s);
+    var p = Math.floor(Math.random() * 233280);
+    var r = wind(s, p);
+    console.log("    answer: " + JSON.stringify(r) + ",\n    wp: " + p);
+}
+var Filter = {
+    allOf : function(r, param) {
+        param.filters.forEach(function(e) {
+            if (!Filter[e.type](r, e)) throw "Denied by " + e.type;
+        });
+    },
+    someOf : function(r, param) {
+        var count = 0;
+        param.filters.forEach(function(e) {
+            if (Filter[e.type](r, e)) count++;
+        });
+        return count > 0;
+    },
+    noneOf : function(r, param) {
+        param.filters.forEach(function(e) {
+            if (Filter[e.type](r, e)) throw "Denied by " + e.type;
+        });
+    },
+    noPositiveKeys : function(r, param) {
+        return Object.keys(r.positive).length == 0;
+    },
+    containsPositiveKeys : function(r, param) {
+        var a = Object.keys(r.positive), i;
+        for (i in param.keys) if (a.indexOf(param.keys[i]) < 0) return false;
+        return true;
+    },
+    allOfPositiveKeys : function(r, param) {
+        var a = Object.keys(r.positive), i;
+        for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
+        return true;
+    },
+    equalsPositiveKeys : function(r, param) {
+        var a = Object.keys(r.positive), i;
+        for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
+        return a.length == param.keys.length;
+    },
+    noNegativeKeys : function(r, param) {
+        return r.negative.length == 0;
+    },
+    containsNegativeKeys : function(r, param) {
+        var a = r.negative, i, keys = {};
+        for (i in a) {
+            if (param.keys.indexOf(a[i].key) >= 0) {
+                keys[a[i].key] = 1;
+            }
+        }
+        return param.keys.length == Object.keys(keys).length;
+    },
+    allOfNegativeKeys : function(r, param) {
+        var a = r.negative, i;
+        for (i in a) if (param.keys.indexOf(a[i].key) < 0) return false;
+        return true;
+    },
+    equalsNegativeKeys : function(r, param) {
+        var a = r.negative, i, keys = {};
+        for (i in a) {
+            if (param.keys.indexOf(a[i].key) >= 0) {
+                keys[a[i].key] = 1;
+            } else {
+                return false;
+            }
+        }
+        return param.keys.length == Object.keys(keys).length;
+    },
+    numbericPositiveKeys : function(r, param) {
+        var a = Object.keys(r.positive), i;
+        for (i in a) {
+            if (param.keys.indexOf(a[i]) >= 0) {
+                r.positive[a[i]] = Number(r.positive[a[i]]);
+                if (isNaN(r.positive[a[i]])) return false;
+            }
+        }
+        return true;
+    },
+    numbericNegativeKeys : function(r, param) {
+        var a = r.negative, i;
+        for (i in a) {
+            if (param.keys.indexOf(a[i].key) >= 0) {
+                a[i].value = Number(a[i].value);
+                if (isNaN(a[i].value)) return false;
+            }
+        }
+        return true;
+    },
+    scoresKey : function(ks, param) {
+        var a = ks.positive[param.key], r = {};
+        if (!a.startsWith("{") || !a.endsWith("}")) return false;
+        a = a.slice(1, -1).split(",");
+        a.forEach(function(e) {
+            var i = e.indexOf("=");
+            if (i < 0) throw "Cannot find equals sign";
+            var a = e.slice(0, i), b = e.slice(i + 1), c;
+            if (b.startsWith("!")) {
+                r[a] = {
+                    type : "neq",
+                    score : Number(b.slice(1))
+                }
+            } else {
+                i = b.indexOf("..");
+                if (i < 0) {
+                    r[a] = {
+                        type : "equ",
+                        score : Number(b)
+                    }
+                } else {
+                    c = b.slice(i + 2);
+                    b = b.slice(0, i);
+                    if (b.length == 0) {
+                        r[a] = {
+                            type : "leq",
+                            score : Number(c)
+                        }
+                    } else if (c.length == 0) {
+                        r[a] = {
+                            type : "geq",
+                            score : Number(b)
+                        }
+                    } else {
+                        r[a] = {
+                            type : "in",
+                            scoreMin : Number(b),
+                            scoreMax : Number(c)
+                        }
+                        if (isNaN(r[a].scoreMin) || isNaN(r[a].scoreMax)) throw "Not a number";
+                        return;
+                    }
+                }
+            }
+            if (isNaN(r[a].score)) throw "Not a number";
+        });
+        ks.positive[param.key] = r;
+        return true;
+    }
+};
+window.parseSelector = function(s, filters) {
+    var positive = {}, negative = [], r;
     try {
-        s.split(",").forEach(function(e) {
+        splitSelector(s).forEach(function(e) {
             var i = e.indexOf("=");
             if (i < 0) throw "Cannot find equals sign";
             var a = e.slice(0, i), b = e.slice(i + 1);
@@ -347,30 +549,13 @@ window.parseSelector = function(s, options) {
                 positive[a] = b;
             }
         });
-        if (options) {
-            if (options.existsPositiveKeys) {
-                if (options.existsPositiveKeys.some((e) => !(e in positive))) throw "Necessary positive keys not found";
-                if (options.noOtherPositiveKeys && options.existsPositiveKeys.length != Object.keys(positive).length) throw "Redundant positive keys found";
-            }
-            if (options.existsNegativeKeys) {
-                var t, fl = options.existsNegativeKeys.slice(), no = options.noOtherNegativeKeys;
-                for (i in negative) {
-                    if ((t = fl.indexOf(negative[i].key)) >= 0) {
-                        fl.splice(t, 1);
-                    } else if (no) throw "Redundant negitive keys found";
-                }
-                if (fl.length > 0) throw "Necessary negative keys not found";
-            }
-            if (options.numbericValues) {
-                options.numbericValues.forEach(function(e) {
-                    positive[e] = Number(positive[e]);
-                    if (isNaN(positive[e])) {
-                        throw "A numberic values is non-numberic";
-                    }
-                });
-            }
+        r = {positive: positive, negative: negative};
+        if (filters) {
+            Filter.allOf(r, {
+                filters : filters
+            });
         }
-        return {positive: positive, negative: negative};
+        return r;
     } catch(e) {}
     return null;
 }
@@ -385,10 +570,30 @@ window.normalizeSelectorBox = function(pos) {
         pos.dz = -pos.dz; pos.z -= pos.dz;
     }
 }
+
+window.splitSelector = function(s) {
+    var arr = [], i, j, k;
+    i = 0;
+    while (i < s.length) {
+        j = s.indexOf(",", i);
+        if (j < 0) break;
+        k = s.indexOf("{", i);
+        if (k >= i && k < j) {
+            k = s.indexOf("}", k);
+            if (k < 0) break;
+            j = s.indexOf(",", k + 1);
+            if (j < 0) break;
+        }
+        arr.push(s.slice(i, j));
+        i = j + 1;
+    }
+    arr.push(s.slice(i));
+    return arr;
+}
 function random(seed) {
     return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
 }
-window.wind = function wind(str, p) {
+function wind(str, p) {
     var seed = [str.length * p], seq = new Array(str.lenght), chs = new Array(str.lenght);
     for (i = 0; i < str.length; i++) seq[i] = {index : i, code : random(seed)};
     seq.sort(function(a, b) {
@@ -450,7 +655,7 @@ window.checkAnswer = function(answer, fromButton) {
         }
         if (cur.answer instanceof Function) {
             try {
-                if (cur.answer(v)) return succeed_action();
+                if (cur.answer(v, unwind)) return succeed_action();
             } catch(e) {
                 console.log(e);
             }
