@@ -302,7 +302,8 @@ var question_list = [{
         question: question,
         answer: function(str) {
             return Number(str) == a[0];
-        }
+        },
+        answerType: "number"
     };
 })(), {
     question: "如何让记分项aaa显示在侧边栏并使分数升序排序？",
@@ -651,8 +652,8 @@ function unwind(str, p) {
     return seq.map(function(e) {return e.char}).join("");
 }
 function getDailyQuestion(time) {
-    var seed = [Math.floor(Math.abs(time / 86400000))];
-    random(seed);
+    var i, seed = [Math.floor(Math.abs(time / 86400000))];
+    for (i = question_list.length; i >= 0; i--) random(seed);
     var r = random(seed);
     getDailyQuestion.code = fixZero(Math.floor(r * 1000000).toString(), 6);
     return question_list[getDailyQuestion.index = Math.floor(time / 86400000) % question_list.length];
