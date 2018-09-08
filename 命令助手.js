@@ -11959,10 +11959,10 @@ MapScript.loadModule("FilterListAdapter", (function() {
 })());
 
 MapScript.loadModule("SimpleListAdapter", (function() {
-	var r = function(arr, maker, binder, params) {
-		//arr是列表数组，maker(holder, params)生成基础view，binder(holder, element, index, array, params)修改view使其实现指定的界面
-		var src = arr, holders = [], dso = [], controller;
-		controller = new SimpleListAdapter.Controller(src, holders, dso, maker, binder, params);
+	var r = function(arr, maker, binder, params, readOnly) {
+		//arr是列表数组，maker(holder, params)生成基础view，binder(holder, element, index, array, params)修改view使其实现指定的界面，readOnly表示是否会从外部修改这个数组
+		var src = readOnly ? arr : arr.slice(), holders = [], dso = [], controller;
+		controller = new SimpleListAdapter.Controller(src, holders, dso, maker, binder, params, readOnly ? null : arr);
 		return new G.ListAdapter({
 			getCount : function() {
 				return src.length;
@@ -12023,13 +12023,14 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 			}
 		});
 	}
-	r.Controller = function(array, holders, dso, maker, binder, params) {
+	r.Controller = function(array, holders, dso, maker, binder, params, sync) {
 		this.array = array;
 		this.holders = holders;
 		this.dso = dso;
 		this.maker = maker;
 		this.binder = binder;
 		this.params = params;
+		this.sync = sync;
 	}
 	r.Controller.prototype = {
 		clearHolder : function() {
@@ -12043,7 +12044,10 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 		getHolder : function(view) {
 			return this.holders[view.getTag()];
 		},
-		notifyChange : function() {
+		notifyChange : function(hasSync) {
+			if (!hasSync && this.sync) {
+				this.setArray(this.sync);
+			}
 			this.dso.forEach(function(e) {
 				if (e) e.onChanged();
 			});
@@ -12066,7 +12070,7 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 				this.array.length = 0;
 				for (i in a) this.array.push(a[i]);
 			}
-			this.notifyChange();
+			this.notifyChange(true);
 		}
 	}
 	r.getController = function(adapter) {

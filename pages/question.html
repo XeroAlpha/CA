@@ -90,6 +90,7 @@ a:hover, a:active {
 别以为看到这儿就可以作弊了，这里的答案可都是正则表达式
 如果你有能力看懂正则表达式，区区命令又有何难？
 */
+(function() {
 var question_list = [{
     question: "如何检测最近玩家是否携带了命令方块？",
     answer: "os\\c_+slopdl+0++asnca@b-\\c\\\\1mmrkes",
@@ -259,11 +260,51 @@ var question_list = [{
         normalizeSelectorBox(pos);
         return pos.x == 7 && pos.y == 8 && pos.z == 3 && pos.dx == 6 && pos.dy == 6 && pos.dz == 6;
     }
-}, {
-    question: "如何让玩家等级不超过100级？（使用xp与execute命令）",
-    answer: "\\01du+]+es~\\@0\\+~-e[s+a+\\lmcx\\@=?+sess\\\\?s)~t)s\\+\\s(L(x+\\p",
-    wp: 21138
-}, {
+}, (function() {
+    var op = [{
+        id: "+=",
+        op: (a, b) => {a[0] = a[0] + b[0]}
+    }, {
+        id: "-=",
+        op: (a, b) => {a[0] = a[0] - b[0]}
+    }, {
+        id: "*=",
+        op: (a, b) => {a[0] = a[0] * b[0]}
+    }, {
+        id: "><",
+        op: (a, b) => {
+            var t = a[0];
+            a[0] = b[0]; b[0] = t;
+        }
+    }];
+    var a = [Math.floor(Math.random() * 10 + 1)],
+        b = [Math.floor(Math.random() * 10 + 1)],
+        c = [Math.floor(Math.random() * 10 + 1)],
+        m1 = Math.floor(Math.random() * op.length),
+        m2 = Math.floor(Math.random() * op.length),
+        m3 = Math.floor(Math.random() * op.length);
+    var question = [
+        "请填写当我的世界执行完以下命令后玩家Mark的记分项a的分数",
+        "/scoreboard objectives add a dummy",
+        "/scoreboard objectives add b dummy",
+        "/scoreboard objectives add c dummy",
+        "/scoreboard players set Mark a " + a[0],
+        "/scoreboard players set Mark b " + b[0],
+        "/scoreboard players set Mark c " + c[0],
+        "/scoreboard players operation Mark c " + op[m1].id + " Mark a",
+        "/scoreboard players operation Mark b " + op[m2].id + " Mark c",
+        "/scoreboard players operation Mark a " + op[m3].id + " Mark b"
+    ].join("<br />");
+    op[m1].op(c, a);
+    op[m2].op(b, c);
+    op[m3].op(a, b);
+    return {
+        question: question,
+        answer: function(str) {
+            return Number(str) == a[0];
+        }
+    };
+})(), {
     question: "如何让记分项aaa显示在侧边栏并使分数升序排序？",
     answer: "asbndce\\vaaeosae\\r+eas+ddjcos\\rsd\\gpobtssa+s+ciieaslbirteyn\\s+is",
     wp: 138038
@@ -314,7 +355,6 @@ function getQueryString() {
     }
     return r;
 }
-(function() {
 var i, j, seed = [question_list.length];
 var charcode = new Array(question_list.length);
 for (i = 0; i < charcode.length; i++) {
@@ -345,7 +385,7 @@ function reload() {
     }
     body_node.innerHTML = cur.question;
     usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年9月6日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年9月8日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -633,7 +673,7 @@ function fixZero(s, n) {
 function succeed_action() {
     var answer_node = document.getElementById("question_answer");
     var success_node = document.getElementById("question_success");
-    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCPE命令助手讨论区</a>';
+    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCBE命令助手讨论区</a>';
     success_node.style = "";
     answer_node.style = "display: none";
     isSuccessed = true;
@@ -660,7 +700,7 @@ window.checkAnswer = function(answer, fromButton) {
                 console.log(e);
             }
         } else {
-            if (t = new RegExp(cur.wp ? unwind(cur.answer, cur.wp) : cur.answer, "").exec(answer.value)) {
+            if (t = new RegExp(cur.wp ? unwind(cur.answer, cur.wp) : cur.answer, "").exec(v)) {
                 if (t[0].length == v.length) return succeed_action();
             }
         }
