@@ -15,12 +15,13 @@ var versions = JSON.parse(fs.readFileSync(verlog, 'utf-8'));
 var script = cwd + "/命令助手.js";
 var updatefile = cwd + "/update.json";
 var changelog = cwd + "/Changelog.txt";
+var recentlog = cwd + "/recentlog.txt";
 
 var sources = {
 	"酷安网（最推荐）": "https://www.coolapk.com/game/com.xero.ca",
+	"Gitee": "https://gitee.com/projectxero/ca/releases",
 	"百度网盘（备用）": "http://pan.baidu.com/share/link?shareid=2966673396&uk=404195919",
-	"体验版（加群207913610获得）": "https://jq.qq.com/?_wv=1027&k=5Zc39Sa",
-	"源代码(Git@OSC)": "https://gitee.com/projectxero/ca/blob/master/%E5%91%BD%E4%BB%A4%E5%8A%A9%E6%89%8B.js"
+	"体验版（加群207913610获得）": "https://jq.qq.com/?_wv=1027&k=5Zc39Sa"
 };
 
 function help() {
@@ -50,12 +51,11 @@ function makeUpdate() {
 	details.reverse();
 	fs.writeFileSync(changelog, details.join("\n"));
 	var lv = versions[versions.length - 1];
-	var t = details.slice(0, 10);
 	fs.writeFileSync(updatefile, JSON.stringify({
 		"time": lv.time,
 		"version": lv.version,
 		"belongs": lv.belongs,
-		"info": t.join("\n"),
+		"info": fs.readFileSync(recentlog, 'utf-8'),
 		"downloads": sources
 	}));
 }

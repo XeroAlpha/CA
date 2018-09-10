@@ -11492,7 +11492,7 @@ MapScript.loadModule("Tutorial", {
 				}
 				return {
 					type : "unknown",
-					view : self.generateText("未知的片段&")
+					view : self.generateText("未知的片段")
 				};
 			}
 			self.generateText = function(str, focusable) {
@@ -11536,11 +11536,8 @@ MapScript.loadModule("Tutorial", {
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
-			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.exit();
-				//BUG: View显示卡顿，导致可以在dismissed的状态下点击按钮
-			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.setFocusable(false);
 			self.list = new G.ListView(ctx);
 			Common.applyStyle(self.list, "message_bg");
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
@@ -11565,6 +11562,7 @@ MapScript.loadModule("Tutorial", {
 					self.next();
 					break;
 					case "ending":
+					case "title":
 					self.popup.exit();
 					break;
 				}
@@ -19420,7 +19418,7 @@ CA.Library.inner["basicedu"] = {
 		}, {
 			"text": [
 				"恭喜你，成功地完成了这一课！\n\n",
-				"教程的剩余内容将在近期在“在线拓展包”内放出。敬请期待！"
+				"教程的剩余内容将在近期在“在线拓展包”内与作者的B站专栏放出。敬请期待！"
 			],
 		}, {
 			"prompt": [
