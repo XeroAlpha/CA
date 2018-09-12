@@ -913,6 +913,15 @@ MapScript.loadModule("PopupPage", (function() {
 			requestHide : function() {
 				this.mainView.setVisibility(G.View.GONE);
 				return this;
+			},
+			getWidth : function() {
+				return this.currentContainer.getWidth();
+			},
+			getHeight : function() {
+				return this.currentContainer.getHeight();
+			},
+			getMetrics : function() {
+				return [this.getWidth(), this.getHeight()];
 			}
 		}
 		r.buildLayoutParams = function(view, x, y, width, height) {
@@ -1180,6 +1189,15 @@ MapScript.loadModule("PopupPage", (function() {
 			requestHide : function() {
 				this.mainView.getRootView().setVisibility(G.View.GONE);
 				return this;
+			},
+			getWidth : function() {
+				return this.mainView.getWidth();
+			},
+			getHeight : function() {
+				return this.mainView.getHeight();
+			},
+			getMetrics : function() {
+				return [this.getWidth(), this.getHeight()];
 			}
 		};
 		r.visible = true;
@@ -1296,15 +1314,15 @@ MapScript.loadModule("PopupPage", (function() {
 		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 			if (e.getAction() == e.ACTION_DOWN && !modal) {
-				popup.exit();
+				if (e.getX() < layout.getLeft() || e.getX() >= layout.getRight() ||
+					e.getY() < layout.getTop() || e.getY() >= layout.getBottom()) {
+					popup.exit();
+				}
 			}
 			return true;
 		} catch(e) {return erp(e), true}}}));
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
 		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {return erp(e), true}}}));
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
@@ -1423,7 +1441,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 0],
+	version : [1, 2, 1],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -6002,11 +6020,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	showDonateDialog : function() {G.ui(function() {try {
 		var layout, scr, text, img, exit, popup, bmp;
 		scr = new G.ScrollView(ctx);
+		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
-		Common.applyStyle(layout, "message_bg");
 		text = new G.TextView(ctx);
 		text.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		text.setText("捐助通道（微信支付)\n\n命令助手捐助\n2.99元");
@@ -8626,10 +8644,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 		},
 		editParamPosition : function self(e, callback, onReset) {G.ui(function() {try {
-			var layout, title, i, row, label, ret = [], rela = [], screla, posp = ["X", "Y", "Z"], reset, exit, popup;
+			var scr, layout, title, i, row, label, ret = [], rela = [], screla, posp = ["X", "Y", "Z"], reset, exit, popup;
+			scr = new G.ScrollView(ctx);
+			Common.applyStyle(scr, "message_bg");
 			layout = new G.TableLayout(ctx);
 			layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-			Common.applyStyle(layout, "message_bg");
 			title = new G.TextView(ctx);
 			title.setText("编辑“" + e.param.name + "”");
 			title.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
@@ -8711,7 +8730,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				popup.exit();
 			} catch(e) {erp(e)}}}));
 			layout.addView(exit);
-			popup = PopupPage.showDialog("ca.assist.ParamEditor.Position", layout, -1, -2);
+			scr.addView(layout);
+			popup = PopupPage.showDialog("ca.assist.ParamEditor.Position", scr, -1, -2);
 		} catch(e) {erp(e)}})},
 		editParamSelector : function self(e, callback, onReset) {G.ui(function() {try {
 			var layout, title, i, label, list, add, reset, exit, popup;
@@ -9487,35 +9507,12 @@ MapScript.loadModule("Common", {
 			v.startAnimation(trans);
 		}
 	},
-
+	
+	//Deprecated
 	showDialog : function(layout, width, height, onExit, modal) {
-		var frame, popup;
-		frame = new G.FrameLayout(ctx);
-		frame.setBackgroundColor(this.argbInt(0x80, 0, 0, 0));
-		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			if (e.getAction() == e.ACTION_DOWN && !modal) {
-				popup.exit();
-			}
-			return true;
-		} catch(e) {return erp(e), true}}}));
-		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-		layout.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-			return true;
-		} catch(e) {return erp(e), true}}}));
-		frame.addView(layout);
-		if (G.style == "Material") layout.setElevation(16 * G.dp);
-		popup = new PopupPage(frame, "common.Dialog", modal);
-		if (onExit) popup.on("exit", onExit);
-		popup.on("resume", function() {
-			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
-		});
-		popup.on("pause", function() {
-			frame.setBackgroundColor(G.Color.TRANSPARENT);
-		});
-		popup.dialog = true;
-		popup.enter();
-		return popup;
+		var p = PopupPage.showDialog("common.Dialog", layout, width, height, modal);
+		if (onExit) p.on("exit", onExit);
+		return p;
 	},
 
 	showTextDialog : function(s, onDismiss) {G.ui(function() {try {
@@ -9603,11 +9600,12 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 
 	showInputDialog : function(s) {G.ui(function() {try {
-		var layout, title, text, ret, exit, popup;
+		var scr, layout, title, text, ret, exit, popup;
+		scr = new G.ScrollView(ctx);
+		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		Common.applyStyle(layout, "message_bg");
 		if (s.title) {
 			title = new G.TextView(ctx);
 			title.setText(Common.toString(s.title));
@@ -9649,10 +9647,11 @@ MapScript.loadModule("Common", {
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		layout.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
-			ret.setMinWidth(0.5 * Common.getScreenWidth());
+			ret.setMinWidth(0.5 * popup.getWidth());
 		} catch(e) {erp(e)}}}));
+		scr.addView(layout);
 		s.text = null;
-		s.dialog = popup = PopupPage.showDialog("common.InputDialog", layout, -2, -2);
+		s.dialog = popup = PopupPage.showDialog("common.InputDialog", scr, -2, -2);
 		if (s.onDismiss) popup.on("exit", s.onDismiss);
 	} catch(e) {erp(e)}})},
 
@@ -9840,11 +9839,12 @@ MapScript.loadModule("Common", {
 	},
 
 	showSlider : function self(o) {G.ui(function() {try {
-		var layout, seekbar, text, exit, popup;
+		var scr, layout, seekbar, text, exit, popup;
+		scr = new G.ScrollView(ctx);
+		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
-		Common.applyStyle(layout, "message_bg");
 		seekbar = new G.SeekBar(ctx);
 		seekbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 		seekbar.setMax(o.max);
@@ -9872,7 +9872,8 @@ MapScript.loadModule("Common", {
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		text.setText(o.prompt(o.progress));
-		popup = PopupPage.showDialog("common.SliderDialog", layout, -1, -2);
+		scr.addView(layout);
+		popup = PopupPage.showDialog("common.SliderDialog", scr, -1, -2);
 		if (o.onDismiss) popup.on("exit", o.onDismiss);
 	} catch(e) {erp(e)}})},
 
@@ -13303,11 +13304,12 @@ MapScript.loadModule("JSONEdit", {
 		JSONEdit.edit = null;
 	} catch(e) {erp(e)}})},
 	showData : function(msg, data, callback) {G.ui(function() {try {
-		var layout, title, text, ret, exit, popup;
+		var scr, layout, title, text, ret, exit, popup;
+		scr = new G.ScrollView(ctx);
+		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		Common.applyStyle(layout, "message_bg");
 		title = new G.TextView(ctx);
 		title.setText(msg);
 		title.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
@@ -13359,7 +13361,8 @@ MapScript.loadModule("JSONEdit", {
 			return true;
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
-		popup = PopupPage.showDialog("jsonedit.DataEditor", layout, -2, -2);
+		scr.addView(layout);
+		popup = PopupPage.showDialog("jsonedit.DataEditor", scr, -2, -2);
 	} catch(e) {erp(e)}})},
 	showBatchEdit : function(data, callback) {G.ui(function() {try {
 		var frame, layout, title, text, ret, exit, popup;
