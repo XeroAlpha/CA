@@ -23,6 +23,10 @@ a:hover, a:active {
     color: white;
     text-decoration: underline;
 }
+pre {
+    white-space: pre;
+    font-family: 'Courier New', Courier, monospace
+}
 #login, #exec {
     position: fixed;
     left: 0;
@@ -128,7 +132,7 @@ function ping() {
 function logText(text) {
     console.log(text);
     var container = get("log");
-    var node = document.createElement("p");
+    var node = document.createElement("pre");
     node.innerText = text;
     container.appendChild(node);
     setTimeout(function() {

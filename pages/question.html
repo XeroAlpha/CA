@@ -371,6 +371,15 @@ if (query.date) date = Date.parse(query.date);
 if (isNaN(date)) date = Date.now();
 var cur = getDailyQuestion(date);
 var isSuccessed;
+if (query.verify) {
+    cur = {
+        question: "请问今天的代码是？",
+        answer: function(s) {
+            return s == getDailyQuestion.code;
+        },
+        answerType: "number"
+    };
+}
 function reload() { 
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
