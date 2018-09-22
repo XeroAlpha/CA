@@ -979,10 +979,12 @@ MapScript.loadModule("PopupPage", (function() {
 					r.updateDefault();
 				}
 				this.defaultVisible = true;
+				this.updateOverlays();
 				this.trigger("addPopup");
 			} else if (!this.visible && !this.floatVisible) {
 				this.showView(this.floatWindow, 0, 0, -1, -1);
 				this.floatVisible = true;
+				this.updateOverlays();
 				this.trigger("addPopup");
 			}
 		}
@@ -994,11 +996,13 @@ MapScript.loadModule("PopupPage", (function() {
 					this.hideView(this.defaultWindow);
 					this.trigger("removePopup");
 					this.defaultVisible = false;
+					this.updateOverlays();
 					if (!this.visible) this.show();
 				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
 					this.hideView(this.floatWindow);
 					this.trigger("removePopup");
 					this.floatVisible = false;
+					this.updateOverlays();
 				}
 			}
 		}
@@ -1066,6 +1070,7 @@ MapScript.loadModule("PopupPage", (function() {
 				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
 			}
 			this.defaultWindow.setVisibility(G.View.VISIBLE);
+			this.updateOverlays();
 			this.trigger("show");
 		}
 		r.hide = function() {
@@ -1074,6 +1079,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
 			this.defaultWindow.setVisibility(G.View.GONE);
 			this.visible = false;
+			this.updateOverlays();
 			this.trigger("hide");
 		}
 		r.dismiss = function() {
@@ -1104,6 +1110,7 @@ MapScript.loadModule("PopupPage", (function() {
 				this.trigger("removePopup");
 				this.floatVisible = false;
 			}
+			this.updateOverlays();
 			this.busy = false;
 			this.trigger("dismiss");
 		}
@@ -1131,6 +1138,9 @@ MapScript.loadModule("PopupPage", (function() {
 					"]" + e.page.mainView);
 			});
 			return s.join("\n");
+		}
+		r.getActiveContainer = function() {
+			return this.floatVisible ? this.floatContainer : this.defaultVisible && this.visible ? this.defaultContainer : null;
 		}
 		r.supportResize = true;
 	} else {
@@ -1291,6 +1301,9 @@ MapScript.loadModule("PopupPage", (function() {
 			});
 			return s.join("\n");
 		}
+		r.getActiveContainer = function() {
+			return null;
+		}
 		r.supportResize = false;
 	}
 	r.prototype.show = r.enter;
@@ -1336,6 +1349,68 @@ MapScript.loadModule("PopupPage", (function() {
 		popup.enter();
 		return popup;
 	};
+	r.overlays = [];
+	r.Overlay = function(view, width, height, gravity, x, y) {
+		this.view = view;
+		this.width = width || -1;
+		this.height = height || -1;
+		this.gravity = gravity || (G.Gravity.LEFT | G.Gravity.TOP);
+		this.x = x || 0;
+		this.y = y || 0;
+		this.update();
+	}
+	r.Overlay.prototype = {
+		attach : function(container) {
+			if (container) {
+				container.addView(this.view, new G.FrameLayout.LayoutParams(this.width, this.height, this.gravity));
+				this.view.setTranslationX(this.x);
+				this.view.setTranslationY(this.y);
+				this.container = container;
+			} else {
+				this.popup = new G.PopupWindow(this.view, this.width, this.height);
+				Common.applyPopup(this.popup);
+				this.popup.setFocusable(false);
+				this.popup.setTouchable(false);
+				this.popup.showAtLocation(ctx.getWindow().getDecorView(), this.gravity, this.x, this.y);
+				PWM.addFloat(this.popup);
+			}
+		},
+		detach : function() {
+			if (this.popup) {
+				if (this.popup.isShowing()) this.popup.dismiss();
+				this.popup = null;
+			}
+			if (this.container) {
+				this.container.removeView(this.view);
+				this.container = null;
+			}
+		},
+		update : function(force) {
+			var newContainer = r.getActiveContainer();
+			//this.view.bringToFront();
+			if (!force && this.container == newContainer) return;
+			this.detach();
+			this.attach(newContainer);
+		}
+	}
+	r.addOverlay = function(overlay) {
+		overlay.update(true);
+		r.overlays.push(overlay);
+		return overlay;
+	}
+	r.removeOverlay = function(overlay) {
+		var i = r.overlays.indexOf(overlay);
+		if (i >= 0) {
+			overlay.detach();
+			r.overlays.splice(i, 1);
+		}
+	}
+	r.updateOverlays = function() {
+		var i;
+		for (i = 0; i < r.overlays.length; i++) {
+			r.overlays[i].update();
+		}
+	}
 	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
 		trans = new G.AlphaAnimation(0, 1);
@@ -1754,7 +1829,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (self.longClicked) {
 					if (PopupPage.getCount() == 0 || !PopupPage.visible) {
 						CA.showQuickBar();
-					} else {
+					} else if (PopupPage.supportResize) {
 						PopupPage.setFullScreen(!PopupPage.isFullScreen());
 					}
 				}
@@ -4329,7 +4404,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						.setType("text/plain")
 						.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(this.path))
 						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-				} catch(e) {}
+				} catch(e) {Log.e(e)}
 				return !this.intent;
 			}
 		}]);
@@ -4345,7 +4420,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return new android.content.Intent(android.content.Intent.ACTION_VIEW)
 						.setDataAndType(AndroidBridge.fileToUri(f), "text/plain")
 						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-				} catch(e) {}
+				} catch(e) {Log.e(e)}
 			})(),
 			onclick : function() {
 				ctx.startActivity(this.intent);
@@ -4366,7 +4441,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						.setType("text/plain")
 						.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(f))
 						.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-				} catch(e) {}
+				} catch(e) {Log.e(e)}
 			})(),
 			onclick : function() {
 				ctx.startActivity(this.intent);
@@ -5102,7 +5177,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 												ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.description))
 													.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 												return;
-											} catch(e) {}
+											} catch(e) {Log.e(e)}
 											Common.toast("打开链接失败");
 										}
 									});
@@ -5421,7 +5496,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (view == self.more) {
 					CA.showOnlineLib(function() {G.ui(function() {try {
-						self.refresh();Log.d("refresh");
+						self.refresh();
 					} catch(e) {erp(e)}})});
 					return;
 				}
@@ -5441,7 +5516,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
 			self.exit = new G.TextView(ctx);
-			self.exit.setText("确定");
+			self.exit.setText("关闭");
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
@@ -5647,7 +5722,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
 			self.exit = new G.TextView(ctx);
-			self.exit.setText("确定");
+			self.exit.setText("关闭");
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
@@ -10417,6 +10492,19 @@ MapScript.loadModule("Common", {
 					} catch(e) {
 						Common.toast("文件已生成于" + file.getAbsolutePath());
 					}
+				} else if (s.toLowerCase().startsWith("#")) {
+					new java.lang.Thread(function() {
+						try {
+							var t = eval(s.slice(1));
+							self.print(Log.debug("D", t, 0).join("\n"));
+						} catch(e) {
+							self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						}
+						G.ui(function() {try {
+							self.ready(s);
+						} catch(e) {erp(e)}});
+					}).start();
+					return;
 				} else {
 					try {
 						var t = eval(s);
@@ -10631,10 +10719,11 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 
 	toast : function self(str) {G.ui(function() {try {
-		if (!self.popup) {
+		if (!self.frame) {
 			self.show = function() {
-				if (!self.popup.isShowing()) self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
-				PWM.addPopup(self.popup);
+				if (!self.overlay) {
+					PopupPage.addOverlay(self.overlay = new PopupPage.Overlay(self.frame, -2, -2, G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM));
+				}
 				self.frame.clearAnimation();
 				if (!CA.settings.noAnimation) {
 					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0);
@@ -10644,16 +10733,18 @@ MapScript.loadModule("Common", {
 				}
 			}
 			self.hide = function() {
-				if (!self.popup.isShowing()) return;
+				if (!self.overlay) return;
 				if (CA.settings.noAnimation) {
-					self.popup.dismiss();
+					PopupPage.removeOverlay(self.overlay);
+					self.overlay = null;
 				} else {
 					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1);
 					animation.setInterpolator(new G.AccelerateInterpolator(2.0));
 					animation.setDuration(100);
 					animation.setAnimationListener(new G.Animation.AnimationListener({
 						onAnimationEnd : function(a) {try {
-							self.popup.dismiss();
+							PopupPage.removeOverlay(self.overlay);
+							self.overlay = null;
 						} catch(e) {erp(e)}},
 					}));
 					self.text.startAnimation(animation);
@@ -10666,22 +10757,18 @@ MapScript.loadModule("Common", {
 				self.text.startAnimation(animation);
 			}
 			self.toast = function(s) {
-				var lastShowing = self.popup.isShowing();
 				if (self.lastCbk) gHandler.removeCallbacks(self.lastCbk);
-				if (!self.popup.isShowing()) self.show();
+				if (!self.overlay) self.show();
 				if (self.lastToast == s) {
 					self.flash();
-				} else if (lastShowing) {
-					self.popup.dismiss();
-					self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM, 0, 0);
 				}
 				self.lastToast = s;
 				self.text.setText(Common.toString(s));
-				gHandler.postDelayed(self.lastCbk = function() {try {
+				gHandler.postDelayed(self.lastCbk = new java.lang.Runnable(function() {try {
 					self.hide();
 					self.lastCbk = null;
 					self.lastToast = "";
-				} catch(e) {erp(e)}}, 2000);
+				} catch(e) {erp(e)}}), 2000);
 			}
 			self.frame = new G.FrameLayout(ctx);
 			self.text = new G.TextView(ctx);
@@ -10690,13 +10777,9 @@ MapScript.loadModule("Common", {
 			self.text.setTextSize(14);
 			self.text.setGravity(G.Gravity.CENTER);
 			self.text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2));
+			self.text.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM));
 			self.text.getLayoutParams().setMargins(8 * G.dp, 8 * G.dp, 8 * G.dp, 8 * G.dp);
 			self.frame.addView(self.text);
-			self.popup = new G.PopupWindow(self.frame, -2, -2);
-			Common.applyPopup(self.popup);
-			self.popup.setFocusable(false);
-			self.popup.setTouchable(false);
 			if (G.style == "Material") self.text.setElevation(8 * G.dp);
 		}
 		self.toast(str);
@@ -11875,7 +11958,7 @@ MapScript.loadModule("FilterListAdapter", (function() {
 					}
 				}));
 			}}).run();
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 	}
 	r.prototype = {
 		build : function() {
@@ -12571,17 +12654,50 @@ MapScript.loadModule("ExpandableListAdapter", (function() {
 
 MapScript.loadModule("Updater", {
 	queryPage : function(url) {
+		return this.request(url, "GET");
+	},
+	postPage : function(url, data, contentType) {
+		return this.request(url, "POST", data, contentType);
+	},
+	request : function(url, method, data, contentType) {
 		var url = new java.net.URL(url);
 		var conn = url.openConnection();
 		conn.setConnectTimeout(5000);
 		conn.setUseCaches(false);
-		conn.setRequestMethod("GET");
-		conn.connect();
-		var rd = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
-		var s = [], ln, r;
-		while (ln = rd.readLine()) s.push(ln);
-		rd.close();
-		return s.join("\n");
+		conn.setRequestMethod(method);
+		if (data) {
+			conn.setDoInput(true);
+			conn.setDoOutput(true);
+		}
+		if (contentType) conn.setRequestProperty("Content-Type", contentType);
+		var rd, s, ln;
+		try {
+			conn.connect();
+			if (data) {
+				var wr = conn.getOutputStream();
+				wr.write(new java.lang.String(data).getBytes());
+				wr.flush();
+			}
+			rd = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+			s = [];
+			while (ln = rd.readLine()) s.push(ln);
+			rd.close();
+			return s.join("\n");
+		} catch(e) {
+			try {
+				rd = conn.getErrorStream();
+			} catch(er) {
+				throw e;
+			}
+			s = [conn.getResponseCode() + " " + conn.getResponseMessage()];
+			if (rd) {
+				rd = new java.io.BufferedReader(new java.io.InputStreamReader(rd));
+				while (ln = rd.readLine()) s.push(ln);
+				rd.close();
+			}
+			s.push(e);
+			throw s.join("\n");
+		}
 	},
 	download : function(url, path) {
 		const BUFFER_SIZE = 4096;
@@ -13702,7 +13818,7 @@ MapScript.loadModule("SettingsCompat", {
 	checkOp : function(ctx, op) {
 		try {
 			return ctx.getSystemService("appops").checkOp(op, android.os.Binder.getCallingUid(), ctx.getPackageName()) == 0; //MODE_ALLOWED
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return false;
 	},
 	setMode : function(ctx, op, allowed) {
@@ -13712,7 +13828,7 @@ MapScript.loadModule("SettingsCompat", {
 		try {
 			ctx.getSystemService("appops").setMode(op, android.os.Binder.getCallingUid(), ctx.getPackageName(), allowed);
 			return true;
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return false;
 	},
 	manageDrawOverlays : function() {
@@ -13744,7 +13860,7 @@ MapScript.loadModule("SettingsCompat", {
 				ctx.startActivity(intent);
 				return true;
 			}
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return false;
 	},
 	ShowManager : {
@@ -13889,7 +14005,7 @@ MapScript.loadModule("SettingsCompat", {
 				is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
 				ln = is.readLine();
 				is.close();
-			} catch(e) {}
+			} catch(e) {Log.e(e)}
 		});
 		th.start();
 		th.join(100, 0);
@@ -13897,7 +14013,7 @@ MapScript.loadModule("SettingsCompat", {
 		if (is != null) {
 			try {
 				is.close();
-			} catch(e) {}
+			} catch(e) {Log.e(e)}
 		}
 		return ln ? String(ln) : null;
 	}
@@ -13938,7 +14054,7 @@ MapScript.loadModule("EasterEgg", {
 		self.view.startAnimation(anis);
 		EasterEgg.view.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
 		PWM.addPopup(EasterEgg.view);
-	} catch(e) {}})},
+	} catch(e) {Log.e(e)}})},
 	getBitmap : function(w) {
 		var zf = new java.util.zip.ZipFile(ctx.getPackageManager().getApplicationInfo("com.mojang.minecraftpe", 128).publicSourceDir);
 		var b = zf.getInputStream(zf.getEntry("assets/resource_packs/vanilla/textures/blocks/command_block_front_mipmap.png"));
@@ -13965,7 +14081,7 @@ MapScript.loadModule("EasterEgg", {
 		var img;
 		try {
 			img = EasterEgg.getBitmap(480);
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		if (img) {
 			CA.Icon.easteregg = function(size) {
 				var zp = G.dp * size;
@@ -14253,7 +14369,7 @@ MapScript.loadModule("MCAdapter", {
 	existPackage : function(pkg) {
 		try {
 			if (ctx.getPackageManager().getPackageInfo(pkg, 0)) return true;
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return false;
 	},
 	askShortcut : function(name, pkg) {
@@ -14283,7 +14399,7 @@ MapScript.loadModule("MCAdapter", {
 	getPackageVersion : function(pkg) {
 		try {
 			return ctx.getPackageManager().getPackageInfo(pkg, 0).versionCode;
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return NaN;
 	}
 });
@@ -14494,7 +14610,7 @@ MapScript.loadModule("AndroidBridge", {
 		try {
 			var method = cls.getDeclaredMethod.apply(cls, params);
 			return cls;
-		} catch(e) {}
+		} catch(e) {/*Class not found*/}
 		if (!parent) parent = java.lang.Object;
 		if (cls == java.lang.Object || cls == parent) return null;
 		return self(cls.getSuperclass(), params, parent);
@@ -14548,7 +14664,7 @@ MapScript.loadModule("AndroidBridge", {
 				var r = CA.settings.chainLaunch, ai;
 				try {
 					if (r) ai = ctx.getPackageManager().getApplicationInfo(r, 128);
-				} catch(e) {}
+				} catch(e) {/*App not found*/}
 				if (!ai) return "无";
 				return ctx.getPackageManager().getApplicationLabel(ai);
 			},
@@ -14636,7 +14752,7 @@ MapScript.loadModule("AndroidBridge", {
 		try {
 			var appi = ctx.getPackageManager().getApplicationInfo("com.xero.ca", 128);
 			icon = ctx.getPackageManager().getResourcesForApplication(appi).getDrawable(appi.icon, null);
-		} catch(e) {}
+		} catch(e) {/*CA not found*/}
 		if (icon) {
 			CA.Icon.default0 = CA.Icon.default;
 			CA.Icon.default = function(size) {
@@ -14665,7 +14781,7 @@ MapScript.loadModule("AndroidBridge", {
 		}
 		try {
 			logo = ctx.getPackageManager().getApplicationIcon("com.xero.ca");
-		} catch(e) {}
+		} catch(e) {/*CA not found*/}
 		if (logo) {
 			CA.Icon.default0 = CA.Icon.default;
 			CA.Icon.default = function(size) {
@@ -14757,7 +14873,7 @@ MapScript.loadModule("AndroidBridge", {
 				if (cursor && cursor.moveToFirst()) {
 					r = String(cursor.getString(cursor.getColumnIndexOrThrow("_data")));
 				}
-			} catch(e) {}
+			} catch(e) {Log.e(e)}
 			if (cursor) cursor.close();
 			return r;
 		} else if (uri.getScheme().equalsIgnoreCase("file")) {
@@ -14823,7 +14939,7 @@ MapScript.loadModule("AndroidBridge", {
 			p.waitFor();
 			if (p.getErrorStream().available() > 0) return false;
 			return true;
-		} catch(e) {}
+		} catch(e) {Log.e(e)}
 		return false;
 	},
 	startAccessibilitySvcByRootAsync : function(callback, silently) {
@@ -14953,7 +15069,7 @@ MapScript.loadModule("NeteaseAdapter", {
 						}
 					}
 					if (f) continue;
-				} catch(e) {}
+				} catch(e) {Log.e(e)}
 				t = {
 					text : pm.getApplicationLabel(lp[i].applicationInfo),
 					result : lp[i].packageName
@@ -19311,7 +19427,7 @@ CA.Library.inner["basicedu"] = {
 		"type": "tutorial",
 		"intro": [
 			{
-				"text": "请使用基岩版1.7及以上版本并启动实验性功能",
+				"text": "请使用基岩版1.7.0.7及以上版本",
 				"bold": true,
 				"color": "criticalcolor"
 			},
