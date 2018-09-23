@@ -798,6 +798,14 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultDecorLinear.addView(r.headerView);
 			r.defaultContainer = new G.FrameLayout(ctx);
 			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			r.defaultContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				if (w == ow && h == oh) return;
+				for (i = r.defaultStack.length - 1; i >= 0; i--) {
+					e = r.defaultStack[i];
+					e.page.trigger("resize", w, h);
+				}
+			} catch(e) {erp(e)}}}));
 			r.defaultDecorLinear.addView(r.defaultContainer);
 			//r.defaultStub = new G.FrameLayout(ctx);
 			//r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
@@ -826,6 +834,14 @@ MapScript.loadModule("PopupPage", (function() {
 				}
 			});
 			r.floatWindow.setContentDescription("FloatWindow");
+			r.floatContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				if (w == ow && h == oh) return;
+				for (i = r.floatStack.length - 1; i >= 0; i--) {
+					e = r.floatStack[i];
+					e.page.trigger("resize", w, h);
+				}
+			} catch(e) {erp(e)}}}));
 		} catch(e) {erp(e)}})}
 		r.updateDefault = function() {
 			if (this.fullscreen) {
@@ -1322,7 +1338,7 @@ MapScript.loadModule("PopupPage", (function() {
 		return this.busy;
 	};
 	r.showDialog = function(name, layout, width, height, modal) {
-		var frame, popup;
+		var frame, popup, hasMargins = false;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
@@ -1335,7 +1351,6 @@ MapScript.loadModule("PopupPage", (function() {
 			return true;
 		} catch(e) {return erp(e), true}}}));
 		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
-		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
@@ -1345,8 +1360,20 @@ MapScript.loadModule("PopupPage", (function() {
 		popup.on("pause", function() {
 			frame.setBackground(null);
 		});
+		popup.on("resize", function(event, w, h) {
+			var newHasMargins = w > 40 * G.dp && h > 40 * G.dp;
+			if (hasMargins == newHasMargins) return;
+			hasMargins = newHasMargins;
+			if (newHasMargins) {
+				layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+			} else {
+				layout.getLayoutParams().setMargins(0, 0, 0, 0);
+			}
+			layout.requestLayout();
+		});
 		popup.dialog = true;
 		popup.enter();
+		popup.trigger("resize", popup.getWidth(), popup.getHeight());
 		return popup;
 	};
 	r.overlays = [];
@@ -1658,6 +1685,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 
 			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
+				if (NeteaseAdapter.multiVersions) {
+					Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
+				}
 			});
 			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
 				Updater.showNewVersionInfo(f.publishDate);
@@ -1701,7 +1731,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			};
 			Common.loadTheme();
 			CA.checkFeatures();
-			this.Library.initLibrary();
+			this.Library.initLibrary(function() {
+				if (NeteaseAdapter.multiVersions) {
+					Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
+				}
+			});
 		}
 	},
 	save : function() {
@@ -15012,6 +15046,7 @@ MapScript.loadModule("NeteaseAdapter", {
 	getCoreVersion : function() {
 		if (MapScript.host == "BlockLauncher") return ModPE.getMinecraftVersion();
 		if (CA.settings.mcPublisher && CA.settings.mcPackName) {
+			this.multiVersions = false;
 			return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
 		} else {
 			var i, result = [];
@@ -15021,10 +15056,11 @@ MapScript.loadModule("NeteaseAdapter", {
 				}
 			}
 			if (result.length > 1) {
-				Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + result[0]);
+				result = this.sortVersions(result);
 			}
+			this.multiVersions = result.length > 1;
 			if (result.length > 0) {
-				return result[0];
+				return result[result.length - 1];
 			}
 		}
 		return "*";
@@ -15159,6 +15195,28 @@ MapScript.loadModule("NeteaseAdapter", {
 			singleLine : true,
 			defaultValue : getMinecraftVersion()
 		});
+	},
+	sortVersions : function(arr) {
+		var a = arr.map(function(e) {
+			return String(e).split(".");
+		});
+		a.sort(this.compareVersion);
+		return a.map(function(e) {
+			return e.join(".");
+		});
+	},
+	compareVersion : function(a, b) {
+		var n, i, p1, p2;
+		n = Math.max(a.length, b.length);
+		for (i = 0; i < n; i++) {
+			p1 = a[i]; p2 = b[i];
+			if (p1 < p2) {
+				return -1;
+			} else if (p1 > p2) {
+				return 1;
+			}
+		}
+		return 0;
 	},
 	packNames : [
 		"com.netease.x19",
