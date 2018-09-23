@@ -1516,7 +1516,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 1],
+	version : [1, 2, 2],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -2269,7 +2269,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 						self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
 						self.add.setVisibility(G.View.GONE);
-						self.clear.setVisibility(G.View.VISIBLE);
+						self.clear.setVisibility(CA.settings.showClearButton ? G.View.VISIBLE : G.View.GONE);
 					}
 					var gostate2 = function() {
 						state = 2;
@@ -4185,6 +4185,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				id : "splitScreenMode",
 				name : "双栏模式",
 				description : "推荐大屏手机/Pad使用",
+				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			},{
+				id : "showClearButton",
+				name : "显示输入栏右侧的删除图标",
 				type : "boolean",
 				refresh : self.refresh,
 				get : self.getsettingbool,
@@ -7296,7 +7303,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		last : {},
 		callDelay : function self(s) {
 			if (CA.settings.iiMode != 2) return;
-			self.current = s;
 			if (!self.thread) {
 				self.thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 					android.os.Looper.prepare();
@@ -7305,16 +7311,15 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					self.thread = null;
 				} catch(e) {erp(e)}}}));
 				self.thread.start();
-				self.runnable = function() {
-					CA.IntelliSense.proc(self.current);
-					self.running = false;
-				}
-				self.running = false;
-				while (!self.handler);
+				self.running = java.util.concurrent.atomic.AtomicBoolean(false);
+				while (!self.handler); //这里我就偷懒了
 			}
-			if (self.running) self.handler.removeCallbacks(self.runnable);
-			self.handler.postDelayed(self.runnable, 150);
-			self.running = true;
+			if (self.running.get()) self.handler.removeCallbacks(self.runnable);
+			self.handler.post(self.runnable = function() {
+				CA.IntelliSense.proc(s);
+				self.running.set(false);
+			});
+			self.running.set(true);
 		},
 		apply : function() {
 			if (this.ui) this.show.apply(this);
