@@ -2080,35 +2080,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					CA.showFCS(CA.cmd.getText());
 				}
 			},{
-				text : "插入JSON/组件",
+				text : "插入……",
 				onclick : function(v) {
-					JSONEdit.create(function(data) {
-						var showMenu = function() {
-							Common.showOperateDialog([{
-								text : "插入该JSON",
-								onclick : function(v) {
-									var k = MapScript.toSource(data);
-									Common.replaceSelection(CA.cmd.getText(), k);
-								}
-							},{
-								text : "继续编辑",
-								onclick : function(v) {
-									if (!JSONEdit.show({
-										source : data,
-										rootname : "新JSON",
-										update : function() {
-											data = this.source;
-											showMenu();
-										}
-									})) showMenu();
-								}
-							},{
-								text : "取消",
-								onclick : function(v) {}
-							}]);
-						}
-						showMenu();
-					});
+					Common.showOperateDialog(self.insertDialog);
 				}
 			},{
 				text : "创建批量生成模板",
@@ -2157,6 +2131,50 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				});
 			}
+			self.insertDialog = [{
+				text : "JSON/组件",
+				onclick : function(v) {
+					JSONEdit.create(function(data) {
+						var showMenu = function() {
+							Common.showOperateDialog([{
+								text : "插入该JSON",
+								onclick : function(v) {
+									var k = MapScript.toSource(data);
+									Common.replaceSelection(CA.cmd.getText(), k);
+								}
+							},{
+								text : "继续编辑",
+								onclick : function(v) {
+									if (!JSONEdit.show({
+										source : data,
+										rootname : "新JSON",
+										update : function() {
+											data = this.source;
+											showMenu();
+										}
+									})) showMenu();
+								}
+							},{
+								text : "取消",
+								onclick : function(v) {}
+							}]);
+						}
+						showMenu();
+					});
+				}
+			},{
+				text : "英文ID",
+				onclick : function(v) {
+					CA.chooseIDList(function(text) {
+						Common.replaceSelection(CA.cmd.getText(), text);
+					});
+				}
+			},{
+				text : "短语",
+				onclick : function(v) {
+					CA.showCustomExpression();
+				}
+			}];
 			self.performClose = function(callback) {
 				if (CA.settings.noAnimation) {
 					CA.hideGen();
@@ -6179,6 +6197,146 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		scr.addView(layout);
 		popup = PopupPage.showDialog("ca.DonateDialog", scr, -2, -2);
 	} catch(e) {erp(e)}})},
+	chooseIDList : function(callback) {
+		var allIds = [];
+		var r = CA.IntelliSense.library.idlist.map(function(e) {
+			var i, t = {
+				text : e.name,
+				list : e.lists || (e.list ? [e.list] : [])
+			};
+			for (i in t.list) allIds.push(t.list[i]);
+			return t;
+		});
+		r.unshift({
+			text : "全部",
+			list : allIds
+		});
+		Common.showListChooser(r, function(pos) {
+			CA.showIDList(r[pos].list, callback);
+		});
+	},
+	showIDList : function self(list, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.vmaker = function(holder) {
+				var view = new G.TextView(ctx);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				Common.applyStyle(view, "textview_default", 3);
+				return view;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.self.setText(self.texts[e]);
+			}
+			self.init = function(list) {
+				self.ids = [];
+				self.texts = [];
+				var i, j, cur = list, e, ks, off, total = 0;
+				for (i = 0; i < cur.length; i++) {
+					if (!(cur[i] instanceof Object)) {
+						cur[i] = CA.IntelliSense.library.enums[cur[i]];
+					}
+				}
+				for (i = 0; i < cur.length; i++) {
+					e = cur[i];
+					off = total;
+					if (Array.isArray(e)) {
+						self.ids.length = (self.texts.length += e.length);
+						for (j = 0; j < e.length; j++) {
+							if (self.ids.indexOf(e[j]) >= 0) {
+								off--;
+								continue;
+							}
+							self.ids[off + j] = self.texts[off + j] = e[j];
+							total++;
+						}
+					} else {
+						ks = Object.keys(e);
+						self.ids.length = (self.texts.length += ks.length);
+						for (j = 0; j < ks.length; j++) {
+							if (self.ids.indexOf(ks[j]) >= 0) {
+								off--;
+								continue;
+							}
+							self.ids[off + j] = ks[j];
+							self.texts[off + j] = ks[j] + " - " + e[ks[j]];
+							total++;
+						}
+					}
+					self.ids.length = self.texts.length = total;
+				}
+				ISegment.kvSort(self.ids, self.texts, function(a, b) {
+					return a > b ? 1 : a == b ? 0 : -1;
+				});
+				self.update("");
+			}
+			self.update = function(s) {
+				var i, arr = [];
+				for (i = 0; i < self.texts.length; i++) {
+					if (self.texts[i].indexOf(s) >= 0) {
+						arr.push(i);
+					}
+				}
+				self.adpt.setArray(arr);
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(5 * G.dp, 0, 0, 0)
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(self.header, "bar_float");
+			self.edit = new G.EditText(ctx);
+			self.edit.setSingleLine(true);
+			self.edit.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+			self.edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+			self.edit.setTypeface(G.Typeface.MONOSPACE);
+			Common.applyStyle(self.edit, "edittext_default", 3);
+			self.edit.addTextChangedListener(new G.TextWatcher({
+				afterTextChanged : function(s) {try {
+					self.update(String(s));
+				} catch(e) {erp(e)}}
+			}));
+			self.header.addView(self.edit);
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("×");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 0, 10 * G.dp, 0)
+			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.exit);
+			self.linear.addView(self.header);
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				var text = self.ids[self.adpt.array[pos]];
+				if (callback) {
+					self.popup.exit();
+					callback(text);
+				} else {
+					self.edit.setText(text);
+					self.edit.setSelection(self.edit.length());
+				}
+			} catch(e) {erp(e)}}}));
+			if (G.style == "Material") {
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
+			}
+			self.linear.addView(self.list);
+
+			self.popup = new PopupPage(self.linear, "ca.IDList");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		self.init(list);
+		self.callback = callback;
+		self.popup.enter();
+	} catch(e) {erp(e)}})},
 
 	SpecialTips : [
 		function(d) {
@@ -6678,6 +6836,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				json : {},
 				help : {},
 				tutorials : [],
+				idlist : [],
 				info : info = []
 			};
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
@@ -7016,6 +7175,44 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				if (!(o in g.enums)) throw "无效的枚举引用";
 				return g.enums[o];
 			}
+			var joinTutorial = function(src, o) {
+				var i;
+				for (i = 0; i < src.length; i++) {
+					if (src[i].id == o.id) {
+						src[i] = o;
+						return;
+					}
+				}
+				src.push(o);
+			}
+			var filterTutorial = function(src, o) {
+				var i;
+				for (i = 0; i < src.length; i++) {
+					if (src[i].id == o.id) {
+						src.splice(i, 1);
+						return;
+					}
+				}
+			}
+			var joinIDList = function(src, o) {
+				var i;
+				for (i = 0; i < src.length; i++) {
+					if (src[i].name == o.name) {
+						src[i] = o;
+						return;
+					}
+				}
+				src.push(o);
+			}
+			var filterIDList = function(src, o) {
+				var i;
+				for (i = 0; i < src.length; i++) {
+					if (src[i].name == o.name) {
+						src.splice(i, 1);
+						return;
+					}
+				}
+			}
 			return function(cur, l) {
 				if (this.checkPackVer(l) != 0) return false;
 				var i;
@@ -7071,8 +7268,17 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				}
 				for (i in l.tutorials) {
-					if (l.mode != "remove") {
-						cur.tutorials.push(l.tutorials[i]);
+					if (l.mode == "remove") {
+						filterTutorial(cur.tutorials, l.tutorials[i]);
+					} else {
+						joinTutorial(cur.tutorials, l.tutorials[i]);
+					}
+				}
+				for (i in l.idlist) {
+					if (l.mode == "remove") {
+						filterIDList(cur.idlist, l.idlist[i]);
+					} else {
+						joinIDList(cur.idlist, l.idlist[i]);
 					}
 				}
 				return true;
@@ -10763,9 +10969,8 @@ MapScript.loadModule("Common", {
 				if (!self.overlay) {
 					PopupPage.addOverlay(self.overlay = new PopupPage.Overlay(self.frame, -2, -2, G.Gravity.CENTER_HORIZONTAL | G.Gravity.BOTTOM));
 				}
-				self.frame.clearAnimation();
 				if (!CA.settings.noAnimation) {
-					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0);
+					var animation = new G.TranslateAnimation(0, 0, 8 * G.dp + self.text.getHeight(), 0);
 					animation.setInterpolator(new G.DecelerateInterpolator(1.0));
 					animation.setDuration(100);
 					self.text.startAnimation(animation);
@@ -10777,16 +10982,17 @@ MapScript.loadModule("Common", {
 					PopupPage.removeOverlay(self.overlay);
 					self.overlay = null;
 				} else {
-					var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 1);
+					var animation = new G.TranslateAnimation(0, 0, 0, 8 * G.dp + self.text.getHeight());
 					animation.setInterpolator(new G.AccelerateInterpolator(2.0));
 					animation.setDuration(100);
-					animation.setAnimationListener(new G.Animation.AnimationListener({
-						onAnimationEnd : function(a) {try {
-							PopupPage.removeOverlay(self.overlay);
-							self.overlay = null;
-						} catch(e) {erp(e)}},
-					}));
+					animation.setFillEnabled(true);
+					animation.setFillAfter(true);
 					self.text.startAnimation(animation);
+					gHandler.postDelayed(self.lastCbk = new java.lang.Runnable(function() {try { //防止Animation被取消
+						self.lastCbk = null;
+						PopupPage.removeOverlay(self.overlay);
+						self.overlay = null;
+					} catch(e) {erp(e)}}), 150);
 				}
 			}
 			self.flash = function() {
@@ -10797,15 +11003,16 @@ MapScript.loadModule("Common", {
 			}
 			self.toast = function(s) {
 				if (self.lastCbk) gHandler.removeCallbacks(self.lastCbk);
+				self.text.clearAnimation();
 				if (!self.overlay) self.show();
+				self.text.setText(Common.toString(s));
 				if (self.lastToast == s) {
 					self.flash();
 				}
 				self.lastToast = s;
-				self.text.setText(Common.toString(s));
 				gHandler.postDelayed(self.lastCbk = new java.lang.Runnable(function() {try {
-					self.hide();
 					self.lastCbk = null;
+					self.hide();
 					self.lastToast = "";
 				} catch(e) {erp(e)}}), 2000);
 			}
@@ -13027,6 +13234,20 @@ MapScript.loadModule("ISegment", {
 			return self.writeLenientString(e, opt);
 		}).join(options.splitChar);
 	},
+	kvSort : function(k, v, f) {
+		var i, e, arr = new Array(Math.max(k.length, v.length));
+		for (i = 0; i < arr.length; i++) {
+			arr[i] = [k[i], v[i]];
+		}
+		arr.sort(function(a, b) {
+			return f(a[0], b[0]);
+		});
+		for (i = 0; i < arr.length; i++) {
+			e = arr[i];
+			k[i] = e[0];
+			v[i] = e[1];
+		}
+	},
 
 	rawJson : function self(o, variableMap) {
 		if (!self.coverSpan) {
@@ -15047,23 +15268,39 @@ MapScript.loadModule("NeteaseAdapter", {
 		if (MapScript.host == "BlockLauncher") return ModPE.getMinecraftVersion();
 		if (CA.settings.mcPublisher && CA.settings.mcPackName) {
 			this.multiVersions = false;
+			this.mcPackage = CA.settings.mcPackName;
+			this.mcPublisher = CA.settings.mcPublisher;
+			this.autoSelect = false;
 			return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
 		} else {
-			var i, result = [];
+			var i, result = [], t;
 			for (i = 0; i < this.packNames.length; i++) {
 				if (MCAdapter.existPackage(this.packNames[i])) {
-					result.push(this.getVersionByPar(this.packNames[i], this.packages[this.packNames[i]].publisher));
+					t = {
+						package : this.packNames[i],
+						publisher : this.packages[this.packNames[i]].publisher
+					};
+					t.version = String(this.getVersionByPar(t.package, t.publisher)).split(".");
+					result.push(t);
 				}
 			}
 			if (result.length > 1) {
-				result = this.sortVersions(result);
+				result.sort(function(a, b) {
+					return NeteaseAdapter.compareVersion(b.version, a.version);
+				});
 			}
 			this.multiVersions = result.length > 1;
+			this.autoSelect = true;
 			if (result.length > 0) {
-				return result[result.length - 1];
+				this.mcPackage = result[0].package;
+				this.mcPublisher = result[0].publisher;
+				return result[0].version.join(".");
+			} else {
+				this.mcPackage = null;
+				this.mcPublisher = null;
+				return "*";
 			}
 		}
-		return "*";
 	},
 	getVersionByPar : function(packName, publisher) {
 		switch(publisher) {
@@ -15121,15 +15358,20 @@ MapScript.loadModule("NeteaseAdapter", {
 				} else {
 					t.description = "未知的版本:" + lp[i].packageName + " - " + lp[i].versionName;
 				}
+				if (canCustomize && NeteaseAdapter.mcPackage == t.result) {
+					t.text += NeteaseAdapter.autoSelect ? " (自动选择)" : " (当前选择)";
+				}
 				r.push(t);
 			}
 			if (canCustomize) {
 				r.unshift({
-					text : "自动",
+					text : "自动选择",
+					description : NeteaseAdapter.autoSelect ? "启用中" : "未启用",
 					auto : true
 				});
 				r.push({
 					text : "自定义",
+					description : NeteaseAdapter.mcPublisher == "Custom" ? "正在使用版本: " + NeteaseAdapter.mcVersion : "未启用",
 					custom : true
 				});
 			}
@@ -15196,15 +15438,6 @@ MapScript.loadModule("NeteaseAdapter", {
 			defaultValue : getMinecraftVersion()
 		});
 	},
-	sortVersions : function(arr) {
-		var a = arr.map(function(e) {
-			return String(e).split(".");
-		});
-		a.sort(this.compareVersion);
-		return a.map(function(e) {
-			return e.join(".");
-		});
-	},
 	compareVersion : function(a, b) {
 		var n, i, p1, p2;
 		n = Math.max(a.length, b.length);
@@ -15219,6 +15452,7 @@ MapScript.loadModule("NeteaseAdapter", {
 		return 0;
 	},
 	packNames : [
+		"com.mojang.minecraftpe",
 		"com.netease.x19",
 		"com.netease.mc.aligames",
 		"com.netease.mc.bili",
@@ -15237,10 +15471,13 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.mc.lenovo",
 		"com.netease.mc.coolpad",
 		"com.netease.mc.am",
-		"com.mojang.minecraftpe",
 		"com.zhekasmirnov.innercore"
 	],
 	packages : {
+		"com.mojang.minecraftpe" : {
+			desc : "国际版",
+			publisher : "Mojang"
+		},
 		"com.netease.x19" : {
 			desc : "网易-官方版",
 			publisher : "Netease"
@@ -15312,10 +15549,6 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.mc.am" : {
 			desc : "网易-金立应用商店版",
 			publisher : "Netease"
-		},
-		"com.mojang.minecraftpe" : {
-			desc : "国际版",
-			publisher : "Mojang"
 		},
 		//待补，在此感谢@风铃物语 与 @绿叶 的帮助
 		"com.zhekasmirnov.innercore" : {
@@ -15698,6 +15931,39 @@ CA.Library.inner["default"] = {
 	"minSupportVer": "0.7.4",
 	"targetSupportVer": "1.4.0.5",
 	"commands": {},
+	"idlist": [
+		{
+			"name": "方块",
+			"list": "block"
+		},
+		{
+			"name": "物品",
+			"list": "item"
+		},
+		{
+			"name": "声音",
+			"list": "sound"
+		},
+		{
+			"name": "实体",
+			"list": "entity"
+		},
+		{
+			"name": "状态效果",
+			"list": "effect"
+		},
+		{
+			"name": "附魔",
+			"list": "enchant_type"
+		},
+		{
+			"name": "游戏规则",
+			"lists": [
+				"gamerule_bool",
+				"gamerule_int"
+			]
+		}
+	],
 	"enums": {
 		"block": {
 			"acacia_button": "金合欢木按钮",
