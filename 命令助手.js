@@ -412,15 +412,9 @@ MapScript.loadModule("G", {
 		} else if (android.os.Build.VERSION.SDK_INT >= 11) {
 			this.style = "Holo";
 			ctx.setTheme(android.R.style.Theme_Holo_Light);
-			this.ui(function() {try {
-				G.Toast.makeText(ctx, "您的Android版本低于5.0，不支持Material Design风格。已使用Holo风格替换，界面可能与预览图不同。", 1).show();
-			} catch(e) {erp(e)}});
 		} else {
 			this.style = "Basic";
 			ctx.setTheme(android.R.style.Theme_Light);
-			this.ui(function() {try {
-				G.Toast.makeText(ctx, "您的Android版本低于3.0，不支持Material Design风格。已使用安卓默认风格替换，界面可能与预览图不同。", 1).show();
-			} catch(e) {erp(e)}});
 		}
 	},
 	ui : (function() {
@@ -6424,7 +6418,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return r;
 			}
 			self.addVariable = function() {
-				var i, r = [], a = CA.BatchPattern;
+				var i, r = [{
+					text : "副本",
+					description : "创建已有标签的副本",
+					copy : true
+				}], a = CA.BatchPattern;
 				for (i in a) {
 					r.push({
 						text : a[i].name,
@@ -6435,8 +6433,31 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				Common.showListChooser(r, function(pos) {
 					var e = r[pos];
+					if (e.copy) {
+						self.chooseVariable(function(o) {
+							var type = CA.BatchPattern[o.type];
+							self.insertVariable({
+								label : type.name + (++self.spanNo[o.type]),
+								type : o.type,
+								data : type.clone ? type.clone(o.data) : type.parse(type.stringify(o.data)).data
+							}, true);
+						});
+						return;
+					}
 					if (!self.spanNo[e.id]) self.spanNo[e.id] = 0;
 					self.insertVariable(self.createVariable(e.text + (++self.spanNo[e.id]), e.id), true);
+				}, true);
+			}
+			self.chooseVariable = function(callback) {
+				var a = self.getVariables().map(function(e) {
+					var type = CA.BatchPattern[e.type];
+					return {
+						text : e.label + " : " + type.name,
+						data : e
+					};
+				});
+				Common.showListChooser(a, function(pos) {
+					callback(a[pos].data);
 				}, true);
 			}
 			self.createImageSpan = function(bgcolor, frcolor, fontsize, text) {
@@ -6557,17 +6578,87 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return target;
 			}
+			self.bundleStrings = function(array) {
+				var i, msp = [], msi, msn, r = [], cur, t;
+				for (i = 0; i < array.length; i++) {
+					if (array[i] instanceof Function) {
+						array[i] = array[i]();
+					}
+					if (Array.isArray(array[i])) {
+						msp.push(i);
+					}
+				}
+				if (msp.length == 0) {
+					if (array.length == 0) array = [""];
+					array[0] = [array[0]];
+					msp.push(0);
+				}
+				msi = new Array(msp.length);
+				msn = new Array(msp.length);
+				for (i = 0; i < msp.length; i++) {
+					msi[i] = 0;
+					msn[i] = array[msp[i]].length;
+				}
+				while (msi[0] < msn[0]) {
+					cur = array.slice();
+					for (i = 0; i < msp.length; i++) {
+						cur[msp[i]] = cur[msp[i]][msi[i]];
+					}
+					for (i = 0; i < cur.length; i++) {
+						if (typeof cur[i] == "object") {
+							switch (cur[i].type) {
+								case "map":
+								cur[i] = cur[i].map(cur);
+								break;
+								case "syncmap":
+								t = cur[i].target;
+								t2 = msp.indexOf(t);
+								cur[i] = cur[i].map(cur[i], msi[t2], msn[t2]);
+								break;
+							}
+						}
+					}
+					r.push(cur.join(""));
+					msi[msi.length - 1]++;
+					for (i = msi.length - 1; i > 0; i--) {
+						if (msi[i] >= msn[i]) {
+							msi[i] = 0;
+							msi[i - 1]++;
+						} else {
+							break;
+						}
+					}
+				}
+				return r;
+			}
 			self.export = function() {
 				var template = String(self.edit.getText());
 				var vars = self.getVariables();
+				var varsController = self.varsController.create(vars);
 				var i, r = [], pos = 0;
-				for (i in vars) {
-					self.concatStrBundle(r, template.slice(pos, vars[i].start));
-					self.concatStrBundle(r, CA.BatchPattern[vars[i].type].export(vars[i].data));
+				for (i = 0; i < vars.length; i++) {
+					r.push(template.slice(pos, vars[i].start));
+					r.push(CA.BatchPattern[vars[i].type].export(vars[i].data, varsController));
 					pos = vars[i].end;
 				}
-				self.concatStrBundle(r, template.slice(pos, template.length));
-				return r;
+				r.push(template.slice(pos, template.length));
+				return self.bundleStrings(r);
+			}
+			self.varsController = {
+				create : function(vars) {
+					var o = Object.create(this);
+					o.vars = vars;
+					return o;
+				},
+				getBundleIndexByLabel : function(label) {
+					var i;
+					for (i = 0; i < this.vars.length; i++) {
+						if (this.vars[i].label == label) {
+							return i * 2 + 1;
+						}
+					}
+					return -1;
+				}
 			}
 			self.touchEvent = function(event) {
 				var widget = self.edit, buffer = self.edit.getText();
@@ -6818,7 +6909,192 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			update : function(o) {
 				o.text = String(o.edittext.getText()).replace(/\n/g, " ");
 			}
+		},
+		range : {
+			name : "数列",
+			description : "一个等差数列的列表",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					from : 1,
+					to : 10,
+					step : 1,
+					syncLabel : ""
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						from : parseFloat(r[0]),
+						to : parseFloat(r[1]),
+						step : r[2] ? parseFloat(r[2]) : 1,
+						syncLabel : r[3] || ""
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([String(o.from), String(o.to), String(o.step), o.syncLabel], this.options) + ")";
+			},
+			export : function(o, controller) {
+				this.update(o);
+				var i, from = o.from, to = o.to, step = o.step, syncLabel = o.syncLabel, t, r = [];
+				if (step == 0 || isNaN(step)) step = 1;
+				if (to < from && step > 0) {
+					step = -step;
+				}
+				t = (to - from) / step;
+				if (!isFinite(step) || t < 0) {
+					return ["{参数不合法}"];
+				}
+				for (i = 0, c = from; i <= t; i++) {
+					r.push(String(Common.toFixedNumber(from + step * i, 7)));
+				}
+				syncLabel = controller.getBundleIndexByLabel(syncLabel)
+				if (syncLabel >= 0) {
+					return {
+						type : "syncmap",
+						arr : r,
+						target : syncLabel,
+						map : this.mapFunc
+					}
+				} else {
+					return r;
+				}
+			},
+			mapFunc : function(e, i, n) {
+				return i < this.arr.length ? this.arr[i] : "{下标超出}"
+			},
+			buildLayout : function(o) {
+				var inputType = G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL;
+				o.layout = CA.createParamTable([
+					["开始计数", o._from = CA.createParamTextbox({
+						text : o.from,
+						inputType : inputType
+					})],
+					["结束计数", o._to = CA.createParamTextbox({
+						text : o.to,
+						inputType : inputType
+					})],
+					["步长", o._step = CA.createParamTextbox({
+						text : o.step,
+						inputType : inputType
+					})],
+					["同步标签", o._label = CA.createParamTextbox({
+						text : o.syncLabel
+					})]
+				]);
+				return o;
+			},
+			update : function(o) {Log.s(o)
+				o.from = parseFloat(o._from.getText());
+				o.to = parseFloat(o._to.getText());
+				o.step = parseFloat(o._step.getText());
+				o.syncLabel = String(o._label.getText());
+			}
+		},
+		link : {
+			name : "链接",
+			description : "显示与指定标签相同的内容",
+			options : {
+				skipChars : ")",
+				endChars : ")"
+			},
+			create : function() {
+				return this.buildLayout({
+					label : ""
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientString(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						label : r
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientString(o.label, this.options) + ")";
+			},
+			export : function(o, controller) {
+				var index = controller.getBundleIndexByLabel(o.label);
+				this.update(o);
+				return {
+					type : "map",
+					map : function(arr) {
+						return index < 0 ? "{找不到标签}" : arr[index];
+					}
+				};
+			},
+			buildLayout : function(o) {
+				var text = new G.EditText(ctx);
+				text.setText(o.label);
+				text.setHint("标签名");
+				text.setSingleLine(true);
+				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
+				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+				Common.applyStyle(text, "edittext_default", 3);
+				o.layout = o.edittext = text;
+				return o;
+			},
+			update : function(o) {
+				o.label = String(o.edittext.getText());
+			}
 		}
+	},
+	createParamTable : function(table) {
+		var layout, row, label;
+		layout = new G.TableLayout(ctx);
+		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+		for (i = 0; i < table.length; i++) {
+			row = new G.TableRow(ctx);
+			row.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
+			row.setGravity(G.Gravity.CENTER);
+			if (Array.isArray(table[i])) {
+				label = new G.TextView(ctx);
+				label.setText(table[i][0]);
+				label.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				label.setLayoutParams(new G.TableRow.LayoutParams(-1, -2));
+				Common.applyStyle(label, "textview_default", 2);
+				row.addView(label);
+				row.addView(table[i][1], new G.TableRow.LayoutParams(0, -2, 1));
+			} else {
+				row.addView(table[i], new G.TableRow.LayoutParams(0, -2, 1));
+			}
+			layout.addView(row);
+		}
+		return layout;
+	},
+	createParamTextbox : function(o) {
+		var ret = new G.EditText(ctx);
+		ret.setText(o.text ? String(o.text) : "");
+		ret.setHint(o.hint ? String(o.hint) : "");
+		ret.setSingleLine(!o.multiline);
+		ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		if (o.inputType) ret.setInputType(o.inputType);
+		if (o.keyListener) ret.setKeyListener(o.keyListener);
+		if (o.transformationMethod) ret.setTransformationMethod(o.transformationMethod);
+		ret.setSelection(ret.length());
+		Common.applyStyle(ret, "edittext_default", 2);
+		return ret;
 	},
 	PluginMenu : [],
 	PluginExpression : [],
@@ -9857,6 +10133,8 @@ MapScript.loadModule("Common", {
 		exit.setGravity(G.Gravity.CENTER);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
+		exit.measure(0, 0);
+		text.setMinWidth(exit.getMeasuredWidth());
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.exit();
 		} catch(e) {erp(e)}}}));
@@ -10200,7 +10478,7 @@ MapScript.loadModule("Common", {
 	showSettings : function self(data, onSave) {G.ui(function() {try {
 		if (!self.linear) {
 			self.refreshText = function() {
-				if (self.popup.showing) return;
+				if (!self.popup.showing) return;
 				self.data.forEach(function(e, i) {
 					if (!e._view) return;
 					if (e.type == "text") {
@@ -11180,6 +11458,11 @@ MapScript.loadModule("Common", {
 		}
 		if (start < 0) return;
 		s.replace(start, end, text);
+	},
+	
+	toFixedNumber : function(number, bits) {
+		var pw = Math.pow(10, bits);
+		return Math.floor(number * pw) / pw;
 	}
 });
 
@@ -13126,8 +13409,8 @@ MapScript.loadModule("Updater", {
 
 MapScript.loadModule("ISegment", {
 	alignStringEnd : function(s, len, char) {
-		var i, t;
-		for (i = len - s.length; i >= 0; i--) {
+		var i, t = "";
+		for (i = len - s.length; i > 0; i--) {
 			t += char;
 		}
 		return t + s;
@@ -13177,10 +13460,11 @@ MapScript.loadModule("ISegment", {
 				case 2:
 				case 3:
 				hex = hex * 16 + parseInt(c, 16);
+				hexn--;
 				if (hexn <= 0) {
 					r.push(String.fromCharCode(hex));
 					state = 0;
-				} else hexn--;
+				}
 				break;
 			}
 		}
@@ -13207,7 +13491,7 @@ MapScript.loadModule("ISegment", {
 			} else if (skipchars.indexOf(c) >= 0) {
 				r.push("\\" + c);
 			} else if (c < " " || c > "~") { //not in 0x20-0x7e
-				r.push("\\u" + this.alignStringEnd(c.toString(16), 4, "0"));
+				r.push("\\u" + this.alignStringEnd(c.charCodeAt(0).toString(16), 4, "0"));
 			} else {
 				r.push(c);
 			}
@@ -14767,6 +15051,7 @@ MapScript.loadModule("AndroidBridge", {
 		this.onNewIntent(ScriptActivity.getIntent(), true);
 		if (CA.settings.autoStartAccSvcRoot) AndroidBridge.startAccessibilitySvcByRootAsync(null, true);
 		if (CA.settings.watchClipboard) AndroidBridge.startWatchClipboard();
+		if (CA.settings.startWSSOnStart) WSServer.start(true);
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -15004,6 +15289,15 @@ MapScript.loadModule("AndroidBridge", {
 			},
 			set : function(v) {
 				CA.settings.neverAskAdapter = Boolean(v);
+			}
+		}, {
+			name : "启动时自动启动WebSocket服务器",
+			type : "boolean",
+			get : function() {
+				return Boolean(CA.settings.startWSSOnStart);
+			},
+			set : function(v) {
+				CA.settings.startWSSOnStart = Boolean(v);
 			}
 		});
 	},
@@ -15601,9 +15895,10 @@ MapScript.loadModule("WSServer", {
 		this.server.setConnectionLostTimeout(-1);
 		this.server.setTcpNoDelay(true);
 	},
-	start : function() {
+	start : function(silent) {
 		if (!this.port) this.port = this.startPort;
 		this.conn = null;
+		this.silent = silent;
 		this.build(this.port);
 		this.server.start();
 	},
@@ -15614,7 +15909,7 @@ MapScript.loadModule("WSServer", {
 		AndroidBridge.notifySettings();
 	},
 	onStart : function() {
-		this.howToUse();
+		if (!this.silent) this.howToUse();
 		this.running = true;
 		AndroidBridge.notifySettings();
 	},
