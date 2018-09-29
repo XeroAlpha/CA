@@ -10965,6 +10965,7 @@ MapScript.loadModule("Common", {
 				} catch(e) {erp(e)}});
 			}
 			self.ready = function(cmd) {
+				cmd = String(cmd);
 				self.history[self.lines.length - 1] = cmd;
 				self.lines.push(new G.SpannableStringBuilder());
 				if (self.lines.length > self.LINE_LIMIT) {
@@ -10975,68 +10976,68 @@ MapScript.loadModule("Common", {
 				self.adapter.notifyChange();
 				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
-			self.exec = function(s) {
-				if (s.toLowerCase() == "exit") {
+			self.exec = function(_s) {
+				var _t;
+				if (_s.toLowerCase() == "exit") {
 					self.popup.exit();
 					return;
-				} else if (s.toLowerCase() == "cls") {
+				} else if (_s.toLowerCase() == "cls") {
 					self.cls();
 					return;
-				} else if (s.toLowerCase() == "ls") {
+				} else if (_s.toLowerCase() == "ls") {
 					JSONEdit.traceGlobal();
-				} else if (s.toLowerCase().startsWith("ls ")) {
-					JSONEdit.trace(eval.call(null, s.slice(3)));
-				} else if (s.toLowerCase().startsWith("cp ")) {
+				} else if (_s.toLowerCase().startsWith("ls ")) {
+					JSONEdit.trace(eval.call(null, _s.slice(3)));
+				} else if (_s.toLowerCase().startsWith("cp ")) {
 					try {
-						var t = MapScript.toSource(eval.call(null, s.slice(3)));
-						self.print(t);
-						Common.setClipboardText(t);
-					} catch(e) {
-						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-						Common.setClipboardText(e + "\n" + e.stack);
+						var _t = MapScript.toSource(eval.call(null, _s.slice(3)));
+						self.print(_t);
+						Common.setClipboardText(_t);
+					} catch(_e) {
+						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						Common.setClipboardText(_e + "\n" + _e.stack);
 					}
-				} else if (s.toLowerCase().startsWith("sn ")) {
-					var t;
+				} else if (_s.toLowerCase().startsWith("sn ")) {
 					try {
-						t = MapScript.toSource(eval.call(null, s.slice(3)));
-						self.print(t);
-					} catch(e) {
-						self.print(t = e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						_t = MapScript.toSource(eval.call(null, _s.slice(3)));
+						self.print(_t);
+					} catch(_e) {
+						self.print(_t = _e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
-					var file = new java.io.File(ctx.getExternalCacheDir(), "sn.txt");
-					var fs = new java.io.PrintWriter(new java.io.FileOutputStream(file));
-					fs.println(t);
-					fs.close();
+					var _file = new java.io.File(ctx.getExternalCacheDir(), "sn.txt");
+					var _fs = new java.io.PrintWriter(new java.io.FileOutputStream(_file));
+					_fs.println(_t);
+					_fs.close();
 					try {
 						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
 							.setType("text/plain")
-							.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(file))
+							.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(_file))
 							.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
-						Common.toast("文件已生成于" + file.getAbsolutePath());
+						Common.toast("文件已生成于" + _file.getAbsolutePath());
 					}
-				} else if (s.toLowerCase().startsWith("#")) {
+				} else if (_s.toLowerCase().startsWith("#")) {
 					new java.lang.Thread(function() {
 						try {
-							var t = eval(s.slice(1));
-							self.print(Log.debug("D", t, 0).join("\n"));
-						} catch(e) {
-							self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+							var _t = eval(_s.slice(1));
+							self.print(Log.debug("D", _t, 0).join("\n"));
+						} catch(_e) {
+							self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 						}
 						G.ui(function() {try {
-							self.ready(s);
+							self.ready(_s);
 						} catch(e) {erp(e)}});
 					}).start();
 					return;
 				} else {
 					try {
-						var t = eval(s);
-						self.print(Log.debug("D", t, 0).join("\n"));
-					} catch(e) {
-						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						_t = eval(_s);
+						self.print(Log.debug("D", _t, 0).join("\n"));
+					} catch(_e) {
+						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				}
-				self.ready(s);
+				self.ready(_s);
 			}
 			function print(str) {
 				self.print(Common.toString(str));
@@ -15057,8 +15058,7 @@ MapScript.loadModule("AndroidBridge", {
 		function onReturn() {
 			if (!CA.trySave()) return;
 			if (startByIntent) {
-				unload();
-				ScriptActivity.finish();
+				//CA.performExit();
 			}
 		}
 		var t;
@@ -16071,6 +16071,7 @@ MapScript.loadModule("WSServer", {
 				} catch(e) {erp(e)}});
 			}
 			self.ready = function(cmd) {
+				cmd = String(cmd);
 				self.history[self.lines.length - 1] = cmd;
 				self.lines.push(new G.SpannableStringBuilder());
 				if (self.lines.length > self.LINE_LIMIT) {
@@ -16081,17 +16082,17 @@ MapScript.loadModule("WSServer", {
 				self.adapter.notifyChange();
 				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
-			self.exec = function(s) {
-				if (s.toLowerCase() == "exit") {
+			self.exec = function(_s) {
+				if (_s.toLowerCase() == "exit") {
 					self.popup.exit();
 					return;
-				} else if (s.toLowerCase() == "cls") {
+				} else if (_s.toLowerCase() == "cls") {
 					self.cls();
 					return;
-				} else if (s.toLowerCase() == "close") {
+				} else if (_s.toLowerCase() == "close") {
 					WSServer.sendCommand("closewebsocket");
-				} else if (s.toLowerCase().startsWith("subscribe ")) {
-					var name = s.slice(10);
+				} else if (_s.toLowerCase().startsWith("subscribe ")) {
+					var name = _s.slice(10);
 					WSServer.subscribeEvent(name, self.eventReceiver[name] = function(body) {
 						G.ui(function() {try {
 							var t = body.eventName;
@@ -16101,13 +16102,13 @@ MapScript.loadModule("WSServer", {
 						}catch(e){erp(e)}});
 					});
 					self.print("Event subscribed!");
-				} else if (s.toLowerCase().startsWith("unsubscribe ")) {
-					var name = s.slice(12);
+				} else if (_s.toLowerCase().startsWith("unsubscribe ")) {
+					var name = _s.slice(12);
 					WSServer.unsubscribeEvent(name, self.eventReceiver[name]);
 					self.print("Event unsubscribed!");
-				} else if (s.toLowerCase().startsWith("/")) {
+				} else if (_s.toLowerCase().startsWith("/")) {
 					var startTime = Date.now();
-					WSServer.sendCommand(s.slice(1), function(body) {
+					WSServer.sendCommand(_s.slice(1), function(body) {
 						var timer = Date.now() - startTime;
 						G.ui(function() {try {
 							self.print("Client responded in " + timer + "ms\n");
@@ -16117,10 +16118,10 @@ MapScript.loadModule("WSServer", {
 					});
 				} else {
 					try {
-						var t = eval(s);
-						self.print(Log.debug("D", t, 0).join("\n"));
-					} catch(e) {
-						self.print(e + "\n" + e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						var _t = eval(_s);
+						self.print(Log.debug("D", _t, 0).join("\n"));
+					} catch(_e) {
+						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				}
 				self.ready(s);
