@@ -1680,7 +1680,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
 				if (NeteaseAdapter.multiVersions) {
-					Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
+					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
 				}
 			});
 			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
@@ -1727,7 +1727,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.checkFeatures();
 			this.Library.initLibrary(function() {
 				if (NeteaseAdapter.multiVersions) {
-					Common.toast("您的命令助手包含了多个命令助手的版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
+					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
 				}
 			});
 		}
@@ -6232,6 +6232,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				for (i = 0; i < cur.length; i++) {
 					e = cur[i];
+					if (e == null) continue;
 					off = total;
 					if (Array.isArray(e)) {
 						self.ids.length = (self.texts.length += e.length);
@@ -7102,6 +7103,49 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	Library : {
 		inner : {},
 		cache : {},
+		readLibrary : function(path, version) {
+			var t, securityLevel = 0;
+			//-1 禁止所有非内置拓展包
+			//0 允许所有拓展包
+			//1 仅允许锁定拓展包
+			//2+ 仅允许商店下载的拓展包
+			if (t = CA.Library.inner[path]) {
+				return {
+					data : t,
+					mode : 0
+				};
+			}
+			if (securityLevel >= 0) {
+				if (t = CA.Library.loadSignedV1(path, null)) {
+					return {
+						data : t,
+						mode : 3
+					};
+				}
+				if (securityLevel <= 1) {
+					if (t = CA.Library.loadPrefixed(path, null)) {
+						return {
+							data : t,
+							mode : 2
+						};
+					}
+				}
+				if (securityLevel == 0) {
+					if (t = MapScript.readJSON(path, null, false)) {
+						return {
+							data : t,
+							mode : 1
+						};
+					} else if (t = MapScript.readJSON(path, null, true)) { //Deprecated
+						return {
+							data : t,
+							mode : 2
+						};
+					}
+				}
+			}
+			return null;
+		},
 		initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			var info, flag = true, t, t2, lib;
 			CA.IntelliSense.library = lib = {
@@ -7116,7 +7160,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				info : info = []
 			};
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
-				var m = 0, v, cur, resolved, stat;
+				var m, v, cur, resolved, stat;
 				try {
 					if (CA.Library.cache[e]) {
 						cur = CA.Library.cache[e].data;
@@ -7125,13 +7169,12 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						if ((v = CA.Library.shouldVerifySigned(e)) == 0) {
 							throw "未被验证的拓展包";
 						}
-						cur = CA.Library.inner[e] || (m = 3, CA.Library.loadSignedV1(e, null)) || (m = 2, CA.Library.loadPrefixed(e, null)) || (m = 1, MapScript.readJSON(e, null, false)) || (m = 2, MapScript.readJSON(e, null, true));
+						cur = CA.Library.readLibrary(e, v);
 						if (!cur) throw "无法读取或解析拓展包";
-						if (!(cur instanceof Object)) throw "错误的拓展包格式";
-						CA.Library.cache[e] = {
-							data : cur,
-							mode : m
-						};
+						if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
+						CA.Library.cache[e] = cur;
+						m = cur.mode;
+						cur = cur.data;
 					}
 					resolved = true;
 					if ((v = CA.Library.checkPackVer(cur)) != 0) throw v > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
