@@ -26,6 +26,15 @@
 		"uuid": "5a204d07-4b6d-4c51-9470-a2d8c8676ab8",
 		"version": [1, 0],
 		"requirement": "本拓展包需要加载适配器或者使用启动器运行命令助手才能运行。"
+	}, {
+		"id": "wsagent",
+		"src": "clib/WebSocket命令库.json",
+		"name": "WebSocket命令库",
+		"author": "ProjectXero",
+		"description": "本命令库包含了只有启用WebSocket服务器并成功连接才能远程执行的命令",
+		"uuid": "17e3d453-acc9-48a2-9806-f516235ceccd",
+		"version": [1, 0],
+		"requirement": "请确认您会使用命令助手的WebSocket服务器并能成功连接后再下载"
 	}],
 	"private": [{
 		"id": "idmapeditor",

@@ -18295,6 +18295,9 @@ CA.Library.inner["default"] = {
 						}
 					},
 					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#xp"
+				},
+				"?": {
+					"alias": "help"
 				}
 			},
 			"minSupportVer": "0.15.90.0"
