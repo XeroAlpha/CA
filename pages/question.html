@@ -28,6 +28,7 @@ a:hover, a:active {
     left: 5px;
     right: 5px;
     animation: body_visible 0.5s ease 1.7s backwards;
+    transition: opacity 0.5s;
 }
 #question_title {
     white-space: nowrap;
@@ -420,9 +421,13 @@ window.onload = function() {
 window.onresize = function() {
     var about_node = document.getElementById("about");
     if (window.innerHeight < document.body.offsetHeight + about_node.offsetHeight) {
-        about_node.style = "opacity: 0";
+        about_node.style.opacity = 0;
+        setTimeout(function() {
+            about_node.style.transform = "translateY(100%)";
+        }, 500);
     } else {
-        about_node.style = "opacity: 1";
+        about_node.style.opacity = 1;
+        about_node.style.transform = "none";
     }
 }
 window.offsetDay = function(n) {
