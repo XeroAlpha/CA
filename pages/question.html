@@ -23,12 +23,10 @@ a:hover, a:active {
 }
 #about {
     color: gray;
-    position: fixed;
     bottom: 5px;
     left: 5px;
     right: 5px;
     animation: body_visible 0.5s ease 1.7s backwards;
-    transition: opacity 0.5s;
 }
 #question_title {
     white-space: nowrap;
@@ -224,7 +222,7 @@ var question_list = [{
     answer: "ts+\\\\ltt\\esa\\+\\00@+2is+sei0sms+",
     wp: 9415
 }, {
-    question: "如何让所有名称为A的盔甲架不断旋转？",
+    question: "如何让所有名称为A的盔甲架不断原地旋转？",
     answer: function(str, unwind) {
         var a = new RegExp(unwind(")+e~\\+?)~+ss\\+()\\s?]~~es~s\\s.\\~e+s\\++~css@x-~+)(\\s^t+p+[t\\\\++\\($(\\d+es\\@\\su?\\", 233200), "").exec(str);
         if (!a) return false;
@@ -396,7 +394,7 @@ function reload() {
     }
     body_node.innerHTML = cur.question;
     usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年9月8日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年10月3日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -421,13 +419,9 @@ window.onload = function() {
 window.onresize = function() {
     var about_node = document.getElementById("about");
     if (window.innerHeight < document.body.offsetHeight + about_node.offsetHeight) {
-        about_node.style.opacity = 0;
-        setTimeout(function() {
-            about_node.style.transform = "translateY(100%)";
-        }, 500);
+        about_node.style.position = "static";
     } else {
-        about_node.style.opacity = 1;
-        about_node.style.transform = "none";
+        about_node.style.position = "fixed";
     }
 }
 window.offsetDay = function(n) {
