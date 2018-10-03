@@ -1669,6 +1669,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				});
 			}
 			if (!f.settings.customExpression) f.settings.customExpression = [];
+			if (!(f.settings.securityLevel >= -9 && f.settings.securityLevel <= 9)) f.settings.securityLevel = 1;
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 				f.settings.topIcon = true;
@@ -1676,6 +1677,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
+			
 
 			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
@@ -5102,6 +5104,71 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					});
 				}
 			},{
+				text : "设置安全级别",
+				secLevels : [0, 1, 2, -1],
+				secLevelDetails : {
+					"-1" : {
+						text : "受限",
+						description : "禁止所有来自外部的拓展包加载",
+						confirm : "当前的安全级别将禁止你加载任何外部的拓展包，是否继续？"
+					},
+					"0" : {
+						text : "低",
+						description : "允许所有拓展包加载",
+						confirm : "当前的安全级别将允许你加载任何外部的拓展包，这可能导致某些恶意拓展包被加载。\n如果你不是拓展包开发者请不要使用此等级"
+					},
+					"1" : {
+						text : "中",
+						description : "（推荐）仅允许锁定的拓展包和官方的拓展包加载"
+					},
+					"2" : {
+						text : "高",
+						description : "仅允许官方的拓展包加载"
+					}
+				},
+				onclick : function(v, tag) {
+					var self2 = this, t = this.secLevels.indexOf(CA.settings.securityLevel);
+					Common.showSlider({
+						max : this.secLevels.length - 1,
+						progress : t < 0 ? 1 : t,
+						prompt : function(progress) {
+							var e = self2.secLevelDetails[self2.secLevels[progress]];
+							return e.text + "\n\n" + e.description;
+						},
+						callback : function(progress) {
+							var d = self2.secLevelDetails[self2.secLevels[progress]], self3 = this;
+							if (self2.secLevels[progress] == CA.settings.securityLevel) return;
+							if (d.confirm) {
+								Common.showConfirmDialog({
+									title : "警告",
+									description : d.confirm,
+									callback : function(id) {
+										if (id != 0) return;
+										self3._refresh(progress);
+									}
+								});
+							} else {
+								this._refresh(progress);
+							}
+						},
+						_refresh : function(progress) {
+							CA.settings.securityLevel = self2.secLevels[progress];
+							CA.Library.clearCache();
+							self.postTask(function(cb) {
+								cb(true, function() {
+									var d = self2.secLevelDetails[CA.settings.securityLevel];
+									Common.toast("安全级别已被设置为 " + (d ? d.text : "未知"));
+								});
+							});
+						}
+					});
+				},
+				hidden : function() {
+					var d = this.secLevelDetails[CA.settings.securityLevel];
+					this.description = "当前安全级别为 " + (d ? d.text : "未知");
+					return false;
+				}
+			},{
 				text : "切换版本",
 				description : "切换命令所属版本",
 				onclick : function(v, tag) {
@@ -5200,9 +5267,11 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						try {
 							if (typeof u == "function") {
 								r = tag.data.update();
-							} else if (typeof u == "string") {
+							} else if (typeof u == "string" && u.startsWith("http")) {
 								r = JSON.parse(Updater.queryPage(u));
 							} else {
+								Common.toast("暂不支持从在线拓展包库更新");
+								return cb(false); 
 								//r = findInLocalSource();
 							}
 							if (!(r instanceof Object) || !Array.isArray(r.version)) {
@@ -7104,47 +7173,78 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		inner : {},
 		cache : {},
 		readLibrary : function(path, version) {
-			var t, securityLevel = 0;
+			var t, er, securityLevel = CA.settings.securityLevel, requiredSecLevel;
 			//-1 禁止所有非内置拓展包
 			//0 允许所有拓展包
-			//1 仅允许锁定拓展包
+			//1 仅允许锁定拓展包与官方拓展包
 			//2+ 仅允许商店下载的拓展包
 			if (t = CA.Library.inner[path]) {
 				return {
 					data : t,
 					mode : 0
 				};
+			} else {
+				er = {
+					error : "您正在使用的安全等级不允许加载外部的拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别"
+				};
 			}
 			if (securityLevel >= 0) {
-				if (t = CA.Library.loadSignedV1(path, null)) {
+				if (!(new java.io.File(path)).isFile()) {
 					return {
-						data : t,
-						mode : 3
+						error : "拓展包文件不存在"
 					};
 				}
-				if (securityLevel <= 1) {
-					if (t = CA.Library.loadPrefixed(path, null)) {
-						return {
-							data : t,
-							mode : 2
-						};
-					}
+				requiredSecLevel = this.testSecurityLevel(path);
+				if (requiredSecLevel < securityLevel) {
+					return {
+						error : "您正在使用的安全等级不允许加载此拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别"
+					};
 				}
-				if (securityLevel == 0) {
-					if (t = MapScript.readJSON(path, null, false)) {
+				if (requiredSecLevel >= 2) {
+					if (t = CA.Library.loadSignedV1(path, null, er)) {
 						return {
 							data : t,
-							mode : 1
+							mode : 3
 						};
-					} else if (t = MapScript.readJSON(path, null, true)) { //Deprecated
+					}
+				} else if (requiredSecLevel == 1) {
+					if (t = CA.Library.loadPrefixed(path, null, er)) {
 						return {
 							data : t,
 							mode : 2
 						};
 					}
+				} else if (requiredSecLevel == 0) {
+					if (t = Common.readFile(path, null, false, er)) {
+						t = this._safeRun(path, t, er);
+						if (t) {
+							return {
+								data : t,
+								mode : 1
+							};
+						}
+					}
+				} else {
+					return {
+						error : "无法解析此命令库"
+					};
 				}
 			}
-			return null;
+			return er;
+		},
+		_safeRun : function(path, code, error) {
+			try {
+				return eval("(" + code + ")");
+			} catch(e) {
+				error.error = e;
+			}
+		},
+		testSecurityLevel : function(path) {
+			if (this.shouldVerifySigned(path) >= 0) {
+				return 2;
+			} else if (this.isPrefixed(path)) {
+				return 1;
+			} else return 0;
 		},
 		initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 			var info, flag = true, t, t2, lib;
@@ -7171,6 +7271,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						}
 						cur = CA.Library.readLibrary(e, v);
 						if (!cur) throw "无法读取或解析拓展包";
+						if (cur.error) throw cur.error;
 						if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
 						CA.Library.cache[e] = cur;
 						m = cur.mode;
@@ -7294,15 +7395,33 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			}
 			return null;
 		},
-		loadPrefixed : function(path, defaultValue) {
-			try{
-				if (!(new java.io.File(path)).isFile()) return defaultValue;
+		isPrefixed : function(path) {
+			try {
 				var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
 				rd = new java.io.FileInputStream(path);
 				while (start.length) {
 					if (rd.read() != start.shift()) {
 						rd.close();
-						return defaultValue;
+						return false;
+					}
+				}
+				rd.skip(8);
+				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
+				while (q = rd.readLine()) s.push(q);
+				rd.close();
+				return true;
+			} catch(e) {
+				return false;
+			}
+		},
+		loadPrefixed : function(path, defaultValue, error) {
+			try{
+				var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
+				rd = new java.io.FileInputStream(path);
+				while (start.length) {
+					if (rd.read() != start.shift()) {
+						rd.close();
+						throw "不是已锁定的拓展包";
 					}
 				}
 				rd.skip(8);
@@ -7311,6 +7430,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				rd.close();
 				return eval("(" + s.join("\n") + ")");
 			} catch(e) {
+				if (error) error.error = e;
 				return defaultValue;
 			}
 		},
@@ -7794,15 +7914,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return 1;
 			} else return -1;
 		},
-		loadSignedV1 : function(path, defaultValue) {
+		loadSignedV1 : function(path, defaultValue, error) {
 			try{
-				if (!(new java.io.File(path)).isFile()) return defaultValue;
 				var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31]; //LIBSIGN01
 				rd = new java.io.FileInputStream(path);
 				while (start.length) {
 					if (rd.read() != start.shift()) {
 						rd.close();
-						return defaultValue;
+						throw "不是已签名的拓展包";
 					}
 				}
 				var buf = java.nio.ByteBuffer.allocate(4);
@@ -7813,7 +7932,8 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				while (q = rd.readLine()) s.push(q);
 				rd.close();
 				return eval("(" + s.join("\n") + ")");
-			} catch(e) {erp(e);
+			} catch(e) {
+				if (error) error.error = e;
 				return defaultValue;
 			}
 		},
@@ -11366,9 +11486,8 @@ MapScript.loadModule("Common", {
 		fo.close();
 	},
 
-	readFile : function(path, defaultValue, gzipped) {
+	readFile : function(path, defaultValue, gzipped, error) {
 		try{
-			if (!(new java.io.File(path)).isFile()) return defaultValue;
 			var rd, s = [], q;
 			if (gzipped) {
 				rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(new java.io.FileInputStream(path))));
@@ -11379,6 +11498,7 @@ MapScript.loadModule("Common", {
 			rd.close();
 			return s.join("\n");
 		} catch(e) {
+			if (error) error.error = e;
 			return defaultValue;
 		}
 	},

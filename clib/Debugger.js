@@ -18,7 +18,7 @@ o.menu = [{
 					.setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity"))
 					.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				preference.edit().putString("debugSource", f.result.getAbsolutePath()).apply();
-				AndroidBridge.createShortcut(intent, "调试启动", com.xero.ca.R.drawable.icon_small);
+				AndroidBridge.createShortcut(intent, "调试启动", com.xero.ca.R.mipmap.icon_small);
 				Common.toast("源已更改，下次调试启动时生效");
 			}
 		});
@@ -38,11 +38,9 @@ MapScript.loadModule("OnlineDebugger", {
 		stopServer();
 	}
 });
-o.init = function() {
-	try {
-		startServer();
-	} catch(e) {Common.toast(e)}
-}
+try {
+	startServer();
+} catch(e) {Common.toast(e)}
 function startServer() {
 	server = ScriptActivity.createWebSocketHelper(port, {
 		onOpen : function(conn, handshake) {try {
@@ -94,7 +92,21 @@ function sendVersion() {
 	}));
 }
 function executeCommand(cmd) {
-	Log.s(eval.call(null, cmd));
+	if (cmd.startsWith("#")) {
+		G.ui(function() {
+			try {
+				Log.s(eval.call(null, cmd.slice(1)));
+			} catch(e) {
+				Log.e(e);
+			}
+		});
+	} else {
+		try {
+			Log.s(eval.call(null, cmd));
+		} catch(e) {
+			Log.e(e);
+		}
+	}
 }
 function println(level, text) {
 	connection.send(JSON.stringify({
