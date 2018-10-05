@@ -506,6 +506,205 @@ MapScript.loadModule("G", {
 });
 "IGNORELN_END";
 
+MapScript.loadModule("L", (function() {
+	var cx = org.mozilla.javascript.Context.getCurrentContext();
+	var scope = eval.call(null, "this");
+	var baseClass = java.lang.Class.forName("android.view.View"), groupClass = java.lang.Class.forName("android.view.ViewGroup");
+	function UCC(str) {
+		return str.slice(0, 1).toUpperCase() + str.slice(1);
+	}
+	function LCC(str) {
+		return str.slice(0, 1).toLowerCase() + str.slice(1);
+	}
+	function applyAttributes(source, target) {
+		var i, t;
+		for (i in source) {
+			t = "set" + UCC(i);
+			if (t in target) {
+				if (Array.isArray(source[i])) {
+					target[t].apply(target, source[i]);
+				} else {
+					target[t](source[i]);
+				}
+			} else if (i in target) {
+				target[i] = source[i];
+			}
+		}
+	}
+	function generateDefaultLayoutParams(parent) {
+		var method = parent.getClass().getDeclaredMethod("generateDefaultLayoutParams");
+		method.setAccessible(true);
+		return method.invoke(parent);
+	}
+	function calculateLayoutParams(parent, view) {
+		var childJson = view.tag, prefix = "layout", i, lp, attrs;
+		if (childJson.layoutParams) return childJson.layoutParams;
+		if ("layout" in childJson) {
+			if (childJson.layout instanceof Function) {
+				return childJson.layout(parent, view);
+			} else {
+				lp = generateDefaultLayoutParams(parent);
+				applyAttributes(childJson.layout, lp);
+				return lp;
+			}
+		} else {
+			lp = generateDefaultLayoutParams(parent);
+			attrs = {};
+			for (i in childJson) {
+				if (i.slice(0, prefix.length) != prefix) continue;
+				attrs[LCC(i.slice(prefix.length))] = childJson[i];
+			}
+			applyAttributes(attrs, lp);
+		}
+		return lp;
+	}
+	function applyListeners(source, target) {
+		var i, t, suffix = "Listener";
+		for (i in source) {
+			if (typeof source[i] != "object" && typeof source[i] != "function") continue;
+			t = "set" + UCC(i) + suffix;
+			if (t in target) {
+				target[t](source[i]);
+			}
+		}
+	}
+	function attach(view, json) {
+		applyAttributes(json, view);
+		applyListeners(json, view);
+		if (groupClass.isAssignableFrom(view.getClass())) {
+			if (json.children) {
+				for (i in json.children) {
+					view.addView(json.children[i], calculateLayoutParams(view, json.children[i]));
+				}
+			} else if (json.child) {
+				view.addView(json.child, calculateLayoutParams(view, json.child));
+			}
+		}
+		if (json.inflate) json.inflate(view);
+		view.tag = json;
+		return view;
+	}
+	function inflate(clazz, context, json) {
+		var constructor, view, i;
+		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
+		try {
+			constructor = clazz.getConstructor(android.content.Context);
+		} catch(e) {/* constructor not found */}
+		if (!constructor) throw new Error("Unable to construct " + clazz);
+		view = constructor.newInstance(context);
+		return attach(view, json);
+	}
+	function findConstant(cls, name) {
+		var field;
+		try {
+			field = cls.getField(name);
+			if (field) {
+				return field.get(null);
+			}
+		} catch(e) {/* field not found or not static */}
+		return undefined;
+	}
+	function calculateConstant(clazz, exp) {
+		var i, r;
+		exp = exp.split("|").map(function(e) {
+			return findConstant(clazz, e) || findConstant(clazz, e.toUpperCase());
+		});
+		r = exp[0];
+		for (i = 1; i < exp.length; i++) {
+			if (r == null) r = 0;
+			if (typeof exp[i] == "number") {
+				r |= exp[i];
+			} else {
+				r = r || exp[i];
+			}
+		}
+		return r || 0;
+	}
+	var kv = {
+		__noSuchMethod__ : function(name) {
+			throw new Error(name + " is not a function, it is undefined.");
+		},
+		attach : attach,
+		inflate : inflate
+	};
+	var LView = kv.view = function(clazz, json) {try {
+		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
+		if (typeof json == "object") { // view builder
+			return inflate(clazz, ctx, json); 
+		} else if (typeof json == "string") { // constant
+			return calculateConstant(clazz, json);
+		}
+	} catch(e) {
+		Log.e(e);
+		throw e;
+	}}
+	function wrapViewClass(cls) {
+		return LView.bind(kv, cls);
+	}
+	var pprefix = [
+		"android.widget.",
+		"android.view.",
+		"android.view.animation",
+		"android.animation.",
+		"android.app.",
+		"android.content.",
+		"android.graphics.",
+		"android.graphics.drawable.",
+		"android.media.",
+		"android.os.",
+		"android.text.",
+		"android.text.format.",
+		"android.text.method.",
+		"android.text.style.",
+		"android.view.inputmethod.",
+		"android.webkit."
+	];
+	function peekClass(name) {
+		var i, forName = java.lang.Class.forName;
+		for (i in pprefix) {
+			try {return forName(pprefix[i] + name)} catch(e) {}
+		}
+		return undefined;
+	}
+	var r = new org.mozilla.javascript.Scriptable({
+		delete : function(name) {},
+		get : function(name, start) {
+			var cls;
+			if (name in kv) return kv[name];
+			cls = peekClass(name);
+			if (!cls) return undefined;
+			return kv[name] = wrapViewClass(cls);
+		},
+		getClassName : function() {
+			return "Proxy_L";
+		},
+		getDefaultValue : function(hint) {
+			return kv;
+		},
+		getIds : function() {
+			return Object.keys(kv);
+		},
+		getParentScope : function() {
+			return scope;
+		},
+		getPrototype : function() {
+			return kv;
+		},
+		has : function(name, start) {
+			return name in kv;
+		},
+		hasInstance : function(instance) {
+			return false;
+		},
+		put : function(name, start, value) {
+			kv[name] = value;
+		},
+		setParentScope : function(scope) {},
+		setPrototype : function(protptype) {}
+	});
+	return cx.toObject(r, scope);
+})());
+
 MapScript.loadModule("EventSender", {
 	init : function(o) {
 		o.on = this.on;
@@ -5061,6 +5260,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							});
 						}
 					});
+				},
+				hidden : function() {
+					return CA.settings.securityLevel < 0;
 				}
 			},{
 				text : "新建拓展包",
@@ -5091,6 +5293,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							});
 						}
 					});
+				},
+				hidden : function() {
+					return CA.settings.securityLevel >= 1 || CA.settings.securityLevel < 0;
 				}
 			},{
 				text : "刷新",
@@ -5617,9 +5822,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.list.addFooterView(self.more);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				if (view == self.more) {
-					CA.showOnlineLib(function() {G.ui(function() {try {
-						self.refresh();
-					} catch(e) {erp(e)}})});
+					if (CA.settings.securityLevel >= 0) {
+						CA.showOnlineLib(function() {G.ui(function() {try {
+							self.refresh();
+						} catch(e) {erp(e)}})});
+					} else {
+						Common.toast("您正在使用的安全等级不允许加载外部的拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别");
+					}
 					return;
 				}
 				var data = parent.getAdapter().getItem(pos);
@@ -6432,7 +6641,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			self.bmpcache = [];
 			self.init = function(s) {
 				self.variables.length = 0;
-				self.spanNo = {};
 				self.edit.setText(self.unflatten(s));
 				self.edit.setSelection(self.edit.length());
 				self.setContent(self.getDefaultContent());
@@ -6461,6 +6669,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 							type : str.slice(pos_type + 1, has_param ? pos_param : pos_end)
 						};
 						if (cur.label.length == 0) throw "变量名称不能为空";
+						if (self.findVariableByLabel(cur.label, false)) cur.label = self.generateName(cur.label + " (", ")", true);
 						if (!(cur.type in CA.BatchPattern)) throw "不存在的变量类型：" + cur.type;
 						if (has_param) {
 							match = CA.BatchPattern[cur.type].parse(str.slice(pos_param));
@@ -6507,15 +6716,14 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 						self.chooseVariable(function(o) {
 							var type = CA.BatchPattern[o.type];
 							self.insertVariable({
-								label : type.name + (++self.spanNo[o.type]),
+								label : self.generateName(type.name, ""),
 								type : o.type,
 								data : type.clone ? type.clone(o.data) : type.parse(type.stringify(o.data)).data
 							}, true);
 						});
 						return;
 					}
-					if (!self.spanNo[e.id]) self.spanNo[e.id] = 0;
-					self.insertVariable(self.createVariable(e.text + (++self.spanNo[e.id]), e.id), true);
+					self.insertVariable(self.createVariable(self.generateName(e.text, ""), e.id), true);
 				}, true);
 			}
 			self.chooseVariable = function(callback) {
@@ -6593,6 +6801,21 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				} else {
 					self.setContent(self.getDefaultContent());
 				}
+			}
+			self.findVariableByLabel = function(label, inline) {
+				var i, e, text = self.edit.getText();
+				for (i in self.variables) {
+					e = self.variables[i];
+					if (e.label == label && (!inline || text.getSpanStart(e.span) >= 0)) {
+						return e;
+					}
+				}
+				return null;
+			}
+			self.generateName = function(prefix, suffix, notInline) {
+				var i = 1;
+				while (self.findVariableByLabel(prefix + i + suffix, !notInline)) i++;
+				return prefix + i + suffix;
 			}
 			self.endSpanEdit = function() {
 				self.setContent(self.getDefaultContent());
@@ -6918,18 +7141,102 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return o.list;
 			},
 			buildLayout : function(o) {
-				var text = new G.EditText(ctx);
-				text.setText(o.list.join("\n"));
-				text.setHint("每一行为列表的一个条目");
-				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
-				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-				Common.applyStyle(text, "edittext_default", 3);
-				o.layout = o.edittext = text;
+				o.layout = o.edittext = L.EditText({
+					text : o.list.join("\n"),
+					hint : "每一行为列表的一个条目",
+					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+					gravity : L.Gravity("left|top"),
+					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+					inflate : function(view) {
+						Common.applyStyle(view, "edittext_default", 3);
+					}
+				});
 				return o;
 			},
 			update : function(o) {
 				o.list = String(o.edittext.getText()).split("\n");
+			}
+		},
+		synclist : {
+			name : "同步列表",
+			description : "与某个变量同步的列表",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					syncLabel : "",
+					list : []
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						syncLabel : r[0],
+						list : r.slice(1)
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([o.syncLabel].concat(o.list), this.options) + ")";
+			},
+			export : function(o, controller) {
+				this.update(o);
+				return {
+					type : "syncmap",
+					arr : o.list,
+					target : controller.getBundleIndexByLabel(o.syncLabel),
+					map : this.mapFunc
+				}
+				return o.list;
+			},
+			mapFunc : function(e, i, n) {
+				return i < this.arr.length ? this.arr[i] : "{下标超出}"
+			},
+			buildLayout : function(o) {				
+				o.layout = L.LinearLayout({
+					orientation : L.LinearLayout("vertical"),
+					children : [
+						o.editlabel = L.attach(CA.createVariableSelector(function(label) {
+							o.syncLabel = label;
+						}, null, o.syncLabel, "标签名"), {
+							padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+							gravity : L.Gravity("left|top"),
+							imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+							layoutWidth : -1,
+							layoutHeight : -2,
+							inflate : function(view) {
+								Common.applyStyle(view, "edittext_default", 3);
+							}
+						}),
+						o.edittext = L.EditText({
+							text : o.list.join("\n"),
+							hint : "每一行为列表的一个条目",
+							padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+							gravity : L.Gravity("left|top"),
+							layoutWidth : -1,
+							layoutHeight : -1,
+							inflate : function(view) {
+								Common.applyStyle(view, "edittext_default", 3);
+							}
+						})
+					]
+				});
+				return o;
+			},
+			update : function(o) {
+				o.list = String(o.edittext.getText()).split("\n");
+				o.syncLabel = String(o.editlabel.getText());
 			}
 		},
 		param : {
@@ -6966,14 +7273,16 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				return [o.text];
 			},
 			buildLayout : function(o) {
-				var text = new G.EditText(ctx);
-				text.setText(o.text);
-				text.setHint("在这里填入需要的参数");
-				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
-				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-				Common.applyStyle(text, "edittext_default", 3);
-				o.layout = o.edittext = text;
+				o.layout = o.edittext = L.EditText({
+					text : o.text,
+					hint : "在这里填入需要的参数",
+					singleLine : true,
+					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+					gravity : L.Gravity("left|top"),
+					inflate : function(view) {
+						Common.applyStyle(view, "edittext_default", 3);
+					}
+				});
 				return o;
 			},
 			update : function(o) {
@@ -7031,7 +7340,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				for (i = 0, c = from; i <= t; i++) {
 					r.push(String(Common.toFixedNumber(from + step * i, 7)));
 				}
-				syncLabel = controller.getBundleIndexByLabel(syncLabel)
+				syncLabel = controller.getBundleIndexByLabel(syncLabel);
 				if (syncLabel >= 0) {
 					return {
 						type : "syncmap",
@@ -7049,29 +7358,43 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			buildLayout : function(o) {
 				var inputType = G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL;
 				o.layout = CA.createParamTable([
-					["开始计数", o._from = CA.createParamTextbox({
+					CA.createParamRow("开始计数", o._from = CA.createParamTextbox({
 						text : o.from,
 						inputType : inputType
-					})],
-					["结束计数", o._to = CA.createParamTextbox({
+					})),
+					CA.createParamRow("结束计数", o._to = CA.createParamTextbox({
 						text : o.to,
 						inputType : inputType
-					})],
-					["步长", o._step = CA.createParamTextbox({
+					})),
+					CA.createParamRow("步长", o._step = CA.createParamTextbox({
 						text : o.step,
 						inputType : inputType
-					})],
-					["同步标签", o._label = CA.createParamTextbox({
-						text : o.syncLabel
-					})]
+					})),
+					CA.createParamRow("启用同步", o._sync = L.CheckBox({
+						checked : o.syncLabel.length > 0,
+						onCheckedChange : function(view, checked) {
+							if (checked) {
+								o._labelrow.visibility = G.View.VISIBLE;
+							} else {
+								o._labelrow.visibility = G.View.GONE;
+								o._label.text = o.syncLabel = "";
+							}
+						}
+					})),
+					o._labelrow = CA.createParamRow("同步标签", o._label = CA.createVariableSelector(function(label) {
+						o.syncLabel = label;
+					}, CA.createParamTextbox({
+						text : o.syncLabel,
+						hint : "点击选择标签"
+					})))
 				]);
+				o._labelrow.visibility = o.syncLabel.length > 0 ? G.View.VISIBLE : G.View.GONE;
 				return o;
 			},
-			update : function(o) {Log.s(o)
+			update : function(o) {
 				o.from = parseFloat(o._from.getText());
 				o.to = parseFloat(o._to.getText());
 				o.step = parseFloat(o._step.getText());
-				o.syncLabel = String(o._label.getText());
 			}
 		},
 		link : {
@@ -7100,12 +7423,10 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				};
 			},
 			stringify : function(o) {
-				this.update(o);
 				return "(" + ISegment.writeLenientString(o.label, this.options) + ")";
 			},
 			export : function(o, controller) {
 				var index = controller.getBundleIndexByLabel(o.label);
-				this.update(o);
 				return {
 					type : "map",
 					map : function(arr) {
@@ -7114,44 +7435,41 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				};
 			},
 			buildLayout : function(o) {
-				var text = new G.EditText(ctx);
-				text.setText(o.label);
-				text.setHint("标签名");
-				text.setSingleLine(true);
-				text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				text.setGravity(G.Gravity.LEFT | G.Gravity.TOP);
-				text.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-				Common.applyStyle(text, "edittext_default", 3);
-				o.layout = o.edittext = text;
+				o.layout = o.edittext = L.attach(CA.createVariableSelector(function(label) {
+					o.label = label;
+				}, null, o.label, "标签名"), {
+					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+					gravity : L.Gravity("left|top"),
+					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+					inflate : function(view) {
+						Common.applyStyle(view, "edittext_default", 3);
+					}
+				});
 				return o;
-			},
-			update : function(o) {
-				o.label = String(o.edittext.getText());
 			}
 		}
 	},
 	createParamTable : function(table) {
-		var layout, row, label;
+		var layout, row;
 		layout = new G.TableLayout(ctx);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 		for (i = 0; i < table.length; i++) {
-			row = new G.TableRow(ctx);
-			row.setLayoutParams(new G.TableLayout.LayoutParams(-1, -2));
-			row.setGravity(G.Gravity.CENTER);
-			if (Array.isArray(table[i])) {
-				label = new G.TextView(ctx);
-				label.setText(table[i][0]);
-				label.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				label.setLayoutParams(new G.TableRow.LayoutParams(-1, -2));
-				Common.applyStyle(label, "textview_default", 2);
-				row.addView(label);
-				row.addView(table[i][1], new G.TableRow.LayoutParams(0, -2, 1));
-			} else {
-				row.addView(table[i], new G.TableRow.LayoutParams(0, -2, 1));
-			}
-			layout.addView(row);
+			layout.addView(table[i], new G.TableLayout.LayoutParams(-1, -2));
 		}
 		return layout;
+	},
+	createParamRow : function(text, view) {
+		var row, label;
+		row = new G.TableRow(ctx);
+		row.setGravity(G.Gravity.CENTER);
+		label = new G.TextView(ctx);
+		label.setText(text);
+		label.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+		label.setLayoutParams(new G.TableRow.LayoutParams(-1, -2));
+		Common.applyStyle(label, "textview_default", 2);
+		row.addView(label);
+		row.addView(view, new G.TableRow.LayoutParams(0, -2, 1));
+		return row;
 	},
 	createParamTextbox : function(o) {
 		var ret = new G.EditText(ctx);
@@ -7165,6 +7483,24 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 		ret.setSelection(ret.length());
 		Common.applyStyle(ret, "edittext_default", 2);
 		return ret;
+	},
+	createVariableSelector : function(onChange, wrapped, text, hint) {
+		var edit = wrapped || new G.EditText(ctx);
+		if (!wrapped) {
+			edit.setText(text || "");
+			edit.setHint(hint || "点击选择标签");
+		}
+		edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		edit.setInputType(G.InputType.TYPE_NULL);
+		edit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			var o = CA.showBatchBuilder;
+			if (!o.chooseVariable) return;
+			o.chooseVariable(function(data) {
+				edit.setText(data.label);
+				onChange(data.label);
+			});
+		} catch(e) {erp(e)}}}));
+		return edit;
 	},
 	PluginMenu : [],
 	PluginExpression : [],
@@ -15235,7 +15571,7 @@ MapScript.loadModule("AndroidBridge", {
 					if (id != 0) return onReturn();
 					if (!CA.Library.enableLibrary(String(t))) {
 						Common.toast("无法导入该拓展包，可能文件不存在");
-						return onReturn();
+						return CA.showLibraryMan(onReturn);
 					}
 					CA.Library.initLibrary(function() {
 						Common.toast("导入成功！");
@@ -16418,6 +16754,10 @@ MapScript.loadModule("WSServer", {
 		if (!WSServer.isConnected()) return Common.toast("请先连接上WSServer");
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
+});
+
+MapScript.loadModule("WebBrowser", {
+	
 });
 
 "IGNORELN_START";
