@@ -568,23 +568,25 @@ MapScript.loadModule("L", (function() {
 			}
 		}
 	}
-	function attach(view, json) {
+	function attach(view, json, fromModel) {
+		var e;
 		applyAttributes(json, view);
 		applyListeners(json, view);
 		if (groupClass.isAssignableFrom(view.getClass())) {
 			if (json.children) {
 				for (i in json.children) {
-					view.addView(json.children[i], calculateLayoutParams(view, json.children[i]));
+					e = json.children[i];
+					view.addView(fromModel ? fromJSON(e) : e, calculateLayoutParams(view, e));
 				}
 			} else if (json.child) {
-				view.addView(json.child, calculateLayoutParams(view, json.child));
+				view.addView(fromModel ? fromJSON(json.child) : json.child, calculateLayoutParams(view, json.child));
 			}
 		}
 		if (json.inflate) json.inflate(view);
 		view.tag = json;
 		return view;
 	}
-	function inflate(clazz, context, json) {
+	function inflate(clazz, context, json, fromModel) {
 		var constructor, view, i;
 		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
 		try {
@@ -592,7 +594,7 @@ MapScript.loadModule("L", (function() {
 		} catch(e) {/* constructor not found */}
 		if (!constructor) throw new Error("Unable to construct " + clazz);
 		view = constructor.newInstance(context);
-		return attach(view, json);
+		return attach(view, json, fromModel);
 	}
 	function findConstant(cls, name) {
 		var field;
@@ -620,6 +622,23 @@ MapScript.loadModule("L", (function() {
 		}
 		return r || 0;
 	}
+	function fromJSON(json, context) {
+		var clazz = json["class"];
+		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
+		return inflate(clazz, context, json, true);
+	}
+	function toJSON(view) {
+		var json = view.tag;
+		json["class"] = String(view.getClass().getName());
+		if (json.children) {
+			for (i in json.children) {
+				json.children[i] = toJSON(json.children[i]);
+			}
+		} else if (json.child) {
+			json.child = toJSON(json.child);
+		}
+		return json;
+	}
 	var kv = {
 		__noSuchMethod__ : function(name) {
 			throw new Error(name + " is not a function, it is undefined.");
@@ -630,7 +649,7 @@ MapScript.loadModule("L", (function() {
 	var LView = kv.view = function(clazz, json) {try {
 		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
 		if (typeof json == "object") { // view builder
-			return inflate(clazz, ctx, json); 
+			return inflate(clazz, ctx, json, false); 
 		} else if (typeof json == "string") { // constant
 			return calculateConstant(clazz, json);
 		}
@@ -1736,7 +1755,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 2],
+	version : [1, 2, 3],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -2415,6 +2434,71 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				CA.cmd.setSelection(CA.cmd.getText().length());
 				if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
 			}
+			self.textUpdate = (function() {
+				var state = -1;
+				var rep = function(s) {
+					FCString.clearSpans(s);
+					FCString.colorFC(s, Common.theme.textcolor);
+				}
+				var gostate0 = function() {
+					state = 0;
+					CA.hideAssist(); CA.showHistory();
+					self.copy.setText("关闭");
+					self.add.setVisibility(G.View.VISIBLE);
+					self.clear.setVisibility(G.View.GONE);
+				}
+				var gostate1 = function() {
+					state = 1;
+					if (CA.settings.iiMode == 2) {
+						CA.hideHistory(); CA.showAssist();
+						CA.Assist.hide(); CA.IntelliSense.show();
+					} else {
+						CA.hideAssist(); CA.showHistory();
+					}
+					self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
+					self.add.setVisibility(G.View.GONE);
+					self.clear.setVisibility(CA.settings.showClearButton ? G.View.VISIBLE : G.View.GONE);
+				}
+				var gostate2 = function() {
+					state = 2;
+					CA.hideHistory(); CA.showAssist();
+					CA.Assist.hide(); CA.IntelliSense.show();
+					CA.IntelliSense.showHelp();
+					self.copy.setText("关闭");
+					self.add.setVisibility(G.View.GONE);
+					self.clear.setVisibility(G.View.VISIBLE);
+				}
+				var gostate3 = function() {
+					state = 3;
+					CA.hideHistory(); CA.showAssist();
+					CA.IntelliSense.hide(); CA.Assist.show(); CA.hideFCS();
+					self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
+					self.add.setVisibility(G.View.GONE);
+					self.clear.setVisibility(G.View.GONE);
+				}
+				return function(s) {
+					s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+					CA.cmdstr = String(s);
+					if (CA.settings.iiMode == 1 && CA.Assist.active) {
+						if (state != 3) gostate3();
+					} else if (state != 2 && s == "/help") {
+						gostate2();
+					} else if (state != 1 && s.length() && s != "/help") {
+						gostate1();
+					} else if (state != 0 && !s.length()) {
+						gostate0();
+					}
+					if (CA.fcs) CA.showFCS(s);
+					if (CA.history) CA.showHistory();
+					if (CA.settings.autoFormatCmd) rep(s);
+					if (CA.settings.iiMode != 2 || state !== 1) return;
+					if (CA.settings.senseDelay) {
+						CA.IntelliSense.callDelay(String(s));
+					} else {
+						CA.IntelliSense.proc(String(s));
+					}
+				}
+			})();
 			self.pointerChanged = function(p) {
 				//即将支持
 			}
@@ -2493,71 +2577,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			CA.cmd.setTypeface(G.Typeface.MONOSPACE);
 			CA.cmd.setText(CA.cmdstr);
 			CA.cmd.addTextChangedListener(new G.TextWatcher({
-				afterTextChanged : (function() {
-					var state = -1;
-					var rep = function(s) {
-						FCString.clearSpans(s);
-						FCString.colorFC(s, Common.theme.textcolor);
-					}
-					var gostate0 = function() {
-						state = 0;
-						CA.hideAssist(); CA.showHistory();
-						self.copy.setText("关闭");
-						self.add.setVisibility(G.View.VISIBLE);
-						self.clear.setVisibility(G.View.GONE);
-					}
-					var gostate1 = function() {
-						state = 1;
-						if (CA.settings.iiMode == 2) {
-							CA.hideHistory(); CA.showAssist();
-							CA.Assist.hide(); CA.IntelliSense.show();
-						} else {
-							CA.hideAssist(); CA.showHistory();
-						}
-						self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
-						self.add.setVisibility(G.View.GONE);
-						self.clear.setVisibility(CA.settings.showClearButton ? G.View.VISIBLE : G.View.GONE);
-					}
-					var gostate2 = function() {
-						state = 2;
-						CA.hideHistory(); CA.showAssist();
-						CA.Assist.hide(); CA.IntelliSense.show();
-						CA.IntelliSense.showHelp();
-						self.copy.setText("关闭");
-						self.add.setVisibility(G.View.GONE);
-						self.clear.setVisibility(G.View.VISIBLE);
-					}
-					var gostate3 = function() {
-						state = 3;
-						CA.hideHistory(); CA.showAssist();
-						CA.IntelliSense.hide(); CA.Assist.show(); CA.hideFCS();
-						self.copy.setText(CA.settings.pasteMode == 2 ? "粘贴" : "复制");
-						self.add.setVisibility(G.View.GONE);
-						self.clear.setVisibility(G.View.GONE);
-					}
-					return function(s) {try {
-						s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-						CA.cmdstr = String(s);
-						if (CA.settings.iiMode == 1 && CA.Assist.active) {
-							if (state != 3) gostate3();
-						} else if (state != 2 && s == "/help") {
-							gostate2();
-						} else if (state != 1 && s.length() && s != "/help") {
-							gostate1();
-						} else if (state != 0 && !s.length()) {
-							gostate0();
-						}
-						if (CA.fcs) CA.showFCS(s);
-						if (CA.history) CA.showHistory();
-						if (CA.settings.autoFormatCmd) rep(s);
-						if (CA.settings.iiMode != 2 || state !== 1) return;
-						if (CA.settings.senseDelay) {
-							CA.IntelliSense.callDelay(String(s));
-						} else {
-							CA.IntelliSense.proc(String(s));
-						}
-					} catch(e) {erp(e)}}
-				})()
+				afterTextChanged : function(s) {try {
+					self.textUpdate(s);
+				} catch(e) {erp(e)}}
 				//beforeTextChanged : function(s, start, count, after) {},
 				//onTextChanged : function(s, start, before, count) {},
 			}));
@@ -2633,7 +2655,6 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				}
 				return false;
 			} catch(e) {return erp(e), true}}}));
-			CA.cmd.getText().setSpan(self.spanWatcher, 0, CA.cmd.getText().length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 			self.bar.addView(CA.cmd);
 
 			self.clear = new G.TextView(ctx);
@@ -2708,7 +2729,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			});
 			CA.gen.on("resume", function() {
 				G.ui(function() {try {
-					CA.cmd.setText(CA.cmd.getText());
+					self.textUpdate(CA.cmd.getText());
 				} catch(e) {erp(e)}});
 			});
 
@@ -2717,7 +2738,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			PWM.registerResetFlag(self, "main");
 		}
 		CA.gen.enter();
-		CA.cmd.setText(CA.cmd.getText());
+		self.textUpdate(CA.cmd.getText());
 		self.activate(false);
 		if (noani) return;
 		var animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, CA.settings.barTop ? -1 : 1, G.Animation.RELATIVE_TO_SELF, 0);
@@ -6383,14 +6404,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 					break;
 					case 3:
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://projectxero.mikecrm.com/CDOsI2C"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.showWebViewDialog({
-							url : "https://projectxero.mikecrm.com/CDOsI2C"
-						});
-					}
+					GiteeFeedback.showFeedbacks();
 					break;
 					case 4:
 					CA.showDonateDialog();
@@ -9164,14 +9178,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					}
 				},
 				"意见反馈" : function() {
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("http://projectxero.mikecrm.com/CDOsI2C"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.showWebViewDialog({
-							url : "http://projectxero.mikecrm.com/CDOsI2C"
-						});
-					}
+					GiteeFeedback.showFeedbacks();
 				}
 			};
 			this.input = Object.keys(this.output);
@@ -16756,8 +16763,990 @@ MapScript.loadModule("WSServer", {
 	} catch(e) {erp(e)}})},
 });
 
-MapScript.loadModule("WebBrowser", {
-	
+MapScript.loadModule("GiteeFeedback", {
+	address : "projectxero/ca",
+	perPage : 20,
+	onCreate : function() {
+		if (MapScript.host == "Android") {
+			this.token = String(ScriptActivity.getGiteeFeedbackToken());
+		}
+	},
+	getRecentFeedback : function() {
+		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
+		return CA.settings.recentFeedback;
+	},
+	addRecentFeedback : function(number) {
+		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
+		var t;
+		CA.settings.recentFeedback.push(t = {
+			number : number,
+			lastModified : Date.now()
+		});
+		return t;
+	},
+	getUserInfo : function() {
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/user?access_token=" + this.token));
+	},
+	getIssues : function(state, page) {
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues?state=" + state + "&sort=created&direction=desc&page=" + page + "&per_page=" + this.perPage));
+	},
+	createIssue : function(title, body) {
+		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.address + "/issues", JSON.stringify({
+			"access_token": this.token,
+			"title": title,
+			"body": body
+		}), "application/json;charset=UTF-8"));
+	},
+	getIssue : function(number) {
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number));
+	},
+	updateIssue : function(number, map) {
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number, "PATCH", JSON.stringify({
+			"access_token": this.token,
+			"title": map.title,
+			"body": map.body,
+			"state": map.state
+		}), "application/json;charset=UTF-8"));
+	},
+	getIssueComment : function(id) {
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id));
+	},
+	getIssueComments : function(number, page) {
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number + "/comments?page=" + page + "&per_page=" + this.perPage));
+	},
+	createIssueComment : function(number, body) {
+		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number + "/comments", JSON.stringify({
+			"access_token": this.token,
+			"body": body
+		}), "application/json;charset=UTF-8"));
+	},
+	updateIssueComment : function(id, body) {
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id, "PATCH", JSON.stringify({
+			"access_token": this.token,
+			"body": body
+		}), "application/json;charset=UTF-8"));
+	},
+	deleteIssueComment : function(id) {
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id, "DELETE"));
+	},
+	showIssues : function self(callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "刷新",
+				onclick : function(v, tag) {
+					self.reload();
+				}
+			}, {
+				text : "仅显示未处理",
+				hidden : function() {
+					return self.issueState == "open";
+				},
+				onclick : function(v, tag) {
+					self.issueState = "open";
+					self.reload();
+				}
+			}, {
+				text : "显示所有",
+				hidden : function() {
+					return self.issueState == "all";
+				},
+				onclick : function(v, tag) {
+					self.issueState = "all";
+					self.reload();
+				}				
+			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text1.setEllipsize(G.TextUtils.TruncateAt.END);
+				text1.setSingleLine(true);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text1.setText(e.state == "open" ? e.title : "[已处理]" + e.title);
+				Common.applyStyle(holder.text1, e.state == "open" ? "item_default" : "item_disabled", 3);
+				holder.text2.setText(e.body.length > 60 ? e.body.slice(0, 59) + ".." : e.body);
+			}
+			self.reload = function() {
+				if (self.loading) return Common.toast("正在加载中……");
+				self.loading = true;
+				self.issues.length = 0;
+				self.adpt.notifyChange();
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var data;
+					try {
+						data = {
+							next : 1,
+							pages : [GiteeFeedback.getIssues(self.issueState, 1)]
+						};
+					} catch(e) {Log.e(e)}
+					if (!data) return Common.toast("Issue列表加载失败");
+					self.issueData = data;
+					self.loading = false;
+					self.appendPage(true);
+				});
+			}
+			self.appendPage = function(sync) {
+				if (!sync) {
+					var progress = Common.showProgressDialog();
+					progress.setText("正在加载……");
+					progress.async(function() {
+						self.appendPage(true);
+					});
+				} else {
+					if (self.loading) return Common.toast("正在加载中……");
+					self.loading = true;
+					var i, off = self.issues.length, page;
+					try {
+						if (self.issueData.next < self.issueData.pages.length) {
+							page = self.issueData.pages[self.issueData.next];
+						} else {
+							page = GiteeFeedback.getIssues(self.issueState, self.issueData.next);
+							self.issueData.pages[self.issueData.next] = page;
+						}
+						if (page.length != 0) {
+							self.issueData.next++;
+							if (self.issueData.next >= self.issueData.pages.length) {
+								self.issueData.pages[self.issueData.next] = GiteeFeedback.getIssues(self.issueState, self.issueData.next);
+							}
+							if (self.issueData.pages[self.issueData.next].length == 0) self.issueData.next = NaN;
+						} else self.issueData.next = NaN;
+					} catch(e) {Log.e(e)}
+					if (!page) {
+						self.loading = false;
+						return Common.toast("Issue列表加载失败");
+					}
+					G.ui(function() {try {
+						self.issues.length += page.length;
+						for (i = 0; i < page.length; i++) {
+							self.issues[i + off] = page[i];
+						}
+						self.adpt.notifyChange();
+						if (self.issueData.next) self.more.setText("显示下" + GiteeFeedback.perPage + "个Issues……");
+						if (self.issueData.next && !self.moreVisible) {
+							self.moreVisible = true;
+							self.list.addFooterView(self.more);
+						} else if (!self.issueData.next && self.moreVisible) {
+							self.moreVisible = false;
+							self.list.removeFooterView(self.more);
+						}
+						self.loading = false;
+					} catch(e) {erp(e)}});
+				}
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.issues = [], self.vmaker, self.vbinder));
+			self.issueState = "all";
+
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(self.linear, "message_bg");
+
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(0, 0, 0, 10 * G.dp);
+			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showOperateDialog(self.contextMenu);
+				return true;
+			} catch(e) {erp(e)}}}));
+
+			self.title = new G.TextView(ctx);
+			self.title.setText("Issues");
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+
+			self.menu = new G.TextView(ctx);
+			self.menu.setText("▼");
+			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			self.menu.setGravity(G.Gravity.CENTER);
+			Common.applyStyle(self.menu, "button_highlight", 3);
+			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.more = new G.TextView(ctx);
+			self.more.setGravity(G.Gravity.CENTER);
+			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.more, "textview_prompt", 2);
+
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.more) {
+					self.appendPage();
+					return;
+				}
+				var data = parent.getAdapter().getItem(pos);
+				GiteeFeedback.showIssueDetail(data.number);
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+
+			self.popup = new PopupPage(self.linear, "feedback.Issues");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		if (callback) self.popup.on("exit", callback);
+		self.popup.enter();
+		self.reload();
+	} catch(e) {erp(e)}})},
+	showIssueDetail : function self(number, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "刷新",
+				onclick : function(v, tag) {
+					self.reload();
+				}
+			}, {
+				text : "倒序浏览",
+				hidden : function() {
+					return self.viewOrder == "desc";
+				},
+				onclick : function(v, tag) {
+					self.viewOrder = "desc";
+					self.reload();
+				}
+			}, {
+				text : "正序浏览",
+				hidden : function() {
+					return self.viewOrder == "asc";
+				},
+				onclick : function(v, tag) {
+					self.viewOrder = "asc";
+					self.reload();
+				}
+			}];
+			self.vmaker = function(holder) {
+				var layout = holder.linear = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				text1.setEllipsize(G.TextUtils.TruncateAt.END);
+				text1.setSingleLine(true);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.linear.setGravity(e.fromThis && self.viewOrder == "asc" ? G.Gravity.RIGHT : G.Gravity.LEFT);
+				holder.text1.setText(e.user.name);
+				Common.applyStyle(holder.text1, "item_default", 3);
+				holder.text2.setText(e.body);
+			}
+			self.reload = function() {
+				if (self.loading) return Common.toast("正在加载中……");
+				self.loading = true;
+				self.comments.length = 0;
+				self.adpt.notifyChange();
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var data;
+					try {
+						data = {
+							topic : GiteeFeedback.getIssue(self.currentNumber)
+						};
+						data.totalPages = Math.ceil(data.topic.comments / GiteeFeedback.perPage);
+						data.next = self.viewOrder == "desc" ? data.totalPages : 1;
+					} catch(e) {Log.e(e)}
+					self.loading = false;
+					if (!data) return Common.toast("评论列表加载失败");
+					self.commentData = data;
+					G.ui(function() {try {
+						self.title.setText(data.topic.title);
+						self.issueBody.setText(data.topic.body + "\n\n#" + data.topic.number + " by " + data.topic.user.name + "\n" + new Date(data.topic.created_at).toLocaleString());
+					} catch(e) {erp(e)}});
+					self.appendPage(true);
+				});
+			}
+			self.appendPage = function(sync) {
+				if (!sync) {
+					var progress = Common.showProgressDialog();
+					progress.setText("正在加载……");
+					progress.async(function() {
+						self.appendPage(true);
+					});
+				} else {
+					if (self.loading) return Common.toast("正在加载中……");
+					self.loading = true;
+					var i, off = self.comments.length, page;
+					try {
+						page = GiteeFeedback.getIssueComments(self.currentNumber, self.commentData.next);
+					} catch(e) {Log.e(e)}
+					if (!page) {
+						self.loading = false;
+						return Common.toast("评论列表加载失败");
+					}
+					G.ui(function() {try {
+						self.comments.length += page.length;
+						if (self.viewOrder == "desc") {
+							page.reverse();
+							if (self.commentData.next > 1) {
+								self.commentData.next--;
+							} else {
+								self.commentData.next = NaN;
+							}
+						} else {
+							if (self.commentData.next < self.commentData.totalPages) {
+								self.commentData.next++;
+							} else {
+								self.commentData.next = NaN;
+							}
+						}
+						for (i = 0; i < page.length; i++) {
+							page[i].fromThis = page[i].user.id == GiteeFeedback.myUserId;
+							self.comments[i + off] = page[i];
+						}
+						self.adpt.notifyChange();
+						if (self.commentData.next) self.more.setText("显示剩下" + (self.commentData.totalPages - self.commentData.next + 1) + "页……");
+						if (self.commentData.next && !self.moreVisible) {
+							self.moreVisible = true;
+							self.list.addFooterView(self.more);
+						} else if (!self.commentData.next && self.moreVisible) {
+							self.moreVisible = false;
+							self.list.removeFooterView(self.more);
+						}
+						self.loading = false;
+					} catch(e) {erp(e)}});
+				}
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.comments = [], self.vmaker, self.vbinder));
+			self.viewOrder = "asc";
+
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(self.linear, "message_bg");
+
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(0, 0, 0, 10 * G.dp);
+			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showOperateDialog(self.contextMenu);
+				return true;
+			} catch(e) {erp(e)}}}));
+
+			self.title = new G.TextView(ctx);
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+
+			self.menu = new G.TextView(ctx);
+			self.menu.setText("▼");
+			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			self.menu.setGravity(G.Gravity.CENTER);
+			Common.applyStyle(self.menu, "button_highlight", 3);
+			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.issueBody = new G.TextView(ctx);
+			self.issueBody.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.issueBody.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.issueBody, "textview_default", 2);
+			
+			self.more = new G.TextView(ctx);
+			self.more.setGravity(G.Gravity.CENTER);
+			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.more, "textview_prompt", 2);
+
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.addHeaderView(self.issueBody);
+			self.list.setDividerHeight(0);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.more) {
+					self.appendPage();
+					return;
+				}
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+
+			self.popup = new PopupPage(self.linear, "feedback.IssueDetail");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		self.currentNumber = number;
+		if (callback) self.popup.on("exit", callback);
+		self.popup.enter();
+		self.reload();
+	} catch(e) {erp(e)}})},
+	showRecentFeedback : function self(callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "刷新",
+				onclick : function(v, tag) {
+					if (self.nextReload > Date.now()) return Common.toast("请不要频繁刷新页面");
+					self.reload();
+				}
+			}, {
+				text : "仅显示未处理",
+				hidden : function() {
+					return self.issueState == "open";
+				},
+				onclick : function(v, tag) {
+					self.issueState = "open";
+					self.reload();
+				}
+			}, {
+				text : "显示所有",
+				hidden : function() {
+					return self.issueState == "all";
+				},
+				onclick : function(v, tag) {
+					self.issueState = "all";
+					self.reload();
+				}
+			}, {
+				text : "查看所有反馈",
+				onclick : function(v, tag) {
+					GiteeFeedback.showIssues();
+				}
+			}, {
+				text : "查看常见问题解答(FAQ)",
+				onclick : function(v, tag) {
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://gitee.com/projectxero/ca/wikis/pages?title=FAQ"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.toast("打开链接失败\n" + e);
+					}
+				}
+			}, {
+				text : "查看反馈说明",
+				onclick : function(v, tag) {
+					GiteeFeedback.showAgreement();
+				}
+			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				text1.setEllipsize(G.TextUtils.TruncateAt.END);
+				text1.setSingleLine(true);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.text1.setText((e.state == "open" ? (e.isNew ? "[有新消息]" : "") : e.state == "rejected" ? "[已拒绝]" : "[已处理]") + e.title);
+				Common.applyStyle(holder.text1, e.state == "open" ? "item_default" : "item_disabled", 3);
+				holder.text2.setText("最近更新于 " + Updater.toChineseDate(e.updated_utc));
+			}
+			self.reload = function() {
+				if (self.loading) return Common.toast("正在加载中……");
+				self.loading = true;
+				self.issues.length = 0;
+				self.adpt.notifyChange();
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var i, t, a = GiteeFeedback.getRecentFeedback(), idata, rejectCount = 0, rejectLatest = -Infinity, latest = -Infinity;
+					for (i = 0; i < a.length; i++) {
+						try {
+							idata = GiteeFeedback.getIssue(a[i].number);
+							if (self.issueState == "open" && idata.state != "open") continue;
+							idata.updated_utc = new Date(idata.updated_at).getTime();
+							t = new Date(idata.created_at).getTime();
+							if (idata.state == "rejected") {
+								rejectCount++;
+								rejectLatest = Math.max(rejectLatest, t);
+							}
+							latest = Math.max(latest, t);
+							self.issues.push(idata);
+						} catch(e) {Log.e(e)}
+					}
+					self.rejectTime = rejectCount > 2 ? rejectLatest + 24 * 3600 * 1000 * Math.pow(3, rejectCount - 3) : -Infinity;
+					self.nextAdd = latest + 60 * 1000;
+					self.nextReload = Date.now() + 20 * 1000;
+					self.issues.sort(function(a, b) {
+						return b.updated_utc - a.updated_utc;
+					});
+					try {
+						GiteeFeedback.myUserId = GiteeFeedback.getUserInfo().id;
+					} catch(e) {Log.e(e)}
+					self.loading = false;
+					G.ui(function() {try {
+						self.adpt.notifyChange();
+					} catch(e) {erp(e)}});
+				});
+			}
+			self.addIssue = function() {
+				if (self.rejectTime > Date.now()) return Common.toast("因为您发布了无效的反馈，为防止服务器资源继续被浪费，您已被暂时禁止发布反馈！");
+				if (self.nextAdd > Date.now()) return Common.toast("服务器忙，请1分钟后重试");
+				GiteeFeedback.showEditIssue({
+					title : "",
+					body : ""
+				}, function(o) {
+					var progress = Common.showProgressDialog();
+					progress.setText("正在创建……");
+					progress.async(function() {
+						var d, l;
+						try {
+							d = GiteeFeedback.createIssue(o.title, o.body);
+						} catch(e) {Log.e(e)}
+						if (!d) Common.toast("话题创建失败");
+						java.lang.Thread.sleep(5000); //等待数据库更新
+						l = GiteeFeedback.addRecentFeedback(d.number);
+						l.lastModified = new Date(idata.updated_at).getTime();
+						G.ui(function() {try {
+							self.reload();
+						} catch(e) {erp(e)}});
+					});
+				});
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.issues = [], self.vmaker, self.vbinder));
+			self.issueState = "all";
+
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+			Common.applyStyle(self.linear, "message_bg");
+
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(0, 0, 0, 10 * G.dp);
+			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showOperateDialog(self.contextMenu);
+				return true;
+			} catch(e) {erp(e)}}}));
+
+			self.title = new G.TextView(ctx);
+			self.title.setText("最近反馈");
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+
+			self.menu = new G.TextView(ctx);
+			self.menu.setText("▼");
+			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			self.menu.setGravity(G.Gravity.CENTER);
+			Common.applyStyle(self.menu, "button_highlight", 3);
+			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.add = new G.TextView(ctx);
+			self.add.setGravity(G.Gravity.CENTER);
+			self.add.setText("新建反馈话题");
+			self.add.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.add.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.add, "textview_prompt", 2);
+
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.addHeaderView(self.add);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.add) {
+					self.addIssue();
+					return;
+				}
+				var data = parent.getAdapter().getItem(pos);
+				GiteeFeedback.showFeedbackDetail(data.number, 0);
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+
+			self.popup = new PopupPage(self.linear, "feedback.Recent");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		if (callback) self.popup.on("exit", callback);
+		self.popup.enter();
+		self.reload();
+	} catch(e) {erp(e)}})},
+	showFeedbackDetail : function self(number, readOnly, callback) {G.ui(function() {try {
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "刷新",
+				onclick : function(v, tag) {
+					self.reload();
+				}
+			}];
+			self.vmaker = function(holder) {
+				var layout = holder.linear = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(20 * G.dp, 15 * G.dp, 20 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				text1.setEllipsize(G.TextUtils.TruncateAt.END);
+				text1.setSingleLine(true);
+				Common.applyStyle(text1, "item_default", 3);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				holder.linear.setGravity(e.fromThis ? G.Gravity.RIGHT : G.Gravity.LEFT);
+				holder.text1.setText(e.fromThis ? "匿名用户" : e.user.name);
+				holder.text2.setText(e.body);
+			}
+			self.reload = function() {
+				if (self.loading) return Common.toast("正在加载中……");
+				self.loading = true;
+				self.comments.length = 0;
+				self.adpt.notifyChange();
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var data;
+					try {
+						data = {
+							topic : GiteeFeedback.getIssue(self.currentNumber)
+						};
+						data.totalPages = Math.ceil(data.topic.comments / GiteeFeedback.perPage);
+						data.next = data.totalPages;
+					} catch(e) {Log.e(e)}
+					self.loading = false;
+					if (!data) return Common.toast("评论列表加载失败");
+					self.commentData = data;
+					G.ui(function() {try {
+						self.title.setText(data.topic.title);
+						var canTalk = self.readOnly > 0 ? true : self.readOnly < 0 ? false : data.topic.state == "open";
+						if (canTalk && !self.talkVisible) {
+							self.talkVisible = true;
+							self.list.addFooterView(self.talk);
+						} else if (!canTalk && self.talkVisible) {
+							self.talkVisible = false;
+							self.list.removeFooterView(self.talk);
+						}
+					} catch(e) {erp(e)}});
+					self.appendPage(true);
+				});
+			}
+			self.appendPage = function(sync) {
+				if (!sync) {
+					var progress = Common.showProgressDialog();
+					progress.setText("正在加载……");
+					progress.async(function() {
+						self.appendPage(true);
+					});
+				} else {
+					if (self.loading) return Common.toast("正在加载中……");
+					if (isNaN(self.commentData.next)) return;
+					self.loading = true;
+					var i, off = self.comments.length, page;
+					try {
+						page = GiteeFeedback.getIssueComments(self.currentNumber, self.commentData.next);
+					} catch(e) {Log.e(e)}
+					if (!page) {
+						self.loading = false;
+						return Common.toast("评论列表加载失败");
+					}
+					G.ui(function() {try {
+						if (self.commentData.next > 1) {
+							self.commentData.next--;
+						} else {
+							self.commentData.next = NaN;
+						}
+						self.comments.length += page.length;
+						for (i = self.comments.length - 1; i >= page.length; i--) {
+							self.comments[i] = self.comments[i - page.length];
+						}
+						for (i = 0; i < page.length; i++) {
+							page[i].fromThis = page[i].user.id == GiteeFeedback.myUserId;
+							self.comments[i] = page[i];
+						}
+						if (!self.commentData.next) {
+							self.comments.unshift({
+								"fromThis": true,
+								"body": self.commentData.topic.body || self.commentData.topic.title,
+								"created_at": self.commentData.topic.created_at,
+								"user": self.commentData.topic.user
+							});
+						}
+						self.adpt.notifyChange();
+						if (self.commentData.next && !self.moreVisible) {
+							self.moreVisible = true;
+							self.list.addHeaderView(self.more);
+						} else if (!self.commentData.next && self.moreVisible) {
+							self.moreVisible = false;
+							self.list.removeHeaderView(self.more);
+						}
+						self.loading = false;
+						if (page.length < 3 && !isNaN(self.commentData.next)) self.appendPage(false);
+					} catch(e) {erp(e)}});
+				}
+			}
+			self.addComment = function(text) {
+				var progress = Common.showProgressDialog();
+				progress.setText("正在发送……");
+				progress.async(function() {
+					var d, l;
+					try {
+						d = GiteeFeedback.createIssueComment(self.currentNumber, text);
+					} catch(e) {Log.e(e)}
+					if (!d) Common.toast("话题创建失败");
+					java.lang.Thread.sleep(1500); //等待数据库更新
+					G.ui(function() {try {
+						self.reload();
+					} catch(e) {erp(e)}});
+				});
+			}
+			self.clickData = function(data, remote) {
+				var text = data.body;
+				var match;
+				match = /\[Issue#(.+)\]/i.exec(text);
+				if (match) {
+					return GiteeFeedback.showIssueDetail(match[1]);
+				}
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.comments = [], self.vmaker, self.vbinder));
+
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			self.linear.setPadding(0, 15 * G.dp, 0, 0);
+			Common.applyStyle(self.linear, "message_bg");
+
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(15 * G.dp, 0, 15 * G.dp, 10 * G.dp);
+			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				Common.showOperateDialog(self.contextMenu);
+				return true;
+			} catch(e) {erp(e)}}}));
+
+			self.title = new G.TextView(ctx);
+			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			Common.applyStyle(self.title, "textview_default", 4);
+			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+
+			self.menu = new G.TextView(ctx);
+			self.menu.setText("▼");
+			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+			self.menu.setGravity(G.Gravity.CENTER);
+			Common.applyStyle(self.menu, "button_highlight", 3);
+			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
+			
+			self.talk = new G.LinearLayout(ctx);
+			self.talk.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			self.talk.setOrientation(G.LinearLayout.HORIZONTAL);
+			Common.applyStyle(self.talk, "bar_float");
+			self.talkbox = new G.EditText(ctx);
+			self.talkbox.setHint("发送评论");
+			self.talkbox.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+			self.talkbox.setFocusableInTouchMode(true);
+			self.talkbox.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
+			self.talkbox.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+			Common.applyStyle(self.talkbox, "edittext_default", 3);
+			self.talk.addView(self.talkbox);
+			
+			self.send = new G.TextView(ctx);
+			self.send.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			self.send.setGravity(G.Gravity.CENTER);
+			self.send.setText("发送");
+			self.send.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			Common.applyStyle(self.send, "button_reactive", 3);
+			self.send.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_DOWN:
+					Common.applyStyle(v, "button_reactive_pressed", 3);
+					break;
+					case e.ACTION_CANCEL:
+					case e.ACTION_UP:
+					Common.applyStyle(v, "button_reactive", 3);
+				}
+				return false;
+			} catch(e) {return erp(e), true}}}));
+			self.send.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				var s = String(self.talkbox.getText());
+				if (!s) return Common.toast("内容不可为空！");
+				self.addComment(s);
+			} catch(e) {erp(e)}}}));
+			self.talk.addView(self.send);
+			
+			self.more = new G.TextView(ctx);
+			self.more.setGravity(G.Gravity.CENTER);
+			self.more.setText("显示更多");
+			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			Common.applyStyle(self.more, "textview_prompt", 2);
+
+			self.list = new G.ListView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.setDividerHeight(0);
+			self.list.setStackFromBottom(true);
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				if (view == self.more) {
+					self.appendPage();
+					return;
+				}
+				var data = parent.getAdapter().getItem(pos);
+				self.clickData(data);
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("关闭");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
+
+			self.popup = new PopupPage(self.linear, "feedback.IssueDetail");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		self.currentNumber = number;
+		self.readOnly = readOnly;
+		if (callback) self.popup.on("exit", callback);
+		self.popup.enter();
+		self.reload();
+	} catch(e) {erp(e)}})},
+	showEditIssue : function self(o, callback, onDismiss) {G.ui(function() {try {
+		var scr, layout, title, rtitle, rbody, exit, popup;
+		scr = new G.ScrollView(ctx);
+		Common.applyStyle(scr, "message_bg");
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.VERTICAL);
+		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		title = new G.TextView(ctx);
+		title.setText("新建反馈话题");
+		title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		title.setPadding(0, 0, 0, 10 * G.dp);
+		Common.applyStyle(title, "textview_default", 4);
+		layout.addView(title);
+		rtitle = new G.EditText(ctx);
+		rtitle.setText(o.title);
+		rtitle.setHint("标题");
+		rtitle.setSingleLine(true);
+		rtitle.setPadding(0, 0, 0, 0);
+		rtitle.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		rtitle.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+		rtitle.setSelection(rtitle.length());
+		Common.applyStyle(rtitle, "edittext_default", 3);
+		layout.addView(rtitle);
+		rbody = new G.EditText(ctx);
+		rbody.setText(o.body);
+		rbody.setHint("请详细具体地描述你的反馈");
+		rbody.setPadding(0, 20 * G.dp, 0, 0);
+		rbody.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		Common.applyStyle(rbody, "edittext_default", 2);
+		layout.addView(rbody);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+		exit.setText("确定");
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			o.title = String(rtitle.getText());
+			o.body = String(rbody.getText());
+			if (!o.title) return Common.toast("标题不能为空！");
+			if (callback) callback(o);
+			popup.exit();
+		} catch(e) {erp(e)}}}));
+		layout.addView(exit);
+		scr.addView(layout);
+		popup = PopupPage.showDialog("feedback.EditIssue", scr, -1, -2);
+		if (onDismiss) popup.on("exit", onDismiss);
+	} catch(e) {erp(e)}})},
+	showFeedbacks : function(callback) {
+		if (this.token) {
+			if (CA.settings.readFeedbackAgreement) {
+				this.showRecentFeedback(callback);
+			} else {
+				this.showAgreement(function() {
+					GiteeFeedback.showRecentFeedback(callback);
+				});
+			}
+		} else {
+			Common.toast("您目前没有反馈Token，无法创建反馈");
+			this.showIssues(callback);
+		}
+	},
+	showAgreement : function(callback) {
+		Common.showConfirmDialog({
+			title : "反馈使用说明", 
+			description : ISegment.rawJson({
+				extra : [
+					"请务必看完本说明！\n",
+					"\n1. 所有人反馈的内容都是公开但匿名的，请注意保护自己的隐私。",
+					"\n2. 在反馈之前，请先查看常见问题解答(在最近反馈界面点击右上角三角显示的菜单内)。如果常见问题解答能解决你的问题，请不要重复反馈。",
+					"\n3. 您如果重复反馈或反馈与命令助手无关的内容，这条反馈会被标注为“已拒绝”。如果您提出的被拒绝反馈数量超过两个，您会被暂时禁止反馈。",
+					"\n4. 在自己的反馈下多次发送重复或无关反馈的内容会让这条反馈被标注为“已拒绝”。",
+					"\n5. 请将您想反馈的内容表达尽可能具体。过于简单的反馈很可能会被标注为“已拒绝”。",
+					"\n6. 您的未处理的反馈随时都可能收到回复，推荐一天检查一次反馈。被标注为“已处理”或“已拒绝”的反馈不能被回复。",
+					"\n7. 如果您有很难用文字解释或者涉及隐私的反馈，建议私聊作者反馈：QQ:814518615 电子邮箱:projectxero@163.com。",
+					"\n\n您随时都可以在最近反馈界面点击右上角三角显示的菜单内再次查看本说明"
+				],
+				color : "textcolor"
+			}),
+			buttons : [
+				"我了解了"
+			],
+			callback : function(id) {
+				CA.settings.readFeedbackAgreement = true;
+				if (callback) callback();
+			}
+		});
+	}
 });
 
 "IGNORELN_START";
