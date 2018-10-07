@@ -920,7 +920,7 @@ MapScript.loadModule("PopupPage", (function() {
 					return 0;
 				}
 			});
-			r.defaultWindow.setRoundRectRadius(8 * G.dp);
+			r.defaultWindow.setRoundRectRadius(8 * G.dp, 2);
 			r.defaultWindow.setContentDescription("DefaultWindow");
 			r.longClick = new java.lang.Runnable({run : function() {try {
 				if (r.longClicked) r.setFullScreen(true);
