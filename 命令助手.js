@@ -506,230 +506,13 @@ MapScript.loadModule("G", {
 });
 "IGNORELN_END";
 
-MapScript.loadModule("L", (function() {
-	var cx = org.mozilla.javascript.Context.getCurrentContext();
-	var scope = eval.call(null, "this");
-	var baseClass = java.lang.Class.forName("android.view.View"), groupClass = java.lang.Class.forName("android.view.ViewGroup");
-	function UCC(str) {
-		return str.slice(0, 1).toUpperCase() + str.slice(1);
-	}
-	function LCC(str) {
-		return str.slice(0, 1).toLowerCase() + str.slice(1);
-	}
-	function applyAttributes(source, target) {
-		var i, t;
-		for (i in source) {
-			t = "set" + UCC(i);
-			if (t in target) {
-				if (Array.isArray(source[i])) {
-					target[t].apply(target, source[i]);
-				} else {
-					target[t](source[i]);
-				}
-			} else if (i in target) {
-				target[i] = source[i];
-			}
-		}
-	}
-	function generateDefaultLayoutParams(parent) {
-		var method = parent.getClass().getDeclaredMethod("generateDefaultLayoutParams");
-		method.setAccessible(true);
-		return method.invoke(parent);
-	}
-	function calculateLayoutParams(parent, view) {
-		var childJson = view.tag, prefix = "layout", i, lp, attrs;
-		if (childJson.layoutParams) return childJson.layoutParams;
-		if ("layout" in childJson) {
-			if (childJson.layout instanceof Function) {
-				return childJson.layout(parent, view);
-			} else {
-				lp = generateDefaultLayoutParams(parent);
-				applyAttributes(childJson.layout, lp);
-				return lp;
-			}
-		} else {
-			lp = generateDefaultLayoutParams(parent);
-			attrs = {};
-			for (i in childJson) {
-				if (i.slice(0, prefix.length) != prefix) continue;
-				attrs[LCC(i.slice(prefix.length))] = childJson[i];
-			}
-			applyAttributes(attrs, lp);
-		}
-		return lp;
-	}
-	function applyListeners(source, target) {
-		var i, t, suffix = "Listener";
-		for (i in source) {
-			if (typeof source[i] != "object" && typeof source[i] != "function") continue;
-			t = "set" + UCC(i) + suffix;
-			if (t in target) {
-				target[t](source[i]);
-			}
-		}
-	}
-	function attach(view, json, fromModel) {
-		var e;
-		applyAttributes(json, view);
-		applyListeners(json, view);
-		if (groupClass.isAssignableFrom(view.getClass())) {
-			if (json.children) {
-				for (i in json.children) {
-					e = json.children[i];
-					view.addView(fromModel ? fromJSON(e) : e, calculateLayoutParams(view, e));
-				}
-			} else if (json.child) {
-				view.addView(fromModel ? fromJSON(json.child) : json.child, calculateLayoutParams(view, json.child));
-			}
-		}
-		if (json.inflate) json.inflate(view);
-		view.tag = json;
-		return view;
-	}
-	function inflate(clazz, context, json, fromModel) {
-		var constructor, view, i;
-		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
-		try {
-			constructor = clazz.getConstructor(android.content.Context);
-		} catch(e) {/* constructor not found */}
-		if (!constructor) throw new Error("Unable to construct " + clazz);
-		view = constructor.newInstance(context);
-		return attach(view, json, fromModel);
-	}
-	function findConstant(cls, name) {
-		var field;
-		try {
-			field = cls.getField(name);
-			if (field) {
-				return field.get(null);
-			}
-		} catch(e) {/* field not found or not static */}
-		return undefined;
-	}
-	function calculateConstant(clazz, exp) {
-		var i, r;
-		exp = exp.split("|").map(function(e) {
-			return findConstant(clazz, e) || findConstant(clazz, e.toUpperCase());
-		});
-		r = exp[0];
-		for (i = 1; i < exp.length; i++) {
-			if (r == null) r = 0;
-			if (typeof exp[i] == "number") {
-				r |= exp[i];
-			} else {
-				r = r || exp[i];
-			}
-		}
-		return r || 0;
-	}
-	function fromJSON(json, context) {
-		var clazz = json["class"];
-		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
-		return inflate(clazz, context, json, true);
-	}
-	function toJSON(view) {
-		var json = view.tag;
-		json["class"] = String(view.getClass().getName());
-		if (json.children) {
-			for (i in json.children) {
-				json.children[i] = toJSON(json.children[i]);
-			}
-		} else if (json.child) {
-			json.child = toJSON(json.child);
-		}
-		return json;
-	}
-	var kv = {
-		__noSuchMethod__ : function(name) {
-			throw new Error(name + " is not a function, it is undefined.");
-		},
-		attach : attach,
-		inflate : inflate
-	};
-	var LView = kv.view = function(clazz, json) {try {
-		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
-		if (typeof json == "object") { // view builder
-			return inflate(clazz, ctx, json, false); 
-		} else if (typeof json == "string") { // constant
-			return calculateConstant(clazz, json);
-		}
-	} catch(e) {
-		Log.e(e);
-		throw e;
-	}}
-	function wrapViewClass(cls) {
-		return LView.bind(kv, cls);
-	}
-	var pprefix = [
-		"android.widget.",
-		"android.view.",
-		"android.view.animation",
-		"android.animation.",
-		"android.app.",
-		"android.content.",
-		"android.graphics.",
-		"android.graphics.drawable.",
-		"android.media.",
-		"android.os.",
-		"android.text.",
-		"android.text.format.",
-		"android.text.method.",
-		"android.text.style.",
-		"android.view.inputmethod.",
-		"android.webkit."
-	];
-	function peekClass(name) {
-		var i, forName = java.lang.Class.forName;
-		for (i in pprefix) {
-			try {return forName(pprefix[i] + name)} catch(e) {}
-		}
-		return undefined;
-	}
-	var r = new org.mozilla.javascript.Scriptable({
-		delete : function(name) {},
-		get : function(name, start) {
-			var cls;
-			if (name in kv) return kv[name];
-			cls = peekClass(name);
-			if (!cls) return undefined;
-			return kv[name] = wrapViewClass(cls);
-		},
-		getClassName : function() {
-			return "Proxy_L";
-		},
-		getDefaultValue : function(hint) {
-			return kv;
-		},
-		getIds : function() {
-			return Object.keys(kv);
-		},
-		getParentScope : function() {
-			return scope;
-		},
-		getPrototype : function() {
-			return kv;
-		},
-		has : function(name, start) {
-			return name in kv;
-		},
-		hasInstance : function(instance) {
-			return false;
-		},
-		put : function(name, start, value) {
-			kv[name] = value;
-		},
-		setParentScope : function(scope) {},
-		setPrototype : function(protptype) {}
-	});
-	return cx.toObject(r, scope);
-})());
-
 MapScript.loadModule("EventSender", {
 	init : function(o) {
 		o.on = this.on;
 		o.off = this.off;
 		o.trigger = this.trigger;
 		o.clearListeners = this.clearListeners;
+		return o;
 	},
 	on : function(name, f) {
 		if (!this.listener[name]) this.listener[name] = [];
@@ -769,6 +552,341 @@ MapScript.loadModule("EventSender", {
 		if (this.__eventsender_observer__) this.__eventsender_observer__("clear");
 	}
 });
+
+MapScript.loadModule("L", (function self(defaultContext) {
+	var cx = org.mozilla.javascript.Context.getCurrentContext();
+	var scope = eval.call(null, "this");
+	var baseClass = java.lang.Class.forName("android.view.View"), groupClass = java.lang.Class.forName("android.view.ViewGroup");
+	function UCC(str) {
+		return str.slice(0, 1).toUpperCase() + str.slice(1);
+	}
+	function LCC(str) {
+		return str.slice(0, 1).toLowerCase() + str.slice(1);
+	}
+	var LHolder = {
+		get : function(name) {
+			return name in this.data ? this.data[name] : this.parent ? this.parent.get(name) : undefined;
+		},
+		getChildren : function() {
+			var p = this, i, r = [], a;
+			while (p) {
+				if (p.data.children) {
+					a = p.data.children;
+					for (i in a) r.push(a[i]);
+				} else if (p.data.child) {
+					r.push(p.data.child);
+				}
+				p = p.parent;
+			}
+			return r;
+		},
+		flatten : function(target) {
+			var i;
+			if (!target) target = {};
+			if (this.parent) this.parent.flatten(target);
+			for (i in this.data) {
+				target[i] = this.data[i];
+			}
+			return target;
+		}
+	}, LValue = {
+		get : function(modelContext) {
+			if (this.getter) {
+				return this.getter(modelContext.data);
+			} else {
+				return modelContext.data[this.field];
+			}
+		}
+	};
+	function createHolder(data, parent) {
+		var o = Object.create(LHolder);
+		o.data = data;
+		o.parent = parent;
+		return o;
+	}
+	function applyAttributes(source, target, modelContext) {
+		var i, t, e;
+		for (i in source) {
+			e = source[i];
+			if (e instanceof LValue) {
+				if (modelContext.data) {
+					e = e.get(modelContext);
+				} else {
+					continue;
+				}
+			}
+			t = "set" + UCC(i);
+			if (t in target) {
+				if (Array.isArray(e)) {
+					target[t].apply(target, e);
+				} else {
+					target[t](e);
+				}
+			} else if (i in target) {
+				target[i] = e;
+			}
+		}
+	}
+	function generateDefaultLayoutParams(parent) {
+		var method = parent.getClass().getDeclaredMethod("generateDefaultLayoutParams");
+		method.setAccessible(true);
+		return method.invoke(parent);
+	}
+	function attachLayoutParams(lp, json) {
+		var prefix = "layout", i, attrs;
+		if (json.layout) {
+			applyAttributes(json.layout, lp);
+		} else {
+			attrs = {};
+			for (i in json) {
+				if (i.slice(0, prefix.length) != prefix) continue;
+				attrs[LCC(i.slice(prefix.length))] = json[i];
+			}
+			applyAttributes(attrs, lp);
+		}
+	}
+	function calculateLayoutParams(parent, view) {
+		var childJson = view.tag, lp;
+		if (childJson.layoutParams) return childJson.layoutParams;
+		if (childJson.layout instanceof Function) {
+			lp = childJson.layout(parent, view);
+		} else {
+			lp = generateDefaultLayoutParams(parent);
+			attachLayoutParams(lp, childJson);
+		}
+		return lp;
+	}
+	function applyListeners(source, target, modelContext) {
+		var i, t, e, suffix = "Listener";
+		for (i in source) {
+			e = source[i];
+			if (e instanceof LValue) {
+				if (modelContext.data) {
+					e = e.get(modelContext);
+				} else {
+					continue;
+				}
+			}
+			if (typeof e != "object" && typeof e != "function") continue;
+			t = "set" + UCC(i) + suffix;
+			if (t in target) {
+				target[t](e);
+			}
+		}
+	}
+	function attach(view, json, modelContext) {
+		var parentJson, i, e;
+		applyAttributes(json, view, modelContext);
+		applyListeners(json, view, modelContext);
+		if (groupClass.isAssignableFrom(view.getClass())) {
+			if (json.children) {
+				for (i in json.children) {
+					e = json.children[i];
+					view.addView(modelContext ? fromJSON(e) : e, calculateLayoutParams(view, e));
+				}
+			} else if (json.child) {
+				view.addView(modelContext ? fromJSON(json.child) : json.child, calculateLayoutParams(view, json.child));
+			}
+		}
+		if (json.inflate) json.inflate(view);
+		parentJson = view.tag;
+		view.tag = createHolder(json, parentJson instanceof LHolder ? parentJson : null);
+		return view;
+	}
+	function inflate(clazz, context, json, modelContext) {
+		var constructor, view, i;
+		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
+		try {
+			constructor = clazz.getConstructor(android.content.Context);
+		} catch(e) {/* constructor not found */}
+		if (!constructor) throw new Error("Unable to construct " + clazz);
+		view = constructor.newInstance(context);
+		return attach(view, json, modelContext);
+	}
+	function findConstant(cls, name) {
+		var field;
+		try {
+			field = cls.getField(name);
+			if (field) {
+				return field.get(null);
+			}
+		} catch(e) {/* field not found or not static */}
+		return undefined;
+	}
+	function calculateConstant(clazz, exp) {
+		var i, r;
+		exp = exp.split("|").map(function(e) {
+			return findConstant(clazz, e) || findConstant(clazz, e.toUpperCase());
+		});
+		r = exp[0];
+		for (i = 1; i < exp.length; i++) {
+			if (r == null) r = 0;
+			if (typeof exp[i] == "number") {
+				r |= exp[i];
+			} else {
+				r = r || exp[i];
+			}
+		}
+		return r || 0;
+	}
+	function fromJSON(json, context, modelContext) {
+		if (json instanceof LValue) {
+			json = json.get(modelContext);
+		}
+		var clazz = json["class"], view;
+		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
+		view = inflate(clazz, context, json, modelContext);
+		if (modelContext.holder && json.modelId) modelContext.holder[json.modelId] = view;
+		return view;
+	}
+	var LTemplate = {
+		init : function(baseView) {
+			this.srcJson = this.toJSON(baseView);
+			
+		},
+		create : function(holder) {
+			return 
+		},
+		bind : function(viewOrHolder, data) {
+			
+		},
+		makeView : function(data) {
+			var view = this.create();
+			this.bind(view, data);
+			return view;
+		},
+		fromView : function(view) {
+			var holder = view.tag, self = this;
+			if (!(holder instanceof LHolder)) throw new Error(holder + " is not a LHolder");
+			var json = holder.flatten(), i;
+			delete json.child;
+			json.children = holder.getChildren().map(function(e) {
+				return e instanceof LHolder ? e : self.fromView(e);
+			});
+			return json;
+		}
+	};
+	var listener = EventSender.init({listener : {}});
+	var kv = {
+		__noSuchMethod__ : function(name) {
+			throw new Error(name + " is not a function, it is undefined.");
+		},
+		attach : attach,
+		inflate : inflate,
+		Template : function(view) {
+			var o = Object.create(LTemplate);
+			o.init(view);
+			return o;
+		},
+		Value : function(f) {
+			var o = Object.create(LValue);
+			if (f instanceof Function) {
+				o.getter = f;
+			} else {
+				o.field = f;
+			}
+			return o;
+		},
+		on : listener.on.bind(listener),
+		off : listener.off.bind(listener),
+		clearListeners : listener.clearListeners.bind(listener),
+		withContext : function(context) {
+			return self(context);
+		}
+	};
+	var LView = kv.view = function(clazz, json) {try {
+		var r;
+		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
+		if (typeof json == "object") { // view builder
+			listener.trigger("beforeInflate", clazz, json);
+			r = inflate(clazz, defaultContext, json, false); 
+			listener.trigger("afterInflate", r, json);
+			return r;
+		} else if (typeof json == "string") { // constant
+			return calculateConstant(clazz, json);
+		}
+	} catch(e) {
+		Log.e(e);
+		throw e;
+	}}
+	function wrapViewClass(cls) {
+		return LView.bind(kv, cls);
+	}
+	function withCallback(defaultValue, f) {
+		var result = undefined;
+		f(function(newValue) {
+			result = newValue;
+		});
+		return result;
+	}
+	var pprefix = [
+		"android.widget.",
+		"android.view.",
+		"android.view.animation",
+		"android.animation.",
+		"android.app.",
+		"android.content.",
+		"android.graphics.",
+		"android.graphics.drawable.",
+		"android.media.",
+		"android.os.",
+		"android.text.",
+		"android.text.format.",
+		"android.text.method.",
+		"android.text.style.",
+		"android.view.inputmethod.",
+		"android.webkit."
+	];
+	function peekClass(name) {
+		var i, forName = java.lang.Class.forName;
+		for (i in pprefix) {
+			try {return forName(pprefix[i] + name)} catch(e) {}
+		}
+		return undefined;
+	}
+	var r = new org.mozilla.javascript.Scriptable({
+		delete : function(name) {},
+		get : function(name, start) {
+			var cls;
+			if (name in kv) return kv[name];
+			cls = withCallback(null, function(consumer) {
+				listener.trigger("pickClass", consumer);
+			});
+			if (!cls) {
+				cls = peekClass(name);
+			}
+			if (!cls) return undefined;
+			return kv[name] = wrapViewClass(cls);
+		},
+		getClassName : function() {
+			return "Proxy_L";
+		},
+		getDefaultValue : function(hint) {
+			return kv;
+		},
+		getIds : function() {
+			return Object.keys(kv);
+		},
+		getParentScope : function() {
+			return scope;
+		},
+		getPrototype : function() {
+			return kv;
+		},
+		has : function(name, start) {
+			return name in kv;
+		},
+		hasInstance : function(instance) {
+			return false;
+		},
+		put : function(name, start, value) {
+			kv[name] = value;
+		},
+		setParentScope : function(scope) {},
+		setPrototype : function(protptype) {}
+	});
+	return cx.toObject(r, scope);
+})(ctx));
 
 MapScript.loadModule("PWM", {
 	floats : [],
@@ -1755,7 +1873,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 3],
+	version : [1, 2, 4],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -6545,7 +6663,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 								continue;
 							}
 							self.ids[off + j] = ks[j];
-							self.texts[off + j] = ks[j] + " - " + e[ks[j]];
+							self.texts[off + j] = ks[j] + (e[ks[j]] ? " - " + e[ks[j]] : "");
 							total++;
 						}
 					}
@@ -10337,6 +10455,14 @@ MapScript.loadModule("Common", {
 		}
 	},
 	theme : null,
+	
+	onCreate : function() {
+		L.on("afterInflate", function(name, view, json) {
+			if (json.style) {
+				Common.applyStyle(view, json.style, json.fontSize);
+			}
+		});
+	},
 
 	/* BUG 修复
 	 * Android 8.0 颜色转换出错
@@ -12108,6 +12234,16 @@ MapScript.loadModule("Plugins", {
 				} catch(e) {erp(e, true)}
 			}
 		}
+	},
+	addMenu : function(obj) {
+		var i, a = CA.PluginMenu;
+		for (i = 0; i < a.length; i++) {
+			if (a[i].text == obj.text) {
+				return a[i] = obj;
+			}
+		}
+		a.push(obj);
+		return obj;
 	}
 });
 
@@ -13856,15 +13992,15 @@ MapScript.loadModule("Updater", {
 				text : i,
 				description : info.downloads[i]
 			});
-			Common.showListChooser(d, function(i) {
-				try {
-					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(d[i].description))
-						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-				} catch(e) {
-					Common.toast("打开链接失败\n" + e);
-				}
-			});
 		}
+		Common.showListChooser(d, function(i) {
+			try {
+				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(d[i].description))
+					.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+			} catch(e) {
+				Common.toast("打开链接失败\n" + e);
+			}
+		});
 	},
 	showNewVersionInfo : function(oldVer) {
 		this.checking = true;
@@ -15318,7 +15454,7 @@ MapScript.loadModule("MCAdapter", {
 		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
 		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
 		sc.setData(android.net.Uri.fromParts("package", pkg, null));
-		AndroidBridge.createShortcut(sc, name, com.xero.ca.R.drawable.icon_small);
+		AndroidBridge.createShortcut(sc, name, com.xero.ca.R.mipmap.icon_small);
 	},
 	adapters : [{
 		text : "ModPE适配器（通用）",
@@ -16283,7 +16419,7 @@ MapScript.loadModule("NeteaseAdapter", {
 		var n, i, p1, p2;
 		n = Math.max(a.length, b.length);
 		for (i = 0; i < n; i++) {
-			p1 = a[i]; p2 = b[i];
+			p1 = isNaN(a[i]) ? -1 : parseInt(a[i]); p2 = isNaN(b[i]) ? -1 : parseInt(b[i]);
 			if (p1 < p2) {
 				return -1;
 			} else if (p1 > p2) {
@@ -16764,6 +16900,10 @@ MapScript.loadModule("WSServer", {
 });
 
 MapScript.loadModule("GiteeFeedback", {
+	name : "GiteeFeedback",
+	author : "ProjectXero",
+	version : [1, 0, 0],
+	uuid : "3c7b3f7f-bda9-4ed9-a336-cdee2ebae433",
 	address : "projectxero/ca",
 	perPage : 20,
 	onCreate : function() {
@@ -17335,7 +17475,7 @@ MapScript.loadModule("GiteeFeedback", {
 						if (!d) Common.toast("话题创建失败");
 						java.lang.Thread.sleep(5000); //等待数据库更新
 						l = GiteeFeedback.addRecentFeedback(d.number);
-						l.lastModified = new Date(idata.updated_at).getTime();
+						l.lastModified = new Date(d.updated_at).getTime();
 						G.ui(function() {try {
 							self.reload();
 						} catch(e) {erp(e)}});
@@ -17749,16 +17889,107 @@ MapScript.loadModule("GiteeFeedback", {
 	}
 });
 
+MapScript.loadModule("Calculator", {
+	name : "计算器",
+	author : "ProjectXero",
+	version : [1, 0, 0],
+	uuid : "2bb400df-ab28-47ec-ae4a-95ee03d2c7ea",
+	initialize : function() {
+		Plugins.addMenu({
+			text : "计算器",
+			onclick : function() {
+				Calculator.show();
+			}
+		});
+	},
+	show : function self() {G.ui(function() {try {
+		if (!self.popup) {
+			self.layout = L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				children : [
+					L.LinearLayout({
+						orientation : L.LinearLayout("horizontal"),
+						padding : [0, 10 * G.dp, 0, 10 * G.dp],
+						layoutWidth : -1,
+						layoutHeight : -2,
+						style : "bar_float",
+						children : [
+							L.TextView({
+								text : "计算器",
+								padding : [10 * G.dp, 0, 10 * G.dp, 0],
+								layoutWidth : 0,
+								layoutHeight : -2,
+								layoutWeight : 1,
+								style : "textview_default",
+								fontSize : 4,
+								onClick : function() {
+									//switch calclator
+								}
+							}),
+							L.TextView({
+								text : "×",
+								padding : [10 * G.dp, 0, 10 * G.dp, 0],
+								gravity : L.Gravity("center"),
+								layoutWidth : -2,
+								layoutHeight : -2,
+								style : "button_critical",
+								fontSize : 4,
+								onClick : function() {
+									self.popup.exit();
+								}
+							})
+						]
+					}),
+					self.container = L.FrameLayout({
+						layoutWidth : -1,
+						layoutHeight : -1,
+						style : "container_default"
+					})
+				]
+			});
+			self.popup = new PopupPage(self.layout, "calculator.Main");
+			PWM.registerResetFlag(self, "popup");
+		}
+		self.popup.enter();
+	} catch(e) {erp(e)}})},
+	normalCalc : function self() {
+		if (!self.layout) {
+			self.template = L.TextView({
+				padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+				fontSize : 3,
+				style : L.Value(function(e) {
+					return e.current ? "textview_highlight" : "textview_default";
+				}),
+				text : L.Value("text")
+			});
+			self.vmaker = function(holder) {
+				return self.template.createView(holder);
+			}
+			self.vbinder = function(holder, e) {
+				self.template.bindView(holder, e);
+			}
+			self.layout = L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				children : [
+					L.ListView()
+				]
+			});
+			PWM.registerResetFlag(self, "layout");
+		}
+		return self.layout;
+	}
+});
+
 "IGNORELN_START";
 CA.Library.inner["default"] = {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.4.0 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.8.0.10 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.4.0.5",
+	"targetSupportVer": "1.8.0.10",
 	"commands": {},
 	"idlist": [
 		{
@@ -17780,6 +18011,10 @@ CA.Library.inner["default"] = {
 		{
 			"name": "状态效果",
 			"list": "effect"
+		},
+		{
+			"name": "粒子",
+			"list": "particle_emitter"
 		},
 		{
 			"name": "附魔",
@@ -17804,6 +18039,8 @@ CA.Library.inner["default"] = {
 			"activator_rail": "激活铁轨",
 			"air": "空气",
 			"anvil": "铁砧",
+			"bamboo": "竹子",
+			"bamboo_sapling": "竹笋",
 			"barrier": "屏障",
 			"beacon": "信标",
 			"bed": "床",
@@ -17831,7 +18068,7 @@ CA.Library.inner["default"] = {
 			"cake": "蛋糕",
 			"carpet": "地毯",
 			"carrots": "胡萝卜",
-			"carved_pumpkin": "雕刻南瓜",
+			"carved_pumpkin": "雕刻过的南瓜",
 			"cauldron": "炼药锅",
 			"chain_command_block": "连锁型命令方块",
 			"chest": "箱子",
@@ -17952,6 +18189,7 @@ CA.Library.inner["default"] = {
 			"melon_block": "西瓜",
 			"melon_stem": "西瓜梗",
 			"mob_spawner": "刷怪箱",
+			"mod_ore": "模组矿石",
 			"monster_egg": "怪物蛋",
 			"mossy_cobblestone": "苔石",
 			"movingblock": "被活塞推动的方块",
@@ -17994,7 +18232,7 @@ CA.Library.inner["default"] = {
 			"red_glazed_terracotta": "红色带釉陶瓦",
 			"red_mushroom": "红色蘑菇",
 			"red_mushroom_block": "红色蘑菇",
-			"red_nether_brick": "红色地狱砖",
+			"red_nether_brick": "红色地狱砖块",
 			"red_sandstone": "红砂岩",
 			"red_sandstone_stairs": "红砂岩楼梯",
 			"redstone_block": "红石块",
@@ -18009,6 +18247,7 @@ CA.Library.inner["default"] = {
 			"sandstone": "砂岩",
 			"sandstone_stairs": "砂岩楼梯",
 			"sapling": "树苗",
+			"scaffolding": "脚手架",
 			"sealantern": "海晶灯",
 			"sea_pickle": "海泡菜",
 			"seagrass": "海草",
@@ -18279,6 +18518,13 @@ CA.Library.inner["default"] = {
 			"beacon.ambient": "",
 			"beacon.deactivate": "信标关闭声",
 			"beacon.power": "信标充能声",
+			"block.bamboo.break": "",
+			"block.bamboo.fall": "",
+			"block.bamboo.hit": "",
+			"block.bamboo.place": "",
+			"block.bamboo.step": "",
+			"block.bamboo_sapling.place": "",
+			"block.bamboo_sapling.break": "",
 			"block.false_permissions": "禁止方块效果声",
 			"block.end_portal.spawn": "生成末地传送门声",
 			"block.end_portal_frame.fill": "填充末地传送门框架声",
@@ -18292,6 +18538,12 @@ CA.Library.inner["default"] = {
 			"block.turtle_egg.drop": "海龟蛋掉落声",
 			"block.turtle_egg.break": "海龟蛋破坏声",
 			"block.turtle_egg.crack": "海龟蛋裂开声",
+			"block.scaffolding.break": "",
+			"block.scaffolding.fall": "",
+			"block.scaffolding.hit": "",
+			"block.scaffolding.place": "",
+			"block.scaffolding.step": "",
+			"block.scaffolding.climb": "",
 			"bucket.empty_lava": "桶放置岩浆声",
 			"bucket.empty_water": "桶放置水声",
 			"bucket.fill_lava": "桶装岩浆声",
@@ -18313,6 +18565,13 @@ CA.Library.inner["default"] = {
 			"conduit.attack": "",
 			"conduit.deactivate": "潮涌核心关闭声",
 			"conduit.short": "",
+			"crossbow.loading.start": "",
+			"crossbow.loading.middle": "",
+			"crossbow.loading.end": "",
+			"crossbow.shoot": "",
+			"crossbow.quick_charge.start": "",
+			"crossbow.quick_charge.middle": "",
+			"crossbow.quick_charge.end": "",
 			"damage.fallbig": "长高度落伤害声",
 			"damage.fallsmall": "短高度掉落伤害",
 			"elytra.loop": "鞘翅飞翔声",
@@ -18355,6 +18614,7 @@ CA.Library.inner["default"] = {
 			"minecart.base": "矿车行驶声",
 			"minecart.inside": "矿车驾驶声",
 			"furnace.lit": "熔炉点燃声",
+			"mob.agent.spawn": "",
 			"mob.armor_stand.break": "盔甲架破坏声",
 			"mob.armor_stand.hit": "盔甲架破坏声",
 			"mob.armor_stand.land": "盔甲架落地声",
@@ -18591,9 +18851,14 @@ CA.Library.inner["default"] = {
 			"mob.wolf.shake": "狼抖干身体声",
 			"mob.wolf.step": "狼走路声",
 			"mob.wolf.whine": "血量低的狼气喘声",
+			"mob.ocelot.idle": "",
+			"mob.ocelot.death": "",
+			"mob.cat.eat": "",
 			"mob.cat.hiss": "猫嘶声",
 			"mob.cat.hit": "猫受伤声",
 			"mob.cat.meow": "猫叫声",
+			"mob.cat.beg": "",
+			"mob.cat.straymeow": "",
 			"mob.cat.purr": "猫驯服声",
 			"mob.cat.purreow": "被驯服的猫叫声",
 			"mob.polarbear_baby.idle": "北极熊崽叫声",
@@ -18602,6 +18867,18 @@ CA.Library.inner["default"] = {
 			"mob.polarbear.warning": "北极熊愤怒声",
 			"mob.polarbear.hurt": "北极熊受伤声",
 			"mob.polarbear.death": "北极熊死亡声",
+			"mob.panda_baby.idle": "",
+			"mob.panda.idle": "",
+			"mob.panda.idle.aggressive": "",
+			"mob.panda.idle.worried": "",
+			"mob.panda.step": "",
+			"mob.panda.presneeze": "",
+			"mob.panda.sneeze": "",
+			"mob.panda.hurt": "",
+			"mob.panda.death": "",
+			"mob.panda.bite": "",
+			"mob.panda.eat": "",
+			"mob.panda.cant_breed": "",
 			"mob.zombie.death": "僵尸死亡声",
 			"mob.zombie.hurt": "僵尸受伤声",
 			"mob.zombie.remedy": "喂食虚弱僵尸村民金苹果声",
@@ -18736,98 +19013,120 @@ CA.Library.inner["default"] = {
 			"music.game.credits": "制作人员名单背景音乐"
 		},
 		"entity": {
-			"area_effect_cloud": "效果区域云(无法用summon生成)",
-			"armor_stand": "盔甲架",
-			"arrow": "射出的箭",
-			"bat": "蝙蝠",
-			"blaze": "烈焰人",
-			"boat": "船",
-			"cave_spider": "洞穴蜘蛛",
-			"chest_minecart": "运输矿车",
-			"chicken": "鸡",
-			"cod": "鳕鱼",
-			"command_block_minecart": "命令方块矿车",
-			"cow": "牛",
-			"creeper": "爬行者",
-			"dolphin": "海豚",
-			"donkey": "驴",
-			"dragon_fireball": "末影龙火球(无法用summon生成)",
-			"drowned": "溺尸",
-			"egg": "丢出的鸡蛋",
-			"elder_guardian": "远古守卫者",
-			"ender_crystal": "末影水晶",
-			"ender_dragon": "末影龙",
-			"ender_pearl": "丢出的末影珍珠(无法用summon生成)",
-			"enderman": "末影人",
-			"endermite": "末影螨",
-			"evocation_fang": "唤魔者尖牙",
-			"evocation_illager": "唤魔者",
-			"eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
-			"falling_block": "掉落中的方块(无法用summon生成)",
-			"fireball": "火球(无法用summon生成)",
-			"fireworks_rocket": "烟花火箭",
-			"fishing_hook": "鱼钩(无法用summon生成)",
-			"ghast": "恶魂",
-			"guardian": "守卫者",
-			"hopper_minecart": "漏斗矿车",
-			"horse": "马",
-			"husk": "尸壳",
-			"iron_golem": "铁傀儡",
-			"item": "掉落的物品(无法用summon生成)",
-			"leash_knot": "拴绳结",
-			"lightning_bolt": "闪电",
-			"lingering_potion": "滞留药水(无法用summon生成)",
-			"llama": "羊驼",
-			"llama_spit": "羊驼唾沫(无法用summon生成)",
-			"magma_cube": "岩浆怪",
-			"minecart": "矿车",
-			"mooshroom": "哞菇",
-			"moving_block": "？(无法用summon生成)",
-			"mule": "骡",
-			"ocelot": "豹猫",
-			"painting": "画(无法用summon生成)",
-			"parrot": "鹦鹉",
-			"phantom": "幻翼",
-			"pig": "猪",
-			"player": "玩家(无法用summon生成)",
-			"polar_bear": "北极熊",
-			"pufferfish": "河豚",
-			"rabbit": "兔子",
-			"salmon": "鲑鱼",
-			"sheep": "羊",
-			"shulker": "潜影贝",
-			"shulker_bullet": "潜影贝导弹(无法用summon生成)",
-			"silverfish": "蠹虫",
-			"skeleton": "骷髅",
-			"skeleton_horse": "骷髅马",
-			"slime": "史莱姆",
-			"small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
-			"snow_golem": "雪傀儡",
-			"snowball": "丢出的雪球",
-			"spider": "蜘蛛",
-			"splash_potion": "丢出的喷溅药水",
-			"squid": "鱿鱼",
-			"stray": "流髑",
-			"thrown_trident": "掷出的三叉戟",
-			"tnt": "已激活的TNT",
-			"tnt_minecart": "TNT矿车",
-			"tropicalfish": "热带鱼",
-			"turtle": "海龟",
-			"vex": "恼鬼",
-			"villager": "村民",
-			"vindicator": "卫道士",
-			"witch": "女巫",
-			"wither": "凋灵",
-			"wither_skeleton": "凋灵骷髅",
-			"wither_skull": "黑色凋灵之首(无法用summon生成)",
-			"wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
-			"wolf": "狼",
-			"xp_bottle": "丢出的附魔之瓶",
-			"xp_orb": "经验球",
-			"zombie": "僵尸",
-			"zombie_horse": "僵尸马",
-			"zombie_pigman": "僵尸猪人",
-			"zombie_villager": "僵尸村民"
+			"minecraft:area_effect_cloud": "区域效果云(无法用summon生成)",
+			"minecraft:armor_stand": "盔甲架",
+			"minecraft:arrow": "箭",
+			"minecraft:bat": "蝙蝠",
+			"minecraft:blaze": "烈焰人",
+			"minecraft:boat": "船",
+			"minecraft:cat": "猫",
+			"minecraft:cave_spider": "洞穴蜘蛛",
+			"minecraft:chalkboard": "黑板(无法用summon生成)",
+			"minecraft:chest_minecart": "运输矿车",
+			"minecraft:chicken": "鸡",
+			"minecraft:cod": "鳕鱼",
+			"minecraft:command_block_minecart": "命令方块矿车",
+			"minecraft:cow": "牛",
+			"minecraft:creeper": "爬行者",
+			"minecraft:dolphin": "海豚",
+			"minecraft:donkey": "驴",
+			"minecraft:dragon_fireball": "末影龙火球(无法用summon生成)",
+			"minecraft:drowned": "溺尸",
+			"minecraft:egg": "丢出的鸡蛋",
+			"minecraft:elder_guardian": "远古守卫者",
+			"minecraft:ender_crystal": "末影水晶",
+			"minecraft:ender_dragon": "末影龙",
+			"minecraft:ender_pearl": "丢出的末影珍珠(无法用summon生成)",
+			"minecraft:enderman": "末影人",
+			"minecraft:endermite": "末影螨",
+			"minecraft:evocation_fang": "唤魔者尖牙",
+			"minecraft:evocation_illager": "唤魔者",
+			"minecraft:eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
+			"minecraft:falling_block": "掉落中的方块(无法用summon生成)",
+			"minecraft:fireball": "火球(无法用summon生成)",
+			"minecraft:fireworks_rocket": "烟花火箭",
+			"minecraft:fishing_hook": "鱼钩(无法用summon生成)",
+			"minecraft:ghast": "恶魂",
+			"minecraft:guardian": "守卫者",
+			"minecraft:hopper_minecart": "漏斗矿车",
+			"minecraft:horse": "马",
+			"minecraft:husk": "尸壳",
+			"minecraft:iron_golem": "铁傀儡",
+			"minecraft:item": "掉落的物品(无法用summon生成)",
+			"minecraft:lightning_bolt": "闪电",
+			"minecraft:lingering_potion": "丢出的滞留药水(无法用summon生成)",
+			"minecraft:llama": "羊驼",
+			"minecraft:llama_spit": "羊驼唾沫(无法用summon生成)",
+			"minecraft:magma_cube": "岩浆怪",
+			"minecraft:minecart": "矿车",
+			"minecraft:mooshroom": "哞菇",
+			"minecraft:moving_block": "移动中的方块(无法用summon生成)",
+			"minecraft:mule": "骡",
+			"minecraft:npc": "NPC(无法用summon生成)",
+			"minecraft:ocelot": "豹猫",
+			"minecraft:painting": "画(无法用summon生成)",
+			"minecraft:panda": "熊猫",
+			"minecraft:parrot": "鹦鹉",
+			"minecraft:phantom": "幻翼",
+			"minecraft:pig": "猪",
+			"minecraft:player": "玩家(无法用summon生成)",
+			"minecraft:polar_bear": "北极熊",
+			"minecraft:pufferfish": "河豚",
+			"minecraft:rabbit": "兔子",
+			"minecraft:salmon": "鲑鱼",
+			"minecraft:sheep": "羊",
+			"minecraft:shulker": "潜影贝",
+			"minecraft:shulker_bullet": "潜影贝导弹(无法用summon生成)",
+			"minecraft:silverfish": "蠹虫",
+			"minecraft:skeleton": "骷髅",
+			"minecraft:skeleton_horse": "骷髅马",
+			"minecraft:slime": "史莱姆",
+			"minecraft:small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
+			"minecraft:snow_golem": "雪傀儡",
+			"minecraft:snowball": "丢出的雪球",
+			"minecraft:spider": "蜘蛛",
+			"minecraft:splash_potion": "丢出的喷溅药水",
+			"minecraft:squid": "鱿鱼",
+			"minecraft:stray": "流浪者",
+			"minecraft:thrown_trident": "掷出的三叉戟",
+			"minecraft:tnt": "已激活的TNT",
+			"minecraft:tnt_minecart": "TNT矿车",
+			"minecraft:tripod_camera": "相机",
+			"minecraft:tropicalfish": "热带鱼",
+			"minecraft:turtle": "海龟",
+			"minecraft:vex": "恼鬼",
+			"minecraft:villager": "村民",
+			"minecraft:vindicator": "卫道士",
+			"minecraft:witch": "女巫",
+			"minecraft:wither": "凋灵",
+			"minecraft:wither_skeleton": "凋灵骷髅",
+			"minecraft:wither_skull": "黑色凋灵之首(无法用summon生成)",
+			"minecraft:wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
+			"minecraft:wolf": "狼",
+			"minecraft:xp_bottle": "丢出的附魔之瓶",
+			"minecraft:zombie": "僵尸",
+			"minecraft:zombie_horse": "僵尸马",
+			"minecraft:zombie_pigman": "僵尸猪人",
+			"minecraft:zombie_villager": "僵尸村民"
+		},
+		"particle_emitter": {
+			"minecraft:basic_flame_particle": "",
+			"minecraft:basic_smoke_particle": "",
+			"minecraft:block_destruct": "",
+			"minecraft:heart_particle": "",
+			"minecraft:mobflame_emitter": "",
+			"minecraft:test_beziercurve": "",
+			"minecraft:test_bounce": "",
+			"minecraft:test_catmullromcurve": "",
+			"minecraft:test_colorcurve": "",
+			"minecraft:test_combocurve": "",
+			"minecraft:test_highrestitution": "",
+			"minecraft:test_linearcurve": "",
+			"minecraft:test_mule": "",
+			"minecraft:test_smoke_puff": "",
+			"minecraft:test_sphere": "",
+			"minecraft:test_spiral": "",
+			"minecraft:test_watertest": ""
 		},
 		"effect": {
 			"absorption": "伤害吸收",
@@ -18879,10 +19178,13 @@ CA.Library.inner["default"] = {
 			"luck_of_the_sea": "海之眷顾",
 			"lure": "饵钓",
 			"mending": "经验修补",
+			"multishot": "连发(实验性)",
+			"piercing": "穿透(实验性)",
 			"power": "力量",
 			"projectile_protection": "弹射物保护",
 			"protection": "保护",
 			"punch": "冲击",
+			"quick_charge": "快速填充(实验性)",
 			"respiration": "水下呼吸",
 			"riptide": "激流",
 			"sharpness": "锋利",
@@ -21282,6 +21584,155 @@ CA.Library.inner["default"] = {
 					"help": "https://minecraft-zh.gamepedia.com/%E8%AE%B0%E5%88%86%E6%9D%BF#.E5.91.BD.E4.BB.A4.E5.88.97.E8.A1.A8"
 				}
 			}
+		},
+		"before1.8": {
+			"enums": {
+				"entity": {
+					"area_effect_cloud": "效果区域云(无法用summon生成)",
+					"armor_stand": "盔甲架",
+					"arrow": "射出的箭",
+					"bat": "蝙蝠",
+					"blaze": "烈焰人",
+					"boat": "船",
+					"cave_spider": "洞穴蜘蛛",
+					"chest_minecart": "运输矿车",
+					"chicken": "鸡",
+					"cod": "鳕鱼",
+					"command_block_minecart": "命令方块矿车",
+					"cow": "牛",
+					"creeper": "爬行者",
+					"dolphin": "海豚",
+					"donkey": "驴",
+					"dragon_fireball": "末影龙火球(无法用summon生成)",
+					"drowned": "溺尸",
+					"egg": "丢出的鸡蛋",
+					"elder_guardian": "远古守卫者",
+					"ender_crystal": "末影水晶",
+					"ender_dragon": "末影龙",
+					"ender_pearl": "丢出的末影珍珠(无法用summon生成)",
+					"enderman": "末影人",
+					"endermite": "末影螨",
+					"evocation_fang": "唤魔者尖牙",
+					"evocation_illager": "唤魔者",
+					"eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
+					"falling_block": "掉落中的方块(无法用summon生成)",
+					"fireball": "火球(无法用summon生成)",
+					"fireworks_rocket": "烟花火箭",
+					"fishing_hook": "鱼钩(无法用summon生成)",
+					"ghast": "恶魂",
+					"guardian": "守卫者",
+					"hopper_minecart": "漏斗矿车",
+					"horse": "马",
+					"husk": "尸壳",
+					"iron_golem": "铁傀儡",
+					"item": "掉落的物品(无法用summon生成)",
+					"leash_knot": "拴绳结",
+					"lightning_bolt": "闪电",
+					"lingering_potion": "滞留药水(无法用summon生成)",
+					"llama": "羊驼",
+					"llama_spit": "羊驼唾沫(无法用summon生成)",
+					"magma_cube": "岩浆怪",
+					"minecart": "矿车",
+					"mooshroom": "哞菇",
+					"moving_block": "？(无法用summon生成)",
+					"mule": "骡",
+					"ocelot": "豹猫",
+					"painting": "画(无法用summon生成)",
+					"parrot": "鹦鹉",
+					"phantom": "幻翼",
+					"pig": "猪",
+					"player": "玩家(无法用summon生成)",
+					"polar_bear": "北极熊",
+					"pufferfish": "河豚",
+					"rabbit": "兔子",
+					"salmon": "鲑鱼",
+					"sheep": "羊",
+					"shulker": "潜影贝",
+					"shulker_bullet": "潜影贝导弹(无法用summon生成)",
+					"silverfish": "蠹虫",
+					"skeleton": "骷髅",
+					"skeleton_horse": "骷髅马",
+					"slime": "史莱姆",
+					"small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
+					"snow_golem": "雪傀儡",
+					"snowball": "丢出的雪球",
+					"spider": "蜘蛛",
+					"splash_potion": "丢出的喷溅药水",
+					"squid": "鱿鱼",
+					"stray": "流髑",
+					"thrown_trident": "掷出的三叉戟",
+					"tnt": "已激活的TNT",
+					"tnt_minecart": "TNT矿车",
+					"tropicalfish": "热带鱼",
+					"turtle": "海龟",
+					"vex": "恼鬼",
+					"villager": "村民",
+					"vindicator": "卫道士",
+					"witch": "女巫",
+					"wither": "凋灵",
+					"wither_skeleton": "凋灵骷髅",
+					"wither_skull": "黑色凋灵之首(无法用summon生成)",
+					"wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
+					"wolf": "狼",
+					"xp_bottle": "丢出的附魔之瓶",
+					"xp_orb": "经验球",
+					"zombie": "僵尸",
+					"zombie_horse": "僵尸马",
+					"zombie_pigman": "僵尸猪人",
+					"zombie_villager": "僵尸村民"
+				}
+			},
+			"mode": "overwrite",
+			"minSupportVer": "1.2",
+			"maxSupportVer": "1.7.*"
+		},
+		"1.8.0.8": {
+			"commands": {
+				"particle": {
+					"description": "在指定位置显示颗粒效果",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "粒子ID",
+									"suggestion": "particle_emitter"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+				},
+				"reload": {
+					"description": "重新加载数据包",
+					"noparams": {},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#reload"
+				}
+			},
+			"minSupportVer": "1.8.0.8"
+		},
+		"1.8.0.10": {
+			"commands": {
+				"function": {
+					"description": "运行一个函数",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "函数"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#function"
+				}
+			},
+			"minSupportVer": "1.8.0.10"
 		},
 	}
 };
