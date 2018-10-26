@@ -271,11 +271,11 @@ var proto = {
 	},
 	debug : function self(name, o, depth) {
 		var i, r = [];
-		if (depth > 5) return [name + ": " + o];
+		if (depth > 8) return [name + ": " + o];
 		if (o instanceof Array) {
 			r.push(name + ": " + "Array[" + o.length + "]");
 		} else {
-			r.push(name + ": " + (typeof o) + ": " + o);
+			r.push(name + ": " + (typeof o) + ": " + (o instanceof Function ? "[Function]" : o));
 		}
 		if (o instanceof Object) {
 			for (i in o) {
@@ -567,6 +567,12 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		get : function(name) {
 			return name in this.data ? this.data[name] : this.parent ? this.parent.get(name) : undefined;
 		},
+		getAsTopLevel : function(name) {
+			return this.data[name];
+		},
+		getData : function() {
+			return this.data;
+		},
 		getChildren : function() {
 			var p = this, i, r = [], a;
 			while (p) {
@@ -593,9 +599,38 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		get : function(modelContext) {
 			if (this.getter) {
 				return this.getter(modelContext.data);
-			} else {
+			} else if (this.field) {
 				return modelContext.data[this.field];
+			} else return modelContext.data;
+		},
+		fill : function(obj, modelContext) {
+			var i, r;
+			if (!this.isAbstract(obj)) return obj;
+			if (obj instanceof LValue) return obj.get(modelContext);
+			if (obj instanceof Array) {
+				r = obj.slice();
+				for (i = 0; i < obj.length; i++) {
+					r[i] = this.fill(obj[i], modelContext);
+				}
+				return r;
+			} else if (obj instanceof Object) {
+				r = {};
+				for (i in obj) {
+					r[i] = this.fill(obj[i], modelContext);
+				}
+				return r;
 			}
+			return obj;
+		},
+		isAbstract : function isAbstract(obj) {
+			var i;
+			if (obj instanceof LValue) return true;
+			if (obj instanceof Object) {
+				for (i in obj) {
+					if (isAbstract(obj[i])) return true;
+				}
+			}
+			return false;
 		}
 	};
 	function createHolder(data, parent) {
@@ -608,13 +643,9 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		var i, t, e;
 		for (i in source) {
 			e = source[i];
-			if (e instanceof LValue) {
-				if (modelContext.data) {
-					e = e.get(modelContext);
-				} else {
-					continue;
-				}
-			}
+			if (modelContext && modelContext.data) {
+				e = LValue.fill(e, modelContext);
+			} else if (LValue.isAbstract(e)) continue;
 			t = "set" + UCC(i);
 			if (t in target) {
 				if (Array.isArray(e)) {
@@ -632,27 +663,35 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		method.setAccessible(true);
 		return method.invoke(parent);
 	}
-	function attachLayoutParams(lp, json) {
+	function generateLayoutParams(parent, oldLp) {
+		var cls = parent.getClass();
+		var checkMethod = cls.getDeclaredMethod("checkLayoutParams", android.view.ViewGroup.LayoutParams);
+		var generateMethod = cls.getDeclaredMethod("generateLayoutParams", android.view.ViewGroup.LayoutParams);
+		checkMethod.setAccessible(true);
+		generateMethod.setAccessible(true);
+		return checkMethod.invoke(parent, oldLp) ? oldLp : generateMethod.invoke(parent, oldLp);
+	}
+	function attachLayoutParams(lp, json, modelContext) {
 		var prefix = "layout", i, attrs;
 		if (json.layout) {
-			applyAttributes(json.layout, lp);
+			applyAttributes(json.layout, lp, modelContext);
 		} else {
 			attrs = {};
 			for (i in json) {
 				if (i.slice(0, prefix.length) != prefix) continue;
 				attrs[LCC(i.slice(prefix.length))] = json[i];
 			}
-			applyAttributes(attrs, lp);
+			applyAttributes(attrs, lp, modelContext);
 		}
 	}
-	function calculateLayoutParams(parent, view) {
-		var childJson = view.tag, lp;
-		if (childJson.layoutParams) return childJson.layoutParams;
-		if (childJson.layout instanceof Function) {
-			lp = childJson.layout(parent, view);
+	function calculateLayoutParams(parent, json, modelContext, oldLp) {
+		var lp;
+		if (json.layoutParams) return json.layoutParams;
+		if (json.layout instanceof Function) {
+			lp = json.layout(parent, view, modelContext.data);
 		} else {
-			lp = generateDefaultLayoutParams(parent);
-			attachLayoutParams(lp, childJson);
+			lp = oldLp ? generateLayoutParams(parent, oldLp) : generateDefaultLayoutParams(parent);
+			attachLayoutParams(lp, json, modelContext);
 		}
 		return lp;
 	}
@@ -660,13 +699,9 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		var i, t, e, suffix = "Listener";
 		for (i in source) {
 			e = source[i];
-			if (e instanceof LValue) {
-				if (modelContext.data) {
-					e = e.get(modelContext);
-				} else {
-					continue;
-				}
-			}
+			if (modelContext && modelContext.data) {
+				e = LValue.fill(e, modelContext);
+			} else if (LValue.isAbstract(e)) continue;
 			if (typeof e != "object" && typeof e != "function") continue;
 			t = "set" + UCC(i) + suffix;
 			if (t in target) {
@@ -674,34 +709,59 @@ MapScript.loadModule("L", (function self(defaultContext) {
 			}
 		}
 	}
-	function attach(view, json, modelContext) {
-		var parentJson, i, e;
+	function attachProperties(view, json, modelContext) {
 		applyAttributes(json, view, modelContext);
 		applyListeners(json, view, modelContext);
+	}
+	function attach(view, json, modelContext, rootView) {
+		var parentJson, i, e, lp;
+		parentJson = view.tag;
+		view.tag = createHolder(json, parentJson instanceof LHolder ? parentJson : null);
+		listener.trigger("beforeAttach", view, view.tag);
+		attachProperties(view, json, modelContext);
+		if (rootView) {
+			view.setLayoutParams(calculateLayoutParams(rootView, json, view.getLayoutParams()));
+		}
 		if (groupClass.isAssignableFrom(view.getClass())) {
 			if (json.children) {
 				for (i in json.children) {
 					e = json.children[i];
-					view.addView(modelContext ? fromJSON(e) : e, calculateLayoutParams(view, e));
+					if (modelContext) {
+						lp = calculateLayoutParams(view, e, null);
+						e = fromJSON(e, view.getContext(), modelContext);
+					} else if (e.tag instanceof LHolder) {
+						lp = calculateLayoutParams(view, e.tag.flatten(), e.layoutParams);
+					} else {
+						lp = e.layoutParams;
+					}
+					view.addView(e, lp);
 				}
 			} else if (json.child) {
-				view.addView(modelContext ? fromJSON(json.child) : json.child, calculateLayoutParams(view, json.child));
+				e = json.child;
+				if (modelContext) {
+					lp = calculateLayoutParams(view, e, null);
+					e = fromJSON(e, view.getContext(), modelContext);
+				} else {
+					lp = calculateLayoutParams(view, LValue.flatten.call(view.tag), e.getLayoutParams());
+				}
+				view.addView(e, lp);
 			}
 		}
 		if (json.inflate) json.inflate(view);
-		parentJson = view.tag;
-		view.tag = createHolder(json, parentJson instanceof LHolder ? parentJson : null);
+		listener.trigger("afterAttach", view, view.tag);
 		return view;
 	}
-	function inflate(clazz, context, json, modelContext) {
-		var constructor, view, i;
+	function constructView(clazz, context) {
+		var constructor, view;
 		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
 		try {
 			constructor = clazz.getConstructor(android.content.Context);
 		} catch(e) {/* constructor not found */}
 		if (!constructor) throw new Error("Unable to construct " + clazz);
-		view = constructor.newInstance(context);
-		return attach(view, json, modelContext);
+		return constructor.newInstance(context);
+	}
+	function inflate(clazz, context, json, modelContext, rootView) {
+		return attach(constructView(clazz, context), json, modelContext, rootView);
 	}
 	function findConstant(cls, name) {
 		var field;
@@ -729,41 +789,91 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		}
 		return r || 0;
 	}
-	function fromJSON(json, context, modelContext) {
+	function fromJSON(json, context, modelContext, rootView) {
 		if (json instanceof LValue) {
 			json = json.get(modelContext);
 		}
-		var clazz = json["class"], view;
+		var clazz = json._class, view;
 		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
 		view = inflate(clazz, context, json, modelContext);
-		if (modelContext.holder && json.modelId) modelContext.holder[json.modelId] = view;
+		if (modelContext.holder && "_holderId" in json) modelContext.holder[json._holderId] = view;
 		return view;
 	}
 	var LTemplate = {
 		init : function(baseView) {
-			this.srcJson = this.toJSON(baseView);
-			
+			var self = this;
+			this.context = baseView.getContext();
+			this.views = [];
+			this.jsons = [];
+			this.valueData = {};
+			this.srcJson = this.viewToJson(baseView);
+			this.jsons.forEach(function(e) {
+				var k = self.analyseJson(e);
+				if (k) self.valueData[e._holderId] = k;
+			});
 		},
-		create : function(holder) {
-			return 
-		},
-		bind : function(viewOrHolder, data) {
-			
-		},
-		makeView : function(data) {
-			var view = this.create();
-			this.bind(view, data);
+		create : function(holder, rootView) {
+			if (!holder) holder = {};
+			var view = fromJSON(this.srcJson, this.context, {
+				holder : holder._lHolder = {}
+			});
+			holder._lTag = view.tag;
+			holder._lRoot = view;
+			view.tag = holder;
 			return view;
 		},
-		fromView : function(view) {
+		bind : function(viewOrHolder, data, rootView) {
+			var holder = viewOrHolder instanceof android.view.View ? viewOrHolder.tag : viewOrHolder, vholder;
+			var i, modelContext = { data : data }, filledJson, filledHolder;
+			vholder = holder._lHolder;
+			for (i in this.valueData) {
+				filledJson = LValue.fill(this.valueData[i], modelContext);
+				filledHolder = createHolder(filledJson, vholder[i].tag instanceof LHolder ? vholder[i].tag : holder._lRoot == vholder[i] ? holder._lTag : createHolder(this.jsons[i], null));
+				listener.trigger("beforeAttach", vholder[i], filledHolder);
+				attachProperties(vholder[i], filledJson);
+				filledJson = filledHolder.flatten();
+				if (vholder[i].layoutParams) {
+					attachLayoutParams(vholder[i].layoutParams, filledJson);
+				} else if (rootView) { 
+					vholder[i].layoutParams = calculateLayoutParams(rootView, filledJson, modelContext);
+				}
+				listener.trigger("afterAttach", vholder[i], filledHolder);
+			}
+			return viewOrHolder;
+		},
+		makeView : function(data, rootView) {
+			var holder = {}, r = this.create(holder);
+			this.bind(holder, data, rootView);
+			r.tag = holder._lTag;
+			return r;
+		},
+		viewToJson : function(view) {
+			if (view instanceof LValue) return view;
 			var holder = view.tag, self = this;
 			if (!(holder instanceof LHolder)) throw new Error(holder + " is not a LHolder");
 			var json = holder.flatten(), i;
 			delete json.child;
 			json.children = holder.getChildren().map(function(e) {
-				return e instanceof LHolder ? e : self.fromView(e);
+				return self.viewToJson(e);
 			});
+			json._holderId = this.views.length;
+			json._class = String(view.getClass().getName());
+			this.views.push(view);
+			this.jsons.push(json);
 			return json;
+		},
+		analyseJson : function(json) {
+			var i, a, r = {}, hasAbstractKey = false;
+			a = Object.keys(json);
+			for (i = 0; i < a.length; i++) {
+				if (a[i] == "child" || a[i] == "children") continue;
+				if (LValue.isAbstract(json[a[i]])) {
+					hasAbstractKey = true;
+					r[a[i]] = json[a[i]];
+					delete json[a[i]];
+				}
+			}
+			if (hasAbstractKey) return r;
 		}
 	};
 	var listener = EventSender.init({listener : {}});
@@ -798,12 +908,11 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		var r;
 		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
 		if (typeof json == "object") { // view builder
-			listener.trigger("beforeInflate", clazz, json);
-			r = inflate(clazz, defaultContext, json, false); 
-			listener.trigger("afterInflate", r, json);
-			return r;
+			return inflate(clazz, defaultContext, json, null);
 		} else if (typeof json == "string") { // constant
 			return calculateConstant(clazz, json);
+		} else if (typeof json == "undefined") { // no parameter view builder
+			return inflate(clazz, defaultContext, {}, null);
 		}
 	} catch(e) {
 		Log.e(e);
@@ -845,7 +954,9 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		return undefined;
 	}
 	var r = new org.mozilla.javascript.Scriptable({
-		delete : function(name) {},
+		delete : function(name) {
+			delete kv[name];
+		},
 		get : function(name, start) {
 			var cls;
 			if (name in kv) return kv[name];
@@ -10457,9 +10568,10 @@ MapScript.loadModule("Common", {
 	theme : null,
 	
 	onCreate : function() {
-		L.on("afterInflate", function(name, view, json) {
-			if (json.style) {
-				Common.applyStyle(view, json.style, json.fontSize);
+		L.on("afterAttach", function(name, view, holder) {
+			var style = holder.get("style");
+			if (style) {
+				Common.applyStyle(view, style, holder.get("fontSize"));
 			}
 		});
 	},
@@ -17889,94 +18001,30 @@ MapScript.loadModule("GiteeFeedback", {
 	}
 });
 
-MapScript.loadModule("Calculator", {
-	name : "计算器",
-	author : "ProjectXero",
-	version : [1, 0, 0],
-	uuid : "2bb400df-ab28-47ec-ae4a-95ee03d2c7ea",
-	initialize : function() {
-		Plugins.addMenu({
-			text : "计算器",
-			onclick : function() {
-				Calculator.show();
-			}
-		});
+MapScript.loadModule("LPlugins", {
+	onCreate : function self() {
+		var i;
+		for (i in this) {
+			if (this[i] == self) continue;
+			L[i] = this[i];
+		}
 	},
-	show : function self() {G.ui(function() {try {
-		if (!self.popup) {
-			self.layout = L.LinearLayout({
-				orientation : L.LinearLayout("vertical"),
-				children : [
-					L.LinearLayout({
-						orientation : L.LinearLayout("horizontal"),
-						padding : [0, 10 * G.dp, 0, 10 * G.dp],
-						layoutWidth : -1,
-						layoutHeight : -2,
-						style : "bar_float",
-						children : [
-							L.TextView({
-								text : "计算器",
-								padding : [10 * G.dp, 0, 10 * G.dp, 0],
-								layoutWidth : 0,
-								layoutHeight : -2,
-								layoutWeight : 1,
-								style : "textview_default",
-								fontSize : 4,
-								onClick : function() {
-									//switch calclator
-								}
-							}),
-							L.TextView({
-								text : "×",
-								padding : [10 * G.dp, 0, 10 * G.dp, 0],
-								gravity : L.Gravity("center"),
-								layoutWidth : -2,
-								layoutHeight : -2,
-								style : "button_critical",
-								fontSize : 4,
-								onClick : function() {
-									self.popup.exit();
-								}
-							})
-						]
-					}),
-					self.container = L.FrameLayout({
-						layoutWidth : -1,
-						layoutHeight : -1,
-						style : "container_default"
-					})
-				]
-			});
-			self.popup = new PopupPage(self.layout, "calculator.Main");
-			PWM.registerResetFlag(self, "popup");
-		}
-		self.popup.enter();
-	} catch(e) {erp(e)}})},
-	normalCalc : function self() {
-		if (!self.layout) {
-			self.template = L.TextView({
-				padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
-				fontSize : 3,
-				style : L.Value(function(e) {
-					return e.current ? "textview_highlight" : "textview_default";
-				}),
-				text : L.Value("text")
-			});
-			self.vmaker = function(holder) {
-				return self.template.createView(holder);
-			}
-			self.vbinder = function(holder, e) {
-				self.template.bindView(holder, e);
-			}
-			self.layout = L.LinearLayout({
-				orientation : L.LinearLayout("vertical"),
-				children : [
-					L.ListView()
-				]
-			});
-			PWM.registerResetFlag(self, "layout");
-		}
-		return self.layout;
+	SimpleAdapter : function(baseView, callback, array) {
+		var template = L.Template(baseView), event = EventSender.init({listener : {}});;
+		var adapter = new SimpleListAdapter(array || [], function(holder) {
+			var r;
+			event.trigger("beforeCreate", holder, template);
+			r = template.create(holder);
+			event.trigger("afterCreate", holder, r, template);
+			return r;
+		}, function(holder, e, i, a) {
+			event.trigger("beforeBind", holder, e, i, a, template);
+			template.bind(holder, e);
+			event.trigger("afterBind", holder, e, i, a, template);
+		});
+		var controller = SimpleListAdapter.getController(adapter);
+		if (callback) callback(controller, template, event);
+		return adapter;
 	}
 });
 
@@ -19053,6 +19101,7 @@ CA.Library.inner["default"] = {
 			"minecraft:husk": "尸壳",
 			"minecraft:iron_golem": "铁傀儡",
 			"minecraft:item": "掉落的物品(无法用summon生成)",
+			"minecraft:leash_knot": "栓绳结",
 			"minecraft:lightning_bolt": "闪电",
 			"minecraft:lingering_potion": "丢出的滞留药水(无法用summon生成)",
 			"minecraft:llama": "羊驼",
