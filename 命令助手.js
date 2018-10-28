@@ -223,11 +223,15 @@ var proto = {
 		}
 		this.println = proto.nullFunc;
 	},
+	throwError : function self(err) {
+		Error.captureStackTrace(err, self);
+		throw err;
+	},
 	a : function(a, b, m) { //断言
 		if (a !== b) {
 			this.println("Fatal", m + ": " + a + " !== " + b);
 			this.r();
-			throw new Error(m);
+			this.throwError(new Error(m));
 		}
 	},
 	c : function(f, scope) { //尝试调用函数
@@ -755,11 +759,11 @@ MapScript.loadModule("L", (function self(defaultContext) {
 	}
 	function constructView(clazz, context) {
 		var constructor, view;
-		if (!baseClass.isAssignableFrom(clazz)) throw new Error(clazz + " is not a view class");
+		if (!baseClass.isAssignableFrom(clazz)) Log.throwError(new Error(clazz + " is not a view class"));
 		try {
 			constructor = clazz.getConstructor(android.content.Context);
 		} catch(e) {/* constructor not found */}
-		if (!constructor) throw new Error("Unable to construct " + clazz);
+		if (!constructor) Log.throwError(new Error("Unable to construct " + clazz));
 		return constructor.newInstance(context);
 	}
 	function inflate(clazz, context, json, modelContext, rootView) {
@@ -852,7 +856,7 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		viewToJson : function(view) {
 			if (view instanceof LValue) return view;
 			var holder = view.tag, self = this;
-			if (!(holder instanceof LHolder)) throw new Error(holder + " is not a LHolder");
+			if (!(holder instanceof LHolder)) Log.throwError(new Error(holder + " is not a LHolder"));
 			var json = holder.flatten(), i;
 			delete json.child;
 			json.children = holder.getChildren().map(function(e) {
@@ -1285,7 +1289,13 @@ MapScript.loadModule("PopupPage", (function() {
 					e.page.trigger("resize", w, h);
 				}
 			} catch(e) {erp(e)}}}));
+			r.thread = java.lang.Thread.currentThread();
 		} catch(e) {erp(e)}})}
+		r.checkThread = function() {
+			if (r.thread != java.lang.Thread.currentThread()) {
+				Log.throwError(new Error("You can only touch page on the main thread."));
+			}
+		}
 		r.updateDefault = function() {
 			if (this.fullscreen) {
 				this.headerView.setVisibility(G.View.GONE);
@@ -1425,6 +1435,7 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.showPage = function(page) {
+			r.checkThread();
 			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
 			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
 			page.currentContainer.addView(page.mainView);
@@ -1448,6 +1459,7 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.hidePage = function(page, notRemoveWindow) {
+			r.checkThread();
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
 			page.currentContainer.removeView(page.mainView);
 			if (stack.length == 0 && !notRemoveWindow) {
@@ -1517,6 +1529,7 @@ MapScript.loadModule("PopupPage", (function() {
 			var i, e;
 			if (this.visible) return;
 			this.visible = true;
+			r.checkThread();
 			if (this.floatStack.length) {
 				this.hideView(this.floatWindow);
 				this.floatVisible = false;
@@ -1535,6 +1548,7 @@ MapScript.loadModule("PopupPage", (function() {
 		r.hide = function() {
 			var i, e;
 			if (!this.visible) return;
+			r.checkThread();
 			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
 			this.defaultWindow.setVisibility(G.View.GONE);
 			this.visible = false;
@@ -1543,6 +1557,7 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.dismiss = function() {
 			var i, e;
+			r.checkThread();
 			this.busy = true;
 			for (i = this.floatStack.length - 1; i >= 0; i--) {
 				e = this.floatStack[i];
@@ -1831,6 +1846,7 @@ MapScript.loadModule("PopupPage", (function() {
 	}
 	r.Overlay.prototype = {
 		attach : function(container) {
+			r.checkThread();
 			if (container) {
 				container.addView(this.view, new G.FrameLayout.LayoutParams(this.width, this.height, this.gravity));
 				this.view.setTranslationX(this.x);
@@ -1846,6 +1862,7 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		},
 		detach : function() {
+			r.checkThread();
 			if (this.popup) {
 				if (this.popup.isShowing()) this.popup.dismiss();
 				this.popup = null;
@@ -12263,7 +12280,7 @@ MapScript.loadModule("Plugins", {
 		},
 		feature : function() {
 			for (i in arguments) {
-				if (this._parent.FEATURES.indexOf(arguments[i]) < 0) throw new Error("Require Feature:" + arguments[i]);
+				if (this._parent.FEATURES.indexOf(arguments[i]) < 0) Log.throwError(new Error("Require Feature:" + arguments[i]));
 			}
 		}
 	},
@@ -12342,7 +12359,7 @@ MapScript.loadModule("Plugins", {
 			}
 		} else if (type) {
 			o = this.observers[type];
-			if (!o) throw new Error("Invalid event type: " + type);
+			if (!o) Log.throwError(new Error("Invalid event type: " + type));
 			for (i in o) this.unregisterObserver(module, type, i);
 		} else {
 			o = this.observers;
@@ -12351,7 +12368,7 @@ MapScript.loadModule("Plugins", {
 	},
 	getObservers : function(type, target) {
 		var o = this.observers;
-		if (!(type in o)) throw new Error("Invalid event type: " + type);
+		if (!(type in o)) Log.throwError(new Error("Invalid event type: " + type));
 		o = o[type];
 		if (!o[target]) o[target] = [];
 		return o[target];
