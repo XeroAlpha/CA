@@ -273,17 +273,20 @@ var proto = {
 		var s = [e, e.stack];
 		this.println("Warning", s.join("\n"));
 	},
-	debug : function self(name, o, depth) {
-		var i, r = [];
+	debug : function self(name, o, depth, objs) {
+		var i, r = [], circular;
+		if (!objs) objs = [];
 		if (depth > 8) return [name + ": " + o];
+		circular = objs.indexOf(o) >= 0;
 		if (o instanceof Array) {
 			r.push(name + ": " + "Array[" + o.length + "]");
 		} else {
-			r.push(name + ": " + (typeof o) + ": " + (o instanceof Function ? "[Function]" : o));
+			r.push(name + ": " + (typeof o) + ": " + (o instanceof Function ? "[Function]" : circular ? "[Circular]" : o));
 		}
-		if (o instanceof Object) {
+		if (o instanceof Object && !circular) {
+			objs.push(o);
 			for (i in o) {
-				self(i, o[i], depth + 1).forEach(function(e) {
+				self(i, o[i], depth + 1, objs).forEach(function(e) {
 					r.push("\t" + e);
 				});
 			}
@@ -643,9 +646,10 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		o.parent = parent;
 		return o;
 	}
-	function applyAttributes(source, target, modelContext) {
+	function applyAttributes(source, target, modelContext, ignoreLayout) {
 		var i, t, e;
 		for (i in source) {
+			if (ignoreLayout && i.slice(0, 6) == "layout") continue;
 			e = source[i];
 			if (modelContext && modelContext.data) {
 				e = LValue.fill(e, modelContext);
@@ -662,15 +666,24 @@ MapScript.loadModule("L", (function self(defaultContext) {
 			}
 		}
 	}
+	function findDeclaredMethod(cls, params, parent) {
+		try {
+			var method = cls.getDeclaredMethod.apply(cls, params);
+			return method;
+		} catch(e) {/*Class not found*/}
+		if (!parent) parent = java.lang.Object;
+		if (cls == java.lang.Object || cls == parent) return null;
+		return findDeclaredMethod(cls.getSuperclass(), params, parent);
+	}
 	function generateDefaultLayoutParams(parent) {
-		var method = parent.getClass().getDeclaredMethod("generateDefaultLayoutParams");
+		var method = findDeclaredMethod(parent.getClass(), ["generateDefaultLayoutParams"], android.view.ViewGroup);
 		method.setAccessible(true);
 		return method.invoke(parent);
 	}
 	function generateLayoutParams(parent, oldLp) {
 		var cls = parent.getClass();
-		var checkMethod = cls.getDeclaredMethod("checkLayoutParams", android.view.ViewGroup.LayoutParams);
-		var generateMethod = cls.getDeclaredMethod("generateLayoutParams", android.view.ViewGroup.LayoutParams);
+		var checkMethod = findDeclaredMethod(cls, ["checkLayoutParams", android.view.ViewGroup.LayoutParams], android.view.ViewGroup);
+		var generateMethod = findDeclaredMethod(cls, ["generateLayoutParams", android.view.ViewGroup.LayoutParams], android.view.ViewGroup);
 		checkMethod.setAccessible(true);
 		generateMethod.setAccessible(true);
 		return checkMethod.invoke(parent, oldLp) ? oldLp : generateMethod.invoke(parent, oldLp);
@@ -714,7 +727,7 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		}
 	}
 	function attachProperties(view, json, modelContext) {
-		applyAttributes(json, view, modelContext);
+		applyAttributes(json, view, modelContext, true);
 		applyListeners(json, view, modelContext);
 	}
 	function attach(view, json, modelContext, rootView) {
@@ -10727,6 +10740,20 @@ MapScript.loadModule("Common", {
 			v.setTextSize(Common.theme.textsize[size]);
 			v.setTextColor(Common.theme.go_touchtextcolor);
 			break;
+			case "button_reactive_auto":
+			Common.applyStyle(v, "button_reactive", size);
+			v.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+				switch (e.getAction()) {
+					case e.ACTION_DOWN:
+					Common.applyStyle(v, "button_reactive_pressed", size);
+					break;
+					case e.ACTION_CANCEL:
+					case e.ACTION_UP:
+					Common.applyStyle(v, "button_reactive", size);
+				}
+				return false;
+			} catch(e) {return erp(e), true}}}));
+			break;
 			case "edittext_default":
 			v.setBackgroundColor(G.Color.TRANSPARENT);
 			v.setTextSize(Common.theme.textsize[size]);
@@ -11842,7 +11869,7 @@ MapScript.loadModule("Common", {
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
 			self.cmd.setFocusableInTouchMode(true);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.bar.addView(self.cmd);
 			Common.postIME(self.cmd);
@@ -16988,7 +17015,7 @@ MapScript.loadModule("WSServer", {
 			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
 			self.cmd.setFocusableInTouchMode(true);
 			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			Common.applyStyle(self.cmd, "edittext_default", 3);
 			self.bar.addView(self.cmd);
 			Common.postIME(self.cmd);
@@ -17703,7 +17730,7 @@ MapScript.loadModule("GiteeFeedback", {
 		self.reload();
 	} catch(e) {erp(e)}})},
 	showFeedbackDetail : function self(number, readOnly, callback) {G.ui(function() {try {
-		if (!self.linear) {
+		if (!self.popup) {
 			self.contextMenu = [{
 				text : "刷新",
 				onclick : function(v, tag) {
@@ -17845,104 +17872,102 @@ MapScript.loadModule("GiteeFeedback", {
 			}
 			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.comments = [], self.vmaker, self.vbinder));
 
-			self.linear = new G.LinearLayout(ctx);
-			self.linear.setOrientation(G.LinearLayout.VERTICAL);
-			self.linear.setPadding(0, 15 * G.dp, 0, 0);
-			Common.applyStyle(self.linear, "message_bg");
+			self.popup = new PopupPage(L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				padding : [0, 15 * G.dp, 0, 0],
+				style : "message_bg",
+				children : [
+					L.LinearLayout({
+						orientation : L.LinearLayout("horizontal"),
+						padding : [15 * G.dp, 0, 15 * G.dp, 10 * G.dp],
+						onClick : function() {
+							Common.showOperateDialog(self.contextMenu);
+						},
+						children : [
+							self.title = L.TextView({
+								gravity : L.Gravity("left|center"),
+								padding : [10 * G.dp, 0, 10 * G.dp, 0],
+								style : "textview_default",
+								fontSize : 4,
+								layout : { width : 0, height : -2, weight : 1.0 },
+							}),
+							L.TextView({
+								text : "▼",
+								padding : [10 * G.dp, 0, 10 * G.dp, 0],
+								gravity : L.Gravity("center"),
+								style : "button_highlight",
+								fontSize : 3,
+								layout : { width : -2, height : -2 },
+							})
+						]
+					}),
+					self.list = L.ListView({
+						adapter : self.adpt.self,
+						dividerHeight : 0,
+						stackFromBottom : true,
+						layout : { width : -1, height : 0, weight : 1.0 },
+						onItemClick : function(parent, view, pos, id) {
+							if (view == self.more) {
+								self.appendPage();
+								return;
+							}
+							var data = self.adpt.array[pos];
+							self.clickData(data);
+						},
+						_talkView : self.talk = L.LinearLayout({
+							layout : { width : -1, height : -2 },
+							orientation : L.LinearLayout("horizontal"),
+							style : "bar_float",
+							children : [
+								self.talkbox = L.EditText({
+									hint : "发送评论",
+									layout : { width : 0, height : -2, weight : 1.0 },
+									focusableInTouchMode : true,
+									padding : [10 * G.dp, 10 * G.dp, 0, 10 * G.dp],
+									imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+									style : "edittext_default",
+									fontSize : 3
+								}),
+								L.TextView({
+									layout : { width : -2, height : -1 },
+									gravity : L.Gravity("center"),
+									text : "发送",
+									padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+									style : "button_reactive_auto",
+									fontSize : 3,
+									onClick : function() {
+										var s = String(self.talkbox.text);
+										if (!s) return Common.toast("内容不可为空！");
+										self.addComment(s);
+										self.talkbox.text = "";
+									}
+								})
+							]
+						}),
+						_moreView : self.more = L.TextView({
+							gravity : L.Gravity("center"),
+							text : "显示更多",
+							padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp],
+							layout : { width : -1, height : -2 },
+							style : "textview_prompt",
+							fontSize : 2
+						})
+					}),
+					L.TextView({
+						text : "关闭",
+						padding : [10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {
+							self.popup.exit();
+						}
+					})
+				]
+			}), "feedback.IssueDetail");
 
-			self.header = new G.LinearLayout(ctx);
-			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
-			self.header.setPadding(15 * G.dp, 0, 15 * G.dp, 10 * G.dp);
-			self.header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				Common.showOperateDialog(self.contextMenu);
-				return true;
-			} catch(e) {erp(e)}}}));
-
-			self.title = new G.TextView(ctx);
-			self.title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
-			self.title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
-			Common.applyStyle(self.title, "textview_default", 4);
-			self.header.addView(self.title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
-
-			self.menu = new G.TextView(ctx);
-			self.menu.setText("▼");
-			self.menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
-			self.menu.setGravity(G.Gravity.CENTER);
-			Common.applyStyle(self.menu, "button_highlight", 3);
-			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
-			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
-			
-			self.talk = new G.LinearLayout(ctx);
-			self.talk.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			self.talk.setOrientation(G.LinearLayout.HORIZONTAL);
-			Common.applyStyle(self.talk, "bar_float");
-			self.talkbox = new G.EditText(ctx);
-			self.talkbox.setHint("发送评论");
-			self.talkbox.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
-			self.talkbox.setFocusableInTouchMode(true);
-			self.talkbox.setPadding(10 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-			self.talkbox.setImeOptions(G.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-			Common.applyStyle(self.talkbox, "edittext_default", 3);
-			self.talk.addView(self.talkbox);
-			
-			self.send = new G.TextView(ctx);
-			self.send.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.send.setGravity(G.Gravity.CENTER);
-			self.send.setText("发送");
-			self.send.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.send, "button_reactive", 3);
-			self.send.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				switch (e.getAction()) {
-					case e.ACTION_DOWN:
-					Common.applyStyle(v, "button_reactive_pressed", 3);
-					break;
-					case e.ACTION_CANCEL:
-					case e.ACTION_UP:
-					Common.applyStyle(v, "button_reactive", 3);
-				}
-				return false;
-			} catch(e) {return erp(e), true}}}));
-			self.send.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var s = String(self.talkbox.getText());
-				if (!s) return Common.toast("内容不可为空！");
-				self.addComment(s);
-			} catch(e) {erp(e)}}}));
-			self.talk.addView(self.send);
-			
-			self.more = new G.TextView(ctx);
-			self.more.setGravity(G.Gravity.CENTER);
-			self.more.setText("显示更多");
-			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			Common.applyStyle(self.more, "textview_prompt", 2);
-
-			self.list = new G.ListView(ctx);
-			self.list.setAdapter(self.adpt.self);
-			self.list.setDividerHeight(0);
-			self.list.setStackFromBottom(true);
-			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				if (view == self.more) {
-					self.appendPage();
-					return;
-				}
-				var data = parent.getAdapter().getItem(pos);
-				self.clickData(data);
-			} catch(e) {erp(e)}}}));
-			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-
-			self.exit = new G.TextView(ctx);
-			self.exit.setText("关闭");
-			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-			Common.applyStyle(self.exit, "button_critical", 3);
-			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.exit();
-			} catch(e) {erp(e)}}}));
-			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-
-			self.popup = new PopupPage(self.linear, "feedback.IssueDetail");
-
-			PWM.registerResetFlag(self, "linear");
+			PWM.registerResetFlag(self, "popup");
 		}
 		self.currentNumber = number;
 		self.readOnly = readOnly;
@@ -17951,51 +17976,57 @@ MapScript.loadModule("GiteeFeedback", {
 		self.reload();
 	} catch(e) {erp(e)}})},
 	showEditIssue : function self(o, callback, onDismiss) {G.ui(function() {try {
-		var scr, layout, title, rtitle, rbody, exit, popup;
-		scr = new G.ScrollView(ctx);
-		Common.applyStyle(scr, "message_bg");
-		layout = new G.LinearLayout(ctx);
-		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
-		title = new G.TextView(ctx);
-		title.setText("新建反馈话题");
-		title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		title.setPadding(0, 0, 0, 10 * G.dp);
-		Common.applyStyle(title, "textview_default", 4);
-		layout.addView(title);
-		rtitle = new G.EditText(ctx);
-		rtitle.setText(o.title);
-		rtitle.setHint("标题");
-		rtitle.setSingleLine(true);
-		rtitle.setPadding(0, 0, 0, 0);
-		rtitle.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		rtitle.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-		rtitle.setSelection(rtitle.length());
-		Common.applyStyle(rtitle, "edittext_default", 3);
-		layout.addView(rtitle);
-		rbody = new G.EditText(ctx);
-		rbody.setText(o.body);
-		rbody.setHint("请详细具体地描述你的反馈");
-		rbody.setPadding(0, 20 * G.dp, 0, 0);
-		rbody.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		Common.applyStyle(rbody, "edittext_default", 2);
-		layout.addView(rbody);
-		exit = new G.TextView(ctx);
-		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("确定");
-		exit.setGravity(G.Gravity.CENTER);
-		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-		Common.applyStyle(exit, "button_critical", 3);
-		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			o.title = String(rtitle.getText());
-			o.body = String(rbody.getText());
-			if (!o.title) return Common.toast("标题不能为空！");
-			if (callback) callback(o);
-			popup.exit();
-		} catch(e) {erp(e)}}}));
-		layout.addView(exit);
-		scr.addView(layout);
-		popup = PopupPage.showDialog("feedback.EditIssue", scr, -1, -2);
+		var title, body, popup;
+		popup = PopupPage.showDialog("feedback.EditIssue", L.ScrollView({
+			style : "message_bg",
+			child : L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
+				children : [
+					L.TextView({
+						text : "新建反馈话题",
+						padding : [0, 0, 0, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						style : "textview_default",
+						fontSize : 4
+					}),
+					title = L.EditText({
+						text : o.title,
+						hint : "标题",
+						singleLine : true,
+						padding : [0, 0, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 3,
+						layout : { width : -1, height : -2 }
+					}),
+					body = L.EditText({
+						text : o.body,
+						hint : "请详细具体地描述你的反馈",
+						padding : [0, 20 * G.dp, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 2,
+						layout : { width : -1, height : -2 }
+					}),
+					L.TextView({
+						text : "确定",
+						padding : [10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {
+							o.title = String(title.text);
+							o.body = String(body.text);
+							if (!o.title) return Common.toast("标题不能为空！");
+							if (callback) callback(o);
+							popup.exit();
+						}
+					})
+				]
+			})
+		}), -1, -2);
 		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
 	showFeedbacks : function(callback) {
