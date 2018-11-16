@@ -1859,7 +1859,6 @@ MapScript.loadModule("PopupPage", (function() {
 	}
 	r.Overlay.prototype = {
 		attach : function(container) {
-			r.checkThread();
 			if (container) {
 				container.addView(this.view, new G.FrameLayout.LayoutParams(this.width, this.height, this.gravity));
 				this.view.setTranslationX(this.x);
@@ -1875,7 +1874,6 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		},
 		detach : function() {
-			r.checkThread();
 			if (this.popup) {
 				if (this.popup.isShowing()) this.popup.dismiss();
 				this.popup = null;
@@ -2156,7 +2154,9 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
-			
+			if (f.settings.customTips) {
+				this.tips = f.settings.customTips;
+			}
 
 			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
@@ -4517,6 +4517,13 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return Updater.getVersionInfo();
 				},
 				onclick : function(fset) {
+					if (Updater.latest) {
+						Updater.askHurryDevelop(function(yes) {
+							if (yes) {
+								CA.showDonateDialog();
+							}
+						});
+					}
 					Updater.checkUpdate(function() {
 						G.ui(function() {try {
 							fset();
@@ -4824,8 +4831,19 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 				get : function() {
 					return "共" + CA.tips.length + "条";
 				},
-				onclick : function() {
-					Common.showTextDialog(CA.tips.join("\n\n"));
+				onclick : function(fset) {
+					Common.showInputDialog({
+						title : "每日提示",
+						defaultValue : CA.tips.join("\n"),
+						callback : function(s) {
+							if (!s) {
+								CA.tips = CA.defalutTips;
+							} else {
+								CA.tips = CA.settings.customTips = s.split("\n");
+							}
+							fset();
+						}
+					});
 				}
 			},{
 				name : "导入用户数据",
@@ -14206,6 +14224,19 @@ MapScript.loadModule("Updater", {
 		} catch(e) {erp(e)}}}));
 		thread.start();
 	},
+	askHurryDevelop : function(callback) {
+		Common.showConfirmDialog({
+			title : "催更命令助手", 
+			description : "是不是觉得命令助手更新速度太慢？不如催促命令助手更新吧",
+			buttons : [
+				"立即催更",
+				"暂不催更"
+			],
+			callback : function(id) {
+				callback(id == 0);
+			}
+		});
+	},
 	isConnected : function() {
 		var cm = ctx.getSystemService(ctx.CONNECTIVITY_SERVICE);
 		var an = cm.getActiveNetworkInfo();
@@ -14216,7 +14247,7 @@ MapScript.loadModule("Updater", {
 		}
 	},
 	initialize : function() {
-		if (this.isConnected() && !(CA.settings.nextCheckUpdate < Date.now())) {
+		if (this.isConnected() && !(CA.settings.nextCheckUpdate > Date.now())) {
 			this.checkUpdate(function() {
 				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600 * 1000;
 			}, true);
@@ -16194,8 +16225,16 @@ MapScript.loadModule("AndroidBridge", {
 		}, true);
 	},
 	startActivityForResult : function(intent, callback) {
-		this.intentCallback[intent.hashCode()] = callback;
-		ScriptActivity.startActivityForResult(intent, intent.hashCode());
+		var i;
+		for (i = 0; i < 65536; i++) {
+			if (!(i in this.intentCallback)) break;
+		}
+		if (i >= 65536) {
+			Common.toast("启动Intent失败：同时请求的Intent过多");
+			return;
+		}
+		this.intentCallback[i] = callback;
+		ScriptActivity.startActivityForResult(intent, i);
 	},
 	requestPermissions : function(permissions, explanation, callback) {
 		var i, denied = [];
@@ -16479,8 +16518,10 @@ MapScript.loadModule("NeteaseAdapter", {
 			return "1.2.5.50";
 		} else if (c < 840045722) { //1.7.0.45722
 			return "1.4.1.5";
-		} else {
+		} else if (c < 840049833) { //1.9.0.49833
 			return "1.5.2.0";
+		} else {
+			return "1.6.2.0";
 		}
 	},
 	askPackage : function(callback, canCustomize) {
@@ -16626,6 +16667,7 @@ MapScript.loadModule("NeteaseAdapter", {
 		"com.netease.mc.lenovo",
 		"com.netease.mc.coolpad",
 		"com.netease.mc.am",
+		"com.netease.mctest",
 		"com.zhekasmirnov.innercore"
 	],
 	packages : {
@@ -16703,6 +16745,10 @@ MapScript.loadModule("NeteaseAdapter", {
 		},
 		"com.netease.mc.am" : {
 			desc : "网易-金立应用商店版",
+			publisher : "Netease"
+		},
+		"com.netease.mctest" : {
+			desc : "网易-测试版",
 			publisher : "Netease"
 		},
 		//待补，在此感谢@风铃物语 与 @绿叶 的帮助
@@ -21853,6 +21899,36 @@ CA.Library.inner["default"] = {
 			},
 			"minSupportVer": "1.8.0.10"
 		},
+		"1.9.0.0": {
+			"enums": {
+				"gamerule_bool": {
+					"showdeathmessage": "是否在聊天框中显示玩家以及驯养宠物的死亡信息",
+					"doimmediaterespawn": "是否玩家死亡后立即重生"
+				}
+			},
+			"commands": {
+				"tellraw": {
+					"description": "向指定玩家发送一条JSON文本消息",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "json",
+									"name": "JSON文本"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tellraw"
+				}
+			},
+			"minSupportVer": "1.9.0.0"
+		},
 	}
 };
 
@@ -22338,7 +22414,7 @@ Common.themelist = {
 	*/
 };
 
-CA.tips = [
+CA.tips = CA.defalutTips = [
 	//by Yiro
 	"不到万不得已不要把execute指令写入重复命令方块！",
 	"善用gamerule指令让你的世界更加精彩~",
