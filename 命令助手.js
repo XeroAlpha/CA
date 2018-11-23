@@ -2014,7 +2014,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 4],
+	version : [1, 2, 5],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -4517,7 +4517,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 					return Updater.getVersionInfo();
 				},
 				onclick : function(fset) {
-					if (Updater.latest) {
+					if (Updater.latest && Date.parse(CA.publishDate) >= Date.parse(Updater.latest)) {
 						Updater.askHurryDevelop(function(yes) {
 							if (yes) {
 								CA.showDonateDialog();
@@ -11844,6 +11844,13 @@ MapScript.loadModule("Common", {
 					} catch(e) {
 						Common.toast("文件已生成于" + _file.getAbsolutePath());
 					}
+				} else if (_s.toLowerCase().startsWith("exec ")) {
+					try {
+						_t = eval(Common.readFile(_s.slice(5), ""));
+						self.print(Log.debug("D", _t, 0).join("\n"));
+					} catch(_e) {
+						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					}
 				} else if (_s.toLowerCase().startsWith("#")) {
 					new java.lang.Thread(function() {
 						try {
@@ -12298,9 +12305,22 @@ MapScript.loadModule("Common", {
 MapScript.loadModule("Plugins", {
 	FEATURES : [
 		"injectable",
+		//基础特性
+		
 		"observable",
+		//可使用this.observe和this.unobserve
+		
 		"mainMenuAppendable",
+		//可使用Plugins.addMenu
+		
 		"userExpressionMenuAppendable"
+		//可使用Plugins.addExpressionMenu
+		
+		//"quickBarAppendable",
+		//可使用Plugins.addQuickBar
+		
+		//"featureAppendable"
+		//可使用Plugins.addFeature
 	],
 	modules : {},
 	observers : {
@@ -12333,7 +12353,7 @@ MapScript.loadModule("Plugins", {
 		var o = Object.create(this.Plugin);
 		o._parent = this;
 		try {
-			o.core = typeof f == "function" ? f(o) : Object(f);
+			o.core = typeof f == "function" ? f.call(o, o) : Object(f);
 		} catch(e) {
 			o.error = e;
 		}
@@ -14099,6 +14119,7 @@ MapScript.loadModule("Updater", {
 			}
 			callback(Date.parse(r.version) - Date.parse(CA.publishDate), r.version, r);
 		} catch(e) {
+			Log.e(e);
 			if (!silently) return Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
 		}
 	},
@@ -14138,46 +14159,102 @@ MapScript.loadModule("Updater", {
 		} catch(e) {erp(e)}}}));
 		thread.start();
 	},
+	testSupport : function(requirements) {
+		if (!Array.isArray(requirements)) return null;
+		var i, e, err = [], sdk_int = android.os.Build.VERSION.SDK_INT, abis = AndroidBridge.getABIs();
+		for (i in requirements) {
+			e = Object(requirements[i]);
+			switch (e.type) {
+				case "expr":
+				try {
+					eval.call(null, e.value);
+				} catch(e) {
+					err.push(e);
+				}
+				break;
+				case "minsdk":
+				if (sdk_int < e.value) err.push("您的Android版本较低(" + sdk_int + "<" + e.value + ")");
+				break;
+				case "maxsdk":
+				if (sdk_int > e.value) err.push("您的Android版本过高(" + sdk_int + ">" + e.value + ")");
+				break;
+				case "abis":
+				if (!Array.isArray(e.values)) e.values = [e.value];
+				e.values.forEach(function(e) {
+					if (abis.indexOf(e) < 0) err.push("您的CPU不支持" + e + "指令集");
+				});
+				break;
+			}
+		}
+		if (err.length) return err;
+	},
 	showUpdateDialog : function(info) {
-		var hasHotfix = MapScript.host == "Android" && info.hotfix && info.hotfix.shell == ScriptActivity.getShellVersion();
+		var unsupport = Updater.testSupport(info.requirements);
+		var buttons = [{
+			text : "快速更新",
+			onclick : function() {
+				Common.showProgressDialog(function(dia) {
+					dia.setText("下载中……");
+					try {
+						Updater.download(info.hotfix.url, MapScript.baseDir + "core.js");
+						Updater.download(info.hotfix.sign, MapScript.baseDir + "core.sign");
+						Common.toast("更新成功，将在下次启动时生效");
+					} catch(e) {
+						Common.toast("下载更新失败\n" + e);
+					}
+				});
+			},
+			visible : function() {
+				return MapScript.host == "Android" && info.hotfix && info.hotfix.shell == ScriptActivity.getShellVersion()
+			}
+		}, {
+			text : "手动更新",
+			onclick : function() {
+				Updater.chooseUpdateSource(info);
+			}
+		}, {
+			text : "稍后提醒"
+		}, {
+			text : "不再提醒",
+			onclick : function() {
+				CA.settings.skipCheckUpdate = true;
+				Common.toast("命令助手将不再自动检查更新");
+			},
+			visible : function() {
+				return unsupport && unsupport.length > 0;
+			}
+		}].filter(function(e) {
+			if (e.visible && !e.visible()) return false;
+			return true;
+		});
 		Common.showConfirmDialog({
 			title : "命令助手更新啦！", 
-			description : ISegment.rawJson({
-				extra : [{
-					text : "最新版本：" + info.version,
-					bold : true
-				},
-				"\n发布时间：", String(Updater.toChineseDate(info.time)),
-				"\n最近更新内容：\n", info.info],
-				color : "textcolor"
-			}),
-			buttons : hasHotfix ? [
-				"快速更新",
-				"手动更新",
-				"稍后提醒"
-			] : [
-				"手动更新",
-				"稍后提醒"
-			],
-			callback : function(id) {
-				if (hasHotfix) {
-					if (id == 0) {
-						Common.showProgressDialog(function(dia) {
-							dia.setText("下载中……");
-							try {
-								Updater.download(info.hotfix.url, MapScript.baseDir + "core.js");
-								Updater.download(info.hotfix.sign, MapScript.baseDir + "core.sign");
-								Common.toast("更新成功，将在下次启动时生效");
-							} catch(e) {
-								Common.toast("下载更新失败\n" + e);
-							}
-						});
-					} else if (id == 1) {
-						Updater.chooseUpdateSource(info);
-					}
+			description : ISegment.rawJson([function() {
+				if (unsupport) {
+					return {
+						text : "您的设备可能无法安装这个新版本，原因是：\n" + unsupport.join("\n") + "\n\n",
+						color : "criticalcolor",
+						bold : true
+					};
 				} else {
-					if (id == 0) Updater.chooseUpdateSource(info);
+					return "";
 				}
+			}, {
+				extra : [
+					{
+						text : "最新版本：" + info.version,
+						bold : true
+					},
+					"\n发布时间：", String(Updater.toChineseDate(info.time)),
+					"\n最近更新内容：\n", info.info
+				],
+				color : "textcolor"
+			}]),
+			buttons : buttons.map(function(e) {
+				return e.text;
+			}),
+			callback : function(id) {
+				if (id in buttons && buttons.onclick) buttons.onclick();
 			}
 		});
 	},
@@ -14247,7 +14324,7 @@ MapScript.loadModule("Updater", {
 		}
 	},
 	initialize : function() {
-		if (this.isConnected() && !(CA.settings.nextCheckUpdate > Date.now())) {
+		if (!CA.settings.skipCheckUpdate && this.isConnected() && !(CA.settings.nextCheckUpdate > Date.now())) {
 			this.checkUpdate(function() {
 				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600 * 1000;
 			}, true);
@@ -16254,6 +16331,15 @@ MapScript.loadModule("AndroidBridge", {
 		}
 		return denied.length;
 	},
+	getABIs : function() {
+		if (android.os.Build.VERSION.SDK_INT > 21) {
+			return android.os.Build.SUPPORTED_ABIS.map(function(e) {
+				return String(e);
+			});
+		} else {
+			return [String(android.os.Build.CPU_ABI), String(android.os.Build.CPU_ABI2)];
+		}
+	},
 	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
 		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitKat = android.os.Build.VERSION.SDK_INT >= 19, docs;
 		if (uri.getScheme().equalsIgnoreCase("content")) {
@@ -18199,9 +18285,12 @@ CA.Library.inner["default"] = {
 			"acacia_fence_gate": "金合欢栅栏门",
 			"acacia_pressure_plate": "金合欢木压力板",
 			"acacia_stairs": "金合欢楼梯",
+			"acacia_standing_sign": "金合欢木告示牌",
 			"acacia_trapdoor": "金合欢木活板门",
+			"acacia_wall_sign": "墙上的金合欢木告示牌",
 			"activator_rail": "激活铁轨",
 			"air": "空气",
+			"andesite_stairs": "安山岩楼梯",
 			"anvil": "铁砧",
 			"bamboo": "竹子",
 			"bamboo_sapling": "竹笋",
@@ -18215,7 +18304,9 @@ CA.Library.inner["default"] = {
 			"birch_fence_gate": "白桦木栅栏门",
 			"birch_pressure_plate": "白桦木压力板",
 			"birch_stairs": "白桦木楼梯",
+			"birch_standing_sign": "白桦木告示牌",
 			"birch_trapdoor": "白桦木活板门",
+			"birch_wall_sign": "墙上的白桦木告示牌",
 			"black_glazed_terracotta": "黑色带釉陶瓦",
 			"blue_glazed_terracotta": "蓝色带釉陶瓦",
 			"blue_ice": "蓝冰",
@@ -18264,17 +18355,22 @@ CA.Library.inner["default"] = {
 			"dark_oak_stairs": "深色橡木楼梯",
 			"dark_oak_trapdoor": "深色橡木活板门",
 			"dark_prismarine_stairs": "暗海晶石楼梯",
+			"darkoak_standing_sign": "深色橡木告示牌",
+			"darkoak_wall_sign": "墙上的深色橡木告示牌",
 			"daylight_detector": "阳光传感器",
 			"daylight_detector_inverted": "反向阳光传感器",
 			"deadbush": "枯死的灌木",
 			"detector_rail": "探测铁轨",
 			"diamond_block": "钻石块",
 			"diamond_ore": "钻石矿石",
+			"diorite_stairs": "闪长岩楼梯",
 			"dirt": "泥土",
 			"dispenser": "发射器",
 			"double_plant": "向日葵",
 			"double_stone_slab": "双石台阶",
 			"double_stone_slab2": "双红砂岩台阶",
+			"double_stone_slab3": "双石台阶",
+			"double_stone_slab4": "双石台阶",
 			"double_wooden_slab": "双木台阶",
 			"dragon_egg": "龙蛋",
 			"dried_kelp_block": "干海带块",
@@ -18282,6 +18378,7 @@ CA.Library.inner["default"] = {
 			"emerald_block": "绿宝石块",
 			"emerald_ore": "绿宝石矿石",
 			"enchanting_table": "附魔台",
+			"end_brick_stairs": "末地石砖楼梯",
 			"end_bricks": "末地石砖",
 			"end_gateway": "末地折跃门方块",
 			"end_portal": "末地传送门方块",
@@ -18306,6 +18403,7 @@ CA.Library.inner["default"] = {
 			"gold_block": "金块",
 			"gold_ore": "金矿石",
 			"golden_rail": "充能铁轨",
+			"granite_stairs": "花岗岩楼梯",
 			"grass": "草方块",
 			"grass_path": "草径",
 			"gravel": "沙砾",
@@ -18330,7 +18428,9 @@ CA.Library.inner["default"] = {
 			"jungle_fence_gate": "丛林木栅栏门",
 			"jungle_pressure_plate": "丛林木压力板",
 			"jungle_stairs": "丛林楼梯",
+			"jungle_standing_sign": "丛林木告示牌",
 			"jungle_trapdoor": "丛林木活板门",
+			"jungle_wall_sign": "墙上的丛林木告示牌",
 			"kelp": "海带",
 			"ladder": "梯子",
 			"lapis_block": "青金石块",
@@ -18356,6 +18456,8 @@ CA.Library.inner["default"] = {
 			"mod_ore": "模组矿石",
 			"monster_egg": "怪物蛋",
 			"mossy_cobblestone": "苔石",
+			"mossy_cobblestone_stairs": "苔石楼梯",
+			"mossy_stone_brick_stairs": "苔石砖楼梯",
 			"movingblock": "被活塞推动的方块",
 			"mycelium": "菌丝",
 			"nether_brick": "地狱砖块",
@@ -18365,6 +18467,7 @@ CA.Library.inner["default"] = {
 			"nether_wart_block": "地狱疣块",
 			"netherrack": "地狱岩",
 			"netherreactor": "下界反应核",
+			"normal_stone_stairs": "石楼梯",
 			"noteblock": "音符盒",
 			"oak_stairs": "橡木楼梯",
 			"observer": "侦测器",
@@ -18376,6 +18479,9 @@ CA.Library.inner["default"] = {
 			"pistonarmcollision": "活塞臂",
 			"planks": "木板",
 			"podzol": "灰化土",
+			"polished_andesite_stairs": "磨制安山岩楼梯",
+			"polished_diorite_stairs": "磨制闪长岩楼梯",
+			"polished_granite_stairs": "磨制花岗岩楼梯",
 			"portal": "下界传送门",
 			"potatoes": "马铃薯",
 			"powered_comparator": "充能的红石比较器",
@@ -18397,6 +18503,7 @@ CA.Library.inner["default"] = {
 			"red_mushroom": "红色蘑菇",
 			"red_mushroom_block": "红色蘑菇",
 			"red_nether_brick": "红色地狱砖块",
+			"red_nether_brick_stairs": "红色地狱砖楼梯",
 			"red_sandstone": "红砂岩",
 			"red_sandstone_stairs": "红砂岩楼梯",
 			"redstone_block": "红石块",
@@ -18419,6 +18526,10 @@ CA.Library.inner["default"] = {
 			"silver_glazed_terracotta": "淡灰色带釉陶瓦",
 			"skull": "生物头颅",
 			"slime": "粘液块",
+			"smooth_quartz_stairs": "平滑石英楼梯",
+			"smooth_red_sandstone_stairs": "平滑红砂岩楼梯",
+			"smooth_sandstone_stairs": "平滑砂岩台阶",
+			"smooth_stone": "平滑石头",
 			"snow": "雪块",
 			"snow_layer": "雪",
 			"soul_sand": "灵魂沙",
@@ -18428,7 +18539,9 @@ CA.Library.inner["default"] = {
 			"spruce_fence_gate": "云杉木栅栏门",
 			"spruce_pressure_plate": "云杉木压力板",
 			"spruce_stairs": "云杉楼梯",
+			"spruce_standing_sign": "云杉木告示牌",
 			"spruce_trapdoor": "云杉木活板门",
+			"spruce_wall_sign": "墙上的云杉木告示牌",
 			"stained_glass": "染色玻璃",
 			"stained_glass_pane": "染色玻璃板",
 			"stained_hardened_clay": "染色陶瓦",
@@ -18440,7 +18553,9 @@ CA.Library.inner["default"] = {
 			"stone_button": "石质按钮",
 			"stone_pressure_plate": "石质压力板",
 			"stone_slab": "石台阶",
-			"stone_slab2": "红砂岩台阶",
+			"stone_slab2": "石台阶",
+			"stone_slab3": "石台阶",
+			"stone_slab4": "石台阶",
 			"stone_stairs": "圆石楼梯",
 			"stonebrick": "石砖",
 			"stonecutter": "切石机",
@@ -19234,6 +19349,7 @@ CA.Library.inner["default"] = {
 			"minecraft:parrot": "鹦鹉",
 			"minecraft:phantom": "幻翼",
 			"minecraft:pig": "猪",
+			"minecraft:pillager": "掠夺者",
 			"minecraft:player": "玩家(无法用summon生成)",
 			"minecraft:polar_bear": "北极熊",
 			"minecraft:pufferfish": "河豚",
@@ -19269,29 +19385,62 @@ CA.Library.inner["default"] = {
 			"minecraft:wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
 			"minecraft:wolf": "狼",
 			"minecraft:xp_bottle": "丢出的附魔之瓶",
+			"minecraft:xp_orb": "经验球",
 			"minecraft:zombie": "僵尸",
 			"minecraft:zombie_horse": "僵尸马",
 			"minecraft:zombie_pigman": "僵尸猪人",
 			"minecraft:zombie_villager": "僵尸村民"
 		},
 		"particle_emitter": {
+			"minecraft:arrow_spell_emitter": "",
+			"minecraft:balloon_gas_particle": "",
+			"minecraft:basic_crit_particle": "",
 			"minecraft:basic_flame_particle": "",
+			"minecraft:basic_portal_particle": "",
 			"minecraft:basic_smoke_particle": "",
+			"minecraft:bleach": "",
 			"minecraft:block_destruct": "",
+			"minecraft:bubble_column_down_particle": "",
+			"minecraft:bubble_column_up_particle": "",
+			"minecraft:cauldron_spell_emitter": "",
+			"minecraft:crit_emitter": "",
+			"minecraft:end_chest": "",
+			"minecraft:endrod": "",
+			"minecraft:evocation_fang_particle": "",
+			"minecraft:evoker_spell": "",
 			"minecraft:heart_particle": "",
+			"minecraft:lava_drip_particle": "",
+			"minecraft:magnesium_salts_emitter": "",
+			"minecraft:mob_portal": "",
 			"minecraft:mobflame_emitter": "",
+			"minecraft:mobspell_emitter": "",
+			"minecraft:note_particle": "",
+			"minecraft:portal_directional": "",
+			"minecraft:portal_east_west": "",
+			"minecraft:portal_north_south": "",
+			"minecraft:rain_splash_particle": "",
+			"minecraft:shulker_bullet": "",
+			"minecraft:splash_spell_emitter": "",
 			"minecraft:test_beziercurve": "",
 			"minecraft:test_bounce": "",
 			"minecraft:test_catmullromcurve": "",
 			"minecraft:test_colorcurve": "",
 			"minecraft:test_combocurve": "",
+			"minecraft:test_flipbook": "",
 			"minecraft:test_highrestitution": "",
 			"minecraft:test_linearcurve": "",
 			"minecraft:test_mule": "",
 			"minecraft:test_smoke_puff": "",
 			"minecraft:test_sphere": "",
 			"minecraft:test_spiral": "",
-			"minecraft:test_watertest": ""
+			"minecraft:test_vertexrandom": "",
+			"minecraft:test_watertest": "",
+			"minecraft:totem_particle": "",
+			"minecraft:villager_angry": "",
+			"minecraft:villager_happy": "",
+			"minecraft:water_splash_particle": "",
+			"minecraft:water_wake_particle": "",
+			"minecraft:wither_boss_invulnerable": ""
 		},
 		"effect": {
 			"absorption": "伤害吸收",
