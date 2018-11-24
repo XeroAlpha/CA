@@ -7910,6 +7910,7 @@ MapScript.loadModule("CA", {//CommandAssistant 命令助手
 			};
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
 				var m, v, cur, resolved, stat;
+				e = String(e);
 				try {
 					if (CA.Library.cache[e]) {
 						cur = CA.Library.cache[e].data;
@@ -16928,7 +16929,13 @@ MapScript.loadModule("WSServer", {
 		Plugins.emit("WSServer", "connectionClose");
 	},
 	onMessage : function(conn, message) {
-		var json = JSON.parse(message);
+		var json;
+		try {
+			json = JSON.parse(message);
+		} catch(e) {
+			return;
+			erp(e, true);
+		}
 		var header = json.header;
 		switch (header.messagePurpose) {
 			case "event":
