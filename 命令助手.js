@@ -921,12 +921,20 @@ MapScript.loadModule("L", (function self(defaultContext) {
 		clearListeners : listener.clearListeners.bind(listener),
 		withContext : function(context) {
 			return self(context);
+		},
+		asClass : function self(clazz) {
+			return clazz(self);
 		}
 	};
-	var LView = kv.view = function(clazz, json) {try {
+	var LView = kv.Class = function(clazz, json) {try {
 		var r;
 		if (typeof clazz == "string") clazz = java.lang.Class.forName(clazz);
-		if (typeof json == "object") { // view builder
+		if (typeof json == "function") {
+			if (json == kv.asClass) {
+				return cx.getWrapFactory().wrapJavaClass(cx, scope, clazz);
+			}
+			return kv.Class(clazz, json.call(kv));
+		} else if (typeof json == "object") { // view builder
 			return inflate(clazz, defaultContext, json, null);
 		} else if (typeof json == "string") { // constant
 			return calculateConstant(clazz, json);
@@ -17221,12 +17229,55 @@ MapScript.loadModule("GiteeFeedback", {
 	author : "ProjectXero",
 	version : [1, 0, 0],
 	uuid : "3c7b3f7f-bda9-4ed9-a336-cdee2ebae433",
-	address : "projectxero/ca",
+	targetOwner : "projectxero",
+	targetRepo : "ca",
 	perPage : 20,
-	onCreate : function() {
-		if (MapScript.host == "Android") {
-			this.token = String(ScriptActivity.getGiteeFeedbackToken());
+	initialize : function() {
+		this.clientId = String(ScriptActivity.getGiteeClientId());
+		this.clientSecret = String(ScriptActivity.getGiteeClientSecret());
+		this.redirectUrl = "https://projectxero.gitee.io/ca/feedback";
+	},
+	getAuthorizeUrl : function() {
+		return "https://gitee.com/oauth/authorize?client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&response_type=code";
+	},
+	acquireAccessTokenAnonymous : function() {
+		this.accessType = "anonymous";
+		this.accessToken = String(ScriptActivity.getGiteeFeedbackToken());
+		this.accessData = null;
+	},
+	acquireAccessTokenOAuth : function(authorizationCode) {
+		var d = JSON.parse(Updater.queryPage("https://gitee.com/oauth/token?grant_type=authorization_code&code=" + authorizationCode + "&client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&client_secret=" + this.clientSecret));
+		this.accessType = "oauth";
+		this.accessToken = d.access_token;
+		d.expiredDate = d.created_at + d.expires_in;
+		this.accessData = d;
+	},
+	acquireAccessToken : function(userName, password) {
+		var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token", [
+			"grant_type=password",
+			"username=" + encodeURIComponent(userName),
+			"password=" + encodeURIComponent(password),
+			"client_id=" + this.clientId,
+			"client_secret=" + this.clientSecret,
+			"scope=" + encodeURIComponent("user_info issues notes")
+		].join("&"), "application/x-www-form-urlencoded"));
+		this.accessType = "basic";
+		this.accessToken = d.access_token;
+		d.expiredDate = d.created_at + d.expires_in;
+		this.accessData = d;
+	},
+	refreshAccessToken : function(force) {
+		if (this.accessData) {
+			if (force || this.accessData.expiredDate < Date.now()) {
+				var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token?grant_type=refresh_token&refresh_token=" + this.accessData.refresh_token));
+				this.accessToken = d.access_token;
+				d.expiredDate = d.created_at + d.expires_in;
+				this.accessData = d;
+				return 1;
+			}
+			return 0;
 		}
+		return -1;
 	},
 	getRecentFeedback : function() {
 		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
@@ -17242,49 +17293,53 @@ MapScript.loadModule("GiteeFeedback", {
 		return t;
 	},
 	getUserInfo : function() {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/user?access_token=" + this.token));
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/user?access_token=" + this.accessToken));
 	},
 	getIssues : function(state, page) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues?state=" + state + "&sort=created&direction=desc&page=" + page + "&per_page=" + this.perPage));
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues?state=" + state + "&sort=created&direction=desc&page=" + page + "&per_page=" + this.perPage));
 	},
 	createIssue : function(title, body) {
-		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.address + "/issues", JSON.stringify({
-			"access_token": this.token,
+		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues", JSON.stringify({
+			"access_token": this.accessToken,
+			"repo": this.targetRepo,
 			"title": title,
 			"body": body
 		}), "application/json;charset=UTF-8"));
 	},
 	getIssue : function(number) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number));
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number));
 	},
 	updateIssue : function(number, map) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number, "PATCH", JSON.stringify({
-			"access_token": this.token,
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues/" + number, "PATCH", JSON.stringify({
+			"access_token": this.accessToken,
+			"repo": this.targetRepo,
 			"title": map.title,
 			"body": map.body,
 			"state": map.state
 		}), "application/json;charset=UTF-8"));
 	},
 	getIssueComment : function(id) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id));
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id));
 	},
 	getIssueComments : function(number, page) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number + "/comments?page=" + page + "&per_page=" + this.perPage));
+		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments?page=" + page + "&per_page=" + this.perPage));
 	},
 	createIssueComment : function(number, body) {
-		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.address + "/issues/" + number + "/comments", JSON.stringify({
-			"access_token": this.token,
+		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments", JSON.stringify({
+			"access_token": this.accessToken,
 			"body": body
 		}), "application/json;charset=UTF-8"));
 	},
 	updateIssueComment : function(id, body) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id, "PATCH", JSON.stringify({
-			"access_token": this.token,
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "PATCH", JSON.stringify({
+			"access_token": this.accessToken,
 			"body": body
 		}), "application/json;charset=UTF-8"));
 	},
 	deleteIssueComment : function(id) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.address + "/issues/comments/" + id, "DELETE"));
+		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "DELETE", JSON.stringify({
+			"access_token": this.accessToken
+		}), "application/json;charset=UTF-8"));
 	},
 	showIssues : function self(callback) {G.ui(function() {try {
 		if (!self.linear) {
@@ -17332,7 +17387,7 @@ MapScript.loadModule("GiteeFeedback", {
 			self.vbinder = function(holder, e, i, a) {
 				holder.text1.setText(e.state == "open" ? e.title : "[已处理]" + e.title);
 				Common.applyStyle(holder.text1, e.state == "open" ? "item_default" : "item_disabled", 3);
-				holder.text2.setText(e.body.length > 60 ? e.body.slice(0, 59) + ".." : e.body);
+				holder.text2.setText(e.body ? (e.body.length > 60 ? e.body.slice(0, 59) + ".." : e.body) : "(无)");
 			}
 			self.reload = function() {
 				if (self.loading) return Common.toast("正在加载中……");
@@ -17677,6 +17732,13 @@ MapScript.loadModule("GiteeFeedback", {
 					self.reload();
 				}
 			}, {
+				text : "切换账号",
+				onclick : function(v, tag) {
+					GiteeFeedback.showLogin(function() {
+						self.reload();
+					});
+				}
+			}, {
 				text : "仅显示未处理",
 				hidden : function() {
 					return self.issueState == "open";
@@ -17767,10 +17829,11 @@ MapScript.loadModule("GiteeFeedback", {
 						return b.updated_utc - a.updated_utc;
 					});
 					try {
-						GiteeFeedback.myUserId = GiteeFeedback.getUserInfo().id;
+						GiteeFeedback.myUserId = GiteeFeedback.userInfo ? GiteeFeedback.userInfo.id : GiteeFeedback.getUserInfo().id;
 					} catch(e) {Log.e(e)}
 					self.loading = false;
 					G.ui(function() {try {
+						self.title.setText("最近反馈 - " + (GiteeFeedback.userInfo ? GiteeFeedback.userInfo.name : "匿名"));
 						self.adpt.notifyChange();
 					} catch(e) {erp(e)}});
 				});
@@ -17789,7 +17852,7 @@ MapScript.loadModule("GiteeFeedback", {
 						try {
 							d = GiteeFeedback.createIssue(o.title, o.body);
 						} catch(e) {Log.e(e)}
-						if (!d) Common.toast("话题创建失败");
+						if (!d) return Common.toast("话题创建失败");
 						java.lang.Thread.sleep(5000); //等待数据库更新
 						l = GiteeFeedback.addRecentFeedback(d.number);
 						l.lastModified = new Date(d.updated_at).getTime();
@@ -18168,17 +18231,176 @@ MapScript.loadModule("GiteeFeedback", {
 		}), -1, -2);
 		if (onDismiss) popup.on("exit", onDismiss);
 	} catch(e) {erp(e)}})},
-	showFeedbacks : function(callback) {
-		if (this.token) {
-			if (CA.settings.readFeedbackAgreement) {
-				this.showRecentFeedback(callback);
+	checkLogin : function(callback) {
+		if (this.accessToken) {
+			this.showRecentFeedback(callback);
+		} else {
+			this.settings = CA.settings.feedbackSettings || (CA.settings.feedbackSettings = {});
+			if (this.settings.accessType) {
+				this.accessType = this.settings.accessType;
+				this.accessData = this.settings.accessData;
+				Common.showProgressDialog(function(dia) {
+					dia.setText("正在自动登录...");
+					if (GiteeFeedback.accessType == "anonymous") {
+						GiteeFeedback.acquireAccessTokenAnonymous();
+						GiteeFeedback.userInfo = null;
+					} else {
+						try {
+							GiteeFeedback.refreshAccessToken(true);
+						} catch(e) {
+							Log.e(e);
+							return Common.toast("登录失败\n" + GiteeFeedback.userInfo.name);
+						}
+						GiteeFeedback.userInfo = GiteeFeedback.getUserInfo();
+					}
+					GiteeFeedback.showRecentFeedback(callback);
+				});
 			} else {
-				this.showAgreement(function() {
+				this.showLogin(function() {
 					GiteeFeedback.showRecentFeedback(callback);
 				});
 			}
+		}
+	},
+	manageLogin : function(callback) {
+		Common.showConfirmDialog({
+			title : "登录码云", 
+			description : "登录码云用户可以方便地收到反馈的回复，还可以回复别人的反馈",
+			buttons : [
+				"立即登录",
+				"使用匿名账号"
+			],
+			callback : function(id) {
+				if (id == 0) {
+					GiteeFeedback.showUserLogin(callback);
+				} else {
+					Common.showProgressDialog(function(dia) {
+						dia.setText("正在登录...");
+						try {
+							GiteeFeedback.acquireAccessTokenAnonymous();
+							GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
+							GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
+							if (callback) callback();
+						} catch(e) {
+							erp(e, true);
+							Common.toast("登录失败\n" + e);
+						}
+					});
+				}
+			}
+		});
+	},
+	showLogin : function self(callback) {G.ui(function() {try {
+		var usernsme, password, popup;
+		popup = PopupPage.showDialog("feedback.GiteeLogin", L.ScrollView({
+			style : "message_bg",
+			child : L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
+				children : [
+					L.TextView({
+						text : "登录码云",
+						padding : [0, 0, 0, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						gravity : L.Gravity("center"),
+						style : "textview_default",
+						fontSize : 4
+					}),
+					username = L.EditText({
+						hint : "用户名(邮箱)",
+						singleLine : true,
+						padding : [0, 0, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						inputType : L.InputType("TYPE_CLASS_TEXT|TYPE_TEXT_VARIATION_EMAIL_ADDRESS"),
+						style : "edittext_default",
+						fontSize : 3,
+						layout : { width : -1, height : -2 }
+					}),
+					password = L.EditText({
+						hint : "密码",
+						padding : [0, 20 * G.dp, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						transformationMethod : L.asClass(L.PasswordTransformationMethod).instance,
+						style : "edittext_default",
+						fontSize : 3,
+						layout : { width : -1, height : -2 }
+					}),
+					L.TextView({
+						text : "登录码云用户可以方便地收到反馈的回复，还可以回复别人的反馈",
+						padding : [0, 20	 * G.dp, 0, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						style : "textview_highlight",
+						fontSize : 2
+					}),
+					L.TextView({
+						text : "匿名使用",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {
+							Common.showProgressDialog(function(dia) {
+								dia.setText("正在登录...");
+								try {
+									GiteeFeedback.acquireAccessTokenAnonymous();
+									GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
+									GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
+									GiteeFeedback.userInfo = null;
+								} catch(e) {
+									erp(e, true);
+									return Common.toast("登录失败\n" + e);
+								}
+								G.ui(function() {try {
+									popup.exit();
+									if (callback) callback();
+								} catch(e) {erp(e)}});
+							});
+						}
+					}),
+					L.TextView({
+						text : "登录",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {
+							if (!username.length()) return Common.toast("用户名不能为空");
+							if (!password.length()) return Common.toast("密码不能为空");
+							Common.showProgressDialog(function(dia) {
+								dia.setText("正在登录...");
+								try {
+									GiteeFeedback.acquireAccessToken(username.text, password.text);
+									GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
+									GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
+									GiteeFeedback.userInfo = GiteeFeedback.getUserInfo();
+								} catch(e) {
+									Log.e(e);
+									return Common.toast("登录失败，请检查您是否已连接互联网且用户名与密码正确\n" + e);
+								}
+								G.ui(function() {try {
+									popup.exit();
+									if (callback) callback();
+								} catch(e) {erp(e)}});
+							});
+						}
+					})
+				]
+			})
+		}), -1, -2);
+	} catch(e) {erp(e)}})},
+	showFeedbacks : function(callback) {
+		if (this.clientId) {
+			if (CA.settings.readFeedbackAgreement) {
+				this.checkLogin(callback);
+			} else {
+				this.showAgreement(function() {
+					GiteeFeedback.checkLogin(callback);
+				});
+			}
 		} else {
-			Common.toast("您目前没有反馈Token，无法创建反馈");
+			Common.toast("您目前使用的版本无法创建反馈");
 			this.showIssues(callback);
 		}
 	},
@@ -18188,7 +18410,7 @@ MapScript.loadModule("GiteeFeedback", {
 			description : ISegment.rawJson({
 				extra : [
 					"请务必看完本说明！\n",
-					"\n1. 所有人反馈的内容都是公开但匿名的，请注意保护自己的隐私。",
+					"\n1. 所有人反馈的内容都是公开的，请注意保护自己的隐私。",
 					"\n2. 在反馈之前，请先查看常见问题解答(在最近反馈界面点击右上角三角显示的菜单内)。如果常见问题解答能解决你的问题，请不要重复反馈。",
 					"\n3. 您如果重复反馈或反馈与命令助手无关的内容，这条反馈会被标注为“已拒绝”。如果您提出的被拒绝反馈数量超过两个，您会被暂时禁止反馈。",
 					"\n4. 在自己的反馈下多次发送重复或无关反馈的内容会让这条反馈被标注为“已拒绝”。",
