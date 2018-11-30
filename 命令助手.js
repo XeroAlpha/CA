@@ -17233,9 +17233,11 @@ MapScript.loadModule("GiteeFeedback", {
 	targetRepo : "ca",
 	perPage : 20,
 	initialize : function() {
-		this.clientId = String(ScriptActivity.getGiteeClientId());
-		this.clientSecret = String(ScriptActivity.getGiteeClientSecret());
-		this.redirectUrl = "https://projectxero.gitee.io/ca/feedback";
+		if (MapScript.host == "Android") {
+			this.clientId = String(ScriptActivity.getGiteeClientId());
+			this.clientSecret = String(ScriptActivity.getGiteeClientSecret());
+			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback";
+		}
 	},
 	getAuthorizeUrl : function() {
 		return "https://gitee.com/oauth/authorize?client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&response_type=code";
@@ -18262,34 +18264,6 @@ MapScript.loadModule("GiteeFeedback", {
 			}
 		}
 	},
-	manageLogin : function(callback) {
-		Common.showConfirmDialog({
-			title : "登录码云", 
-			description : "登录码云用户可以方便地收到反馈的回复，还可以回复别人的反馈",
-			buttons : [
-				"立即登录",
-				"使用匿名账号"
-			],
-			callback : function(id) {
-				if (id == 0) {
-					GiteeFeedback.showUserLogin(callback);
-				} else {
-					Common.showProgressDialog(function(dia) {
-						dia.setText("正在登录...");
-						try {
-							GiteeFeedback.acquireAccessTokenAnonymous();
-							GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
-							GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
-							if (callback) callback();
-						} catch(e) {
-							erp(e, true);
-							Common.toast("登录失败\n" + e);
-						}
-					});
-				}
-			}
-		});
-	},
 	showLogin : function self(callback) {G.ui(function() {try {
 		var usernsme, password, popup;
 		popup = PopupPage.showDialog("feedback.GiteeLogin", L.ScrollView({
@@ -18523,11 +18497,13 @@ CA.Library.inner["default"] = {
 			"anvil": "铁砧",
 			"bamboo": "竹子",
 			"bamboo_sapling": "竹笋",
+			"barrel": "木桶",
 			"barrier": "屏障",
 			"beacon": "信标",
 			"bed": "床",
 			"bedrock": "基岩",
 			"beetroot": "甜菜根",
+			"bell": "铃",
 			"birch_button": "白桦木按钮",
 			"birch_door": "白桦木门",
 			"birch_fence_gate": "白桦木栅栏门",
@@ -18537,6 +18513,7 @@ CA.Library.inner["default"] = {
 			"birch_trapdoor": "白桦木活板门",
 			"birch_wall_sign": "墙上的白桦木告示牌",
 			"black_glazed_terracotta": "黑色带釉陶瓦",
+			"blast_furnace": "高炉",
 			"blue_glazed_terracotta": "蓝色带釉陶瓦",
 			"blue_ice": "蓝冰",
 			"bone_block": "骨块",
@@ -18552,6 +18529,7 @@ CA.Library.inner["default"] = {
 			"cake": "蛋糕",
 			"carpet": "地毯",
 			"carrots": "胡萝卜",
+			"cartography_table": "制图台",
 			"carved_pumpkin": "雕刻过的南瓜",
 			"cauldron": "炼药锅",
 			"chain_command_block": "连锁型命令方块",
@@ -18619,6 +18597,7 @@ CA.Library.inner["default"] = {
 			"fence": "橡木栅栏",
 			"fence_gate": "橡木栅栏门",
 			"fire": "火",
+			"fletching_table": "制箭台",
 			"flower_pot": "花盆",
 			"flowing_lava": "熔岩",
 			"flowing_water": "水",
@@ -18638,6 +18617,7 @@ CA.Library.inner["default"] = {
 			"gravel": "沙砾",
 			"gray_glazed_terracotta": "灰色带釉陶瓦",
 			"green_glazed_terracotta": "绿色带釉陶瓦",
+			"grindstone": "砂轮",
 			"hardened_clay": "硬化粘土",
 			"hay_block": "干草块",
 			"heavy_weighted_pressure_plate": "重质测重压力板",
@@ -18662,9 +18642,11 @@ CA.Library.inner["default"] = {
 			"jungle_wall_sign": "墙上的丛林木告示牌",
 			"kelp": "海带",
 			"ladder": "梯子",
+			"lantern": "灯笼",
 			"lapis_block": "青金石块",
 			"lapis_ore": "青金石矿石",
-			"lava": "静态熔岩",
+			"lava": "熔岩",
+			"lava_cauldron": "装熔岩的炼药锅",
 			"leaves": "树叶",
 			"leaves2": "金合欢树叶",
 			"lever": "拉杆",
@@ -18755,6 +18737,8 @@ CA.Library.inner["default"] = {
 			"silver_glazed_terracotta": "淡灰色带釉陶瓦",
 			"skull": "生物头颅",
 			"slime": "粘液块",
+			"smithing_table": "锻造台",
+			"smoker": "烟熏机",
 			"smooth_quartz_stairs": "平滑石英楼梯",
 			"smooth_red_sandstone_stairs": "平滑红砂岩楼梯",
 			"smooth_sandstone_stairs": "平滑砂岩台阶",
@@ -18811,7 +18795,7 @@ CA.Library.inner["default"] = {
 			"vine": "藤蔓",
 			"wall_banner": "墙上的旗帜",
 			"wall_sign": "墙上的告示牌",
-			"water": "静态水",
+			"water": "水",
 			"waterlily": "睡莲",
 			"web": "蜘蛛网",
 			"wheat": "小麦",
@@ -19773,18 +19757,20 @@ CA.Library.inner["default"] = {
 			"3": ""
 		},
 		"gamemode": {
+			"default": "默认模式",
 			"survival": "生存模式",
 			"creative": "创造模式",
 			"adventure": "冒险模式",
-			"spectator": "旁观模式",
+			//"spectator": "旁观模式",
+			"d": "",
 			"s": "",
 			"c": "",
 			"a": "",
-			"sp": "",
+			//"sp": "",
 			"0": "",
 			"1": "",
 			"2": "",
-			"3": ""
+			//"3": ""
 		},
 		"bool": {
 			"true": "是",
@@ -22307,6 +22293,202 @@ CA.Library.inner["default"] = {
 			},
 			"minSupportVer": "1.9.0.0"
 		},
+		"1.9.0.2": {
+			"enums": {
+				"gamerule_int": {
+					"functioncommandlimit": "通过function命令执行命令的最大数量"
+				}
+			},
+			"selectors": {
+				"tag": {
+					"type": "string",
+					"name": "标签",
+					"hasInverted": true
+				}
+			},
+			"commands": {
+				"tag": {
+					"description": "为实体添加或移除标签，或列举实体的标签",
+					"patterns": {
+						"list": {
+							"description": "列出指定实体拥有的全部标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出指定实体拥有的全部标签"
+								}
+							]
+						},
+						"add": {
+							"description": "为指定实体添加一个新的标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "为指定实体添加一个新的标签"
+								},
+								{
+									"type": "text",
+									"name": "标签名"
+								}
+							]
+						},
+						"remove": {
+							"description": "为指定实体移除一个已有标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "为指定实体移除一个已有标签"
+								},
+								{
+									"type": "text",
+									"name": "标签名"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tag"
+				},
+				"titleraw": {
+					"description": "标题命令相关（使用JSON文本）",
+					"patterns": {
+						"clear": {
+							"description": "移除标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "clear",
+									"prompt": "移除标题"
+								}
+							]
+						},
+						"reset": {
+							"description": "重设标题设置",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "reset",
+									"prompt": "重设标题设置"
+								}
+							]
+						},
+						"subtitle": {
+							"description": "设置副标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "subtitle",
+									"prompt": "设置副标题"
+								},
+								{
+									"type": "json",
+									"name": "副标题"
+								}
+							]
+						},
+						"title": {
+							"description": "显示标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "title",
+									"prompt": "显示标题"
+								},
+								{
+									"type": "json",
+									"name": "标题"
+								}
+							]
+						},
+						"times": {
+							"description": "设置标题显示时间",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "times",
+									"prompt": "设置标题显示时间"
+								},
+								{
+									"type": "int",
+									"name": "淡入时间"
+								},
+								{
+									"type": "int",
+									"name": "停留时间"
+								},
+								{
+									"type": "int",
+									"name": "淡出时间"
+								}
+							]
+						},
+						"actionbar": {
+							"description": "在活动栏上显示文字",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "actionbar",
+									"prompt": "在活动栏上显示文字"
+								},
+								{
+									"type": "json",
+									"name": "活动栏文字"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+				}
+			},
+			"minSupportVer": "1.9.0.2"
+		}
 	}
 };
 
