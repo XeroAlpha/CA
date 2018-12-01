@@ -1,6 +1,7 @@
 var fs = require("fs");
 var process = require("process");
 var zlib = require("zlib");
+var loader = require("./loader");
 
 var cwd = process.cwd();
 var script = cwd + "/命令助手.js";
@@ -19,7 +20,7 @@ function getDateId(d) {
 }
 
 function buildSnapshot() {
-	var s = fs.readFileSync(script, "utf-8");
+	var s = loader.load(script, "utf-8");
 	var id = getDateId(new Date());
 	s = s.replace(/\{DATE\}/g, "S" + id).replace(/\{HELP\}/g, fs.readFileSync(help, 'utf-8').replace(/\s*\n\s*/g, ""));
 	fs.writeFileSync(cwd + "/snapshot/命令助手快照" + id + ".lib", asLibrary([

@@ -1,0 +1,4057 @@
+{
+	"name": "默认命令库",
+	"author": "CA制作组",
+	"description": "该命令库基于Minecraft PE 1.8.0.10 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
+	"version": [0, 0, 1],
+	"require": [],
+	"minSupportVer": "0.7.4",
+	"targetSupportVer": "1.8.0.10",
+	"commands": {},
+	"idlist": [
+		{
+			"name": "方块",
+			"list": "block"
+		},
+		{
+			"name": "物品",
+			"list": "item"
+		},
+		{
+			"name": "声音",
+			"list": "sound"
+		},
+		{
+			"name": "实体",
+			"list": "entity"
+		},
+		{
+			"name": "状态效果",
+			"list": "effect"
+		},
+		{
+			"name": "粒子",
+			"list": "particle_emitter"
+		},
+		{
+			"name": "附魔",
+			"list": "enchant_type"
+		},
+		{
+			"name": "游戏规则",
+			"lists": [
+				"gamerule_bool",
+				"gamerule_int"
+			]
+		}
+	],
+	"enums": {
+		"block": {
+			"acacia_button": "金合欢木按钮",
+			"acacia_door": "金合欢木门",
+			"acacia_fence_gate": "金合欢栅栏门",
+			"acacia_pressure_plate": "金合欢木压力板",
+			"acacia_stairs": "金合欢楼梯",
+			"acacia_standing_sign": "金合欢木告示牌",
+			"acacia_trapdoor": "金合欢木活板门",
+			"acacia_wall_sign": "墙上的金合欢木告示牌",
+			"activator_rail": "激活铁轨",
+			"air": "空气",
+			"andesite_stairs": "安山岩楼梯",
+			"anvil": "铁砧",
+			"bamboo": "竹子",
+			"bamboo_sapling": "竹笋",
+			"barrel": "木桶",
+			"barrier": "屏障",
+			"beacon": "信标",
+			"bed": "床",
+			"bedrock": "基岩",
+			"beetroot": "甜菜根",
+			"bell": "铃",
+			"birch_button": "白桦木按钮",
+			"birch_door": "白桦木门",
+			"birch_fence_gate": "白桦木栅栏门",
+			"birch_pressure_plate": "白桦木压力板",
+			"birch_stairs": "白桦木楼梯",
+			"birch_standing_sign": "白桦木告示牌",
+			"birch_trapdoor": "白桦木活板门",
+			"birch_wall_sign": "墙上的白桦木告示牌",
+			"black_glazed_terracotta": "黑色带釉陶瓦",
+			"blast_furnace": "高炉",
+			"blue_glazed_terracotta": "蓝色带釉陶瓦",
+			"blue_ice": "蓝冰",
+			"bone_block": "骨块",
+			"bookshelf": "书架",
+			"brewing_stand": "酿造台",
+			"brick_block": "砖块",
+			"brick_stairs": "砖块楼梯",
+			"brown_glazed_terracotta": "棕色带釉陶瓦",
+			"brown_mushroom": "棕色蘑菇",
+			"brown_mushroom_block": "棕色蘑菇",
+			"bubble_column": "气泡柱",
+			"cactus": "仙人掌",
+			"cake": "蛋糕",
+			"carpet": "地毯",
+			"carrots": "胡萝卜",
+			"cartography_table": "制图台",
+			"carved_pumpkin": "雕刻过的南瓜",
+			"cauldron": "炼药锅",
+			"chain_command_block": "连锁型命令方块",
+			"chest": "箱子",
+			"chorus_flower": "紫颂花",
+			"chorus_plant": "紫颂植物",
+			"clay": "粘土块",
+			"coal_block": "煤炭块",
+			"coal_ore": "煤矿石",
+			"cobblestone": "圆石",
+			"cobblestone_wall": "圆石墙",
+			"cocoa": "可可果",
+			"command_block": "命令方块",
+			"concrete": "混凝土",
+			"concretepowder": "混凝土粉末",
+			"conduit": "潮涌核心",
+			"coral": "珊瑚",
+			"coral_block": "珊瑚块",
+			"coral_fan": "珊瑚扇",
+			"coral_fan_dead": "死亡珊瑚扇",
+			"coral_fan_hang": "",
+			"coral_fan_hang2": "",
+			"coral_fan_hang3": "",
+			"crafting_table": "工作台",
+			"cyan_glazed_terracotta": "青色带釉陶瓦",
+			"dark_oak_button": "深色橡木按钮",
+			"dark_oak_door": "深色橡木门",
+			"dark_oak_fence_gate": "深色橡木栅栏门",
+			"dark_oak_pressure_plate": "深色橡木压力板",
+			"dark_oak_stairs": "深色橡木楼梯",
+			"dark_oak_trapdoor": "深色橡木活板门",
+			"dark_prismarine_stairs": "暗海晶石楼梯",
+			"darkoak_standing_sign": "深色橡木告示牌",
+			"darkoak_wall_sign": "墙上的深色橡木告示牌",
+			"daylight_detector": "阳光传感器",
+			"daylight_detector_inverted": "反向阳光传感器",
+			"deadbush": "枯死的灌木",
+			"detector_rail": "探测铁轨",
+			"diamond_block": "钻石块",
+			"diamond_ore": "钻石矿石",
+			"diorite_stairs": "闪长岩楼梯",
+			"dirt": "泥土",
+			"dispenser": "发射器",
+			"double_plant": "向日葵",
+			"double_stone_slab": "双石台阶",
+			"double_stone_slab2": "双红砂岩台阶",
+			"double_stone_slab3": "双石台阶",
+			"double_stone_slab4": "双石台阶",
+			"double_wooden_slab": "双木台阶",
+			"dragon_egg": "龙蛋",
+			"dried_kelp_block": "干海带块",
+			"dropper": "投掷器",
+			"emerald_block": "绿宝石块",
+			"emerald_ore": "绿宝石矿石",
+			"enchanting_table": "附魔台",
+			"end_brick_stairs": "末地石砖楼梯",
+			"end_bricks": "末地石砖",
+			"end_gateway": "末地折跃门方块",
+			"end_portal": "末地传送门方块",
+			"end_portal_frame": "末地传送门框架",
+			"end_rod": "末地烛",
+			"end_stone": "末地石",
+			"ender_chest": "末影箱",
+			"farmland": "耕地",
+			"fence": "橡木栅栏",
+			"fence_gate": "橡木栅栏门",
+			"fire": "火",
+			"fletching_table": "制箭台",
+			"flower_pot": "花盆",
+			"flowing_lava": "熔岩",
+			"flowing_water": "水",
+			"frame": "物品展示框",
+			"frosted_ice": "霜冰",
+			"furnace": "熔炉",
+			"glass": "玻璃",
+			"glass_pane": "玻璃板",
+			"glowingobsidian": "发光的黑曜石",
+			"glowstone": "荧石",
+			"gold_block": "金块",
+			"gold_ore": "金矿石",
+			"golden_rail": "充能铁轨",
+			"granite_stairs": "花岗岩楼梯",
+			"grass": "草方块",
+			"grass_path": "草径",
+			"gravel": "沙砾",
+			"gray_glazed_terracotta": "灰色带釉陶瓦",
+			"green_glazed_terracotta": "绿色带釉陶瓦",
+			"grindstone": "砂轮",
+			"hardened_clay": "硬化粘土",
+			"hay_block": "干草块",
+			"heavy_weighted_pressure_plate": "重质测重压力板",
+			"hopper": "漏斗",
+			"ice": "冰",
+			"info_update": "数据更新方块（update!）",
+			"info_update2": "数据更新方块（ate!upd）",
+			"invisiblebedrock": "隐形的基岩",
+			"iron_bars": "铁栏杆",
+			"iron_block": "铁块",
+			"iron_door": "铁门",
+			"iron_ore": "铁矿石",
+			"iron_trapdoor": "铁活板门",
+			"jukebox": "唱片机",
+			"jungle_button": "丛林木按钮",
+			"jungle_door": "丛林木门",
+			"jungle_fence_gate": "丛林木栅栏门",
+			"jungle_pressure_plate": "丛林木压力板",
+			"jungle_stairs": "丛林楼梯",
+			"jungle_standing_sign": "丛林木告示牌",
+			"jungle_trapdoor": "丛林木活板门",
+			"jungle_wall_sign": "墙上的丛林木告示牌",
+			"kelp": "海带",
+			"ladder": "梯子",
+			"lantern": "灯笼",
+			"lapis_block": "青金石块",
+			"lapis_ore": "青金石矿石",
+			"lava": "熔岩",
+			"lava_cauldron": "装熔岩的炼药锅",
+			"leaves": "树叶",
+			"leaves2": "金合欢树叶",
+			"lever": "拉杆",
+			"light_blue_glazed_terracotta": "淡蓝色带釉陶瓦",
+			"light_weighted_pressure_plate": "轻质测重压力板",
+			"lime_glazed_terracotta": "黄绿色带釉陶瓦",
+			"lit_furnace": "燃烧的熔炉",
+			"lit_pumpkin": "南瓜灯",
+			"lit_redstone_lamp": "点亮的红石灯",
+			"lit_redstone_ore": "发光的红石矿石",
+			"log": "木头",
+			"log2": "金合欢木",
+			"magenta_glazed_terracotta": "品红色带釉陶瓦",
+			"magma": "岩浆块",
+			"melon_block": "西瓜",
+			"melon_stem": "西瓜梗",
+			"mob_spawner": "刷怪箱",
+			"mod_ore": "模组矿石",
+			"monster_egg": "怪物蛋",
+			"mossy_cobblestone": "苔石",
+			"mossy_cobblestone_stairs": "苔石楼梯",
+			"mossy_stone_brick_stairs": "苔石砖楼梯",
+			"movingblock": "被活塞推动的方块",
+			"mycelium": "菌丝",
+			"nether_brick": "地狱砖块",
+			"nether_brick_fence": "地狱砖栅栏",
+			"nether_brick_stairs": "地狱砖楼梯",
+			"nether_wart": "地狱疣",
+			"nether_wart_block": "地狱疣块",
+			"netherrack": "地狱岩",
+			"netherreactor": "下界反应核",
+			"normal_stone_stairs": "石楼梯",
+			"noteblock": "音符盒",
+			"oak_stairs": "橡木楼梯",
+			"observer": "侦测器",
+			"obsidian": "黑曜石",
+			"orange_glazed_terracotta": "橙色带釉陶瓦",
+			"packed_ice": "浮冰",
+			"pink_glazed_terracotta": "粉红色带釉陶瓦",
+			"piston": "活塞",
+			"pistonarmcollision": "活塞臂",
+			"planks": "木板",
+			"podzol": "灰化土",
+			"polished_andesite_stairs": "磨制安山岩楼梯",
+			"polished_diorite_stairs": "磨制闪长岩楼梯",
+			"polished_granite_stairs": "磨制花岗岩楼梯",
+			"portal": "下界传送门",
+			"potatoes": "马铃薯",
+			"powered_comparator": "充能的红石比较器",
+			"powered_repeater": "充能的红石中继器",
+			"prismarine": "海晶石",
+			"prismarine_bricks_stairs": "海晶石砖楼梯",
+			"prismarine_stairs": "海晶石楼梯",
+			"pumpkin": "南瓜",
+			"pumpkin_stem": "南瓜梗",
+			"purple_glazed_terracotta": "紫色带釉陶瓦",
+			"purpur_block": "紫珀块",
+			"purpur_stairs": "紫珀块楼梯",
+			"quartz_block": "石英块",
+			"quartz_ore": "下界石英矿石",
+			"quartz_stairs": "石英楼梯",
+			"rail": "铁轨",
+			"red_flower": "花",
+			"red_glazed_terracotta": "红色带釉陶瓦",
+			"red_mushroom": "红色蘑菇",
+			"red_mushroom_block": "红色蘑菇",
+			"red_nether_brick": "红色地狱砖块",
+			"red_nether_brick_stairs": "红色地狱砖楼梯",
+			"red_sandstone": "红砂岩",
+			"red_sandstone_stairs": "红砂岩楼梯",
+			"redstone_block": "红石块",
+			"redstone_lamp": "红石灯",
+			"redstone_ore": "红石矿石",
+			"redstone_torch": "红石火把",
+			"redstone_wire": "红石线",
+			"reeds": "甘蔗",
+			"repeating_command_block": "循环型命令方块",
+			"reserved6": "reserved6",
+			"sand": "沙子",
+			"sandstone": "砂岩",
+			"sandstone_stairs": "砂岩楼梯",
+			"sapling": "树苗",
+			"scaffolding": "脚手架",
+			"sealantern": "海晶灯",
+			"sea_pickle": "海泡菜",
+			"seagrass": "海草",
+			"shulker_box": "潜影盒",
+			"silver_glazed_terracotta": "淡灰色带釉陶瓦",
+			"skull": "生物头颅",
+			"slime": "粘液块",
+			"smithing_table": "锻造台",
+			"smoker": "烟熏机",
+			"smooth_quartz_stairs": "平滑石英楼梯",
+			"smooth_red_sandstone_stairs": "平滑红砂岩楼梯",
+			"smooth_sandstone_stairs": "平滑砂岩台阶",
+			"smooth_stone": "平滑石头",
+			"snow": "雪块",
+			"snow_layer": "雪",
+			"soul_sand": "灵魂沙",
+			"sponge": "海绵",
+			"spruce_button": "云杉木按钮",
+			"spruce_door": "云杉木门",
+			"spruce_fence_gate": "云杉木栅栏门",
+			"spruce_pressure_plate": "云杉木压力板",
+			"spruce_stairs": "云杉楼梯",
+			"spruce_standing_sign": "云杉木告示牌",
+			"spruce_trapdoor": "云杉木活板门",
+			"spruce_wall_sign": "墙上的云杉木告示牌",
+			"stained_glass": "染色玻璃",
+			"stained_glass_pane": "染色玻璃板",
+			"stained_hardened_clay": "染色陶瓦",
+			"standing_banner": "站立的旗帜",
+			"standing_sign": "告示牌",
+			"sticky_piston": "粘性活塞",
+			"stone": "石头",
+			"stone_brick_stairs": "石砖楼梯",
+			"stone_button": "石质按钮",
+			"stone_pressure_plate": "石质压力板",
+			"stone_slab": "石台阶",
+			"stone_slab2": "石台阶",
+			"stone_slab3": "石台阶",
+			"stone_slab4": "石台阶",
+			"stone_stairs": "圆石楼梯",
+			"stonebrick": "石砖",
+			"stonecutter": "切石机",
+			"stripped_acacia_log": "去皮金合欢木",
+			"stripped_birch_log": "去皮白桦木",
+			"stripped_dark_oak_log": "去皮深色橡木",
+			"stripped_jungle_log": "去皮丛林木",
+			"stripped_oak_log": "去皮橡木",
+			"stripped_spruce_log": "去皮云杉木",
+			"structure_block": "结构方块",
+			"structure_void": "结构空位",
+			"tallgrass": "草丛",
+			"tnt": "TNT",
+			"torch": "火把",
+			"trapdoor": "活板门",
+			"trapped_chest": "陷阱箱",
+			"tripwire": "绊线",
+			"tripwire_hook": "绊线钩",
+			"turtle_egg": "海龟蛋",
+			"undyed_shulker_box": "未染色的潜影盒",
+			"unlit_redstone_torch": "熄灭的红石火把",
+			"unpowered_comparator": "红石比较器",
+			"unpowered_repeater": "红石中继器",
+			"vine": "藤蔓",
+			"wall_banner": "墙上的旗帜",
+			"wall_sign": "墙上的告示牌",
+			"water": "水",
+			"waterlily": "睡莲",
+			"web": "蜘蛛网",
+			"wheat": "小麦",
+			"white_glazed_terracotta": "白色带釉陶瓦",
+			"wooden_button": "木质按钮",
+			"wooden_door": "木门",
+			"wooden_pressure_plate": "木质压力板",
+			"wooden_slab": "木台阶",
+			"wool": "羊毛",
+			"yellow_flower": "蒲公英",
+			"yellow_glazed_terracotta": "黄色带釉陶瓦"
+		},
+		"item": {
+			"apple": "苹果",
+			"appleenchanted": "附魔金苹果",
+			"armor_stand": "盔甲架",
+			"arrow": "箭",
+			"baked_potato": "烤马铃薯",
+			"banner": "旗帜",
+			"beef": "生牛肉",
+			"beetroot_seeds": "甜菜种子",
+			"beetroot_soup": "甜菜汤",
+			"blaze_powder": "烈焰粉",
+			"blaze_rod": "烈焰棒",
+			"board": "黑板",
+			"boat": "船",
+			"bone": "骨头",
+			"book": "书",
+			"bow": "弓",
+			"bowl": "碗",
+			"bread": "面包",
+			"brick": "红砖",
+			"bucket": "桶",
+			"camera": "相机",
+			"carrot": "胡萝卜",
+			"carrotonastick": "胡萝卜钓竿",
+			"chainmail_boots": "锁链靴子",
+			"chainmail_chestplate": "锁链胸甲",
+			"chainmail_helmet": "锁链头盔",
+			"chainmail_leggings": "锁链护腿",
+			"chest_minecart": "运输矿车",
+			"chicken": "生鸡肉",
+			"chorus_fruit": "紫颂果",
+			"chorus_fruit_popped": "爆裂紫颂果",
+			"clay_ball": "粘土",
+			"clock": "钟",
+			"clownfish": "小丑鱼",
+			"coal": "煤炭",
+			"command_block_minecart": "命令方块矿车",
+			"comparator": "红石比较器",
+			"compass": "指南针",
+			"cooked_beef": "牛排",
+			"cooked_chicken": "熟鸡肉",
+			"cooked_fish": "熟鱼",
+			"cooked_porkchop": "熟猪排",
+			"cooked_rabbit": "熟兔肉",
+			"cooked_salmon": "熟鲑鱼",
+			"cookie": "曲奇",
+			"diamond": "钻石",
+			"diamond_axe": "钻石斧",
+			"diamond_boots": "钻石靴子",
+			"diamond_chestplate": "钻石胸甲",
+			"diamond_helmet": "钻石头盔",
+			"diamond_hoe": "钻石锄",
+			"diamond_leggings": "钻石护腿",
+			"diamond_pickaxe": "钻石镐",
+			"diamond_shovel": "钻石锹",
+			"diamond_sword": "钻石剑",
+			"dragon_breath": "龙息",
+			"dried_kelp": "干海带",
+			"dye": "染料",
+			"egg": "鸡蛋",
+			"elytra": "鞘翅",
+			"emerald": "绿宝石",
+			"emptymap": "空地图",
+			"enchanted_book": "附魔书",
+			"end_crystal": "末影水晶",
+			"ender_eye": "末影之眼",
+			"ender_pearl": "末影珍珠",
+			"experience_bottle": "附魔之瓶",
+			"feather": "羽毛",
+			"fermented_spider_eye": "发酵蛛眼",
+			"fireball": "火焰弹",
+			"fireworks": "烟花火箭",
+			"fish": "生鱼",
+			"fishing_rod": "钓鱼竿",
+			"flint": "燧石",
+			"flint_and_steel": "打火石",
+			"ghast_tear": "恶魂之泪",
+			"glass_bottle": "玻璃瓶",
+			"glowstone_dust": "荧石粉",
+			"gold_ingot": "金锭",
+			"gold_nugget": "金粒",
+			"golden_apple": "金苹果",
+			"golden_axe": "金斧",
+			"golden_boots": "金靴子",
+			"golden_carrot": "金胡萝卜",
+			"golden_chestplate": "金胸甲",
+			"golden_helmet": "金头盔",
+			"golden_hoe": "金锄",
+			"golden_leggings": "金护腿",
+			"golden_pickaxe": "金镐",
+			"golden_shovel": "金锹",
+			"golden_sword": "金剑",
+			"gunpowder": "火药",
+			"heart_of_the_sea": "海洋之心",
+			"hopper_minecart": "漏斗矿车",
+			"horsearmordiamond": "钻石马铠",
+			"horsearmorgold": "金马铠",
+			"horsearmoriron": "铁马铠",
+			"horsearmorleather": "皮革马铠",
+			"iron_axe": "铁斧",
+			"iron_boots": "铁靴子",
+			"iron_chestplate": "铁胸甲",
+			"iron_helmet": "铁头盔",
+			"iron_hoe": "铁锄",
+			"iron_ingot": "铁锭",
+			"iron_leggings": "铁护腿",
+			"iron_nugget": "铁粒",
+			"iron_pickaxe": "铁镐",
+			"iron_shovel": "铁锹",
+			"iron_sword": "铁剑",
+			"lead": "拴绳",
+			"leather": "皮革",
+			"leather_boots": "皮革靴子",
+			"leather_chestplate": "皮革外套",
+			"leather_helmet": "皮革帽子",
+			"leather_leggings": "皮革裤子",
+			"lingering_potion": "滞留药水",
+			"magma_cream": "岩浆膏",
+			"medicine": "",
+			"melon": "西瓜片",
+			"melon_seeds": "西瓜种子",
+			"minecart": "矿车",
+			"minecartfurnace": "动力矿车",
+			"mushroom_stew": "蘑菇煲",
+			"muttoncooked": "熟羊肉",
+			"muttonraw": "生羊肉",
+			"name_tag": "命名牌",
+			"nautilus_shell": "鹦鹉螺",
+			"netherstar": "下界之星",
+			"netherbrick": "地狱砖",
+			"painting": "画",
+			"paper": "纸",
+			"phantom_membrane": "幻翼膜",
+			"poisonous_potato": "毒马铃薯",
+			"porkchop": "生猪排",
+			"portfolio": "公文包",
+			"potato": "马铃薯",
+			"potion": "药水",
+			"prismarine_crystals": "海晶砂粒",
+			"prismarine_shard": "海晶碎片",
+			"pufferfish": "河豚",
+			"pumpkin_pie": "南瓜派",
+			"pumpkin_seeds": "南瓜种子",
+			"quartz": "下界石英",
+			"rabbit": "生兔肉",
+			"rabbit_foot": "兔子脚",
+			"rabbit_hide": "兔子皮",
+			"rabbit_stew": "兔肉煲",
+			"record_11": "11唱片",
+			"record_13": "13唱片",
+			"record_blocks": "blocks唱片",
+			"record_cat": "cat唱片",
+			"record_chirp": "chirp唱片",
+			"record_far": "far唱片",
+			"record_mall": "mall唱片",
+			"record_mellohi": "mellohi唱片",
+			"record_stal": "stal唱片",
+			"record_strad": "strad唱片",
+			"record_wait": "wait唱片",
+			"record_ward": "ward唱片",
+			"redstone": "红石粉",
+			"repeater": "红石中继器",
+			"rotten_flesh": "腐肉",
+			"saddle": "鞍",
+			"salmon": "生鲑鱼",
+			"shears": "剪刀",
+			"shulker_shell": "潜影壳",
+			"sign": "告示牌",
+			"slime_ball": "粘液球",
+			"snowball": "雪球",
+			"spawn_egg": "刷怪蛋",
+			"speckled_melon": "闪烁的西瓜",
+			"spider_eye": "蜘蛛眼",
+			"splash_potion": "喷溅药水",
+			"stick": "木棍",
+			"stone_axe": "石斧",
+			"stone_hoe": "石锄",
+			"stone_pickaxe": "石镐",
+			"stone_shovel": "石锹",
+			"stone_sword": "石剑",
+			"string": "线",
+			"sugar": "糖",
+			"tnt_minecart": "TNT矿车",
+			"totem": "不死图腾",
+			"trident": "三叉戟",
+			"turtle_helmet": "海龟壳",
+			"wheat_seeds": "小麦种子",
+			"wooden_axe": "木斧",
+			"wooden_hoe": "木锄",
+			"wooden_pickaxe": "木镐",
+			"wooden_shovel": "木锹",
+			"wooden_sword": "木剑",
+			"writable_book": "书与笔"
+		},
+		"sound": {
+			"ambient.weather.thunder": "打雷声",
+			"ambient.weather.lightning.impact": "打雷声（爆炸）",
+			"ambient.weather.rain": "雨声",
+			"beacon.activate": "信标激活声",
+			"beacon.ambient": "",
+			"beacon.deactivate": "信标关闭声",
+			"beacon.power": "信标充能声",
+			"block.bamboo.break": "",
+			"block.bamboo.fall": "",
+			"block.bamboo.hit": "",
+			"block.bamboo.place": "",
+			"block.bamboo.step": "",
+			"block.bamboo_sapling.place": "",
+			"block.bamboo_sapling.break": "",
+			"block.false_permissions": "禁止方块效果声",
+			"block.end_portal.spawn": "生成末地传送门声",
+			"block.end_portal_frame.fill": "填充末地传送门框架声",
+			"block.itemframe.add_item": "展示框放上物品声",
+			"block.itemframe.break": "破坏展示框声",
+			"block.itemframe.place": "放置展示框声",
+			"block.itemframe.remove_item": "拿取展示框中的展示物品声",
+			"block.itemframe.rotate_item": "转动展示框中的展示物品声",
+			"block.chorusflower.death": "紫颂花死亡声",
+			"block.chorusflower.grow": "紫颂花长高声",
+			"block.turtle_egg.drop": "海龟蛋掉落声",
+			"block.turtle_egg.break": "海龟蛋破坏声",
+			"block.turtle_egg.crack": "海龟蛋裂开声",
+			"block.scaffolding.break": "",
+			"block.scaffolding.fall": "",
+			"block.scaffolding.hit": "",
+			"block.scaffolding.place": "",
+			"block.scaffolding.step": "",
+			"block.scaffolding.climb": "",
+			"bucket.empty_lava": "桶放置岩浆声",
+			"bucket.empty_water": "桶放置水声",
+			"bucket.fill_lava": "桶装岩浆声",
+			"bucket.fill_water": "桶装水声",
+			"bucket.fill_fish": "桶装鱼声",
+			"bucket.empty_fish": "桶倒鱼声",
+			"bottle.dragonbreath": "获取龙息声",
+			"cauldron.explode": "炼药锅爆炸声",
+			"cauldron.dyearmor": "炼药锅着色装备声",
+			"cauldron.cleanarmor": "炼药锅洗清装备声",
+			"cauldron.cleanbanner": "炼药锅清洗旗帜声",
+			"cauldron.fillpotion": "炼药锅放满药水声",
+			"cauldron.takepotion": "炼药锅拿取药水声",
+			"cauldron.fillwater": "炼药锅放满水声",
+			"cauldron.takewater": "炼药锅拿取水声",
+			"cauldron.adddye": "炼药锅染色水声",
+			"conduit.activate": "潮涌核心激活声",
+			"conduit.ambient": "",
+			"conduit.attack": "",
+			"conduit.deactivate": "潮涌核心关闭声",
+			"conduit.short": "",
+			"crossbow.loading.start": "",
+			"crossbow.loading.middle": "",
+			"crossbow.loading.end": "",
+			"crossbow.shoot": "",
+			"crossbow.quick_charge.start": "",
+			"crossbow.quick_charge.middle": "",
+			"crossbow.quick_charge.end": "",
+			"damage.fallbig": "长高度落伤害声",
+			"damage.fallsmall": "短高度掉落伤害",
+			"elytra.loop": "鞘翅飞翔声",
+			"game.player.attack.nodamage": "玩家无伤害攻击声",
+			"game.player.attack.strong": "玩家暴击声",
+			"game.player.hurt": "玩家受伤声",
+			"game.player.die": "玩家死亡声",
+			"dig.cloth": "挖掘羊毛声",
+			"dig.grass": "挖掘草地声",
+			"dig.gravel": "挖掘沙砾声",
+			"dig.sand": "挖掘沙子声",
+			"dig.snow": "挖掘雪地声",
+			"dig.stone": "挖掘石头声",
+			"dig.wood": "挖掘木头声",
+			"tile.piston.in": "活塞拉回声",
+			"tile.piston.out": "活塞推出声",
+			"fire.fire": "着火声",
+			"fire.ignite": "点火声/点燃苦力怕声",
+			"leashknot.break": "拴绳结破坏声",
+			"leashknot.place": "拴绳结放置声",
+			"firework.blast": "烟花爆炸声",
+			"firework.large_blast": "烟花爆炸声（大型）",
+			"firework.launch": "烟花发射声",
+			"firework.shoot": "发射烟花声（发射器）",
+			"firework.twinkle": "烟花闪烁声",
+			"armor.equip_chain": "装备锁链盔甲声",
+			"armor.equip_diamond": "装备钻石盔甲声",
+			"armor.equip_generic": "装备盔甲声",
+			"armor.equip_gold": "装备金甲声",
+			"armor.equip_iron": "装备铁甲声",
+			"armor.equip_leather": "装备皮革盔甲声",
+			"liquid.lava": "流动岩浆声",
+			"liquid.lavapop": "流动岩浆产生声",
+			"liquid.water": "流动水声",
+			"bubble.pop": "气泡柱冒泡声",
+			"bubble.up": "涌升流气泡柱声",
+			"bubble.upinside": "涌升流气泡柱内部声",
+			"bubble.down": "涡流气泡柱声",
+			"bubble.downinside": "涡流气泡柱内部声",
+			"minecart.base": "矿车行驶声",
+			"minecart.inside": "矿车驾驶声",
+			"furnace.lit": "熔炉点燃声",
+			"mob.agent.spawn": "",
+			"mob.armor_stand.break": "盔甲架破坏声",
+			"mob.armor_stand.hit": "盔甲架破坏声",
+			"mob.armor_stand.land": "盔甲架落地声",
+			"mob.armor_stand.place": "盔甲架放置声",
+			"mob.bat.death": "蝙蝠死亡声",
+			"mob.bat.hurt": "蝙蝠受伤声",
+			"mob.bat.idle": "蝙蝠叫声",
+			"mob.bat.takeoff": "蝙蝠飞起声/降落声",
+			"mob.blaze.breathe": "烈焰人叫声",
+			"mob.blaze.death": "烈焰人死亡声",
+			"mob.blaze.hit": "烈焰人受伤声",
+			"mob.blaze.shoot": "烈焰人发射声",
+			"mob.chicken.hurt": "鸡受伤声",
+			"mob.chicken.plop": "鸡下蛋声",
+			"mob.chicken.say": "鸡叫声",
+			"mob.chicken.step": "鸡走路声",
+			"mob.cow.hurt": "牛受伤声",
+			"mob.cow.say": "牛叫声",
+			"mob.cow.step": "牛走路声",
+			"mob.cow.milk": "牛挤奶声",
+			"mob.creeper.death": "苦力怕死亡声",
+			"mob.creeper.say": "苦力怕叫/受伤声",
+			"mob.dolphin.idle_water": "海豚叫声",
+			"mob.dolphin.attack": "海豚攻击声",
+			"mob.dolphin.blowhole": "",
+			"mob.dolphin.death": "海豚死亡声",
+			"mob.dolphin.eat": "海豚吃东西声",
+			"mob.dolphin.hurt": "海豚受伤声",
+			"mob.dolphin.idle": "海豚叫声",
+			"mob.dolphin.jump": "海豚跳跃声",
+			"mob.dolphin.play": "海豚玩耍声",
+			"mob.dolphin.splash": "海豚入水声",
+			"mob.dolphin.swim": "海豚游泳声",
+			"mob.drowned.say_water": "溺尸叫声（水中）",
+			"mob.drowned.death_water": "溺尸死亡声（水中）",
+			"mob.drowned.hurt_water": "溺尸受伤声（水中）",
+			"mob.drowned.say": "溺尸叫声（陆地）",
+			"mob.drowned.death": "溺尸死亡声（陆地）",
+			"mob.drowned.hurt": "溺尸受伤声（陆地）",
+			"mob.drowned.shoot": "溺尸投掷声",
+			"mob.drowned.step": "溺尸行走声",
+			"mob.drowned.swim": "溺尸游泳声",
+			"entity.zombie.converted_to_drowned": "僵尸转化为溺尸声",
+			"mob.endermen.death": "末影人死亡声",
+			"mob.endermen.hit": "末影人受伤声",
+			"mob.endermen.idle": "末影人叫声",
+			"mob.endermen.portal": "末影人传送声",
+			"mob.endermen.scream": "末影人愤怒声",
+			"mob.endermen.stare": "末影人激怒声",
+			"mob.enderdragon.death": "末影龙死亡声",
+			"mob.enderdragon.hit": "末影龙受伤声",
+			"mob.enderdragon.flap": "末影龙扇翅声",
+			"mob.enderdragon.growl": "末影龙嘶吼声",
+			"mob.ghast.affectionate_scream": "恶魂深情的呐喊声",
+			"mob.ghast.charge": "恶魂将要发射火球声",
+			"mob.ghast.death": "恶魂死亡声",
+			"mob.ghast.fireball": "恶魂/发射器发射火球声",
+			"mob.ghast.moan": "恶魂叫声",
+			"mob.ghast.scream": "恶魂受伤声",
+			"mob.guardian.ambient": "",
+			"mob.guardian.attack_loop": "守卫者攻击声",
+			"mob.elderguardian.curse": "远古守卫者诅咒声",
+			"mob.elderguardian.death": "远古守卫者死亡声",
+			"mob.elderguardian.hit": "",
+			"mob.elderguardian.idle": "远古守卫者叫声",
+			"mob.guardian.flop": "守卫者扑通声",
+			"mob.guardian.death": "守卫者死亡声（海里）",
+			"mob.guardian.hit": "",
+			"mob.guardian.land_death": "守卫者死亡声（陆地上）",
+			"mob.guardian.land_hit": "",
+			"mob.guardian.land_idle": "守卫者叫声（陆地）",
+			"mob.fish.flop": "鱼扑腾声",
+			"mob.fish.hurt": "鱼受伤声",
+			"mob.fish.step": "鱼行走声",
+			"mob.llama.angry": "羊驼愤怒声",
+			"mob.llama.death": "羊驼死亡声",
+			"mob.llama.idle": "羊驼叫声",
+			"mob.llama.spit": "羊驼吐唾沫声",
+			"mob.llama.hurt": "羊驼受伤声",
+			"mob.llama.eat": "羊驼吃东西声",
+			"mob.llama.step": "羊驼走路声",
+			"mob.llama.swag": "",
+			"mob.horse.angry": "马生气声",
+			"mob.horse.armor": "替马上装备声",
+			"mob.horse.breathe": "马跑声",
+			"mob.horse.death": "马死亡声",
+			"mob.horse.donkey.angry": "驴生气/被马摔下声",
+			"mob.horse.donkey.death": "驴死亡声",
+			"mob.horse.donkey.hit": "驴受伤声",
+			"mob.horse.donkey.idle": "驴叫声",
+			"mob.horse.eat": "马吃东西声",
+			"mob.horse.gallop": "马飞奔声",
+			"mob.horse.hit": "马受伤声",
+			"mob.horse.idle": "马叫声",
+			"mob.horse.jump": "马跳跃声",
+			"mob.horse.land": "马落地声",
+			"mob.horse.leather": "马/猪上鞍声",
+			"mob.horse.skeleton.death": "骷髅马死亡声",
+			"mob.horse.skeleton.hit": "骷髅马受伤声",
+			"mob.horse.skeleton.idle": "骷髅马叫声",
+			"mob.horse.soft": "未驯服的马走路声",
+			"mob.horse.wood": "马被玩家骑乘声",
+			"mob.horse.zombie.death": "僵尸马死亡声",
+			"mob.horse.zombie.hit": "僵尸马受伤声",
+			"mob.horse.zombie.idle": "僵尸马叫声",
+			"mob.husk.ambient": "",
+			"mob.husk.death": "尸壳死亡声",
+			"mob.husk.hurt": "尸壳受伤声",
+			"mob.husk.step": "尸壳走路声",
+			"mob.irongolem.throw": "铁傀儡攻击声",
+			"mob.irongolem.death": "铁傀儡死亡声",
+			"mob.irongolem.hit": "铁傀儡受伤声",
+			"mob.irongolem.walk": "铁傀儡走路声",
+			"mob.shulker.ambient": "",
+			"mob.shulker.close": "潜影贝外壳关闭声",
+			"mob.shulker.death": "潜影贝死亡声",
+			"mob.shulker.close.hurt": "潜影贝受伤声（外壳）",
+			"mob.shulker.hurt": "潜影贝受伤声（核心）",
+			"mob.shulker.open": "潜影贝外壳打开声",
+			"mob.shulker.shoot": "潜影贝射击声",
+			"mob.shulker.teleport": "潜影贝传送声",
+			"mob.shulker.bullet.hit": "潜影贝导弹击中声",
+			"mob.magmacube.big": "大型岩浆怪死亡声",
+			"mob.magmacube.jump": "岩浆怪跳动声",
+			"mob.magmacube.small": "小型岩浆怪死亡声",
+			"mob.parrot.idle": "鹦鹉叫声",
+			"mob.parrot.hurt": "鹦鹉受伤声",
+			"mob.parrot.death": "鹦鹉死亡声",
+			"mob.parrot.step": "鹦鹉走路声",
+			"mob.parrot.eat": "鹦鹉吃东西声",
+			"mob.parrot.fly": "鹦鹉飞翔声",
+			"mob.phantom.bite": "幻翼撕咬声",
+			"mob.phantom.death": "幻翼死亡声",
+			"mob.phantom.hurt": "幻翼受伤声",
+			"mob.phantom.idle": "幻翼叫声",
+			"mob.phantom.swoop": "幻翼俯冲声",
+			"mob.pig.death": "猪死亡声",
+			"mob.pig.boost": "猪加速声",
+			"mob.pig.say": "猪叫声",
+			"mob.pig.step": "猪走路声",
+			"mob.rabbit.hurt": "兔受伤声",
+			"mob.rabbit.idle": "兔叫声",
+			"mob.rabbit.hop": "兔跳跃声",
+			"mob.rabbit.death": "兔死亡声",
+			"mob.sheep.say": "羊叫声",
+			"mob.sheep.shear": "羊剪毛声",
+			"mob.sheep.step": "羊走路声",
+			"mob.silverfish.hit": "蠹虫受伤声",
+			"mob.silverfish.kill": "蠹虫攻击声",
+			"mob.silverfish.say": "蠹虫叫声",
+			"mob.silverfish.step": "蠹虫走路声",
+			"mob.endermite.hit": "末影螨受伤声",
+			"mob.endermite.kill": "末影螨死亡声",
+			"mob.endermite.say": "末影螨叫声",
+			"mob.endermite.step": "末影螨走路声",
+			"mob.skeleton.death": "骷髅死亡声",
+			"mob.skeleton.hurt": "骷髅受伤声",
+			"mob.skeleton.say": "骷髅叫声",
+			"mob.skeleton.step": "骷髅走路声",
+			"mob.slime.big": "大型史莱姆跳跃声",
+			"mob.slime.small": "小型史莱姆跳跃声",
+			"mob.slime.attack": "史莱姆攻击声",
+			"mob.slime.death": "史莱姆死亡声",
+			"mob.slime.hurt": "史莱姆受伤声",
+			"mob.slime.jump": "史莱姆跳跃声",
+			"mob.slime.squish": "史莱姆落地声",
+			"mob.snowgolem.death": "雪傀儡死亡声",
+			"mob.snowgolem.hurt": "雪傀儡受伤声",
+			"mob.snowgolem.shoot": "雪傀儡射击声",
+			"mob.spider.death": "蜘蛛死亡声",
+			"mob.spider.say": "蜘蛛叫声",
+			"mob.spider.step": "蜘蛛走路声",
+			"mob.squid.ambient": "",
+			"mob.squid.death": "鱿鱼死亡声",
+			"mob.squid.hurt": "鱿鱼受伤声",
+			"mob.turtle.ambient": "",
+			"mob.turtle_baby.born": "小海龟孵化声",
+			"mob.turtle.death": "海龟死亡声",
+			"mob.turtle_baby.death": "小海龟死亡声",
+			"mob.turtle.hurt": "海龟受伤声",
+			"mob.turtle_baby.hurt": "小海龟受伤声",
+			"mob.turtle.step": "海龟行走声",
+			"mob.turtle_baby.step": "小海龟行走声",
+			"mob.turtle.swim": "海龟游泳声",
+			"mob.stray.ambient": "",
+			"mob.stray.death": "尸壳死亡声",
+			"mob.stray.hurt": "流髑受伤声",
+			"mob.stray.step": "流髑走路声",
+			"mob.villager.death": "村民死亡声",
+			"mob.villager.haggle": "村民争论声",
+			"mob.villager.hit": "村民受伤声",
+			"mob.villager.idle": "村民叫声",
+			"mob.villager.no": "村民否定声",
+			"mob.villager.yes": "村民肯定声",
+			"mob.vindicator.death": "卫道士死亡声",
+			"mob.vindicator.hurt": "卫道士受伤声",
+			"mob.vindicator.idle": "卫道士叫声",
+			"mob.evocation_fangs.attack": "尖牙咬合声",
+			"mob.evocation_illager.ambient": "",
+			"mob.evocation_illager.cast_spell": "唤魔者施法声",
+			"mob.evocation_illager.death": "唤魔者死亡声",
+			"mob.evocation_illager.hurt": "唤魔者受伤声",
+			"mob.evocation_illager.prepare_attack": "唤魔者召唤尖牙声",
+			"mob.evocation_illager.prepare_summon": "唤魔者召唤恼鬼声",
+			"mob.evocation_illager.prepare_wololo": "唤魔者呜噜噜声",
+			"mob.vex.ambient": "",
+			"mob.vex.death": "恼鬼死亡声",
+			"mob.vex.hurt": "恼鬼受伤声",
+			"mob.vex.charge": "恼鬼冲刺声",
+			"item.trident.hit_ground": "三叉戟击中方块声",
+			"item.trident.hit": "三叉戟击中实体声",
+			"item.trident.return": "三叉戟返回声",
+			"item.trident.riptide_1": "三叉戟激流I效果声",
+			"item.trident.riptide_2": "三叉戟激流II效果声",
+			"item.trident.riptide_3": "三叉戟激流III效果声",
+			"item.trident.throw": "三叉戟掷出声",
+			"item.trident.thunder": "三叉戟引雷效果声",
+			"mob.witch.ambient": "女巫讥笑声",
+			"mob.witch.death": "女巫死亡声",
+			"mob.witch.hurt": "女巫受伤声",
+			"mob.witch.drink": "女巫喝药水声",
+			"mob.witch.throw": "女巫丢掷药水声",
+			"mob.wither.ambient": "",
+			"mob.wither.break_block": "凋灵破坏方块声",
+			"mob.wither.death": "凋灵死亡声",
+			"mob.wither.hurt": "凋灵受伤声",
+			"mob.wither.shoot": "凋灵射击声",
+			"mob.wither.spawn": "凋灵生成声",
+			"mob.wolf.bark": "狼叫声",
+			"mob.wolf.death": "狼死亡声",
+			"mob.wolf.growl": "狼嘶吼声",
+			"mob.wolf.hurt": "狼受伤声",
+			"mob.wolf.panting": "平静的狼气喘声",
+			"mob.wolf.shake": "狼抖干身体声",
+			"mob.wolf.step": "狼走路声",
+			"mob.wolf.whine": "血量低的狼气喘声",
+			"mob.ocelot.idle": "",
+			"mob.ocelot.death": "",
+			"mob.cat.eat": "",
+			"mob.cat.hiss": "猫嘶声",
+			"mob.cat.hit": "猫受伤声",
+			"mob.cat.meow": "猫叫声",
+			"mob.cat.beg": "",
+			"mob.cat.straymeow": "",
+			"mob.cat.purr": "猫驯服声",
+			"mob.cat.purreow": "被驯服的猫叫声",
+			"mob.polarbear_baby.idle": "北极熊崽叫声",
+			"mob.polarbear.idle": "北极熊叫声",
+			"mob.polarbear.step": "北极熊走路声",
+			"mob.polarbear.warning": "北极熊愤怒声",
+			"mob.polarbear.hurt": "北极熊受伤声",
+			"mob.polarbear.death": "北极熊死亡声",
+			"mob.panda_baby.idle": "",
+			"mob.panda.idle": "",
+			"mob.panda.idle.aggressive": "",
+			"mob.panda.idle.worried": "",
+			"mob.panda.step": "",
+			"mob.panda.presneeze": "",
+			"mob.panda.sneeze": "",
+			"mob.panda.hurt": "",
+			"mob.panda.death": "",
+			"mob.panda.bite": "",
+			"mob.panda.eat": "",
+			"mob.panda.cant_breed": "",
+			"mob.zombie.death": "僵尸死亡声",
+			"mob.zombie.hurt": "僵尸受伤声",
+			"mob.zombie.remedy": "喂食虚弱僵尸村民金苹果声",
+			"mob.zombie.unfect": "僵尸村民解除感染声",
+			"mob.zombie.say": "僵尸叫声",
+			"mob.zombie.step": "僵尸走路声",
+			"mob.zombie.wood": "僵尸撞门声",
+			"mob.zombie.woodbreak": "僵尸破门声",
+			"mob.zombiepig.zpig": "僵尸猪人叫声",
+			"mob.zombiepig.zpigangry": "僵尸猪人生气声",
+			"mob.zombiepig.zpigdeath": "僵尸猪人死亡声",
+			"mob.zombiepig.zpighurt": "僵尸猪人受伤声",
+			"mob.zombie_villager.say": "僵尸村民叫声",
+			"mob.zombie_villager.death": "僵尸村民死亡声",
+			"mob.zombie_villager.hurt": "僵尸村民受伤声",
+			"note.bass": "音符盒低音声",
+			"note.bassattack": "音符盒木质音调声",
+			"note.bd": "音符盒石质音调声",
+			"note.harp": "音符盒竖琴声",
+			"note.hat": "音符盒玻璃质音调声",
+			"note.pling": "音符盒未知声(未确认)",
+			"note.snare": "音符盒沙质音调声",
+			"portal.portal": "下界传送门噪音声",
+			"portal.travel": "下界/末地传送门传送声",
+			"portal.trigger": "下界传送门方块穿过/离开声",
+			"random.anvil_break": "铁砧破坏声",
+			"random.anvil_land": "铁砧放置声",
+			"random.anvil_use": "铁砧使用声",
+			"random.bow": "投掷器投掷声/发射器发射声/射箭声",
+			"random.bowhit": "箭射中方块或实体/剪刀剪掉绊线/激活的绊线钩破坏声",
+			"random.break": "玩家工具用坏声",
+			"random.burp": "玩家吃喝完声",
+			"random.chestclosed": "箱子关闭声",
+			"random.chestopen": "箱子打开声",
+			"random.shulkerboxclosed": "潜影箱关闭声",
+			"random.shulkerboxopen": "潜影箱打开声",
+			"random.enderchestopen": "末影箱打开声",
+			"random.enderchestclosed": "末影箱关闭声",
+			"random.potion.brewed": "药水酿造声",
+			"random.click": "按纽状态更新/投掷器或发射器或红石中继器激活/两个绊线钩连接声",
+			"random.door_close": "关门声",
+			"random.door_open": "开门声",
+			"random.drink": "持续喝东西声",
+			"random.eat": "持续吃东西声",
+			"random.explode": "爆炸声",
+			"random.fizz": "火扑灭/物品或经验球被烧毁/岩浆被水扑灭变成黑曜石/岩浆摧毁非固体方块/红石火把破坏声",
+			"random.fuse": "融化声(未确认)",
+			"random.glass": "玻璃声(未确认)",
+			"random.levelup": "玩家升级声",
+			"random.orb": "获得经验声",
+			"random.pop": "捡起物品声",
+			"random.pop2": "捡起物品声",
+			"random.screenshot": "截屏声",
+			"random.splash": "水花声",
+			"random.swim": "游泳声",
+			"random.hurt": "受伤声",
+			"random.toast": "提示栏声",
+			"random.totem": "不死图腾生效声",
+			"camera.take_picture": "照相机拍照声",
+			"use.ladder": "",
+			"hit.ladder": "",
+			"fall.ladder": "",
+			"step.ladder": "梯子攀爬声",
+			"use.cloth": "",
+			"hit.cloth": "",
+			"fall.cloth": "",
+			"step.cloth": "羊毛行走声",
+			"use.grass": "",
+			"hit.grass": "",
+			"fall.grass": "",
+			"step.grass": "草地行走声",
+			"use.gravel": "",
+			"hit.gravel": "",
+			"fall.gravel": "",
+			"step.gravel": "沙砾行走声",
+			"use.sand": "",
+			"hit.sand": "",
+			"fall.sand": "",
+			"step.sand": "沙子行走声",
+			"use.slime": "",
+			"hit.slime": "",
+			"fall.slime": "",
+			"step.slime": "史莱姆方块行走声",
+			"use.snow": "",
+			"hit.snow": "",
+			"fall.snow": "",
+			"step.snow": "雪地行走声",
+			"use.stone": "",
+			"hit.stone": "",
+			"fall.stone": "",
+			"fall.egg": "",
+			"step.stone": "石头行走声",
+			"use.wood": "",
+			"hit.wood": "",
+			"fall.wood": "",
+			"step.wood": "木头行走声",
+			"jump.cloth": "跳动羊毛声",
+			"jump.grass": "跳动草地声",
+			"jump.gravel": "跳动沙砾声",
+			"jump.sand": "跳动沙子声",
+			"jump.snow": "跳动雪地声",
+			"jump.stone": "跳动石头声",
+			"jump.wood": "跳动木头声",
+			"jump.slime": "粘液块跳跃声",
+			"land.cloth": "鞘翅着陆在羊毛声",
+			"land.grass": "鞘翅着陆在草地声",
+			"land.gravel": "鞘翅着陆在沙砾声",
+			"land.sand": "鞘翅着陆在沙子声",
+			"land.snow": "鞘翅着陆在雪地声",
+			"land.stone": "鞘翅着陆在石头声",
+			"land.wood": "鞘翅着陆在木头声",
+			"land.slime": "鞘翅着陆在粘液块声",
+			"vr.stutterturn": "虚拟现实未知声(未确认)",
+			"record.13": "13唱片音乐",
+			"record.cat": "cat唱片音乐",
+			"record.blocks": "blocks唱片音乐",
+			"record.chirp": "chirp唱片音乐",
+			"record.far": "far唱片音乐",
+			"record.mall": "mall唱片音乐",
+			"record.mellohi": "mellohi唱片音乐",
+			"record.stal": "stal唱片音乐",
+			"record.strad": "strad唱片音乐",
+			"record.ward": "ward唱片音乐",
+			"record.11": "11唱片音乐",
+			"record.wait": "wait唱片音乐",
+			"music.menu": "主界面背景音乐",
+			"music.game": "生存模式背景音乐",
+			"music.game.creative": "创造模式背景音乐",
+			"music.game.end": "末地背景音乐",
+			"music.game.endboss": "末影龙主题乐",
+			"music.game.nether": "下界背景音乐",
+			"music.game.credits": "制作人员名单背景音乐"
+		},
+		"entity": {
+			"minecraft:area_effect_cloud": "区域效果云(无法用summon生成)",
+			"minecraft:armor_stand": "盔甲架",
+			"minecraft:arrow": "箭",
+			"minecraft:bat": "蝙蝠",
+			"minecraft:blaze": "烈焰人",
+			"minecraft:boat": "船",
+			"minecraft:cat": "猫",
+			"minecraft:cave_spider": "洞穴蜘蛛",
+			"minecraft:chalkboard": "黑板(无法用summon生成)",
+			"minecraft:chest_minecart": "运输矿车",
+			"minecraft:chicken": "鸡",
+			"minecraft:cod": "鳕鱼",
+			"minecraft:command_block_minecart": "命令方块矿车",
+			"minecraft:cow": "牛",
+			"minecraft:creeper": "爬行者",
+			"minecraft:dolphin": "海豚",
+			"minecraft:donkey": "驴",
+			"minecraft:dragon_fireball": "末影龙火球(无法用summon生成)",
+			"minecraft:drowned": "溺尸",
+			"minecraft:egg": "丢出的鸡蛋",
+			"minecraft:elder_guardian": "远古守卫者",
+			"minecraft:ender_crystal": "末影水晶",
+			"minecraft:ender_dragon": "末影龙",
+			"minecraft:ender_pearl": "丢出的末影珍珠(无法用summon生成)",
+			"minecraft:enderman": "末影人",
+			"minecraft:endermite": "末影螨",
+			"minecraft:evocation_fang": "唤魔者尖牙",
+			"minecraft:evocation_illager": "唤魔者",
+			"minecraft:eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
+			"minecraft:falling_block": "掉落中的方块(无法用summon生成)",
+			"minecraft:fireball": "火球(无法用summon生成)",
+			"minecraft:fireworks_rocket": "烟花火箭",
+			"minecraft:fishing_hook": "鱼钩(无法用summon生成)",
+			"minecraft:ghast": "恶魂",
+			"minecraft:guardian": "守卫者",
+			"minecraft:hopper_minecart": "漏斗矿车",
+			"minecraft:horse": "马",
+			"minecraft:husk": "尸壳",
+			"minecraft:iron_golem": "铁傀儡",
+			"minecraft:item": "掉落的物品(无法用summon生成)",
+			"minecraft:leash_knot": "栓绳结",
+			"minecraft:lightning_bolt": "闪电",
+			"minecraft:lingering_potion": "丢出的滞留药水(无法用summon生成)",
+			"minecraft:llama": "羊驼",
+			"minecraft:llama_spit": "羊驼唾沫(无法用summon生成)",
+			"minecraft:magma_cube": "岩浆怪",
+			"minecraft:minecart": "矿车",
+			"minecraft:mooshroom": "哞菇",
+			"minecraft:moving_block": "移动中的方块(无法用summon生成)",
+			"minecraft:mule": "骡",
+			"minecraft:npc": "NPC(无法用summon生成)",
+			"minecraft:ocelot": "豹猫",
+			"minecraft:painting": "画(无法用summon生成)",
+			"minecraft:panda": "熊猫",
+			"minecraft:parrot": "鹦鹉",
+			"minecraft:phantom": "幻翼",
+			"minecraft:pig": "猪",
+			"minecraft:pillager": "掠夺者",
+			"minecraft:player": "玩家(无法用summon生成)",
+			"minecraft:polar_bear": "北极熊",
+			"minecraft:pufferfish": "河豚",
+			"minecraft:rabbit": "兔子",
+			"minecraft:salmon": "鲑鱼",
+			"minecraft:sheep": "羊",
+			"minecraft:shulker": "潜影贝",
+			"minecraft:shulker_bullet": "潜影贝导弹(无法用summon生成)",
+			"minecraft:silverfish": "蠹虫",
+			"minecraft:skeleton": "骷髅",
+			"minecraft:skeleton_horse": "骷髅马",
+			"minecraft:slime": "史莱姆",
+			"minecraft:small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
+			"minecraft:snow_golem": "雪傀儡",
+			"minecraft:snowball": "丢出的雪球",
+			"minecraft:spider": "蜘蛛",
+			"minecraft:splash_potion": "丢出的喷溅药水",
+			"minecraft:squid": "鱿鱼",
+			"minecraft:stray": "流浪者",
+			"minecraft:thrown_trident": "掷出的三叉戟",
+			"minecraft:tnt": "已激活的TNT",
+			"minecraft:tnt_minecart": "TNT矿车",
+			"minecraft:tripod_camera": "相机",
+			"minecraft:tropicalfish": "热带鱼",
+			"minecraft:turtle": "海龟",
+			"minecraft:vex": "恼鬼",
+			"minecraft:villager": "村民",
+			"minecraft:vindicator": "卫道士",
+			"minecraft:witch": "女巫",
+			"minecraft:wither": "凋灵",
+			"minecraft:wither_skeleton": "凋灵骷髅",
+			"minecraft:wither_skull": "黑色凋灵之首(无法用summon生成)",
+			"minecraft:wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
+			"minecraft:wolf": "狼",
+			"minecraft:xp_bottle": "丢出的附魔之瓶",
+			"minecraft:xp_orb": "经验球",
+			"minecraft:zombie": "僵尸",
+			"minecraft:zombie_horse": "僵尸马",
+			"minecraft:zombie_pigman": "僵尸猪人",
+			"minecraft:zombie_villager": "僵尸村民"
+		},
+		"particle_emitter": {
+			"minecraft:arrow_spell_emitter": "",
+			"minecraft:balloon_gas_particle": "",
+			"minecraft:basic_crit_particle": "",
+			"minecraft:basic_flame_particle": "",
+			"minecraft:basic_portal_particle": "",
+			"minecraft:basic_smoke_particle": "",
+			"minecraft:bleach": "",
+			"minecraft:block_destruct": "",
+			"minecraft:bubble_column_down_particle": "",
+			"minecraft:bubble_column_up_particle": "",
+			"minecraft:cauldron_spell_emitter": "",
+			"minecraft:crit_emitter": "",
+			"minecraft:end_chest": "",
+			"minecraft:endrod": "",
+			"minecraft:evocation_fang_particle": "",
+			"minecraft:evoker_spell": "",
+			"minecraft:heart_particle": "",
+			"minecraft:lava_drip_particle": "",
+			"minecraft:magnesium_salts_emitter": "",
+			"minecraft:mob_portal": "",
+			"minecraft:mobflame_emitter": "",
+			"minecraft:mobspell_emitter": "",
+			"minecraft:note_particle": "",
+			"minecraft:portal_directional": "",
+			"minecraft:portal_east_west": "",
+			"minecraft:portal_north_south": "",
+			"minecraft:rain_splash_particle": "",
+			"minecraft:shulker_bullet": "",
+			"minecraft:splash_spell_emitter": "",
+			"minecraft:test_beziercurve": "",
+			"minecraft:test_bounce": "",
+			"minecraft:test_catmullromcurve": "",
+			"minecraft:test_colorcurve": "",
+			"minecraft:test_combocurve": "",
+			"minecraft:test_flipbook": "",
+			"minecraft:test_highrestitution": "",
+			"minecraft:test_linearcurve": "",
+			"minecraft:test_mule": "",
+			"minecraft:test_smoke_puff": "",
+			"minecraft:test_sphere": "",
+			"minecraft:test_spiral": "",
+			"minecraft:test_vertexrandom": "",
+			"minecraft:test_watertest": "",
+			"minecraft:totem_particle": "",
+			"minecraft:villager_angry": "",
+			"minecraft:villager_happy": "",
+			"minecraft:water_splash_particle": "",
+			"minecraft:water_wake_particle": "",
+			"minecraft:wither_boss_invulnerable": ""
+		},
+		"effect": {
+			"absorption": "伤害吸收",
+			"blindness": "失明",
+			"conduit_power": "潮涌能量",
+			"fatal_poison": "剧毒",
+			"fire_resistance": "防火",
+			"haste": "急迫",
+			"health_boost": "生命提升",
+			"hunger": "饥饿",
+			"instant_damage": "瞬间伤害",
+			"instant_health": "瞬间治疗",
+			"invisibility": "隐身",
+			"jump_boost": "跳跃提升",
+			"levitation": "飘浮",
+			"mining_fatigue": "挖掘疲劳",
+			"nausea": "反胃",
+			"night_vision": "夜视",
+			"poison": "中毒",
+			"regeneration": "生命恢复",
+			"resistance": "抗性提升",
+			"saturation": "饱和",
+			"slow_falling": "缓降",
+			"slowness": "缓慢",
+			"speed": "速度",
+			"strength": "力量",
+			"water_breathing": "水下呼吸",
+			"weakness": "虚弱",
+			"wither": "凋零"
+		},
+		"enchant_type": {
+			"aqua_affinity": "水下速掘",
+			"bane_of_arthropods": "节肢杀手",
+			"blast_protection": "爆炸保护",
+			"channeling": "引雷",
+			"depth_strider": "深海探索者",
+			"efficiency": "效率",
+			"feather_falling": "摔落保护",
+			"fire_aspect": "火焰附加",
+			"fire_protection": "火焰保护",
+			"flame": "火矢",
+			"fortune": "时运",
+			"frost_walker": "冰霜行者",
+			"impaling": "穿刺",
+			"infinity": "无限",
+			"knockback": "击退",
+			"looting": "抢夺",
+			"loyalty": "忠诚",
+			"luck_of_the_sea": "海之眷顾",
+			"lure": "饵钓",
+			"mending": "经验修补",
+			"multishot": "连发(实验性)",
+			"piercing": "穿透(实验性)",
+			"power": "力量",
+			"projectile_protection": "弹射物保护",
+			"protection": "保护",
+			"punch": "冲击",
+			"quick_charge": "快速填充(实验性)",
+			"respiration": "水下呼吸",
+			"riptide": "激流",
+			"sharpness": "锋利",
+			"silk_touch": "精准采集",
+			"smite": "亡灵杀手",
+			"thorns": "荆棘",
+			"unbreaking": "耐久"
+		},
+		"gamerule_bool": {
+			"commandblockoutput": "命令执行时是否在控制台进行文本提示",
+			"dodaylightcycle": "日夜交替效果是否启用",
+			"doentitydrops": "非生物实体是否掉落物品",
+			"dofiretick": "火是否传播及自然熄灭",
+			"doinsomnia": "玩家失眠时是否生成幻翼",
+			"domobloot": "生物是否掉落物品",
+			"domobspawning": "生物是否自然生成",
+			"dotiledrops": "方块被破坏时是否掉落物品",
+			"doweathercycle": "天气是否变化",
+			"drowningdamage": "是否启用溺水伤害",
+			"falldamage": "是否启用掉落伤害",
+			"firedamage": "是否启用燃烧伤害",
+			"keepinventory": "玩家死亡后是否对物品栏和经验进行保存",
+			"mobgriefing": "生物是否能改变、破坏方块及捡拾物品",
+			"naturalregeneration": "玩家能否在饥饿值足够时自然恢复生命值",
+			"pvp": "是否允许玩家互相攻击",
+			"sendcommandfeedback": "聊天栏是否会显示被一个玩家执行一些特殊命令的提示",
+			"showcoordinates": "是否显示坐标",
+			"tntexplodes": "TNT能否爆炸"
+		},
+		"particle": {},
+		"difficulty": {
+			"peaceful": "和平",
+			"easy": "简单",
+			"normal": "普通",
+			"hard": "困难",
+			"p": "",
+			"e": "",
+			"n": "",
+			"h": "",
+			"0": "",
+			"1": "",
+			"2": "",
+			"3": ""
+		},
+		"gamemode": {
+			"default": "默认模式",
+			"survival": "生存模式",
+			"creative": "创造模式",
+			"adventure": "冒险模式",
+			//"spectator": "旁观模式",
+			"d": "",
+			"s": "",
+			"c": "",
+			"a": "",
+			//"sp": "",
+			"0": "",
+			"1": "",
+			"2": "",
+			//"3": ""
+		},
+		"bool": {
+			"true": "是",
+			"false": "否"
+		},
+		"select_all_enabled": {
+			"*": "选择全部"
+		}
+	},
+	"selectors": {
+		"x": {
+			"type": "relative",
+			"name": "x坐标"
+		},
+		"y": {
+			"type": "relative",
+			"name": "y坐标"
+		},
+		"z": {
+			"type": "relative",
+			"name": "z坐标"
+		},
+		"r": {
+			"type": "float",
+			"name": "最大半径"
+		},
+		"rm": {
+			"type": "float",
+			"name": "最小半径"
+		},
+		"m": {
+			"type": "enum",
+			"name": "游戏模式",
+			"list": "gamemode",
+			"hasInverted": true
+		},
+		"c": {
+			"type": "int",
+			"name": "数量"
+		},
+		"l": {
+			"type": "int",
+			"name": "最大经验等级"
+		},
+		"lm": {
+			"type": "int",
+			"name": "最小经验等级"
+		},
+		"name": {
+			"type": "string",
+			"name": "名称",
+			"hasInverted": true
+		},
+		"dx": {
+			"type": "float",
+			"name": "x轴方向长度"
+		},
+		"dy": {
+			"type": "float",
+			"name": "y轴方向长度"
+		},
+		"dz": {
+			"type": "float",
+			"name": "z轴方向长度"
+		},
+		"rx": {
+			"type": "float",
+			"name": "最大垂直旋转角度"
+		},
+		"rxm": {
+			"type": "float",
+			"name": "最小垂直旋转角度"
+		},
+		"ry": {
+			"type": "float",
+			"name": "最大水平旋转角度"
+		},
+		"rym": {
+			"type": "float",
+			"name": "最小水平旋转角度"
+		},
+		"type": {
+			"type": "string",
+			"name": "实体类型",
+			"suggestion": "entity",
+			"hasInverted": true
+		}
+	},
+	"json": {
+		"block_selector": {
+			"type": "object",
+			"children": {
+				"blocks": {
+					"type": "array",
+					"name": "方块列表",
+					"children": {
+						"type": "string",
+						"suggestion": "block"
+					}
+				}
+			}
+		},
+		"item_component": {
+			"type": "object",
+			"name": "物品组件",
+			"children": {
+				"minecraft:can_place_on": {
+					"name": "冒险模式下仅能放置于……方块上",
+					"extends": "block_selector"
+				},
+				"minecraft:can_destroy": {
+					"name": "冒险模式下仅能破坏……方块",
+					"extends": "block_selector"
+				}
+			}
+		}
+	},
+	"help": {
+		"command": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4",
+		"tilder": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
+		"selector": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E7.9B.AE.E6.A0.87.E9.80.89.E6.8B.A9.E5.99.A8",
+		"nbt": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.95.B0.E6.8D.AE.E6.A0.87.E7.AD.BE",
+		"rawjson": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E5.8E.9F.E5.A7.8BJSON.E6.96.87.E6.9C.AC"
+	},
+	"versionPack": {
+		"base": {
+			"minSupportVer": "1.2",
+			"enums": {
+				"item": "block"
+			}
+		},
+		"idtable": {
+			"mode": "overwrite",
+			"maxSupportVer": "1.1.*",
+			"enums": {
+				"item": {},
+				"block": {},
+				"entity": {}
+			}
+		},
+		"0.16.0": {
+			"commands": {
+				"clone": {
+					"description": "在区域间复制方块结构",
+					"patterns": {
+						"default": {
+							"description": "将起点与终点指定的长方体区域内的方块结构复制到目标点",
+							"params": [
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "position",
+									"name": "目标点"
+								},
+								{
+									"type": "enum",
+									"name": "遮罩模式",
+									"list": {
+										"masked": "仅复制非空气方块，会保持目的区域中原本会被替换为空气的方块不变",
+										"replace": "[默认]复制所有方块，用源区域的方块覆盖整个目标区域"
+									},
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "复制模式",
+									"list": {
+										"force": "强制复制，即使源区域与目标区域有重叠",
+										"move": "将源区域复制到目标区域，并将源区域替换为空气（在filtered遮罩模式下，只有被复制的方块才会被替换为空气）",
+										"normal": "[默认]不执行force与move"
+									},
+									"optional": true
+								}
+							]
+						},
+						"filtered": {
+							"description": "将起点与终点指定的长方体区域内的方块结构过滤并复制到目标点",
+							"params": [
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "position",
+									"name": "目标点"
+								},
+								{
+									"type": "plain",
+									"name": "filtered",
+									"prompt": "仅复制方块ID符合方块名定义的方块"
+								},
+								{
+									"type": "enum",
+									"name": "复制模式",
+									"list": {
+										"force": "强制复制，即使源区域与目标区域有重叠",
+										"move": "将源区域复制到目标区域，并将源区域替换为空气（在filtered遮罩模式下，只有被复制的方块才会被替换为空气）",
+										"normal": "[默认]不执行force与move"
+									}
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clone"
+				},
+				"execute": {
+					"description": "让某一实体在某一位置执行一条命令",
+					"patterns": {
+						"default": {
+							"description": "让目标实体在指定坐标执行一条命令",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "command",
+									"name": "命令"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#execute"
+				},
+				"fill": {
+					"description": "用特定方块全部或部分填充一个区域",
+					"patterns": {
+						"default": {
+							"description": "按指定模式在点A与点B指定的长方体区域填充方块",
+							"params": [
+								{
+									"type": "position",
+									"name": "点A"
+								},
+								{
+									"type": "position",
+									"name": "点B"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "旧方块处理方式",
+									"list": {
+										"destroy": "用指定方块替换填充区域内所有方块(包括空气),以实体掉落被替换的方块及方块内容物就像它们被采掘了",
+										"hollow": "仅用指定方块替换填充区域外层的方块。内部方块被改变为空气，以实体掉落它们的内容物但本身不掉落",
+										"keep": "仅用指定方块替换填充区域内的空气方块",
+										"outline": "仅用指定方块替换填充区域外层的方块。内部方块不被影响",
+										"replace": "[默认]用指定方块替换填充区域内所有方块（包括空气）或指定方块，而不以实体形式掉落被替换的方块和方块内容物。"
+									},
+									"optional": true
+								}
+							]
+						},
+						"replace": {
+							"description": "替换在点A与点B指定的长方体区域的指定方块",
+							"params": [
+								{
+									"type": "position",
+									"name": "点A"
+								},
+								{
+									"type": "position",
+									"name": "点B"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值"
+								},
+								{
+									"type": "plain",
+									"name": "replace",
+									"prompt": "[默认]用指定方块替换填充区域内所有方块（包括空气）或指定方块，而不以实体形式掉落被替换的方块和方块内容物。"
+								},
+								{
+									"type": "string",
+									"name": "被替换方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "被替换方块数据值",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#fill"
+				},
+				"gamemode": {
+					"description": "设置某个玩家的游戏模式",
+					"patterns": {
+						"current": {
+							"description": "设置当前玩家的游戏模式",
+							"params": [
+								{
+									"type": "enum",
+									"name": "模式",
+									"list": "gamemode"
+								}
+							]
+						},
+						"default": {
+							"description": "设置指定玩家的游戏模式",
+							"params": [
+								{
+									"type": "enum",
+									"name": "模式",
+									"list": "gamemode"
+								},
+								{
+									"type": "selector",
+									"name": "玩家",
+									"target": "player"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamemode"
+				},
+				"give": {
+					"description": "给一位玩家一种物品",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "json",
+									"name": "数据标签",
+									"component": "item_component",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#give"
+				},
+				"help": {
+					"description": "显示帮助",
+					"content": "help",
+					"noparams": {}
+				},
+				"kill": {
+					"description": "清除或杀死实体",
+					"noparams": {
+						"description": "自杀"
+					},
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#kill"
+				},
+				"msg": {
+					"alias": "tell"
+				},
+				"say": {
+					"description": "向所有在线玩家发送信息",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "text",
+									"name": "信息"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#say"
+				},
+				"setblock": {
+					"description": "将一个方块更改为另一个方块",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "旧方块处理方式",
+									"list": {
+										"destroy": "旧方块掉落本身与其内容物，播放方块碎裂的声音，并显示破坏方块的粒子",
+										"keep": "只有空气方块会被改变，非空气方块将被保留不变",
+										"replace": "[默认]旧方块不掉落本身与其内容物，没有声音，没有粒子，直接变为新方块"
+									},
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setblock"
+				},
+				"setworldspawn": {
+					"description": "设置世界出生点",
+					"noparams": {
+						"description": "设置当前位置为世界出生点"
+					},
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "position",
+									"name": "坐标"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setworldspawn"
+				},
+				"spawnpoint": {
+					"description": "为特定玩家设置出生点",
+					"noparams": {
+						"description": "设置当前玩家出生点为当前位置"
+					},
+					"patterns": {
+						"current": {
+							"description": "设置指定玩家出生点为该玩家当前位置",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标"
+								}
+							]
+						},
+						"default": {
+							"description": "设置指定玩家出生点为指定位置",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spawnpoint"
+				},
+				"summon": {
+					"description": "生成一个实体",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "实体ID",
+									"suggestion": "entity"
+								},
+								{
+									"type": "position",
+									"name": "生成位置",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#summon"
+				},
+				"tell": {
+					"description": "发送一条私密信息给一个或多个玩家",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "text",
+									"name": "私密信息"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tell"
+				},
+				"testforblock": {
+					"description": "探测某个方块是否在特定位置",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblock"
+				},
+				"testforblocks": {
+					"description": "测试两个区域的方块是否相同",
+					"patterns": {
+						"default": {
+							"description": "将起点与终点指定的长方体区域内的方块结构与对应目标点的方块结构进行比较",
+							"params": [
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "position",
+									"name": "目标点"
+								},
+								{
+									"type": "enum",
+									"name": "模式",
+									"list": {
+										"masked": "不检测空气方块：当一个区域的某个坐标格为空气方块，另一区域的相对坐标格可以是任意方块",
+										"all": "[默认]两个区域的所有方块必须除NBT外完全相同"
+									},
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblocks"
+				},
+				"time": {
+					"description": "更改或查询世界游戏时间",
+					"patterns": {
+						"add": {
+							"description": "加快指定长度的时间",
+							"params": [
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "加快时间"
+								},
+								{
+									"type": "uint",
+									"name": "增加时间"
+								}
+							]
+						},
+						"query": {
+							"description": "查询时间",
+							"params": [
+								{
+									"type": "plain",
+									"name": "query",
+									"prompt": "查询时间"
+								},
+								{
+									"type": "enum",
+									"name": "时间类型",
+									"list": {
+										"daytime": "这一天的时间（从午夜开始的游戏刻）",
+										"gametime": "游戏时间（从世界创建时开始计算的游戏刻）",
+										"day": "日期（从世界创建时开始计算的游戏日）"
+									}
+								}
+							]
+						},
+						"set_uint": {
+							"description": "设置时间",
+							"params": [
+								{
+									"type": "plain",
+									"name": "set",
+									"prompt": "设置时间"
+								},
+								{
+									"type": "uint",
+									"name": "时间"
+								}
+							]
+						},
+						"set_enum": {
+							"description": "设置时间",
+							"params": [
+								{
+									"type": "plain",
+									"name": "set",
+									"prompt": "设置时间"
+								},
+								{
+									"type": "enum",
+									"name": "时间",
+									"list": {
+										"day": "上午（1000）",
+										"midnight": "深夜（18000）",
+										"night": "晚上（13000）",
+										"noon": "中午（6000）",
+										"sunrise": "凌晨（23000）",
+										"sunset": "傍晚（12000）"
+									}
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#time"
+				},
+				"toggledownfall": {
+					"description": "切换天气",
+					"noparams": {
+						"description": "如果天气目前晴朗，就会转换成下雨或下雪。如果天气目前是雨雪天气，它将停止下雨下雪。"
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#toggledownfall"
+				},
+				"tp": {
+					"description": "传送实体",
+					"patterns": {
+						"current_to_entity": {
+							"description": "将玩家传送至目的地实体",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目的地实体",
+									"target": "entity"
+								}
+							]
+						},
+						"current_to_position": {
+							"description": "将玩家传送至目的地坐标",
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "relative",
+									"name": "水平旋转值",
+									"optional": true
+								},
+								{
+									"type": "relative",
+									"name": "垂直旋转值",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_entity": {
+							"description": "将目标实体传送至目的地实体",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "selector",
+									"name": "目的地实体",
+									"target": "entity"
+								}
+							]
+						},
+						"entity_to_position": {
+							"description": "将目标实体传送至目的地坐标",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "relative",
+									"name": "水平旋转值",
+									"optional": true
+								},
+								{
+									"type": "relative",
+									"name": "垂直旋转值",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tp"
+				},
+				"teleport": {
+					"alias": "tp"
+				},
+				"w": {
+					"alias": "tell"
+				},
+				"weather": {
+					"description": "更改游戏中的天气",
+					"patterns": {
+						"default": {
+							"description": "设置游戏中的天气",
+							"params": [
+								{
+									"type": "enum",
+									"name": "天气类型",
+									"list": {
+										"clear": "晴天",
+										"rain": "雨天",
+										"thunder": "雷雨天"
+									}
+								},
+								{
+									"type": "uint",
+									"name": "持续时间",
+									"optional": true
+								}
+							]
+						},
+						"query": {
+							"description": "查询游戏中的天气",
+							"params": [
+								{
+									"type": "plain",
+									"name": "query",
+									"prompt": "查询当前天气"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#weather"
+				},
+				"xp": {
+					"description": "将经验值给予一个玩家",
+					"patterns": {
+						"point": {
+							"params": [
+								{
+									"type": "int",
+									"name": "数量"
+								},
+								{
+									"type": "selector",
+									"name": "目标玩家",
+									"target": "player",
+									"optional": true
+								}
+							]
+						},
+						"level": {
+							"params": [
+								{
+									"type": "custom",
+									"name": "等级",
+									"vtype": "数值",
+									"suffix": "L",
+									"input": "^(\\+|-)?(\\d+([Ll])?)?",
+									"finish": "^(\\+|-)?\\d+[Ll]"
+								},
+								{
+									"type": "selector",
+									"name": "目标玩家",
+									"target": "player",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#xp"
+				},
+				"?": {
+					"alias": "help"
+				}
+			},
+			"minSupportVer": "0.15.90.0"
+		},
+		"0.16.0 build 5": {
+			"commands": {
+				"enchant": {
+					"description": "给一位玩家选中的物品添加附魔",
+					"patterns": {
+						"par_enum": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "附魔ID",
+									"suggestion": "enchant_type"
+								},
+								{
+									"type": "uint",
+									"name": "等级",
+									"optional": true
+								}
+							]
+						},
+						"par_uint": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "uint",
+									"name": "附魔ID"
+								},
+								{
+									"type": "uint",
+									"name": "等级",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#enchant"
+				}
+			},
+			"minSupportVer": "0.15.90.5"
+		},
+		"1.0.5 build 1": {
+			"commands": {
+				"clear": {
+					"description": "清空玩家物品栏物品",
+					"patterns": {
+						"allitems": {
+							"description": "清空指定玩家背包",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								}
+							]
+						},
+						"specifieditem": {
+							"description": "清空指定玩家背包内特定物品",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "int",
+									"name": "物品特殊值",
+									"optional": true
+								},
+								{
+									"type": "int",
+									"name": "最大数量",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clear"
+				},
+				"difficulty": {
+					"description": "设置游戏难度等级",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "enum",
+									"name": "新难度",
+									"list": "difficulty"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#difficulty"
+				},
+				"effect": {
+					"description": "设置玩家及实体的状态效果",
+					"patterns": {
+						"clear": {
+							"description": "移除所有状态效果",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "clear",
+									"prompt": "（不是状态效果）清除所有状态效果"
+								}
+							]
+						},
+						"give": {
+							"description": "给予实体状态效果",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "string",
+									"name": "状态效果",
+									"suggestion": "effect"
+								},
+								{
+									"type": "uint",
+									"name": "持续秒数",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "级别",
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "是否隐藏粒子",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#effect"
+				},
+				"gamerule": {
+					"description": "设置或查询一条游戏规则的值",
+					"patterns": {
+						"query_bool": {
+							"description": "查询指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_bool"
+								}
+							]
+						},
+						/*"query_string": {
+							"description": "查询指定游戏规则的值",
+							"params": [
+								{
+									"type": "string",
+									"name": "规则名",
+									"suggestion": "gamerule_string"
+								}
+							]
+						},*/
+						"set_bool": {
+							"description": "设置指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_bool"
+								},
+								{
+									"type": "enum",
+									"name": "值",
+									"list": "bool"
+								}
+							]
+						},
+						/*"set_string": {
+							"description": "设置指定游戏规则的值",
+							"params": [
+								{
+									"type": "string",
+									"name": "规则名",
+									"suggestion": "gamerule_string"
+								},
+								{
+									"type": "string",
+									"name": "值"
+								}
+							]
+						}*/
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamerule"
+				},
+				"me": {
+					"description": "显示一条关于你自己的信息",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "text",
+									"name": "信息"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#me"
+				},
+				"playsound": {
+					"description": "对指定玩家播放指定声音",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "声音ID",
+									"suggestion": "sound"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "position",
+									"name": "位置",
+									"optional": true
+								},
+								{
+									"type": "float",
+									"name": "音量",
+									"optional": true
+								},
+								{
+									"type": "float",
+									"name": "音调",
+									"optional": true
+								},
+								{
+									"type": "float",
+									"name": "最小音量",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#playsound"
+				},
+				"replaceitem": {
+					"description": "用给出的物品替换方块或实体物品栏内的物品",
+					"patterns": {
+						"block": {
+							"description": "用给出的物品替换方块内的物品",
+							"params": [
+								{
+									"type": "plain",
+									"name": "block",
+									"prompt": "替换方块内物品"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "enum",
+									"name": "格子类型",
+									"list": {
+										"slot.container": "容器"
+									}
+								},
+								{
+									"type": "uint",
+									"name": "格子ID"
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "json",
+									"name": "数据标签",
+									"component": "item_component",
+									"optional": true
+								}
+							]
+						},
+						"entity": {
+							"description": "用给出的物品替换实体物品栏内的物品",
+							"params": [
+								{
+									"type": "plain",
+									"name": "entity",
+									"prompt": "替换实体内物品"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "格子类型",
+									"list": {
+										"slot.armor": "马铠",
+										"slot.armor.chest": "胸甲",
+										"slot.armor.feet": "靴子",
+										"slot.armor.head": "头盔",
+										"slot.armor.legs": "腿甲",
+										"slot.chest": "箱子",
+										"slot.enderchest": "末影箱",
+										"slot.hotbar": "快捷栏",
+										"slot.inventory": "物品栏",
+										"slot.saddle": "鞍",
+										"slot.weapon.mainhand": "主手持有",
+										"slot.weapon.offhand": "副手持有"
+									}
+								},
+								{
+									"type": "uint",
+									"name": "格子ID"
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "json",
+									"name": "数据标签",
+									"component": "item_component",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#replaceitem"
+				},
+				"spreadplayers": {
+					"description": "把实体随机传送到区域内地表的某个位置",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "relative",
+									"name": "x坐标"
+								},
+								{
+									"type": "relative",
+									"name": "z坐标"
+								},
+								{
+									"type": "float",
+									"name": "分散间距"
+								},
+								{
+									"type": "float",
+									"name": "最大范围"
+								},
+								{
+									"type": "selector",
+									"name": "实体",
+									"target": "entity",
+									"repeat": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spread"
+				},
+				"stopsound": {
+					"description": "停止音效播放",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "声音ID",
+									"suggestion": "sound",
+									"optional": true
+								}
+							]
+						},
+						"custom": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "声音ID",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#stopsound"
+				},
+				"testfor": {
+					"description": "检测并统计符合指定条件的实体",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testfor"
+				},
+				"title": {
+					"description": "标题命令相关",
+					"patterns": {
+						"clear": {
+							"description": "移除标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "clear",
+									"prompt": "移除标题"
+								}
+							]
+						},
+						"reset": {
+							"description": "重设标题设置",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "reset",
+									"prompt": "重设标题设置"
+								}
+							]
+						},
+						"subtitle": {
+							"description": "设置副标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "subtitle",
+									"prompt": "设置副标题"
+								},
+								{
+									"type": "text",
+									"name": "副标题"
+								}
+							]
+						},
+						"title": {
+							"description": "显示标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "title",
+									"prompt": "显示标题"
+								},
+								{
+									"type": "text",
+									"name": "标题"
+								}
+							]
+						},
+						"times": {
+							"description": "设置标题显示时间",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "times",
+									"prompt": "设置标题显示时间"
+								},
+								{
+									"type": "int",
+									"name": "淡入时间"
+								},
+								{
+									"type": "int",
+									"name": "停留时间"
+								},
+								{
+									"type": "int",
+									"name": "淡出时间"
+								}
+							]
+						},
+						"actionbar": {
+							"description": "在活动栏上显示文字",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "actionbar",
+									"prompt": "在活动栏上显示文字"
+								},
+								{
+									"type": "text",
+									"name": "活动栏文字"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+				}
+			},
+			"minSupportVer": "1.0.5.0"
+		},
+		"particle": {
+			"commands": {
+				"particle": {
+					"description": "创建粒子效果",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "粒子ID"
+								},
+								{
+									"type": "position",
+									"name": "位置"
+								},
+								{
+									"type": "float",
+									"name": "生成区域ΔX"
+								},
+								{
+									"type": "float",
+									"name": "生成区域ΔY"
+								},
+								{
+									"type": "float",
+									"name": "生成区域ΔZ"
+								},
+								{
+									"type": "float",
+									"name": "速度"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "plain",
+									"name": "force",
+									"prompt": "将颗粒的可视距离设置为256米，包括将颗粒效果可视距离降至最低的玩家",
+									"optional": true
+								},
+								{
+									"type": "int",
+									"name": "额外参数",
+									"repeat": true,
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+				}
+			},
+			"minSupportVer": "1.0.5.0",
+			"maxSupportVer": "1.0.5.0"
+		},
+		"execute_detect": {
+			"supportVer": [
+				{
+					"min": "0.15.90.0",
+					"max": "1.1.*"
+				},
+				{
+					"min": "1.2.0.7"
+				}
+			],
+			"commands": {
+				"execute": {
+					"patterns": {
+						"detect": {
+							"description": "让目标实体当点B为指定方块时在点A执行一条命令",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "点A"
+								},
+								{
+									"type": "plain",
+									"name": "detect",
+									"prompt": "（不是命令）检测指定坐标的方块是否符合条件"
+								},
+								{
+									"type": "position",
+									"name": "点B"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值"
+								},
+								{
+									"type": "command",
+									"name": "命令"
+								}
+							]
+						}
+					}
+				}
+			}
+		},
+		"detect_global": {
+			"supportVer": [
+				{
+					"min": "1.2.0.2",
+					"max": "1.2.0.2"
+				}
+			],
+			"commands": {
+				"detect": {
+					"description": "当某一方块满足条件时执行一条命令",
+					"patterns": {
+						"default": {
+							"description": "当指定坐标为指定方块时执行一条命令",
+							"params": [
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值"
+								},
+								{
+									"type": "command",
+									"name": "命令"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#detect"
+				}
+			}
+		},
+		"1.2": {
+			"minSupportVer": "1.2.0.2",
+			"commands": {
+				"alwaysday": {
+					"description": "锁定或解锁日夜交替",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "enum",
+									"name": "是否锁定",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#alwaysday"
+				},
+				"daylock": {
+					"alias": "alwaysday"
+				},
+				"tickingarea": {
+					"description": "添加、移除或列出常加载区域",
+					"patterns": {
+						"add_box": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "添加长方体常加载区域"
+								},
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "text",
+									"name": "区域ID"
+								}
+							]
+						},
+						"add_sphere": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "add circle",
+									"prompt": "添加球形常加载区域"
+								},
+								{
+									"type": "position",
+									"name": "中心"
+								},
+								{
+									"type": "uint",
+									"name": "半径"
+								},
+								{
+									"type": "text",
+									"name": "区域ID"
+								}
+							]
+						},
+						"remove_pos": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "移除指定常加载区域"
+								},
+								{
+									"type": "position",
+									"name": "Position"
+								}
+							]
+						},
+						"remove_id": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "移除指定常加载区域"
+								},
+								{
+									"type": "text",
+									"name": "区域ID"
+								}
+							]
+						},
+						"remove_all": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove_all",
+									"prompt": "移除所有常加载区域"
+								}
+							]
+						},
+						"list": {
+							"params": [
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出所有常加载区域"
+								},
+								{
+									"type": "plain",
+									"name": "all-dimensions",
+									"prompt": "列出所有维度的常加载区域",
+									"optional": true
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tickingarea"
+				},
+				"tp": {
+					"patterns": {
+						"current_to_position_facing_block": {
+							"description": "将玩家传送至目的地坐标并使玩家面向指定坐标",
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "position",
+									"name": "面向坐标"
+								}
+							]
+						},
+						"current_to_position_facing_entity": {
+							"description": "将玩家传送至目的地坐标并使玩家面向指定实体",
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "selector",
+									"name": "面向实体",
+									"target": "entity"
+								}
+							]
+						},
+						"entity_to_position_facing_block": {
+							"description": "将目标实体传送至目的地坐标并使该实体面向指定坐标",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "position",
+									"name": "面向坐标"
+								}
+							]
+						},
+						"entity_to_position_facing_entity": {
+							"description": "将目标实体传送至目的地坐标并使该实体面向另一指定实体",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "selector",
+									"name": "面向实体",
+									"target": "entity"
+								}
+							]
+						}
+					}
+				}
+			}
+		},
+		"1.5.0.1": {
+			"enums": {
+				"gamerule_int": {
+					"maxcommandchainlength": "最大连锁命令方块链长度"
+				}
+			},
+			"commands": {
+				"gamerule": {
+					"patterns": {
+						"query_int": {
+							"description": "查询指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								}
+							]
+						},
+						"set_int": {
+							"description": "设置指定游戏规则的值",
+							"params": [
+								{
+									"type": "enum",
+									"name": "规则名",
+									"list": "gamerule_int"
+								},
+								{
+									"type": "int",
+									"name": "值"
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.5.0.1"
+		},
+		"1.7": {
+			"minSupportVer": "1.7.0.2",
+			"enums": {
+				"scoreboard_criteria": {
+					"dummy": "虚拟型准则，只能通过命令修改分数"
+				},
+				"scoreboard_display_slot_sortable": {
+					"list": "玩家列表",
+					"sidebar": "侧边栏"
+				},
+				"scoreboard_display_slot": {
+					"belowName": "名称下方"
+				},
+				"scoreboard_player": {
+					"*": "所有正在被记分板追踪的对象"
+				},
+				"scoreboard_sort_order": {
+					"ascending": "升序排列",
+					"descending": "降序排列"
+				},
+				"gamerule_bool": {
+					"commandblocksenabled": "启用命令方块"
+				}
+			},
+			"selectors": {
+				"scores": {
+					"type": "string",
+					"name": "记分板分数"
+				}
+			},
+			"commands": {
+				"scoreboard": {
+					"description": "管理记分板的记分项、对象等",
+					"patterns": {
+						"objectives_list": {
+							"description": "列出所有存在的记分项，以及它们的显示名称与准则",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出所有记分项"
+								}
+							]
+						},
+						"objectives_add": {
+							"description": "创建一个带有指定名称、指定准则和可选的显示名称的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "创建记分项"
+								},
+								{
+									"type": "string",
+									"name": "名称"
+								},
+								{
+									"type": "string",
+									"name": "准则",
+									"suggestion": "scoreboard_criteria"
+								},
+								{
+									"type": "text",
+									"name": "显示名称",
+									"optional": "true"
+								}
+							]
+						},
+						"objectives_remove": {
+							"description": "删除指定名称的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "删除记分项"
+								},
+								{
+									"type": "string",
+									"name": "名称"
+								}
+							]
+						},
+						"objectives_setdisplay_sortable": {
+							"description": "设置指定显示位置显示的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "setdisplay",
+									"prompt": "设置记分项显示位置"
+								},
+								{
+									"type": "enum",
+									"name": "显示位置",
+									"list": "scoreboard_display_slot_sortable"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": "true"
+								},
+								{
+									"type": "enum",
+									"name": "排序方式",
+									"optional": "true",
+									"list": "scoreboard_sort_order"
+								},
+							]
+						},
+						"objectives_setdisplay": {
+							"description": "设置指定显示位置显示的记分项",
+							"params": [
+								{
+									"type": "plain",
+									"name": "objectives",
+									"prompt": "管理记分项"
+								},
+								{
+									"type": "plain",
+									"name": "setdisplay",
+									"prompt": "设置记分项显示位置"
+								},
+								{
+									"type": "enum",
+									"name": "显示位置",
+									"list": "scoreboard_display_slot"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": "true"
+								}
+							]
+						},
+						"players_list": {
+							"description": "显示所有被记分板系统追踪的对象或显示指定对象的所有分数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								}
+							]
+						},
+						"players_set": {
+							"description": "设置指定对象指定记分项的分数为指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "set",
+									"prompt": "设置对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "分数"
+								}
+							]
+						},
+						"players_add": {
+							"description": "将指定对象指定记分项的分数增加指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "增加对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "增加分数"
+								}
+							]
+						},
+						"players_remove": {
+							"description": "将指定对象指定记分项的分数扣除指定值",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "扣除对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "扣除分数"
+								}
+							]
+						},
+						"players_reset": {
+							"description": "删除指定对象指定记分项或所有记分项的分数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "reset",
+									"prompt": "删除对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项",
+									"optional": true
+								}
+							]
+						},
+						"players_test_min": {
+							"description": "当指定对象指定记分项的分数在大于等于指定值时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷大",
+									"optional": true
+								}
+							]
+						},
+						"players_test_max": {
+							"description": "当指定对象指定记分项的分数在小于等于指定值时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷小"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_test_range": {
+							"description": "当指定对象指定记分项的分数在指定范围内时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_test_norange": {
+							"description": "当指定对象指定记分项的分数存在时输出",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "test",
+									"prompt": "测试对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷小"
+								},
+								{
+									"type": "plain",
+									"name": "*",
+									"prompt": "无穷大",
+									"optional": true
+								}
+							]
+						},
+						"players_random": {
+							"description": "设置指定对象指定记分项的分数为指定范围内的一个随机整数",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "random",
+									"prompt": "随机设置对象分数"
+								},
+								{
+									"type": "selector",
+									"name": "对象",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项"
+								},
+								{
+									"type": "int",
+									"name": "最小值"
+								},
+								{
+									"type": "int",
+									"name": "最大值"
+								}
+							]
+						},
+						"players_operation": {
+							"description": "对两个对象的记分项分数进行操作",
+							"params": [
+								{
+									"type": "plain",
+									"name": "players",
+									"prompt": "管理对象的记分项分数"
+								},
+								{
+									"type": "plain",
+									"name": "operation",
+									"prompt": "对两个对象的记分项分数进行操作"
+								},
+								{
+									"type": "selector",
+									"name": "对象①",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项①"
+								},
+								{
+									"type": "enum",
+									"name": "操作方式",
+									"list": {
+										"+=": "加法:把对象②的分数加到对象①的分数上",
+										"-=": "减法:在对象①的分数上减去对象②的分数",
+										"*=": "乘法:将对象①的分数设为对象①的分数与对象②分数的乘积",
+										"/=": "除法:将对象①的分数设为被对象②的分数整除后的结果",
+										"%=": "求余:将对象①的分数设为被对象②的分数除后得到的余数",
+										"=": "赋值:把对象①的分数设为对象②的分数",
+										"<": "取较小值:如果对象②的分数比对象①的分数小，则把对象①的分数设为对象②的分数",
+										">": "取较大值:如果对象②的分数比对象①的分数大，则把对象①的分数设为对象②的分数",
+										"><": "交换对象②与对象①的分数"
+									}
+								},
+								{
+									"type": "selector",
+									"name": "对象②",
+									"target": "entity",
+									"suggestion": "scoreboard_player"
+								},
+								{
+									"type": "string",
+									"name": "记分项②"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E8%AE%B0%E5%88%86%E6%9D%BF#.E5.91.BD.E4.BB.A4.E5.88.97.E8.A1.A8"
+				}
+			}
+		},
+		"before1.8": {
+			"enums": {
+				"entity": {
+					"area_effect_cloud": "效果区域云(无法用summon生成)",
+					"armor_stand": "盔甲架",
+					"arrow": "射出的箭",
+					"bat": "蝙蝠",
+					"blaze": "烈焰人",
+					"boat": "船",
+					"cave_spider": "洞穴蜘蛛",
+					"chest_minecart": "运输矿车",
+					"chicken": "鸡",
+					"cod": "鳕鱼",
+					"command_block_minecart": "命令方块矿车",
+					"cow": "牛",
+					"creeper": "爬行者",
+					"dolphin": "海豚",
+					"donkey": "驴",
+					"dragon_fireball": "末影龙火球(无法用summon生成)",
+					"drowned": "溺尸",
+					"egg": "丢出的鸡蛋",
+					"elder_guardian": "远古守卫者",
+					"ender_crystal": "末影水晶",
+					"ender_dragon": "末影龙",
+					"ender_pearl": "丢出的末影珍珠(无法用summon生成)",
+					"enderman": "末影人",
+					"endermite": "末影螨",
+					"evocation_fang": "唤魔者尖牙",
+					"evocation_illager": "唤魔者",
+					"eye_of_ender_signal": "丢出的末影之眼(无法用summon生成)",
+					"falling_block": "掉落中的方块(无法用summon生成)",
+					"fireball": "火球(无法用summon生成)",
+					"fireworks_rocket": "烟花火箭",
+					"fishing_hook": "鱼钩(无法用summon生成)",
+					"ghast": "恶魂",
+					"guardian": "守卫者",
+					"hopper_minecart": "漏斗矿车",
+					"horse": "马",
+					"husk": "尸壳",
+					"iron_golem": "铁傀儡",
+					"item": "掉落的物品(无法用summon生成)",
+					"leash_knot": "拴绳结",
+					"lightning_bolt": "闪电",
+					"lingering_potion": "滞留药水(无法用summon生成)",
+					"llama": "羊驼",
+					"llama_spit": "羊驼唾沫(无法用summon生成)",
+					"magma_cube": "岩浆怪",
+					"minecart": "矿车",
+					"mooshroom": "哞菇",
+					"moving_block": "？(无法用summon生成)",
+					"mule": "骡",
+					"ocelot": "豹猫",
+					"painting": "画(无法用summon生成)",
+					"parrot": "鹦鹉",
+					"phantom": "幻翼",
+					"pig": "猪",
+					"player": "玩家(无法用summon生成)",
+					"polar_bear": "北极熊",
+					"pufferfish": "河豚",
+					"rabbit": "兔子",
+					"salmon": "鲑鱼",
+					"sheep": "羊",
+					"shulker": "潜影贝",
+					"shulker_bullet": "潜影贝导弹(无法用summon生成)",
+					"silverfish": "蠹虫",
+					"skeleton": "骷髅",
+					"skeleton_horse": "骷髅马",
+					"slime": "史莱姆",
+					"small_fireball": "烈焰人火球/射出的火球(无法用summon生成)",
+					"snow_golem": "雪傀儡",
+					"snowball": "丢出的雪球",
+					"spider": "蜘蛛",
+					"splash_potion": "丢出的喷溅药水",
+					"squid": "鱿鱼",
+					"stray": "流髑",
+					"thrown_trident": "掷出的三叉戟",
+					"tnt": "已激活的TNT",
+					"tnt_minecart": "TNT矿车",
+					"tropicalfish": "热带鱼",
+					"turtle": "海龟",
+					"vex": "恼鬼",
+					"villager": "村民",
+					"vindicator": "卫道士",
+					"witch": "女巫",
+					"wither": "凋灵",
+					"wither_skeleton": "凋灵骷髅",
+					"wither_skull": "黑色凋灵之首(无法用summon生成)",
+					"wither_skull_dangerous": "蓝色凋灵之首(无法用summon生成)",
+					"wolf": "狼",
+					"xp_bottle": "丢出的附魔之瓶",
+					"xp_orb": "经验球",
+					"zombie": "僵尸",
+					"zombie_horse": "僵尸马",
+					"zombie_pigman": "僵尸猪人",
+					"zombie_villager": "僵尸村民"
+				}
+			},
+			"mode": "overwrite",
+			"minSupportVer": "1.2",
+			"maxSupportVer": "1.7.*"
+		},
+		"1.8.0.8": {
+			"commands": {
+				"particle": {
+					"description": "在指定位置显示颗粒效果",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "粒子ID",
+									"suggestion": "particle_emitter"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+				},
+				"reload": {
+					"description": "重新加载数据包",
+					"noparams": {},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#reload"
+				}
+			},
+			"minSupportVer": "1.8.0.8"
+		},
+		"1.8.0.10": {
+			"commands": {
+				"function": {
+					"description": "运行一个函数",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "函数"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#function"
+				}
+			},
+			"minSupportVer": "1.8.0.10"
+		},
+		"1.9.0.0": {
+			"enums": {
+				"gamerule_bool": {
+					"showdeathmessage": "是否在聊天框中显示玩家以及驯养宠物的死亡信息",
+					"doimmediaterespawn": "是否玩家死亡后立即重生"
+				}
+			},
+			"commands": {
+				"tellraw": {
+					"description": "向指定玩家发送一条JSON文本消息",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "json",
+									"name": "JSON文本"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tellraw"
+				}
+			},
+			"minSupportVer": "1.9.0.0"
+		},
+		"1.9.0.2": {
+			"enums": {
+				"gamerule_int": {
+					"functioncommandlimit": "通过function命令执行命令的最大数量"
+				}
+			},
+			"selectors": {
+				"tag": {
+					"type": "string",
+					"name": "标签",
+					"hasInverted": true
+				}
+			},
+			"commands": {
+				"tag": {
+					"description": "为实体添加或移除标签，或列举实体的标签",
+					"patterns": {
+						"list": {
+							"description": "列出指定实体拥有的全部标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出指定实体拥有的全部标签"
+								}
+							]
+						},
+						"add": {
+							"description": "为指定实体添加一个新的标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "为指定实体添加一个新的标签"
+								},
+								{
+									"type": "text",
+									"name": "标签名"
+								}
+							]
+						},
+						"remove": {
+							"description": "为指定实体移除一个已有标签",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "为指定实体移除一个已有标签"
+								},
+								{
+									"type": "text",
+									"name": "标签名"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tag"
+				},
+				"titleraw": {
+					"description": "标题命令相关（使用JSON文本）",
+					"patterns": {
+						"clear": {
+							"description": "移除标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "clear",
+									"prompt": "移除标题"
+								}
+							]
+						},
+						"reset": {
+							"description": "重设标题设置",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "reset",
+									"prompt": "重设标题设置"
+								}
+							]
+						},
+						"subtitle": {
+							"description": "设置副标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "subtitle",
+									"prompt": "设置副标题"
+								},
+								{
+									"type": "json",
+									"name": "副标题"
+								}
+							]
+						},
+						"title": {
+							"description": "显示标题",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "title",
+									"prompt": "显示标题"
+								},
+								{
+									"type": "json",
+									"name": "标题"
+								}
+							]
+						},
+						"times": {
+							"description": "设置标题显示时间",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "times",
+									"prompt": "设置标题显示时间"
+								},
+								{
+									"type": "int",
+									"name": "淡入时间"
+								},
+								{
+									"type": "int",
+									"name": "停留时间"
+								},
+								{
+									"type": "int",
+									"name": "淡出时间"
+								}
+							]
+						},
+						"actionbar": {
+							"description": "在活动栏上显示文字",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "player"
+								},
+								{
+									"type": "plain",
+									"name": "actionbar",
+									"prompt": "在活动栏上显示文字"
+								},
+								{
+									"type": "json",
+									"name": "活动栏文字"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+				}
+			},
+			"minSupportVer": "1.9.0.2"
+		}
+	}
+}

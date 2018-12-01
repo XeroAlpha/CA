@@ -1,0 +1,201 @@
+{
+	"name": "补充命令库",
+	"author": "CA制作组",
+	"description": "该命令库是默认命令库的补充，包括了只能在多人游戏中使用的命令。",
+	"uuid": "590cdcb5-3cdf-42fa-902c-b578779335ab",
+	"version": [0, 0, 1],
+	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
+	"minSupportVer": "0.16.0",
+	"targetSupportVer": "1.4.0.5",
+	"commands": {},
+	"enums": {
+		"structure": {
+			"buriedtreasure": "埋藏的宝藏",
+			"endcity": "末地城",
+			"fortress": "下界要塞",
+			"mansion": "林地府邸",
+			"mineshaft": "废弃矿井",
+			"monument": "海底遗迹",
+			"ruins": "水下遗迹",
+			"shipwreck": "沉船",
+			"stronghold": "要塞",
+			"temple": "沙漠神殿/丛林神庙/沼泽小屋/雪屋",
+			"village": "村庄"
+		}
+	},
+	"selectors": {},
+	"help": {},
+	"versionPack": {
+		"0.16.0": {
+			"commands": {
+				"connect": {
+					"alias": "wsserver"
+				},
+				"deop": {
+					"description": "撤销玩家的管理员身份",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "玩家",
+									"target": "player"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#deop"
+				},
+				"list": {
+					"description": "列出在服务器上的玩家",
+					"noparams": true,
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#list"
+				},
+				"op": {
+					"description": "给予一位玩家管理员身份",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "玩家",
+									"target": "player"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#op"
+				},
+				"wsserver": {
+					"description": "尝试连接到指定的WebSocket服务器上",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "text",
+									"name": "服务器URL"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#wsserver"
+				}
+			},
+			"minSupportVer": "0.15.90.0"
+		},
+		"1.0": {
+			"commands": {
+				"locate": {
+					"description": "为执行此命令的玩家在聊天窗口里显示给定类型的最近结构的坐标",
+					"patterns": {
+						"default": {
+							"params": [{
+								"type": "enum",
+								"name": "结构ID",
+								"list": "structure"
+							}]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#locate"
+				}
+			},
+			"minSupportVer": "0.17"
+		},
+		"1.0.3 build 1": {
+			"commands": {
+				"transferserver": {
+					"description": "将玩家转送至另一服务器",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "服务器地址"
+								},
+								{
+									"type": "uint",
+									"name": "端口号"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#transferserver"
+				}
+			},
+			"minSupportVer": "1.0.3.0"
+		},
+		"1.1": {
+			"commands": {
+				"setmaxplayers": {
+					"description": "设置可加入多人联机游戏的玩家数量上限",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "uint",
+									"name": "数量上限"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setmaxplayers"
+				}
+			},
+			"minSupportVer": "1.1.0.55"
+		},
+		"1.2.5": {
+			"commands": {
+				"mixer": {
+					"description": "Mixer交互性控制[需安装Mixer]",
+					"patterns": {
+						"start": {
+							"description": "启动Mixer交互会话",
+							"params": [
+								{
+									"type": "plain",
+									"name": "start",
+									"prompt": "启动Mixer交互会话"
+								},
+								{
+									"type": "uint",
+									"name": "版本ID"
+								},
+								{
+									"type": "string",
+									"name": "分享码",
+									"optional": true
+								}
+							]
+						},
+						"stop": {
+							"description": "停止Mixer交互会话",
+							"params": [
+								{
+									"type": "plain",
+									"name": "stop",
+									"prompt": "停止Mixer交互会话"
+								}
+							]
+						},
+						"scene": {
+							"description": "切换Mixer交互场景",
+							"params": [
+								{
+									"type": "plain",
+									"name": "scene",
+									"prompt": "切换Mixer交互场景"
+								},
+								{
+									"type": "string",
+									"name": "场景名"
+								}
+							]
+						}
+					},
+					"help": "https://blog.mixer.com/minecraft"
+				}
+			},
+			"minSupportVer": "1.2.5.12"
+		}
+	}
+}

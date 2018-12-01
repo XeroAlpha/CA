@@ -1,5 +1,6 @@
 var fs = require("fs");
 var process = require("process");
+var loader = require("./loader");
 
 function fixZero(s, n) {
 	s = String(s);
@@ -61,7 +62,7 @@ function makeUpdate() {
 }
 
 function main(details) {
-	var content = fs.readFileSync(script, 'utf-8')
+	var content = loader.load(script, 'utf-8')
 	if (details) addVersion(content, details);
 	makeUpdate();
 	console.log("Done.\n");

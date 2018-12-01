@@ -1,6 +1,7 @@
 var fs = require("fs");
 var process = require("process");
 var zlib = require("zlib");
+var loader = require("./loader");
 
 var cwd = process.cwd();
 var versions = JSON.parse(fs.readFileSync(cwd + "/versions.json", 'utf-8'));
@@ -53,7 +54,7 @@ function initGZIP(s) {
 function exports() {
 	var min;
 	console.log("Running js-min...");
-	fs.writeFileSync(outputFile, min = initExport(fs.readFileSync(script, "utf-8")));
+	fs.writeFileSync(outputFile, min = initExport(loader.load(script, "utf-8")));
 	console.log("Compressing...");
 	fs.writeFileSync(exportFile, initGZIP(min));
 }
