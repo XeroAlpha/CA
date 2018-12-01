@@ -147,6 +147,9 @@ MapScript.loadModule("AndroidBridge", {
 			case ScriptActivity.ACTION_SCRIPT_ACTION:
 			if (!startByIntent) AndroidBridge.scriptAction();
 			break;
+			case ScriptActivity.ACTION_URI_ACTION:
+			AndroidBridge.openUriAction(intent.getData(), intent.getExtras());
+			break;
 			case ScriptActivity.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			Common.showDebugDialog();
@@ -217,6 +220,45 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	scriptAction : function() {
 		Common.showOperateDialog(this.keeperMenu);
+	},
+	openUriAction : function(uri, extras) {
+		switch (String(uri.getHost()).toLowerCase()) {
+			case "base":
+			var path, obj, query, fragment;
+			path = uri.getPath();
+			query = uri.getEncodedQuery();
+			fragment = uri.getFragment();
+			if (path) {
+				obj = this.getBaseUriAction(String(path));
+				if (obj) obj(fragment ? String(fragment) : null, query ? this.getQueryKV(String(query)) : {}, extras);
+			}
+			break;
+		}
+	},
+	getBaseUriAction : function(path) {
+		var i, obj = this.uriActions, par;
+		path = path.toLowerCase().replace(/^\//, "").split("/");
+		for (i = 0; i < path.length; i++) {
+			par = obj;
+			obj = obj[path[i]];
+			if (!obj) {
+				obj = par.get ? par.get(path.slice(i)) : par instanceof Function ? par : par.default;
+				break;
+			}
+		}
+		if (typeof obj == "function") return obj;
+		return null;
+	},
+	getQueryKV : function(query) {
+		var r = {}, i, strs, t;
+		strs = query.slice(t + 1).split("&");
+		for(i in strs) {
+			t = strs[i].indexOf("=");
+			if (t >= 0) {
+				r[strs[i].slice(0, t)] = unescape(strs[i].slice(t + 1));
+			}
+		}
+		return r;
 	},
 	notifySettings : function() {
 		G.ui(function() {try {
@@ -609,5 +651,21 @@ MapScript.loadModule("AndroidBridge", {
 		onclick : function() {
 			CA.performExit();
 		}
-	}]
+	}],
+	uriActions : {
+		open : {
+			default : function() {
+				CA.showGen(true);
+			}
+		},
+		command : {
+			edit : function(fragment, query, extras) {
+				G.ui(function() {try {
+					CA.showGen(true);
+					CA.cmd.setText(String(query.text));
+					CA.showGen.activate(false);
+				} catch(e) {erp(e)}});
+			}
+		}
+	}
 });

@@ -277,6 +277,7 @@ var proto = {
 		var i, r = [], circular;
 		if (!objs) objs = [];
 		if (depth > 8) return [name + ": " + o];
+		if (o instanceof java.lang.String) o = String(o);
 		circular = objs.indexOf(o) >= 0;
 		if (o instanceof Array) {
 			r.push(name + ": " + "Array[" + o.length + "]");
@@ -409,6 +410,8 @@ MapScript.loadModule("Loader", {
 				while (q = rd.readLine()) s.push(q);
 				rd.close();
 				s = s.join("\n");
+			} else if (MapScript.host == "AutoJs") {
+				s = files.read(files.join(engines.myEngine().cwd(), path));
 			} else return;
 			parentDir = new java.io.File(path).getParent();
 			s = s.replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
