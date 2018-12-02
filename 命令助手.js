@@ -391,7 +391,7 @@ MapScript.loadModule("Loader", {
 			f();
 			gHandler.post(function() {try {
 				if (lto) lto.cancel();
-				if (lm) ScriptActivity.setLoadingTitle("初始化模块……");
+				if (lm) ScriptActivity.setLoadingTitle("初始化模块");
 			} catch(e) {erp(e)}});
 			if (lm) MapScript.loadModule = lm;
 			Loader.loading = false;
@@ -401,13 +401,13 @@ MapScript.loadModule("Loader", {
 	},
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
 		try {
-			var s, parentDir;
+			var s, parentDir, t;
+			path = path.replace(/\\/g, "/");
 			if (MapScript.host == "Android") {
 				var manager = ScriptActivity.getScriptManager();
 				var rd = new java.io.BufferedReader(new java.io.InputStreamReader(manager.open(path)));
-				var q;
 				s = [];
-				while (q = rd.readLine()) s.push(q);
+				while (t = rd.readLine()) s.push(t);
 				rd.close();
 				s = s.join("\n");
 			} else if (MapScript.host == "AutoJs") {

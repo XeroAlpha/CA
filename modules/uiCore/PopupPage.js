@@ -193,8 +193,9 @@ MapScript.loadModule("PopupPage", (function() {
 			r.thread = java.lang.Thread.currentThread();
 		} catch(e) {erp(e)}})}
 		r.checkThread = function() {
-			if (r.thread != java.lang.Thread.currentThread()) {
-				Log.throwError(new Error("You can only touch page on the main thread."));
+			var th = java.lang.Thread.currentThread();
+			if (r.thread != th) {
+				Log.throwError(new Error("You can only touch page on " + r.thread + " instead of " + th + "."));
 			}
 		}
 		r.updateDefault = function() {

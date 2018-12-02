@@ -1011,23 +1011,21 @@ MapScript.loadModule("GiteeFeedback", {
 		if (this.accessToken) {
 			this.showRecentFeedback(callback);
 		} else {
-			this.settings = CA.settings.feedbackSettings || (CA.settings.feedbackSettings = {});
-			if (this.settings.accessType) {
-				this.accessType = this.settings.accessType;
-				this.accessData = this.settings.accessData;
+			this.load();
+			if (this.accessType) {
 				Common.showProgressDialog(function(dia) {
 					dia.setText("正在自动登录...");
 					if (GiteeFeedback.accessType == "anonymous") {
 						GiteeFeedback.acquireAccessTokenAnonymous();
-						GiteeFeedback.userInfo = null;
+						GiteeFeedback.save(null);
 					} else {
 						try {
 							GiteeFeedback.refreshAccessToken(true);
+							GiteeFeedback.save(GiteeFeedback.getUserInfo());
 						} catch(e) {
 							Log.e(e);
 							return Common.toast("登录失败\n" + GiteeFeedback.userInfo.name);
 						}
-						GiteeFeedback.userInfo = GiteeFeedback.getUserInfo();
 					}
 					GiteeFeedback.showRecentFeedback(callback);
 				});
@@ -1092,9 +1090,7 @@ MapScript.loadModule("GiteeFeedback", {
 								dia.setText("正在登录...");
 								try {
 									GiteeFeedback.acquireAccessTokenAnonymous();
-									GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
-									GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
-									GiteeFeedback.userInfo = null;
+									GiteeFeedback.save(null);
 								} catch(e) {
 									erp(e, true);
 									return Common.toast("登录失败\n" + e);
@@ -1120,9 +1116,7 @@ MapScript.loadModule("GiteeFeedback", {
 								dia.setText("正在登录...");
 								try {
 									GiteeFeedback.acquireAccessToken(username.text, password.text);
-									GiteeFeedback.settings.accessType = GiteeFeedback.accessType;
-									GiteeFeedback.settings.accessData = GiteeFeedback.accessData;
-									GiteeFeedback.userInfo = GiteeFeedback.getUserInfo();
+									GiteeFeedback.save(GiteeFeedback.getUserInfo());
 								} catch(e) {
 									Log.e(e);
 									return Common.toast("登录失败，请检查您是否已连接互联网且用户名与密码正确\n" + e);
@@ -1138,6 +1132,36 @@ MapScript.loadModule("GiteeFeedback", {
 			})
 		}), -1, -2);
 	} catch(e) {erp(e)}})},
+	load : function() {
+		this.settings = CA.settings.feedbackSettings || (CA.settings.feedbackSettings = {});
+		this.accessType = this.settings.accessType;
+		this.accessData = this.settings.accessData;
+	},
+	save : function(userInfo) {
+		this.settings = CA.settings.feedbackSettings || (CA.settings.feedbackSettings = {});
+		this.settings.accessType = this.accessType;
+		this.settings.accessData = this.accessData;
+		this.userInfo = userInfo;
+	},
+	startOAuth : function(callback) {
+		this.oauthCallback = callback;
+		ctx.startActivity(new android.content.Intent(L.Intent("ACTION_VIEW"), android.net.Uri.parse(this.getAuthorizeUrl())));
+	},
+	callbackOAuth : function(code) {
+		Common.showProgressDialog(function(dia) {
+			dia.setText("正在登录...");
+			try {
+				GiteeFeedback.acquireAccessTokenOAuth(code);
+				GiteeFeedback.save(GiteeFeedback.getUserInfo());
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("登录失败\n" + e);
+			}
+			G.ui(function() {try {
+				if (GiteeFeedback.oauthCallback) GiteeFeedback.oauthCallback();
+			} catch(e) {erp(e)}});
+		});
+	},
 	showFeedbacks : function(callback) {
 		if (this.clientId) {
 			if (CA.settings.readFeedbackAgreement) {

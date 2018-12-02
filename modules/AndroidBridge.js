@@ -666,6 +666,11 @@ MapScript.loadModule("AndroidBridge", {
 					CA.showGen.activate(false);
 				} catch(e) {erp(e)}});
 			}
+		},
+		feedback : {
+			authorize : function(fragment, query, extras) {
+				GiteeFeedback.callbackOAuth(String(query.code));
+			}
 		}
 	}
 });
