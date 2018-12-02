@@ -19,7 +19,7 @@ MapScript.loadModule("CA", {
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 5],
+	version : [1, 2, 6],
 	publishDate : "{DATE}",
 	help : '{HELP}',
 	tips : [],
@@ -342,7 +342,11 @@ MapScript.loadModule("CA", {
 					if (PopupPage.getCount() == 0 || !PopupPage.visible) {
 						CA.showQuickBar();
 					} else if (PopupPage.supportResize) {
-						PopupPage.setFullScreen(!PopupPage.isFullScreen());
+						if (PopupPage.isLocked()) {
+							PopupPage.setFullScreen(PopupPage.isFullScreen(), false);
+						} else {
+							PopupPage.setFullScreen(!PopupPage.isFullScreen(), false);
+						}
 					}
 				}
 				self.longClicked = false;

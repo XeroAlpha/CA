@@ -59,7 +59,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultWindow.setRoundRectRadius(8 * G.dp, 2);
 			r.defaultWindow.setContentDescription("DefaultWindow");
 			r.longClick = new java.lang.Runnable({run : function() {try {
-				if (r.longClicked) r.setFullScreen(true);
+				if (r.longClicked) r.setFullScreen(false, true);
 				r.longClicked = false;
 			} catch(e) {erp(e)}}});
 			r.defaultDecorLinear = new G.LinearLayout(ctx);
@@ -106,12 +106,15 @@ MapScript.loadModule("PopupPage", (function() {
 			r.resizeView.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
+					if (r.locked) break;
 					if (touch.stead) {
 						if (Math.abs(touch.lx - e.getRawX()) + Math.abs(touch.ly - e.getRawY()) < touchSlop) {
 							break;
 						}
 						r.longClicked = false;
 						touch.stead = false;
+						r.defaultStub.setVisibility(G.View.VISIBLE);
+						r.defaultContainer.setVisibility(G.View.GONE);
 					}
 					break;
 					case e.ACTION_DOWN:
@@ -122,20 +125,21 @@ MapScript.loadModule("PopupPage", (function() {
 					v.postDelayed(r.longClick, longPressTimeout);
 					r.longClicked = true;
 					Common.applyStyle(v, "button_reactive_pressed", 2);
-					//r.defaultStub.setVisibility(G.View.VISIBLE);
-					//r.defaultContainer.setVisibility(G.View.GONE);
 					break;
 					case e.ACTION_UP:
 					case e.ACTION_CANCEL:
 					r.longClicked = false;
 					Common.applyStyle(v, "button_reactive", 2);
-					//r.defaultStub.setVisibility(G.View.GONE);
-					//r.defaultContainer.setVisibility(G.View.VISIBLE);
-					r.updateView(r.defaultWindow, r.x,
-						r.y = e.getRawY() + touch.offy,
-						r.width = Math.max(e.getRawX() + touch.offwidth, r.minWidth),
-						r.height = Math.max(touch.offheight - e.getRawY(), r.minHeight));
-					r.trigger("resize");
+					if (r.locked) break;
+					if (!touch.stead) {
+						r.defaultStub.setVisibility(G.View.GONE);
+						r.defaultContainer.setVisibility(G.View.VISIBLE);
+						r.updateView(r.defaultWindow, r.x,
+							r.y = e.getRawY() + touch.offy,
+							r.width = Math.max(e.getRawX() + touch.offwidth, r.minWidth),
+							r.height = Math.max(touch.offheight - e.getRawY(), r.minHeight));
+						r.trigger("resize");
+					}
 				}
 				return true;
 			} catch(e) {return erp(e), false}}}));
@@ -155,10 +159,13 @@ MapScript.loadModule("PopupPage", (function() {
 				}
 			} catch(e) {erp(e)}}}));
 			r.defaultDecorLinear.addView(r.defaultContainer);
-			//r.defaultStub = new G.FrameLayout(ctx);
-			//r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			//r.defaultStub.setVisibility(G.View.GONE);
-			//r.defaultDecorLinear.addView(r.defaultStub);
+			r.defaultStub = new G.TextView(ctx);
+			r.defaultStub.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			r.defaultStub.setVisibility(G.View.GONE);
+			r.defaultStub.setGravity(G.Gravity.CENTER);
+			r.defaultStub.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+			r.defaultStub.setText("拖动右上角方块调整大小\n长按右上角方块隐藏顶栏");
+			r.defaultDecorLinear.addView(r.defaultStub);
 			r.defaultWindow.addView(r.defaultDecorLinear);
 			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
 				dispatchKeyEvent : function(event) {
@@ -199,17 +206,19 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.updateDefault = function() {
-			if (this.fullscreen) {
+			if (this.fullscreen || this.locked) {
 				this.headerView.setVisibility(G.View.GONE);
 			} else {
 				Common.applyStyle(this.headerView, "bar_float_second");
 				Common.applyStyle(r.titleView, "button_reactive", 2);
 				Common.applyStyle(r.resizeView, "button_reactive", 2);
-				//Common.applyStyle(r.defaultStub, "container_default");
+				Common.applyStyle(r.defaultStub, "container_default");
+				Common.applyStyle(r.defaultStub, "textview_prompt", 3);
 				this.headerView.setVisibility(G.View.VISIBLE);
 			}
 		}
-		r.setFullScreen = function(isFullScreen) {
+		r.setFullScreen = function(isFullScreen, isLocked) {
+			this.locked = isLocked == true;
 			if (isFullScreen) {
 				this.fullscreen = true;
 				this.updateView(this.defaultWindow, 0, 0, -1, -1);
@@ -220,10 +229,13 @@ MapScript.loadModule("PopupPage", (function() {
 				this.updateView(this.defaultWindow, r.x, r.y, r.width, r.height);
 				r.updateDefault();
 			}
-			r.trigger("fullscreenChanged", isFullScreen);
+			r.trigger("fullscreenChanged", isFullScreen, isLocked);
 		}
-		r.isFullScreen = function(bool) {
+		r.isFullScreen = function() {
 			return this.fullscreen;
+		}
+		r.isLocked = function() {
+			return this.locked;
 		}
 		r.initPosition = function() {
 			var metrics = Common.getMetrics();
@@ -522,6 +534,9 @@ MapScript.loadModule("PopupPage", (function() {
 	} else {
 		r.isFullScreen = function() {
 			return true;
+		}
+		r.isLocked = function() {
+			return false;
 		}
 		r.prototype = {
 			init : function() {
