@@ -87,7 +87,7 @@ MapScript.loadModule("CA", {
 			screenName = self.l;
 		}
 		if (!this.fine) return;
-		if (MapScript.host != "BlockLauncher" || !this.settings.autoHideIcon || (this.settings.topIcon && PopupPage.getCount() > 0)) return this.showIcon();
+		if (MapScript.host != "BlockLauncher" || !this.settings.autoHideIcon || PopupPage.getCount() > 0) return this.showIcon();
 		if (screenName == "chat_screen" || screenName == "command_block_screen" || (this.cmdstr.length && screenName == "hud_screen")) {
 			this.showIcon();
 		} else {
@@ -154,7 +154,6 @@ MapScript.loadModule("CA", {
 			if (!(f.settings.securityLevel >= -9 && f.settings.securityLevel <= 9)) f.settings.securityLevel = 1;
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
-				f.settings.topIcon = true;
 			}
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
@@ -199,7 +198,6 @@ MapScript.loadModule("CA", {
 				historyCount : 0,
 				splitScreenMode : false,
 				keepWhenIME : false,
-				topIcon : true,
 				icon : "default",
 				noWebImage : false,
 				iconAlpha : 0,
@@ -407,11 +405,7 @@ MapScript.loadModule("CA", {
 				self.icon.startAnimation(animation);
 			}
 			self.open = function() {
-				if (!CA.settings.topIcon) {
-					CA.showGen(CA.settings.noAnimation);
-					CA.hideIcon();
-					if (CA.paste) CA.hidePaste();
-				} else if (PopupPage.getCount() > 0) {
+				if (PopupPage.getCount() > 0) {
 					if (PopupPage.visible) {
 						PopupPage.hide();
 					} else {
@@ -420,7 +414,6 @@ MapScript.loadModule("CA", {
 				} else {
 					CA.showGen(CA.settings.noAnimation);
 				}
-				self.refreshAlpha();
 			}
 			self.refreshAlpha = function() {
 				if (CA.settings.iconAlpha) {
@@ -481,7 +474,9 @@ MapScript.loadModule("CA", {
 			PWM.registerResetFlag(self, "view");
 			PopupPage.on("addPopup", self.iconUpdate)
 				.on("removePopup", self.iconUpdate)
-				.on("fullscreenChanged", self.iconUpdate);
+				.on("fullscreenChanged", self.iconUpdate)
+				.on("show", self.iconUpdate)
+				.on("hide", self.iconUpdate);
 		}
 		if (CA.icon) return;
 		self.updateScreenInfo();
@@ -495,11 +490,7 @@ MapScript.loadModule("CA", {
 		Common.applyPopup(CA.icon);
 		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
 		self.refreshPos();
-		if (CA.settings.topIcon) {
-			PWM.addFloat(CA.icon);
-		} else {
-			PWM.addPopup(CA.icon);
-		}
+		PWM.addFloat(CA.icon);
 		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
@@ -2502,7 +2493,7 @@ MapScript.loadModule("CA", {
 				CA.resetGUI();
 				CA.showGen(true);
 				if (f) CA.showSettings();
-				if (CA.settings.topIcon) CA.showIcon();
+				CA.showIcon();
 			}
 			self.data = [{
 				name : "当前版本",
@@ -2807,17 +2798,12 @@ MapScript.loadModule("CA", {
 					});
 				}
 			},{
-				id : "topIcon",
-				name : "图标置于顶层",
-				description : "点击图标可以暂时隐藏所有界面，再次点击可恢复",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
 				id : "autoHideIcon",
 				name : "自动隐藏悬浮窗",
 				type : "boolean",
+				hidden : function() {
+					return MapScript.host != "BlockLauncher";
+				},
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			},{
