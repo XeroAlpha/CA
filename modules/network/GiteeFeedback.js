@@ -10,7 +10,7 @@ MapScript.loadModule("GiteeFeedback", {
 		if (MapScript.host == "Android") {
 			this.clientId = String(ScriptActivity.getGiteeClientId());
 			this.clientSecret = String(ScriptActivity.getGiteeClientSecret());
-			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback";
+			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback.html";
 		}
 	},
 	getAuthorizeUrl : function() {
@@ -22,7 +22,7 @@ MapScript.loadModule("GiteeFeedback", {
 		this.accessData = null;
 	},
 	acquireAccessTokenOAuth : function(authorizationCode) {
-		var d = JSON.parse(Updater.queryPage("https://gitee.com/oauth/token?grant_type=authorization_code&code=" + authorizationCode + "&client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&client_secret=" + this.clientSecret));
+		var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token?grant_type=authorization_code&code=" + authorizationCode + "&client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&client_secret=" + this.clientSecret));
 		this.accessType = "oauth";
 		this.accessToken = d.access_token;
 		d.expiredDate = d.created_at + d.expires_in;
@@ -1104,7 +1104,7 @@ MapScript.loadModule("GiteeFeedback", {
 					}),
 					L.TextView({
 						text : "登录",
-						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp],
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 						gravity : L.Gravity("center"),
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
@@ -1127,6 +1127,18 @@ MapScript.loadModule("GiteeFeedback", {
 								} catch(e) {erp(e)}});
 							});
 						}
+					}),
+					L.TextView({
+						text : "使用浏览器登录",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {
+							GiteeFeedback.startOAuth(callback);
+							popup.exit();
+						}
 					})
 				]
 			})
@@ -1145,9 +1157,11 @@ MapScript.loadModule("GiteeFeedback", {
 	},
 	startOAuth : function(callback) {
 		this.oauthCallback = callback;
-		ctx.startActivity(new android.content.Intent(L.Intent("ACTION_VIEW"), android.net.Uri.parse(this.getAuthorizeUrl())));
+		ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.getAuthorizeUrl()))
+			.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 	},
 	callbackOAuth : function(code) {
+		PWM.onResume();
 		Common.showProgressDialog(function(dia) {
 			dia.setText("正在登录...");
 			try {

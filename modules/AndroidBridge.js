@@ -230,7 +230,11 @@ MapScript.loadModule("AndroidBridge", {
 			fragment = uri.getFragment();
 			if (path) {
 				obj = this.getBaseUriAction(String(path));
-				if (obj) obj(fragment ? String(fragment) : null, query ? this.getQueryKV(String(query)) : {}, extras);
+				if (obj) {
+					obj(fragment ? String(fragment) : null, query ? this.getQueryKV(String(query)) : {}, extras);
+				} else {
+					Common.toast("未知的调用：" + path);
+				}
 			}
 			break;
 		}

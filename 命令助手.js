@@ -204,7 +204,7 @@ MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
 
 MapScript.loadModule("Log", (function() {
 var proto = {
-	nullFunc : function() {},
+	nullFunc : function(v) {return v},
 	start : function(target) {
 		var i;
 		for (i in this) if (i.length < 3) delete this[i];
