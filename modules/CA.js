@@ -152,14 +152,19 @@ MapScript.loadModule("CA", {
 			}
 			if (!f.settings.customExpression) f.settings.customExpression = [];
 			if (!(f.settings.securityLevel >= -9 && f.settings.securityLevel <= 9)) f.settings.securityLevel = 1;
+			if (f.settings.customTips) {
+				this.tips = f.settings.customTips;
+			}
+			
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 			}
 			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
-			if (f.settings.customTips) {
-				this.tips = f.settings.customTips;
+			if (Date.parse(f.publishDate) < Date.parse("2018-12-03")) {
+				if (f.settings.historyCount == 0) f.settings.historyCount = 200;
+				this.his.splice(f.settings.historyCount);
 			}
 
 			this.Library.initLibrary(function(flag) {
@@ -195,7 +200,7 @@ MapScript.loadModule("CA", {
 				noAnimation : false,
 				senseDelay : true,
 				pasteMode : 1,
-				historyCount : 0,
+				historyCount : 200,
 				splitScreenMode : false,
 				keepWhenIME : false,
 				icon : "default",
@@ -230,7 +235,7 @@ MapScript.loadModule("CA", {
 		var i = this.his.indexOf(String(t));
 		if (i >= 0) this.his.splice(i, 1);
 		this.his.unshift(String(t));
-		if (CA.settings.histroyCount) {
+		if (CA.settings.histroyCount >= 0) {
 			this.his.splice(CA.settings.histroyCount);
 		}
 	},
@@ -679,7 +684,7 @@ MapScript.loadModule("CA", {
 				Common.setClipboardText(s);
 				CA.addHistory(s);
 				if (CA.settings.pasteMode == 1) {
-					CA.showPaste(0);
+					if (CA.his.length) CA.showPaste(0);
 				} else if (CA.settings.pasteMode == 2) {
 					self.performClose(function() {
 						gHandler.postDelayed(function() {try {
@@ -2666,13 +2671,13 @@ MapScript.loadModule("CA", {
 				name : "历史记录容量",
 				type : "seekbar",
 				current : function(p) {
-					return p == 0 ? "无限制" : this.list[p] + "条";
+					return p == 0 ? "不保存历史" : this.list[p] + "条";
 				},
-				list : [0, 1, 3, 5, 8, 10, 20, 30, 50, 100],
-				max : 9,
+				list : [0, 1, 3, 5, 8, 10, 20, 30, 50, 100, 200],
+				max : 10,
 				get : function() {
 					var k = this.list.indexOf(CA.settings.histroyCount);
-					return k < 0 ? 0 : this.list[k];
+					return k < 0 ? 200 : this.list[k];
 				},
 				set : function(v) {
 					CA.settings.histroyCount = parseInt(this.list[v]);
