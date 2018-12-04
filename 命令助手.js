@@ -298,7 +298,7 @@ var proto = {
 return Object.create(proto).stop();
 })());
 
-MapScript.loadModule("erp", function self(error, silent) {
+MapScript.loadModule("erp", function self(error, silent, extra) {
 	if (error instanceof java.lang.Throwable) {
 		error = {
 			javaException : error,
@@ -316,6 +316,7 @@ MapScript.loadModule("erp", function self(error, silent) {
 		error.javaException.printStackTrace(strp);
 		tech += "\nJavaException: " + strw.toString();
 	}
+	if (extra) tech += "\n" + Log.debug("额外数据", extra, 0).join("\n");
 	android.util.Log.e("CA", tech);
 	try {
 		var fs = new java.io.PrintWriter(new java.io.FileOutputStream(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", true));

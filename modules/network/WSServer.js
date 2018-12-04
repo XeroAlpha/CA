@@ -81,24 +81,23 @@ MapScript.loadModule("WSServer", {
 		Plugins.emit("WSServer", "connectionClose");
 	},
 	onMessage : function(conn, message) {
-		var json;
+		var json, header;
 		try {
 			json = JSON.parse(message);
+			header = json.header;
+			switch (header.messagePurpose) {
+				case "event":
+				this.onEvent(json);
+				break;
+				case "commandResponse":
+				this.onResponse(json);
+				break;
+				case "error":
+				this.onError(json);
+				break;
+			}
 		} catch(e) {
-			return;
-			erp(e, true);
-		}
-		var header = json.header;
-		switch (header.messagePurpose) {
-			case "event":
-			this.onEvent(json);
-			break;
-			case "commandResponse":
-			this.onResponse(json);
-			break;
-			case "error":
-			this.onError(json);
-			break;
+			erp(e, true, message);
 		}
 	},
 	onEvent : function(json) {
