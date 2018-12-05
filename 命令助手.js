@@ -401,31 +401,29 @@ MapScript.loadModule("Loader", {
 		th.start();
 	},
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
-		try {
-			var s, parentDir, t;
-			path = path.replace(/\\/g, "/");
-			if (MapScript.host == "Android") {
-				var manager = ScriptActivity.getScriptManager();
-				var rd = new java.io.BufferedReader(new java.io.InputStreamReader(manager.open(path)));
-				s = [];
-				while (t = rd.readLine()) s.push(t);
-				rd.close();
-				s = s.join("\n");
-			} else if (MapScript.host == "AutoJs") {
-				s = files.read(files.join(engines.myEngine().cwd(), path));
-			} else return;
-			parentDir = new java.io.File(path).getParent();
-			s = s.replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
-				return match.replace(mpath, new java.io.File(parentDir, mpath));
-			});
-			if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-			return eval.call(null, s);
-		} catch(e) {erp(e)}
+		var s, parentDir, t;
+		path = path.replace(/\\/g, "/");
+		if (MapScript.host == "Android") {
+			var manager = ScriptActivity.getScriptManager();
+			var rd = new java.io.BufferedReader(new java.io.InputStreamReader(manager.open(path)));
+			s = [];
+			while (t = rd.readLine()) s.push(t);
+			rd.close();
+			s = s.join("\n");
+		} else if (MapScript.host == "AutoJs") {
+			s = files.read(files.join(engines.myEngine().cwd(), path));
+		} else return;
+		parentDir = new java.io.File(path).getParent();
+		s = s.replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
+			return match.replace(mpath, new java.io.File(parentDir, mpath));
+		});
+		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
+		return eval.call(null, s);
 	}
 });
 
 Loader.load(function() {
-	
+
 Loader.fromFile("modules/uiCore/G.js")
 
 Loader.fromFile("modules/core/EventSender.js")

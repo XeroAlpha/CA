@@ -65,7 +65,7 @@ MapScript.loadModule("Common", {
 			r.float_bgcolor = this.setAlpha(r.float_bgcolor, i);
 			r.message_bgcolor = this.setAlpha(r.message_bgcolor, 0xe0);
 		} else {
-			CA.settings.alpha = i = 1;
+			CA.settings.alpha = 1;
 		}
 		i = parseFloat(CA.settings.textSize);
 		if (!(i > 0)) {

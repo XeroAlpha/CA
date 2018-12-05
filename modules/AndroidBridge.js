@@ -563,6 +563,30 @@ MapScript.loadModule("AndroidBridge", {
 			callback(AndroidBridge.uriToFile(data.getData()));
 		});
 	},
+	selectImage : function(callback) {
+		if (MapScript.host == "Android") {
+			this.selectFile("image/*", function(path) {
+				callback(path);
+			});
+		} else {
+			Common.showFileDialog({
+				type : 0,
+				check : function(path) {
+					var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
+					if (!bmp) {
+						Common.toast("不支持的图片格式");
+						return false;
+					}
+					bmp.recycle();
+					return true;
+				},
+				callback : function(f) {
+					var path = String(f.result.getAbsolutePath());
+					callback(path);
+				}
+			});
+		}
+	},
 	createShortcut : function(intent, name, icon) {
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
 			var manager = ctx.getSystemService(ctx.SHORTCUT_SERVICE);

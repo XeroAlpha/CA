@@ -655,6 +655,12 @@ MapScript.loadModule("CA", {
 					CA.showCustomExpression();
 				}
 			}];
+			self.getBgImage = function() {
+				if (CA.settings.bgImage) {
+					var bmp = G.BitmapFactory.decodeFile(CA.settings.bgImage);
+					return bmp;
+				}
+			}
 			self.performClose = function(callback) {
 				if (CA.settings.noAnimation) {
 					CA.hideGen();
@@ -677,7 +683,7 @@ MapScript.loadModule("CA", {
 					//onAnimationStart : function(a) {},
 					//onAnimationRepeat : function(a) {},
 				}));
-				CA.con.startAnimation(animation);
+				self.bgContainer.startAnimation(animation);
 			}
 			self.performCopy = function(s) {
 				s = String(s);
@@ -982,7 +988,20 @@ MapScript.loadModule("CA", {
 			CA.con.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 			Common.applyStyle(CA.con, "container_default");
 
-			self.main.addView(CA.con);
+			if (android.os.Build.VERSION.SDK_INT >= 16 && (self.bgImg = self.getBgImage())) {
+				self.bgContainer = new G.FrameLayout(ctx);
+				self.bgContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
+				self.bgImage = new G.ImageView(ctx);
+				self.bgImage.setScaleType(G.ImageView.ScaleType.CENTER_CROP);
+				self.bgImage.setImageBitmap(self.bgImg);
+				self.bgImage.setImageAlpha(Math.ceil(CA.settings.alpha * 255));
+				self.bgContainer.addView(self.bgImage, new G.FrameLayout.LayoutParams(-1, -1));
+				CA.con.setBackgroundColor(Common.setAlpha(Common.theme.bgcolor, Math.ceil(CA.settings.alpha * 192)));
+				self.bgContainer.addView(CA.con, new G.FrameLayout.LayoutParams(-1, -1));
+				self.main.addView(self.bgContainer);
+			} else {
+				self.main.addView(self.bgContainer = CA.con);
+			}
 			self.main.addView(self.bar);
 
 			CA.gen = new PopupPage(self.main, "ca.Generator");
@@ -1015,7 +1034,7 @@ MapScript.loadModule("CA", {
 		animation = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, CA.settings.barTop ? 1 : -1, G.Animation.RELATIVE_TO_SELF, 0);
 		animation.setInterpolator(new G.DecelerateInterpolator(2));
 		animation.setDuration(200);
-		CA.con.startAnimation(animation);
+		self.bgContainer.startAnimation(animation);
 		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideGen : function() {G.ui(function() {try {
@@ -2709,6 +2728,17 @@ MapScript.loadModule("CA", {
 					});
 				}
 			},{
+				name : "背景图片",
+				type : "custom",
+				get : function() {
+					return "点击选择";
+				},
+				onclick : function() {
+					CA.showChooseBgImage(function() {
+						self.refresh(true);
+					});
+				}
+			},{
 				id : "noAnimation",
 				name : "关闭动画",
 				description : "关闭部分动画以减轻卡顿。",
@@ -4371,37 +4401,46 @@ MapScript.loadModule("CA", {
 		self.reload();
 	} catch(e) {erp(e)}})},
 	
-	showModeChooser : function self(callback) {
-		if (self.popup) return;
-		if (!self.menu) {
-			self.menu = [{
-				text : "关闭",
-				description : "禁用IntelliSense的所有功能",
-				onclick : function(v, tag) {
-					CA.settings.iiMode = 0;
-					tag.callback();
-				}
-			},{
-				text : "初学者模式",
-				description : "只启用提示助手",
-				onclick : function(v, tag) {
-					CA.settings.iiMode = 1;
-					tag.callback();
-				}
-			},{
-				text : "专家模式",
-				description : "启用提示助手与智能补全",
-				onclick : function(v, tag) {
-					CA.settings.iiMode = 2;
-					tag.callback();
-				}
-			}];
-		}
-		Common.showOperateDialog(self.menu, {
-			callback : function() {
+	showModeChooser : function(callback) {
+		Common.showOperateDialog([{
+			text : "关闭",
+			description : "禁用IntelliSense的所有功能",
+			onclick : function() {
+				CA.settings.iiMode = 0;
 				callback();
 			}
-		});
+		}, {
+			text : "初学者模式",
+			description : "只启用提示助手",
+			onclick : function() {
+				CA.settings.iiMode = 1;
+				callback();
+			}
+		}, {
+			text : "专家模式",
+			description : "启用提示助手与智能补全",
+			onclick : function() {
+				CA.settings.iiMode = 2;
+				callback();
+			}
+		}]);
+	},
+	showChooseBgImage : function(callback) {
+		Common.showOperateDialog([{
+			text : "不使用",
+			onclick : function() {
+				CA.settings.bgImage = null;
+				callback();
+			}
+		}, {
+			text : "从文件中选择",
+			onclick : function(v, tag) {
+				AndroidBridge.selectImage(function(path) {
+					CA.settings.bgImage = path;
+					callback();
+				});
+			}
+		}]);
 	},
 	showIconChooser : function self(callback, onDismiss) {G.ui(function() {try {
 		if (!self.addCustom) {
@@ -4413,32 +4452,11 @@ MapScript.loadModule("CA", {
 				return view;
 			}
 			self.selectIcon = function(callback) {
-				if (MapScript.host == "Android") {
-					AndroidBridge.selectFile("image/*", function(path) {
-						CA.settings.icon = path;
-						if (self.recent.indexOf(path) < 0) self.recent.push(path);
-						if (callback) callback();
-					});
-				} else {
-					Common.showFileDialog({
-						type : 0,
-						check : function(path) {
-							var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
-							if (!bmp) {
-								Common.toast("不支持的图片格式");
-								return false;
-							}
-							bmp.recycle();
-							return true;
-						},
-						callback : function(f) {
-							var path = String(f.result.getAbsolutePath());
-							CA.settings.icon = path;
-							if (self.recent.indexOf(path) < 0) self.recent.push(path);
-							if (callback) callback();
-						}
-					});
-				}
+				AndroidBridge.selectImage(function(path) {
+					CA.settings.icon = path;
+					if (self.recent.indexOf(path) < 0) self.recent.push(path);
+					if (callback) callback();
+				});
 			}
 			self.recent = [];
 		}
