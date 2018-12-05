@@ -2730,6 +2730,9 @@ MapScript.loadModule("CA", {
 			},{
 				name : "背景图片",
 				type : "custom",
+				hidden : function() {
+					return android.os.Build.VERSION.SDK_INT < 16;
+				},
 				get : function() {
 					return "点击选择";
 				},
