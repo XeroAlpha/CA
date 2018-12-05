@@ -288,7 +288,6 @@ MapScript.loadModule("CA", {
 			var touchSlop = vcfg.getScaledTouchSlop();
 			self.view = new G.FrameLayout(ctx);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (PWM.onResume()) return;
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
 					CA.showModeChooser(function() {
 						v.postDelayed(function() {
@@ -458,9 +457,11 @@ MapScript.loadModule("CA", {
 				self.refreshAlpha();
 				self.refreshPos();
 			}
-			self.iconUpdate = function() {
-				if (!CA.icon) return;
-				self.refreshAlpha();
+			self.iconUpdate = function() {Log.d(PopupPage.debug());
+				gHandler.post(function() {try {
+					if (!CA.icon) return;
+					self.refreshAlpha();
+				} catch(e) {erp(e)}});
 			}
 			self.tutor = CA.settings.tutor_icon ? null : function() {
 				var off = [self.cx, self.cy];
@@ -3056,7 +3057,6 @@ MapScript.loadModule("CA", {
 	},
 
 	resetGUI : function() {
-		PopupPage.dismiss();
 		PWM.dismissFloat();
 		PWM.dismissPopup();
 		PWM.reset();

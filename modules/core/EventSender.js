@@ -33,7 +33,7 @@ MapScript.loadModule("EventSender", {
 				a[i].apply(this, arguments);
 			}
 		}
-		if (this.__eventsender_observer__) this.__eventsender_observer__("trigger", name);
+		if (this.__eventsender_observer__) this.__eventsender_observer__("trigger", arguments);
 		return this;
 	},
 	clearListeners : function() {

@@ -223,7 +223,6 @@ MapScript.loadModule("AndroidBridge", {
 	callHide : function() {
 		if (PopupPage.getCount() > 0) {
 			PopupPage.hide();
-			PWM.intentBack = true;
 		}
 	},
 	scriptAction : function() {

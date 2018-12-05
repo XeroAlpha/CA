@@ -14,12 +14,8 @@ MapScript.loadModule("PWM", {
 			PWM.onPageAdd();
 		});
 	},
-	onResume : function() {
-		if (this.intentBack) {
-			PopupPage.show();
-			this.intentBack = false;
-			return true;
-		}
+	onResume : function() { // 由于图标置顶强制启用，此函数已弃用
+		PopupPage.show();
 		return false;
 	},
 	onPageAdd : function() {
@@ -67,6 +63,7 @@ MapScript.loadModule("PWM", {
 		this.floats.length = this.popups.length;
 		this.clearListeners();
 		PopupPage.reset();
+		this.initialize();
 	},
 	resetUICache : function() {
 		this.resetFlags.forEach(function(e) {

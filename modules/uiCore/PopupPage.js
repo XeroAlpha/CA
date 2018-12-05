@@ -248,6 +248,7 @@ MapScript.loadModule("PopupPage", (function() {
 		r.floatVisible = false;
 		r.defaultStack = [];
 		r.floatStack = [];
+		r.disappearingList = [];
 		r.visible = true;
 		r.prototype = {
 			init : function() {},
@@ -271,9 +272,11 @@ MapScript.loadModule("PopupPage", (function() {
 				r.popPage(this);
 				this.showing = false;
 				if (!noAnimation && this._exitAnimation) {
+					r.addDisappearing(this);
 					this.currentAnimation = this._exitAnimation(this.mainView, function() {
 						this.currentAnimation = null;
 						self.dismiss();
+						r.removeDisappearing(this);
 					});
 				} else {
 					this.dismiss();
@@ -290,10 +293,12 @@ MapScript.loadModule("PopupPage", (function() {
 				return this;
 			},
 			requestShow : function() {
+				Log.d("Show " + this);
 				this.mainView.setVisibility(G.View.VISIBLE);
 				return this;
 			},
 			requestHide : function() {
+				Log.d("Hide " + this);
 				this.mainView.setVisibility(G.View.GONE);
 				return this;
 			},
@@ -305,6 +310,9 @@ MapScript.loadModule("PopupPage", (function() {
 			},
 			getMetrics : function() {
 				return [this.getWidth(), this.getHeight()];
+			},
+			toString : function() {
+				return "[Page " + this.name + "/" + this.id + "]";
 			}
 		}
 		r.buildLayoutParams = function(view, x, y, width, height) {
@@ -349,10 +357,10 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.showPage = function(page) {
-			r.checkThread();
 			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
 			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
 			page.currentContainer.addView(page.mainView);
+			Log.d("Attach " + page + " to " + page.currentContainer);
 			if (this.visible && !this.defaultVisible) {
 				if (this.fullscreen) {
 					this.showView(this.defaultWindow, 0, 0, -1, -1);
@@ -373,9 +381,11 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.hidePage = function(page, notRemoveWindow) {
-			r.checkThread();
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			if (page.currentAnimation) page.currentAnimation.cancel();
+			if (page.mainView.getParent() != page.currentContainer) Log.throwError(new Error("This view has been moved unexpectedly."));
 			page.currentContainer.removeView(page.mainView);
+			Log.d("Detach " + page + " from " + page.currentContainer);
 			if (stack.length == 0 && !notRemoveWindow) {
 				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
 					this.hideView(this.defaultWindow);
@@ -390,10 +400,11 @@ MapScript.loadModule("PopupPage", (function() {
 					this.updateOverlays();
 				}
 			}
+			page.currentContainer = null;
 		}
 		r.pushPage = function(name, page) {
 			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			if (this.busy) return;
+			if (this.busy) return void Log.d("pushPage(" + name + "," + page + ") cancelled");
 			if (stack.length) {
 				t = stack[stack.length - 1];
 				t.page.trigger("pause");
@@ -409,7 +420,7 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.popPage = function(page) {
 			var t, i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			if (this.busy) return;
+			if (this.busy) return void Log.d("popPage(" + page + ") cancelled");
 			for (i = stack.length - 1; i >= 0; i--) {
 				if (stack[i].page != page) continue;
 				t = stack[i];
@@ -469,6 +480,14 @@ MapScript.loadModule("PopupPage", (function() {
 			this.updateOverlays();
 			this.trigger("hide");
 		}
+		r.addDisappearing = function(page) {
+			var i = this.disappearingList.indexOf(page);
+			if (i < 0) this.disappearingList.push(page);
+		}
+		r.removeDisappearing = function(page) {
+			var i = this.disappearingList.indexOf(page);
+			if (i >= 0) this.disappearingList.splice(i, 1);
+		}
 		r.dismiss = function() {
 			var i, e;
 			r.checkThread();
@@ -487,7 +506,11 @@ MapScript.loadModule("PopupPage", (function() {
 				this.hidePage(e.page, true);
 				e.page.showing = false;
 			}
-			this.defaultStack.length = this.floatStack.length = 0;
+			for (i = this.disappearingList.length - 1; i >= 0; i--) {
+				e = this.disappearingList[i];
+				e.dismiss();
+			}
+			this.defaultStack.length = this.floatStack.length = this.disappearingList.length = 0;
 			if (this.defaultVisible) {
 				this.hideView(this.defaultWindow);
 				this.trigger("removePopup");
@@ -531,7 +554,7 @@ MapScript.loadModule("PopupPage", (function() {
 			return this.floatVisible ? this.floatContainer : this.defaultVisible && this.visible ? this.defaultContainer : null;
 		}
 		r.supportResize = true;
-	} else {
+	} else { //暂不维护
 		r.isFullScreen = function() {
 			return true;
 		}
