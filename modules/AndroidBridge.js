@@ -9,6 +9,9 @@ MapScript.loadModule("AndroidBridge", {
 		if (CA.RELEASE) gHandler.post(this.verifyApk);
 		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
 			applyIntent : function(intent) {try {
+				if (!ScriptActivity.isForeground()) {
+					AndroidBridge.reorderToFront();
+				}
 				AndroidBridge.callHide();
 				return true;
 			} catch(e) {erp(e)}},
@@ -211,6 +214,11 @@ MapScript.loadModule("AndroidBridge", {
 		if (!parent) parent = java.lang.Object;
 		if (cls == java.lang.Object || cls == parent) return null;
 		return self(cls.getSuperclass(), params, parent);
+	},
+	reorderToFront : function() {
+		ctx.getApplicationContext().startActivity(
+			new android.content.Intent(ctx, ctx.class)
+				.addFlags(android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 	},
 	callHide : function() {
 		if (PopupPage.getCount() > 0) {
