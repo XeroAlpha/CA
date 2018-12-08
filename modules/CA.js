@@ -21,7 +21,7 @@ MapScript.loadModule("CA", {
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
 	version : [1, 2, 6],
 	publishDate : "{DATE}",
-	help : '{HELP}',
+	help : Loader.fromFile("raw/about.js"),
 	tips : [],
 
 	initialize : function() {try {

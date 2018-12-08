@@ -400,16 +400,18 @@ MapScript.loadModule("Loader", {
 		} catch(e) {erp(e)}}}));
 		th.start();
 	},
+	open : function(path) {
+		if (MapScript.host == "Android") {
+			var manager = ScriptActivity.getScriptManager();
+			return manager.open(path);
+		} else if (MapScript.global.modulePath) {
+			return new java.io.FileInputStream(new java.io.File(MapScript.global.modulePath, path));
+		} else Log.throwError(new Error("不支持的平台"));
+	},
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
 		var rd, s, parentDir, t;
 		path = path.replace(/\\/g, "/");
-		if (MapScript.host == "Android") {
-			var manager = ScriptActivity.getScriptManager();
-			rd = new java.io.InputStreamReader(manager.open(path));
-		} else if (MapScript.global.modulePath) {
-			rd = new java.io.FileReader(new java.io.File(MapScript.global.modulePath, path));
-		} else Log.throwError(new Error("不支持的平台"));
-		rd = new java.io.BufferedReader(rd);
+		rd = new java.io.BufferedReader(new java.io.InputStreamReader(this.open(path)));
 		s = [];
 		while (t = rd.readLine()) s.push(t);
 		rd.close();

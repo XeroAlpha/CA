@@ -11,9 +11,18 @@ function addFrontSpace(arr, frontSpace) {
 		arr[i] = frontSpace + arr[i];
 	}
 }
+function preprocess(code, source, parentDir, path, charset) {
+	eval(code);
+	return source;
+}
 function load(path, charset) {
-	var r = fs.readFileSync(path, charset).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n"), i;
+	var r = fs.readFileSync(path, charset), i;
 	var parent = parentDir(path);
+	var processer = (/\/\*LOADER\s([\s\S]+?)\*\//).exec(r);
+	if (processer) {
+		r = preprocess(processer[1], r, parent, path, charset);
+	}
+	r = r.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 	for (i = 0; i < r.length; i++) {
 		r[i] = r[i].replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
 			var frontSpace = r[i].match(/^\s*/);
