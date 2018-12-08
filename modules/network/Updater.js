@@ -67,13 +67,23 @@ MapScript.loadModule("Updater", {
 	toAnchor : function(title, url) {
 		return '<a href="' + url + '">' + title + '</a>';
 	},
+	queryFromSources : function(sources) {
+		var i, lastError;
+		for (i = 0; i < sources.length; i++) {
+			try {
+				return this.queryPage(sources[i]);
+			} catch(e) {
+				lastError = e;
+			}
+		}
+	},
 	getUpdateInfo : function(callback, silently) {
 		var r;
 		try {
 			if (this.lastcheck) {
 				r = this.lastcheck;
 			} else {
-				this.lastcheck = r = JSON.parse(this.queryPage(this.url));
+				this.lastcheck = r = JSON.parse(this.queryFromSources(this.sources));
 			}
 			callback(Date.parse(r.version) - Date.parse(CA.publishDate), r.version, r);
 		} catch(e) {
@@ -211,8 +221,8 @@ MapScript.loadModule("Updater", {
 			buttons : buttons.map(function(e) {
 				return e.text;
 			}),
-			callback : function(id) {
-				if (id in buttons && buttons.onclick) buttons.onclick();
+			callback : function(i) {
+				if (i in buttons && buttons[i].onclick) buttons[i].onclick();
 			}
 		});
 	},
@@ -291,5 +301,8 @@ MapScript.loadModule("Updater", {
 	latest : null,
 	lastcheck : null,
 	checking : false,
-	url : "https://projectxero.gitee.io/ca/hotfix.json"
+	sources : [
+		"https://projectxero.gitee.io/ca/hotfix.json",
+		"https://xeroalpha.github.io/CA/pages/hotfix.json"
+	]
 });
