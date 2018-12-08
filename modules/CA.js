@@ -990,6 +990,8 @@ MapScript.loadModule("CA", {
 			Common.applyStyle(CA.con, "container_default");
 
 			if (android.os.Build.VERSION.SDK_INT >= 16 && (self.bgImg = self.getBgImage())) {
+				self.bgAlpha = parseFloat(CA.settings.bgAlpha);
+				if (isNaN(self.bgAlpha)) self.bgAlpha = 0.75;
 				self.bgContainer = new G.FrameLayout(ctx);
 				self.bgContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 				self.bgImage = new G.ImageView(ctx);
@@ -997,7 +999,7 @@ MapScript.loadModule("CA", {
 				self.bgImage.setImageBitmap(self.bgImg);
 				self.bgImage.setImageAlpha(Math.ceil(CA.settings.alpha * 255));
 				self.bgContainer.addView(self.bgImage, new G.FrameLayout.LayoutParams(-1, -1));
-				CA.con.setBackgroundColor(Common.setAlpha(Common.theme.bgcolor, Math.ceil(CA.settings.alpha * 192)));
+				CA.con.setBackgroundColor(Common.setAlpha(Common.theme.bgcolor, Math.ceil(CA.settings.alpha * 255 * self.bgAlpha)));
 				self.bgContainer.addView(CA.con, new G.FrameLayout.LayoutParams(-1, -1));
 				self.main.addView(self.bgContainer);
 			} else {
@@ -2738,7 +2740,7 @@ MapScript.loadModule("CA", {
 					return "点击选择";
 				},
 				onclick : function() {
-					CA.showChooseBgImage(function() {
+					CA.showManageBgImage(function() {
 						self.refresh(true);
 					});
 				}
@@ -4428,12 +4430,13 @@ MapScript.loadModule("CA", {
 			}
 		}]);
 	},
-	showChooseBgImage : function(callback) {
+	showManageBgImage : function(callback) {
 		Common.showOperateDialog([{
 			text : "不使用",
 			onclick : function() {
 				CA.settings.bgImage = null;
 				callback();
+				Common.toast("背景图片已设置为 无");
 			}
 		}, {
 			text : "从文件中选择",
@@ -4441,7 +4444,29 @@ MapScript.loadModule("CA", {
 				AndroidBridge.selectImage(function(path) {
 					CA.settings.bgImage = path;
 					callback();
+					Common.toast("背景图片已设置为 " + path);
 				});
+			}
+		}, {
+			gap : 10 * G.dp
+		}, {
+			text : "调整背景透明度",
+			onclick : function() {
+				if (CA.settings.bgImage) {
+					Common.showSlider({
+						max : 100,
+						progress : isNaN(CA.settings.bgAlpha) ? 75 : CA.settings.bgAlpha * 100,
+						prompt : function(progress) {
+							return "透明度：" + progress + "%\n\n本设置调整的实际上是在背景图上覆盖的背景色的不透明度，因此如果主题是半透明的话即使本设置调到100%也可以看见背景图片";
+						},
+						callback : function(progress) {
+							CA.settings.bgAlpha = progress / 100;
+							callback();
+						}
+					});
+				} else {
+					Common.toast("您还没有设置背景图片");
+				}
 			}
 		}]);
 	},
