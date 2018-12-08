@@ -7,7 +7,6 @@ var cwd = process.cwd();
 var versions = JSON.parse(fs.readFileSync(cwd + "/versions.json", 'utf-8'));
 var curdate = versions[versions.length - 1].version;
 var script = cwd + "/命令助手.js";
-var help = cwd + "/帮助.html";
 var outputFile = cwd + "/build/min.js";
 var exportFile = cwd + "/export/命令助手(" + curdate + ").js";
 ensureDir(cwd + "/build");
@@ -24,8 +23,6 @@ function initScript(s) {
 
 function initExport(s) {
 	s = initScript(s);
-	s = s.replace(/\{HELP\}/g, fs.readFileSync(help, 'utf-8').replace(/\s*\n\s*/g, ""));
-	//加入帮助文档
 	
 	s = jsmin("", s, 1);
 	//压缩js（需花费很长时间）
