@@ -1,7 +1,8 @@
 const fs = require("fs");
+var charset = "utf-8";
 function parentDir(path) {
 	var sp;
-	path = fs.realpathSync(path).replace(/\\/g, "/");
+	path = path.replace(/\\/g, "/");
 	sp = path.lastIndexOf("/")
 	return sp < 0 ? null : path.slice(0, sp);
 }
@@ -15,7 +16,10 @@ function preprocess(code, source, parentDir, path, charset, setAfterFill) {
 	eval(code);
 	return source;
 }
-function load(path, charset) {
+var sourceCache = {};
+function load(path) {
+	path = fs.realpathSync(path);
+	if (path in sourceCache) return sourceCache[path];
 	var r = fs.readFileSync(path, charset), i, afterFill;
 	var parent = parentDir(path);
 	var processer = (/\/\*LOADER\s([\s\S]+?)\*\//).exec(r);
@@ -28,7 +32,7 @@ function load(path, charset) {
 	for (i = 0; i < r.length; i++) {
 		r[i] = r[i].replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
 			var frontSpace = r[i].match(/^\s*/);
-			var res = load(parent ? parent + "/" + mpath : mpath, charset).split("\n");
+			var res = load(parent ? parent + "/" + mpath : mpath).split("\n");
 			if (frontSpace) {
 				addFrontSpace(res, frontSpace[0]);
 			}
@@ -39,10 +43,11 @@ function load(path, charset) {
 	if (afterFill) {
 		r = afterFill(r);
 	}
-	return r;
+	return sourceCache[path] = r;
 }
 module.exports = {
-	load : function(path, charset) {
-		return load(path, charset || "utf-8");
+	load : function(path, cs) {
+		charset = cs || "utf-8";
+		return load(path);
 	}
 }

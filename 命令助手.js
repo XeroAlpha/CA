@@ -368,6 +368,7 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 
 MapScript.loadModule("Loader", {
 	loading : false,
+	cache : {},
 	load : function(f) {
 		var lto, lm, lmb;
 		if (MapScript.host == "Android") {
@@ -410,7 +411,8 @@ MapScript.loadModule("Loader", {
 	},
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
 		var rd, s, parentDir, t;
-		path = path.replace(/\\/g, "/");
+		path = new java.io.File(path.replace(/\\/g, "/")).getCanonicalPath();
+		if (path in this.cache) return this.cache[path];
 		rd = new java.io.BufferedReader(new java.io.InputStreamReader(this.open(path)));
 		s = [];
 		while (t = rd.readLine()) s.push(t);
@@ -421,7 +423,7 @@ MapScript.loadModule("Loader", {
 			return match.replace(mpath, new java.io.File(parentDir, mpath));
 		});
 		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-		return eval.call(null, s);
+		return this.cache[path] = eval.call(null, s);
 	}
 });
 

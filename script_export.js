@@ -7,7 +7,8 @@ var cwd = process.cwd();
 var versions = JSON.parse(fs.readFileSync(cwd + "/versions.json", 'utf-8'));
 var curdate = versions[versions.length - 1].version;
 var script = cwd + "/命令助手.js";
-var outputFile = cwd + "/build/min.js";
+var outputFile = cwd + "/build/export.js";
+var minifiedFile = cwd + "/build/min.js";
 var exportFile = cwd + "/export/命令助手(" + curdate + ").js";
 ensureDir(cwd + "/build");
 ensureDir(cwd + "/export");
@@ -49,9 +50,11 @@ function initGZIP(s) {
 }
 
 function exports() {
-	var min;
+	var out, min;
+	console.log("Linking...");
+	fs.writeFileSync(outputFile, out = loader.load(script, "utf-8"));
 	console.log("Running js-min...");
-	fs.writeFileSync(outputFile, min = initExport(loader.load(script, "utf-8")));
+	fs.writeFileSync(minifiedFile, min = initExport(out));
 	console.log("Compressing...");
 	fs.writeFileSync(exportFile, initGZIP(min));
 }
