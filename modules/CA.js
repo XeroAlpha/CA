@@ -71,10 +71,10 @@ MapScript.loadModule("CA", {
 		this.fine = true;
 		this.screenChangeHook();
 	} catch(e) {erp(e)}},
-	unload : function() {
+	unload : function() {try {
 		CA.trySave();
 		G.ui(CA.resetGUI);
-	},
+	} catch(e) {erp(e)}},
 	chatHook : function(s) {try {
 		var i;
 		if ((/^\//).test(s)) this.addHistory(s);
@@ -2886,9 +2886,13 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function() {
 					Common.showFileDialog({
-						type : 1,
+						type : 0,
 						callback : function(f) {
-							CA.importSettings(f.result);
+							try {
+								CA.importSettings(f.result);
+							} catch(e) {
+								Common.toast("从" + f.result + "导入用户数据失败\n" + e);
+							}
 						}
 					});
 				}
@@ -3058,12 +3062,12 @@ MapScript.loadModule("CA", {
 		});
 	},
 
-	resetGUI : function() {
+	resetGUI : function() {try {
 		PWM.dismissFloat();
 		PWM.dismissPopup();
 		PWM.reset();
 		PWM.resetUICache();
-	},
+	} catch(e) {erp(e)}},
 
 	showFCS : function self(v) {G.ui(function() {try {
 		var i, j;
@@ -3523,6 +3527,22 @@ MapScript.loadModule("CA", {
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				CA.performPaste(self.adapter.array[pos], false);
 			} catch(e) {erp(e)}}}));
+			if (MapScript.host == "Android") {
+				self.list.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
+					if (WSServer.isConnected()) {
+						WSServer.sendCommand(self.adapter.array[pos], function(json) {
+							Common.toast("已执行！状态代码：" + json.statusCode + "\n" + json.statusMessage);
+						});
+					} else {
+						if (!WSServer.isAvailable()) {
+							Common.toast("请先在设置中打开WebSocket服务器");
+						} else {
+							Common.toast("请在客户端输入以下指令来连接到服务器。\n/connect " + WSServer.getAddress());
+						}
+					}
+					return true;
+				} catch(e) {return erp(e), true}}}));
+			}
 			self.linear.addView(self.list);
 			self.bar.addView(self.linear);
 			PWM.registerResetFlag(self, "bar");
