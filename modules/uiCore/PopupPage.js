@@ -382,8 +382,9 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.hidePage = function(page, notRemoveWindow) {
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
-			if (page.currentAnimation) page.currentAnimation.cancel();
+			if (!page.currentContainer) Log.throwError(new Error("This page was removed."));
 			if (page.mainView.getParent() != page.currentContainer) Log.throwError(new Error("This view has been moved unexpectedly."));
+			if (page.currentAnimation) page.currentAnimation.cancel();
 			page.currentContainer.removeView(page.mainView);
 			Log.d("Detach " + page + " from " + page.currentContainer);
 			if (stack.length == 0 && !notRemoveWindow) {
@@ -409,6 +410,7 @@ MapScript.loadModule("PopupPage", (function() {
 				t = stack[stack.length - 1];
 				t.page.trigger("pause");
 				TCAgent.onPageEnd(ctx, t.name);
+				Log.d(t.page + " paused");
 			}
 			stack.push(t = {
 				name : name,
@@ -416,6 +418,7 @@ MapScript.loadModule("PopupPage", (function() {
 			});
 			page.trigger("enter");
 			TCAgent.onPageStart(ctx, name);
+			Log.d(t.page + " entered");
 			this.trigger("pushPage", name, page);
 		}
 		r.popPage = function(page) {
@@ -427,10 +430,12 @@ MapScript.loadModule("PopupPage", (function() {
 				stack.splice(i, 1);
 				t.page.trigger("exit");
 				TCAgent.onPageEnd(ctx, t.name);
-				if (i > 0 && this.visible) {
+				Log.d(t.page + " exited");
+				if (i > 0 && i == stack.length && this.visible) {
 					t = stack[i - 1];
 					t.page.trigger("resume");
 					TCAgent.onPageStart(ctx, t.name);
+					Log.d(t.page + " resumed");
 					while (--i >= 0) {
 						stack[i].page.requestShow();
 						if (!stack[i].page.dialog) break;

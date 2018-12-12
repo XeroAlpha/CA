@@ -457,7 +457,7 @@ MapScript.loadModule("CA", {
 				self.refreshAlpha();
 				self.refreshPos();
 			}
-			self.iconUpdate = function() {Log.d(PopupPage.debug());
+			self.iconUpdate = function() {
 				gHandler.post(function() {try {
 					if (!CA.icon) return;
 					self.refreshAlpha();
