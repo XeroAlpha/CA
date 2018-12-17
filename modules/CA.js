@@ -658,8 +658,8 @@ MapScript.loadModule("CA", {
 			}];
 			self.getBgImage = function() {
 				if (CA.settings.bgImage) {
-					var bmp = G.BitmapFactory.decodeFile(CA.settings.bgImage);
-					return bmp;
+					var drawable = G.Drawable.createFromPath(CA.settings.bgImage);
+					return drawable;
 				}
 			}
 			self.performClose = function(callback) {
@@ -996,7 +996,7 @@ MapScript.loadModule("CA", {
 				self.bgContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1));
 				self.bgImage = new G.ImageView(ctx);
 				self.bgImage.setScaleType(G.ImageView.ScaleType.CENTER_CROP);
-				self.bgImage.setImageBitmap(self.bgImg);
+				self.bgImage.setImageDrawable(self.bgImg);
 				self.bgImage.setImageAlpha(Math.ceil(CA.settings.alpha * 255));
 				self.bgContainer.addView(self.bgImage, new G.FrameLayout.LayoutParams(-1, -1));
 				CA.con.setBackgroundColor(Common.setAlpha(Common.theme.bgcolor, Math.ceil(CA.settings.alpha * 255 * self.bgAlpha)));
@@ -4544,12 +4544,10 @@ MapScript.loadModule("CA", {
 		const w = 32 * G.dp * size;
 		var frm = new G.FrameLayout(ctx);
 		var view = new G.ImageView(ctx);
-		var bmp;
-		try {
-			bmp = G.BitmapFactory.decodeFile(path);
-		} catch(e) {erp(e, true)}
-		if (bmp) {
-			view.setImageBitmap(bmp);
+		var drawable;
+		drawable = G.Drawable.createFromPath(path);
+		if (drawable) {
+			view.setImageDrawable(drawable);
 		} else if (preview) {
 			view.setImageResource(G.R.drawable.ic_delete);
 		} else {

@@ -45,6 +45,7 @@ MapScript.loadModule("G", {
 	CompoundButton: android.widget.CompoundButton,
 	CycleInterpolator: android.view.animation.CycleInterpolator,
 	DecelerateInterpolator: android.view.animation.DecelerateInterpolator,
+	Drawable: android.graphics.drawable.Drawable,
 	EditText: android.widget.EditText,
 	EditorInfo: android.view.inputmethod.EditorInfo,
 	ForegroundColorSpan: android.text.style.ForegroundColorSpan,
