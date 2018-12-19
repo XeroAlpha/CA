@@ -64,16 +64,18 @@ MapScript.loadModule("NeteaseAdapter", {
 	},
 	getNeteaseVersion : function(packageName) {
 		var c = ctx.getPackageManager().getPackageInfo(packageName, 0).versionCode;
-		if (c < 840035545) { //1.0.0.35545
-			return "1.1.3.52"; //未确认
-		} else if (c < 840043535) { //1.6.1.43535
-			return "1.2.5.50";
-		} else if (c < 840045722) { //1.7.0.45722
-			return "1.4.1.5";
-		} else if (c < 840049833) { //1.9.0.49833
-			return "1.5.2.0";
-		} else {
+		if (c >= 840052467) { //1.10.0.52467
+			return "1.7.0.13";
+		} else if (c >= 840049833) { //1.9.0.49833
 			return "1.6.2.0";
+		} else if (c >= 840045722) { //1.7.0.45722
+			return "1.5.2.0";
+		} else if (c >= 840043535) { //1.6.1.43535
+			return "1.4.1.5";
+		} else if (c >= 840035545) { //1.0.0.35545
+			return "1.2.5.50";
+		} else {
+			return "1.1.3.52"; //未确认
 		}
 	},
 	askPackage : function(callback, canCustomize) {
