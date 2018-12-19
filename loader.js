@@ -26,7 +26,7 @@ function load(path) {
 	if (processer) {
 		r = preprocess(processer[1], r, parent, path, charset, function(f) {
 			afterFill = f;
-		});
+		}).replace(/\/\*LOADER\s([\s\S]+?)\*\//, "");
 	}
 	r = r.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 	for (i = 0; i < r.length; i++) {

@@ -368,7 +368,6 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 
 MapScript.loadModule("Loader", {
 	loading : false,
-	cache : {},
 	load : function(f) {
 		var lto, lm, lmb;
 		if (MapScript.host == "Android") {
@@ -382,6 +381,7 @@ MapScript.loadModule("Loader", {
 			};
 		}
 		this.loading = true;
+		this.enableCache();
 		if (MapScript.host != "Android") {
 			gHandler.post(function() {try {
 				lto = android.widget.Toast.makeText(ctx, "命令助手 by ProjectXero\n基于Rhino (" + MapScript.host + ")\n加载中……", 1);
@@ -397,9 +397,16 @@ MapScript.loadModule("Loader", {
 			} catch(e) {erp(e)}});
 			if (lm) MapScript.loadModule = lm;
 			Loader.loading = false;
+			Loader.disableCache();
 			MapScript.initialize();
 		} catch(e) {erp(e)}}}));
 		th.start();
+	},
+	enableCache : function() {
+		if (!this.cache) this.cache = {};
+	},
+	disableCache : function() {
+		if (this.cache) this.cache = null;
 	},
 	open : function(path) {
 		if (MapScript.host == "Android") {
@@ -412,7 +419,7 @@ MapScript.loadModule("Loader", {
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
 		var rd, s, parentDir, t;
 		path = new java.io.File(path.replace(/\\/g, "/")).getCanonicalPath();
-		if (path in this.cache) return this.cache[path];
+		if (this.cache && path in this.cache) return this.cache[path];
 		rd = new java.io.BufferedReader(new java.io.InputStreamReader(this.open(path)));
 		s = [];
 		while (t = rd.readLine()) s.push(t);
@@ -423,7 +430,9 @@ MapScript.loadModule("Loader", {
 			return match.replace(mpath, new java.io.File(parentDir, mpath));
 		});
 		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-		return this.cache[path] = eval.call(null, s);
+		t = eval.call(null, s);
+		if (this.cache) this.cache[path] = t;
+		return t;
 	}
 });
 
