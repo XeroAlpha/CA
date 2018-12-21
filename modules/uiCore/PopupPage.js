@@ -766,7 +766,7 @@ MapScript.loadModule("PopupPage", (function() {
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
 		topPage = r.getTopPage();
-		popup.enterAnimation(function() {
+		popup.enterAnimation(function(v, callback) {
 			var alphaAni, scaleAni;
 			alphaAni = new G.AlphaAnimation(topPage && topPage.dialog ? 1 : 0, 1);
 			alphaAni.setDuration(200);

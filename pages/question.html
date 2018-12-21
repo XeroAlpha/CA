@@ -76,7 +76,7 @@ a:hover, a:active {
 <body>
 <h1 id="question_title">每 日 问 题</h1>
 <div id="question_usage"></div>
-<div id="question_body">如果您看到这段文字，说明您无法运行JavaScript。请您检查您的浏览器设置</div>
+<div id="question_body">如果您看到这段文字，说明网页可能无法使用某些页面特性。请您检查您的浏览器设置或者更新您的浏览器。</div>
 <div id="question_answer" style="display: none">
 请填写你的答案 <button id="check_button" onclick="checkAnswer(document.getElementById('answer_box'), true)">验证</button><br />
 <input type="text" id="answer_box" onchange="checkAnswer(this)"></input>
@@ -89,52 +89,245 @@ a:hover, a:active {
 别以为看到这儿就可以作弊了，这里的答案可都是正则表达式
 如果你有能力看懂正则表达式，区区命令又有何难？
 */
-(function() {
-var question_list = [{
-    question: "如何检测最近玩家是否携带了命令方块？",
-    answer: "os\\c_+slopdl+0++asnca@b-\\c\\\\1mmrkes",
-    wp: 128476
+var Verify = (function() {
+function random(seed) {
+	return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
+}
+function unwind(str, p) {
+	var seed = [str.length * p], seq = [], j, t;p
+	for (i = 0; i < str.length; i++) seq[i] = str.charAt(i);
+	while (i > 0) {
+		j = Math.floor(random(seed) * i--);
+		t = seq[j];
+		seq[j] = seq[i];
+		seq[i] = t;
+	}
+	return seq.join("");
+}
+var Filter = {
+	allOf : function(r, param) {
+		param.filters.forEach(function(e) {
+			if (!Filter[e.type](r, e)) throw unwind(" eyD enibd", 19105) + e.type;
+		});
+	},
+	someOf : function(r, param) {
+		var count = 0;
+		param.filters.forEach(function(e) {
+			if (Filter[e.type](r, e)) count++;
+		});
+		return count > 0;
+	},
+	noneOf : function(r, param) {
+		param.filters.forEach(function(e) {
+			if (Filter[e.type](r, e)) throw unwind(" eyD enibd", 19105) + e.type;
+		});
+	},
+	noPositiveKeys : function(r, param) {
+		return Object.keys(r.positive).length == 0;
+	},
+	containsPositiveKeys : function(r, param) {
+		var a = Object.keys(r.positive), i;
+		for (i in param.keys) if (a.indexOf(param.keys[i]) < 0) return false;
+		return true;
+	},
+	allOfPositiveKeys : function(r, param) {
+		var a = Object.keys(r.positive), i;
+		for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
+		return true;
+	},
+	equalsPositiveKeys : function(r, param) {
+		var a = Object.keys(r.positive), i;
+		for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
+		return a.length == param.keys.length;
+	},
+	noNegativeKeys : function(r, param) {
+		return r.negative.length == 0;
+	},
+	containsNegativeKeys : function(r, param) {
+		var a = r.negative, i, keys = {};
+		for (i in a) {
+			if (param.keys.indexOf(a[i].key) >= 0) {
+				keys[a[i].key] = 1;
+			}
+		}
+		return param.keys.length == Object.keys(keys).length;
+	},
+	allOfNegativeKeys : function(r, param) {
+		var a = r.negative, i;
+		for (i in a) if (param.keys.indexOf(a[i].key) < 0) return false;
+		return true;
+	},
+	equalsNegativeKeys : function(r, param) {
+		var a = r.negative, i, keys = {};
+		for (i in a) {
+			if (param.keys.indexOf(a[i].key) >= 0) {
+				keys[a[i].key] = 1;
+			} else {
+				return false;
+			}
+		}
+		return param.keys.length == Object.keys(keys).length;
+	},
+	numbericPositiveKeys : function(r, param) {
+		var a = Object.keys(r.positive), i;
+		for (i in a) {
+			if (param.keys.indexOf(a[i]) >= 0) {
+				r.positive[a[i]] = Number(r.positive[a[i]]);
+				if (isNaN(r.positive[a[i]])) return false;
+			}
+		}
+		return true;
+	},
+	numbericNegativeKeys : function(r, param) {
+		var a = r.negative, i;
+		for (i in a) {
+			if (param.keys.indexOf(a[i].key) >= 0) {
+				a[i].value = Number(a[i].value);
+				if (isNaN(a[i].value)) return false;
+			}
+		}
+		return true;
+	},
+	scoresKey : function(ks, param) {
+		var a = ks.positive[param.key], r = {};
+		if (!a.startsWith("{") || !a.endsWith("}")) return false;
+		a = a.slice(1, -1).split(",");
+		a.forEach(function(e) {
+			var i = e.indexOf("=");
+			if (i < 0) throw unwind("t dnsgC qeiolnaufnnisa ", 2490);
+			var a = e.slice(0, i), b = e.slice(i + 1), c;
+			if (b.startsWith("!")) {
+				r[a] = {
+					type : unwind("nqe", 10061),
+					score : Number(b.slice(1))
+				}
+			} else {
+				i = b.indexOf("..");
+				if (i < 0) {
+					r[a] = {
+						type : unwind("euq", 31763),
+						score : Number(b)
+					}
+				} else {
+					c = b.slice(i + 2);
+					b = b.slice(0, i);
+					if (b.length == 0) {
+						r[a] = {
+							type : unwind("leq", 3860),
+							score : Number(c)
+						}
+					} else if (c.length == 0) {
+						r[a] = {
+							type : unwind("geq", 66118),
+							score : Number(b)
+						}
+					} else {
+						r[a] = {
+							type : "in",
+							scoreMin : Number(b),
+							scoreMax : Number(c)
+						}
+						if (isNaN(r[a].scoreMin) || isNaN(r[a].scoreMax)) throw unwind("auNnboe rm t", 12966);
+						return;
+					}
+				}
+			}
+			if (isNaN(r[a].score)) throw unwind("auNnboe rm t", 12966);
+		});
+		ks.positive[param.key] = r;
+		return true;
+	}
+};
+var parseSelector = function(s, filters) {
+	var positive = {}, negative = [], r;
+	try {
+		splitSelector(s).forEach(function(e) {
+			var i = e.indexOf("=");
+			if (i < 0) throw unwind("t dnsgC qeiolnaufnnisa ", 2490);
+			var a = e.slice(0, i), b = e.slice(i + 1);
+			if (b.startsWith("!")) {
+				negative.push({key: a, value: b.slice(1)});
+			} else {
+				positive[a] = b;
+			}
+		});
+		r = {positive: positive, negative: negative};
+		if (filters) {
+			Filter.allOf(r, {
+				filters : filters
+			});
+		}
+		return r;
+	} catch(e) {}
+	return null;
+}
+var normalizeSelectorBox = function(pos) {
+	if (pos.dx < 0) {
+		pos.dx = -pos.dx; pos.x -= pos.dx;
+	}
+	if (pos.dy < 0) {
+		pos.dy = -pos.dy; pos.y -= pos.dy;
+	}
+	if (pos.dz < 0) {
+		pos.dz = -pos.dz; pos.z -= pos.dz;
+	}
+}
+var splitSelector = function(s) {
+	var arr = [], i, j, k;
+	i = 0;
+	while (i < s.length) {
+		j = s.indexOf(",", i);
+		if (j < 0) break;
+		k = s.indexOf("{", i);
+		if (k >= i && k < j) {
+			k = s.indexOf("}", k);
+			if (k < 0) break;
+			j = s.indexOf(",", k + 1);
+			if (j < 0) break;
+		}
+		arr.push(s.slice(i, j));
+		i = j + 1;
+	}
+	arr.push(s.slice(i));
+	return arr;
+}
+var questions = [{
+    question: unwind("带方检命块玩令近是测何家最否如携了？", 8746),
+    answer: unwind("m_n\\\\d+pa\\sms\\l+oec-0c1sarokc+s+bl@", 2656)
 }, {
-    question: "如何复制(1,3,5)-(2,4,6)区域内所有的非空气方块到(-1,-9,-5)-(0,-8,-4)?（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
-    answer: "4+c5sss+ss\\sk-lmo3-+(\\ss\\s5dar+++\\(m+\\)\\\\)osocnn92?+\\\\e+\\+|e-a11\\lsr6f+se",
-    wp: 58187
+    question: unwind("?,标2坐(1的48-、第二制,、)块如方-4Y(-,)-小第)分（,何(内1Z域标0）、-5等到9坐请(个一,区X非的个,,Z6,于5)别让-的X-气有所Y、复空于", 2679),
+    answer: unwind("\\-\\s\\ssmnc+\\+5))s-fse3m|\\+1ssres+5(\\l4+?+\\+oe\\+sc\\ksa+o9+son-2\\(6\\+rl1asd", 2780)
 }, {
-    question: "如何复制(7,17,2)-(9,18,3)区域内所有的泥土方块，使复制后(7,17,2)位置的方块被复制到当前位置？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
-    answer: "sl7+)20s+s\\\\(tr\\\\si+s\\1~cno1s|+a73ro(+e\\sesi++f8+t\\r9d\\ss\\n+\\mels?+rce)o+ld~s\\~+\\+\\sf",
-    wp: 135596
+    question: unwind(",8前制)X请所坐复当位、何、小泥有(Y内让Y127)如位（,方区、置,置的块于制1标)域土,块Z等到一个7制复,2第复二）7的1于个第被X方,(3的，后别标分、Z-坐？9的7使", 2173),
+    answer: unwind("\\\\lfn\\sli+7tssss\\+8+\\sc\\(\\3s+0d9*s+?s\\+\\~asm2t\\)eir+ss+1~\\r\\~)ors*o1rec+e+eld+|onf(\\", 1453)
 }, {
-    question: "如何给予最近玩家无敌效果10秒且隐藏粒子？",
-    answer: "f@p)[sd+1f90c\\\\n5]as|u+eetesi\\cr\\[1-+\\s]t+-\\rss+e(+tse9",
-    wp: 76347
+    question: unwind("且最何粒0果予玩1给家？秒无如效敌藏近隐子", 9794),
+    answer: unwind("e0\\]e(s+-pntct9sae\\rse+-+c9)i[\\]f+1r|+etssd5\\s\\f+s@[u1\\", 3193)
 }, {
-    question: "如何给予所有玩家徒手攻击其他实体无伤的效果1分钟？",
-    answer: ")\\+ws\\rt9(tfs]+a\\?-+|+eks0\\6s@1?ec*sen((fs\\l)uf)a\\a+sesdee[",
-    wp: 69161
+    question: unwind("有如攻无钟果他何实效分予1徒体伤击家其所手给？玩的", 1951),
+    answer: unwind(")f+se6flat\\\\\\e[+|s0src@?s\\e9(e\\](deassu?+et-s1a+nf\\(wk+*))s", 3321)
 }, {
-    question: "如何检测最近玩家手持物品是否是钓鱼竿？（钓鱼竿已被附魔为饵钓I）",
-    answer: "th@en+\\slsu(er)s\\1?\\ac++np",
-    wp: 220506
+    question: unwind("玩物为品检鱼测否持被魔？手钓已附如家竿钓近竿钓）是是I何饵（鱼最", 107),
+    answer: unwind("s+?ce+@\\n(\\sua)nh+t1s\\plre", 6766)
 }, {
-    question: "如何杀死所有站在灰色羊毛上的玩家？（命令执行点为玩家所在坐标）",
-    answer: "p\\+tc~t*xss\\+slkt~@seso~*s-+\\cs\\~)eos~lsa+is~\\(s+ese\\7w\\+\\\\+l\\++sd@(\\1+e|u\\)@?",
-    wp: 127666
+    question: unwind("杀行毛执（家色令命玩家羊点何所在玩）死站标坐的为所在有上？灰如", 1544),
+    answer: unwind("|tc(*lse+~ss@+sks\\ew\\\\?os\\7s~~s~\\e++del@o\\t\\+e~ssasu~s\\)s\\-l\\tipc+)*++\\\\1++(@", 1857)
 }, {
-    question: "如何将玩家A传送到玩家B前方两格？",
-    answer: "e\\\\+2se~\\\\l(~+spBt\\u\\^x\\pss\\es|+\\+s++tt\\crse^+\\e)to^~s+\\sA+",
-    wp: 217990
+    question: unwind("送A家玩将格家传方？到前两何如B玩", 4493),
+    answer: unwind("^\\sltpsAu\\spssost+r\\\\(^+\\+~\\+\\2+\\+|\\++\\x~e+ts)sB\\t^\\~seeece", 3432)
 }, {
-    question: "如何给予以(5,31,2)为中心，半径50格范围内的所有玩家“雷罚”一次？",
+    question: unwind("心为予所1格径中围？)范,5以半玩2罚给家，何有(一“,次5”30雷的如内", 1793),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind(")u$+(\\+anog[\\ms.s++~?o_~+tstgseteul^ih(+b\\]+~ess\\+n\\\\lxm\\\\~\\@+cs)sn?+~s\\~si\\", 5140), "").exec(str);
+        var a = new RegExp(unwind("u]sesli~gs_?+t+lx.)(\\t\\\\os+s+\\a~cu\\\\\\s\\i@sn[gm~s~e)\\+(~b?t+ns+e^n~+\\\\mhs+o+$", 2181), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: "equalsPositiveKeys",
+                type: unwind("eviKusyalPtiseoqse", 6786),
                 keys: ["x", "y", "z", "r"]
             }, {
-                type: "noNegativeKeys"
+                type: unwind("egoetiyKeNnvas", 1723)
             }, {
-                type: "numbericPositiveKeys",
+                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
                 keys: ["x", "y", "z", "r"]
             }
         ]);
@@ -143,30 +336,27 @@ var question_list = [{
         return pos.x == 5 && pos.y == 31 && pos.z == 2 && pos.r == 50;
     } 
 }, {
-    question: "如何将(1,3,5)-(2,4,6)区域内所有的石头方块替换为空气？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
-    answer: "+\\6t\\a+\\s\\p\\o3)+s++i+s4s+fs\\nse\\e5\\sia+0s1+0scs(slel?\\\\+rlsr2+\\",
-    wp: 95363
+    question: unwind("Z等、,小第6-5个的(1为,2、请换二的(让坐如区,标一坐头有分石于别方（空、个替4)第)何,Y的？内于X）域Z3块所将气X标、Y", 3154),
+    answer: unwind("\\lt+26s\\+(\\r++ea\\ss+3\\05f+ipss+lesl)s\\?+s\\ss\\ears+s10i4\\n\\+o\\c+", 1638)
 }, {
-    question: "如何将以命令执行点为中心，清空半径为5格的立方体内的所有方块并在六面覆盖上玻璃？（请让第一个坐标的X、Y、Z分别小于等于第二个坐标的X、Y、Z）",
-    answer: "\\+5fls+~+~-s\\+s5is++gsl50a\\ow\\\\ls5~~55\\\\l+-s-+\\+sss\\~~ohls",
-    wp: 137681
+    question: unwind("5小覆、别一分并的玻请X方何有让于第执为点Y的、？六标面、（方标所，上个内将个空X块如以璃Z的坐、体的于）坐第为格二中立盖清行Z在等Y令心命径半", 2772),
+    answer: unwind("~h++ls~slog-ssw5\\\\\\ssl+\\5a5fl+-05\\s-i\\s~~5\\l5\\+++o~ss\\s++~", 2845)
 }, {
-    question: "如何设置所有非生存模式玩家为生存模式？",
-    answer: "v]vs\\au+ia[|roe|l\\m!srm0)eau=s0s(i@a)s(m\\g\\+|vslv|d",
-    wp: 53514
+    question: unwind("设如模存置为生非存所玩生何式有式家？模", 6889),
+    answer: unwind("mls=v\\ues+mu+m\\@a|(]aaa)g|e)li0svv!v[|or|s0i\\(sr\\sd", 3778)
 }, {
-    question: "如何把以(4,5,6)为中心，边长为4的正方体内的所有玩家变成生存模式？",
+    question: unwind("正边如模,所把的式？方(内，以成何5为)长中6,玩的4生家变为有心4体存", 3154),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("av[@is+e)mdog\\ssm\\\\$.a+0r+v)eul(^]||(s\\?a", 193440), "").exec(str);
+        var a = new RegExp(unwind("+ea|\\)(as0\\i@eu)a$vvml]sm\\g+o.|(?^[r\\sds+", 139), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[2], [
             {
-                type: "equalsPositiveKeys",
+                type: unwind("eviKusyalPtiseoqse", 6786),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }, {
-                type: "noNegativeKeys"
+                type: unwind("egoetiyKeNnvas", 1723)
             }, {
-                type: "numbericPositiveKeys",
+                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }
         ]);
@@ -176,81 +366,75 @@ var question_list = [{
         return pos.x == 2 && pos.y == 3 && pos.z == 4 && pos.dx == 4 && pos.dy == 4 && pos.dz == 4;
     }
 }, {
-    question: "如何防止玩家溺死？（即氧气条走完后不伤血）",
-    answer: "rgmddamgllesanef+wonua\\si\\+reesga",
-    wp: 227173
+    question: unwind("如气完条不氧何伤家（死溺即玩止后血走防？）", 6952),
+    answer: unwind("+msgefeedngsug\\rs+nlolam\\raeidawa", 6061)
 }, {
-    question: "如何给予最近玩家一把在冒险模式下只能挖黑曜石的钻石镐？",
+    question: unwind("曜在下的近石钻黑险一最镐家只挖玩？予把何模式如石能给冒", 5639),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind(".++\\sso\\+gddvsmkn\\+(_@i\\^\\ssp)(a\\ei1+dc)ixea+p$+", 182399), "").exec(str);
+        var a = new RegExp(unwind(".ssv\\sd+\\kscs)_dnx\\p^+@((iia+++1epimgd++)a\\$\\o\\e", 595), "").exec(str);
         var p = JSON.parse(a[2]);
-        p = p[unwind("ctrfrt_mai:nyecadnoes", 228413)].blocks;
-        return Array.isArray(p) && p.length == 1 && p[0] == "obsidian";
+        p = p[unwind("ystrnn:e_tfcdraciamoe", 5864)].blocks;
+        return Array.isArray(p) && p.length == 1 && p[0] == unwind("iaibdons", 21650);
     }
 }, {
-    question: "如果游戏内一开始有6个盔甲架，执行两次execute @e[type=armor_stand] ~ ~ ~ execute @e[type=armor_stand] ~ ~ ~ summon armor_stand后游戏内会有几个盔甲架（不考虑运行环境限制）",
+    question: unwind("o~果us内一开始境__盔个d，cry次tx运）utn 行][t考盔架=a~mdt s后en戏m x （ rm~p甲reae~p@a两aeo 几 a虑tu个s制e_游环如tmr戏游执][n会 ~ee行内tr有@架rnd6有  e=me ayseo限不甲oc", 251),
     answer: function(str) {
         return Math.abs(Number(str) - 6 * Math.pow(2, 6) * Math.pow(2, 384)) < 1e+115;
     },
-    answerType: "number"
+    answerType: unwind("ebrunm", 3395)
 }, {
-    question: "如何在所有玩家耳边播放一次末影人死亡声？（每个玩家收到的音量相同）",
-    answer: "+\\e@m)ac\\o?s+p~)t~?b.)n?sd@edtse+d\\xuyshs\\+)es+sda.oernl+en+ua\\?~\\m\\s+ss+\\e(\\s+\\d+(\\s+\\d+(\\~\\(\\s+\\ss~+~+",
-    wp: 207803
+    question: unwind("？相一家每（所播耳到在亡收同个音人）家影有声的量如次死末边放玩何玩", 1420),
+    answer: unwind("+end+e+esds@a\\e+d\\sma\\+(~\\s+s~?)me~+\\\\@o+\\?\\h?d.\\.xe~sr\\(l\\s+ycs)++\\b(++s+)su\\tnd~ossn\\?~a+st\\(se+su)\\d", 2035)
 }, {
-    question: "如何替换位于(51,8,-56)的箱子内的第五格物品为一个潮涌核心？",
-    answer: "ot)?)0\\+iincrs\\++l8ee+e1\\s+e\\sp-56mc+slot\\.soltaan?r\\s+4\\s+conduit(\\sb1(\\s+s\\kc5",
-    wp: 179748
+    question: unwind("潮内一箱,个品的-(8五1心物涌5何第于换)56子为的位核,如？格替", 2862),
+    answer: unwind("sr+tsno?se?a\\r\\5\\cmt1+st+ocd.kn+n86llis\\p+c1s\\\\d\\+\\i+o4\\s(la\\)t\\)(+5+ei-ssebuso+e", 1258)
 }, {
-    question: "如何替换最近玩家的快捷栏第一格为一块在冒险模式下只能放在草方块上的玻璃？",
+    question: unwind("的第玻最何的？放草格一险下块玩方为一只冒上近如在模能捷璃替快家式块栏换在", 1284),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("be)\\+gt+oos\\+ey0l\\rs\\esp\\l+ss.lia++csh@\\r\\t^(s0ise++ts$nsamt.\\+pt1sa", 112768)).exec(str);
+        var a = new RegExp(unwind("stslc(+ms\\.gyr\\letipnss+l\\aso)+\\1+0o+\\\\ss0e$\\s++eat.p+ia^st@+etsbhr\\", 1709)).exec(str);
         var p = JSON.parse(a[1]);
-        p = p[unwind("cefano:ap_tlincar_necm", 183864)].blocks;
-        return Array.isArray(p) && p.length == 1 && p[0] == "grass";
+        p = p[unwind("r_noitlanmceafe_:pccan", 7642)].blocks;
+        return Array.isArray(p) && p.length == 1 && p[0] == unwind("rgssa", 42033);
     }
 }, {
-    question: "如何用命令让半径30格内的随机一个玩家戴上钻石头盔？",
-    answer: "_i+\\)s?)\\s+p3+nrh]om+ya0dre[\\st?=os\\\\\\\\eele+.l.\\\\(0e+s\\ad@tsmc\\t+idsrar+rt+\\s(menaihotdmeld\\",
-    wp: 87365
+    question: unwind("3随命？如一钻玩头内格家让上盔石令的用何径机戴0个半", 4611),
+    answer: unwind("0)\\.\\sra\\_[s=so\\imnse\\m(r+e+\\t\\\\+esta+dt@h0ido\\m\\+eeod3r)(+ls\\ycad]t+ms\\r?\\hr+tepae?l.+idsl", 28)
 }, {
-    question: "如何将所有玩家传送到以(17,?,5)为中心，半径为20的区域？",
-    answer: "py+se57r\\es\\a\\a@l0\\s1s2ss++)r+dsa(d+\\\\+p",
-    wp: 26258
+    question: unwind("以有2为，为何如区?玩？中0传(所域将送71的,家半)到5径,心", 3245),
+    answer: unwind("sd7yd+\\+2a\\\\sle++s\\s+p\\a1@\\psresa50+sr", 633)
 }, {
-    question: "如何让显示给所有玩家的下次标题瞬间显示，持续1s后瞬间消失？",
-    answer: "ts+\\\\ltt\\esa\\+\\00@+2is+sei0sms+",
-    wp: 9415
+    question: unwind("家有瞬所显1后瞬s何次让显持如间题下示标续消的示，玩？失间给", 5903),
+    answer: unwind("ee++ss00i@sl\\s+a\\\\ts0\\2\\s+t+itm", 5585)
 }, {
-    question: "如何让所有名称为A的盔甲架不断原地旋转？",
+    question: unwind("旋让转何有A称名不的断甲如为？盔所地原架", 733),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind(")+e~\\+?)~+ss\\+()\\s?]~~es~s\\s.\\~e+s\\++~css@x-~+)(\\s^t+p+[t\\\\++\\($(\\d+es\\@\\su?\\", 233200), "").exec(str);
+        var a = new RegExp(unwind("(\\s~.@~\\~s(?s?~(++\\ss\\?e~++es\\+d+)\\e\\s)+-+s\\ex~\\ss~)\\[+(@+)ssc\\\\+\\u+t]\\$~p+t", 2952), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: "equalsPositiveKeys",
-                keys: ["type", "name"]
+                type: unwind("eviKusyalPtiseoqse", 6786),
+                keys: [unwind("ypte", 8927), unwind("nema", 48834)]
             }, {
-                type: "noNegativeKeys"
+                type: unwind("egoetiyKeNnvas", 1723)
             }
         ]);
         if (!p) return false;
         var pos = p.positive;
-        return pos.type == "armor_stand" && pos.name == "A";
+        return pos.type == unwind("rtsnam_odar", 3793) && pos.name == "A";
     }
 }, {
-    question: "如何把以(7,8,9)为顶点，第五卦限方向里边长为6的正方体里的所有生物传送到(0,4,0)？（不懂什么叫卦限的自己百度）",
+    question: unwind("点懂生有百物顶第的么(为送到正五6方,什把？0,)）,方的不以如叫，)卦长向8边己度何,的里限0（4(体自传97为卦限里所", 2000),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("$p4se.\\+[\\\\?()++\\]ss@\\s^+0+0t\\", 1921), "").exec(str);
+        var a = new RegExp(unwind("^+s+t\\\\\\e\\.@(+]+4)?s+[\\0\\ps0$s", 6199), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: "equalsPositiveKeys",
+                type: unwind("eviKusyalPtiseoqse", 6786),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }, {
-                type: "noNegativeKeys"
+                type: unwind("egoetiyKeNnvas", 1723)
             }, {
-                type: "numbericPositiveKeys",
+                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }
         ]);
@@ -283,17 +467,17 @@ var question_list = [{
         m2 = Math.floor(Math.random() * op.length),
         m3 = Math.floor(Math.random() * op.length);
     var question = [
-        "请填写当我的世界执行完以下命令后玩家Mark的记分项a的分数",
-        "/scoreboard objectives add a dummy",
-        "/scoreboard objectives add b dummy",
-        "/scoreboard objectives add c dummy",
-        "/scoreboard players set Mark a " + a[0],
-        "/scoreboard players set Mark b " + b[0],
-        "/scoreboard players set Mark c " + c[0],
-        "/scoreboard players operation Mark c " + op[m1].id + " Mark a",
-        "/scoreboard players operation Mark b " + op[m2].id + " Mark c",
-        "/scoreboard players operation Mark a " + op[m3].id + " Mark b"
-    ].join("<br />");
+        unwind("当我a玩分以家令ra的后分M世行命界项下数请记的写执完的填k", 4974),
+        unwind("eomosetuaodecr amrid /bva ysdcdbj ", 6793),
+        unwind("bdbyddcoo/irmcuosa jseevrb dt aem ", 205),
+        unwind("edrjcs baoomdveedmy dc/ractsb io u", 479),
+        unwind("c aebeaysrsopdrl te/ra   rsakoM", 1515) + a[0],
+        unwind("Mbrkbceoea/esdor rspsa ltray   ", 1815) + b[0],
+        unwind("/yscrrderM  rosaal os tecpkb ea", 2115) + c[0],
+        unwind("ecakiserrydlnoprocb et/ a ars prMa oo", 6289) + op[m1].id + unwind("kMaa  r", 12642),
+        unwind("c/rysae drrnbsoap M eit or aokoarblep", 6038) + op[m2].id + unwind("M c akr", 15300),
+        unwind("slabpMaa/eooitrordykerp rsoc an ae r ", 5786) + op[m3].id + unwind(" rabkM ", 13971)
+    ].join(unwind("/b <r>", 26355));
     op[m1].op(c, a);
     op[m2].op(b, c);
     op[m3].op(a, b);
@@ -302,45 +486,96 @@ var question_list = [{
         answer: function(str) {
             return Number(str) == a[0];
         },
-        answerType: "number"
+        answerType: unwind("ebrunm", 3395)
     };
 })(), {
-    question: "如何让记分项aaa显示在侧边栏并使分数升序排序？",
-    answer: "asbndce\\vaaeosae\\r+eas+ddjcos\\rsd\\gpobtssa+s+ciieaslbirteyn\\s+is",
-    wp: 138038
+    question: unwind("使排a如分数让分序项何边栏aa侧？序升显记在示并", 1311),
+    answer: unwind("rbeisvects\\disssc+bdcsoano+odb\\essyjeasipl+n+a+sarerdta\\gseia\\a\\", 2256)
 }, {
-    question: "如何让不在线的玩家Mark的记分项mark小于等于50时执行成功，否则失败？",
-    answer: "+so\\a+pst\\bd\\srs\\a5c++smkrysessotM\\e0+r*\\s+\\kearral",
-    wp: 75357
+    question: unwind("不则时线的玩行功让kr败的，等0否如失成km5家分执？aa记在何小项于r于M", 265),
+    answer: unwind("\\r+r*yorbscM+eds\\\\+rtassso\\+50+k\\msea\\lk+s\\rstesaap", 4143)
 }, {
-    question: "如何检测所有记分项mark大于等于30，但time小于等于20的玩家？（使用testfor命令）",
+    question: unwind("何玩于检et分于e2，s用使（项大tr测于如）的令家0？于0t3im命等akom有但等fr所小记", 55),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("s[tf(t+sea])\\\\o@\\+.r", 205070), "").exec(str);
+        var a = new RegExp(unwind("\\er+\\@toa()]s+stf\\[.", 11060), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: "equalsPositiveKeys",
-                keys: ["scores"]
+                type: unwind("eviKusyalPtiseoqse", 6786),
+                keys: [unwind("sosrec", 12696)]
             }, {
-                type: "noNegativeKeys"
+                type: unwind("egoetiyKeNnvas", 1723)
             }, {
-                type: "scoresKey",
-                key: "scores"
+                type: unwind("sersKycoe", 4357),
+                key: unwind("sosrec", 12696)
             }
         ]);
         if (!p) return false;
         var sk = p.positive.scores;
-        return sk.mark.type == "geq" && sk.mark.score == 30 && sk.time.type == "leq" && sk.time.score == 20;
+        return sk.mark.type == unwind("geq", 66118) && sk.mark.score == 30 && sk.time.type == unwind("leq", 3860) && sk.time.score == 20;
     }
 }, {
-    question: "如何设置所有记分项mark不等于255的玩家的记分项mark的分数为255？",
-    answer: "+rsr\\b\\s\\so}y\\e@5l+k{cs\\dsar]m=s2\\esk+a[co5a5=e+tr\\2\\!r\\amssseaorp5+",
-    wp: 38145
+    question: unwind("r的5项a5m为分2m5不k52的数分的设记？家有分玩记r如于所项置k等a何", 2445),
+    answer: unwind("+\\s\\s5e\\cms\\oo[s@5}e{a+2\\bd2++ssrrsecs]lay5o\\krmrprs=5+aatks!=a\\r\\\\e", 926)
 }, {
-    question: "如何交换玩家A和玩家B的记分项mark的分数？",
-    answer: "++ps\\a++e\\amr\\+moarssa+skore|Apsrkrs<sy)c+oeB>s(naB\\+\\t\\r+\\A<lr>i\\abd\\sso+sm\\sk",
-    wp: 221180
+    question: unwind("分m家ka？A换分玩的如何交玩的项数和家rB记", 1470),
+    answer: unwind("r\\te+o++Bals+ss\\dB>raooeska\\++ss<s\\>i(c\\pA<mop)ss\\rrabAn\\sreykr+\\m++\\|a", 1871)
 }];
+var i = questions.length, j, t, seed = [questions.length];
+while (i > 0) {
+	j = Math.floor(random(seed) * i--);
+	t = questions[j];
+	questions[j] = questions[i];
+	questions[i] = t;
+}
+var current = {};
+return {
+	setDate : function(date) {
+		var i, seed;
+		current.date = date;
+		seed = [Math.floor(Math.abs((current.date + 39600000) / 86400000))];
+		for (i = questions.length - 1; i >= 0; i--) random(seed);
+		current.base = seed[0];
+		return this;
+	},
+	requestQuestion : function() {
+		current.random = random([current.base]);
+		return current.question = questions[Math.floor(current.date / 86400000) % questions.length];
+	},
+	requestVerification : function() {
+		var rnd = random([current.base]);
+		current.random = 207.913610;
+		return current.question = {
+			question: unwind("请的天？问码今代是", 959),
+			answer: function(s) {
+				return parseInt(s) == Math.floor(rnd * 1000000);
+			},
+			answerType: unwind("ebrunm", 3395),
+			verification : true
+		};
+	},
+	checkAnswer : function(answer) {
+		var cur = current.question, t;
+		if (answer.startsWith("/")) answer = answer.slice(1);
+		if (cur.answer instanceof Function) {
+			if (cur.answer(answer, unwind)) return Math.floor(current.random * 1000000);
+		} else {
+			if (t = new RegExp(cur.wp ? unwind(cur.answer, cur.wp) : cur.answer, "").exec(answer)) {
+				if (t[0].length == answer.length) return Math.floor(current.random * 1000000);
+			}
+		}
+	},
+	getNextUpdateTime : function() {
+		return new Date(Math.ceil((current.date + 39600000) / 86400000) * 86400000 - 39600000);
+	},
+	getCount : function() {
+		return questions.length;
+	},
+	getLastUpdateAt : function() {
+		return unwind("2年2日8月20110", 18615);
+	}
+};
+})();
 function getQueryString() {
     var url = location.search;
     var r = {}, i, strs, t;
@@ -350,35 +585,19 @@ function getQueryString() {
             t = strs[i].indexOf("=");
             if (t >= 0) {
                 r[strs[i].slice(0, t)] = unescape(strs[i].slice(t + 1));
+            } else {
+            	r[strs[i]] = true;
             }
         }
     }
     return r;
 }
-var i, j, seed = [question_list.length];
-var charcode = new Array(question_list.length);
-for (i = 0; i < charcode.length; i++) {
-    question_list[i].index = i;
-    charcode[i] = random(seed);
-}
-question_list.sort(function(a, b) {
-    return charcode[a.index] - charcode[b.index];
-});
 var query = getQueryString();
 var date;
 if (query.date) date = Date.parse(query.date);
 if (isNaN(date)) date = Date.now();
-var cur = getDailyQuestion(date);
+var cur;
 var isSuccessed;
-if (query.verify) {
-    cur = {
-        question: "请问今天的代码是？",
-        answer: function(s) {
-            return s == getDailyQuestion.code;
-        },
-        answerType: "number"
-    };
-}
 function reload() { 
     var body_node = document.getElementById("question_body");
     var about_node = document.getElementById("about");
@@ -392,9 +611,26 @@ function reload() {
         body_node.innerHTML = "检测到可能存在代码注入";
         return;
     }
+    var siteName;
+    if (location.protocol == "file:") {
+    	siteName = "本地文件系统";
+    } else {
+    	if (location.hostname.toLowerCase() == "projectxero.gitee.io") {
+            siteName = "码云";
+        } else if (location.hostname.toLowerCase() == "xeroalpha.github.io") {
+            siteName = "GitHub";
+        }
+    }
+    if (!siteName) return;
+    Verify.setDate(date);
+    if (query.verify) {
+        cur = Verify.requestVerification();
+    } else {
+	    cur = Verify.requestQuestion();
+    }
     body_node.innerHTML = cur.question;
     usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(getNextUpdateTime()) + "<br />题库:" + question_list.length + "题 | 2018年10月3日<br /><br />命令助手讨论区 @ ProjectXero<br />本站由码云托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(Verify.getNextUpdateTime()) + "<br />题库:" + Verify.getCount() + "题 | " + Verify.getLastUpdateAt() + "<br /><br />命令助手讨论区 @ ProjectXero<br />本站由" + siteName + "托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -427,12 +663,10 @@ window.onresize = function() {
 window.offsetDay = function(n) {
     if (!n || isNaN(n)) n = 0; 
     date += 86400000 * n;
-    cur = getDailyQuestion(date);
     reload();
 }
 window.setDay = function(d) {
     date = new Date(d).getTime();
-    cur = getDailyQuestion(date);
     reload();
 }
 window.dayControl = function() {
@@ -444,227 +678,6 @@ window.dayControl = function() {
         document.body.appendChild(control_node);
     }
     reload();
-}
-window.windText = function(s) {
-    s = String(s);
-    var p = Math.floor(Math.random() * 233280);
-    var r = wind(s, p);
-    console.log("    answer: " + JSON.stringify(r) + ",\n    wp: " + p);
-}
-var Filter = {
-    allOf : function(r, param) {
-        param.filters.forEach(function(e) {
-            if (!Filter[e.type](r, e)) throw "Denied by " + e.type;
-        });
-    },
-    someOf : function(r, param) {
-        var count = 0;
-        param.filters.forEach(function(e) {
-            if (Filter[e.type](r, e)) count++;
-        });
-        return count > 0;
-    },
-    noneOf : function(r, param) {
-        param.filters.forEach(function(e) {
-            if (Filter[e.type](r, e)) throw "Denied by " + e.type;
-        });
-    },
-    noPositiveKeys : function(r, param) {
-        return Object.keys(r.positive).length == 0;
-    },
-    containsPositiveKeys : function(r, param) {
-        var a = Object.keys(r.positive), i;
-        for (i in param.keys) if (a.indexOf(param.keys[i]) < 0) return false;
-        return true;
-    },
-    allOfPositiveKeys : function(r, param) {
-        var a = Object.keys(r.positive), i;
-        for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
-        return true;
-    },
-    equalsPositiveKeys : function(r, param) {
-        var a = Object.keys(r.positive), i;
-        for (i in a) if (param.keys.indexOf(a[i]) < 0) return false;
-        return a.length == param.keys.length;
-    },
-    noNegativeKeys : function(r, param) {
-        return r.negative.length == 0;
-    },
-    containsNegativeKeys : function(r, param) {
-        var a = r.negative, i, keys = {};
-        for (i in a) {
-            if (param.keys.indexOf(a[i].key) >= 0) {
-                keys[a[i].key] = 1;
-            }
-        }
-        return param.keys.length == Object.keys(keys).length;
-    },
-    allOfNegativeKeys : function(r, param) {
-        var a = r.negative, i;
-        for (i in a) if (param.keys.indexOf(a[i].key) < 0) return false;
-        return true;
-    },
-    equalsNegativeKeys : function(r, param) {
-        var a = r.negative, i, keys = {};
-        for (i in a) {
-            if (param.keys.indexOf(a[i].key) >= 0) {
-                keys[a[i].key] = 1;
-            } else {
-                return false;
-            }
-        }
-        return param.keys.length == Object.keys(keys).length;
-    },
-    numbericPositiveKeys : function(r, param) {
-        var a = Object.keys(r.positive), i;
-        for (i in a) {
-            if (param.keys.indexOf(a[i]) >= 0) {
-                r.positive[a[i]] = Number(r.positive[a[i]]);
-                if (isNaN(r.positive[a[i]])) return false;
-            }
-        }
-        return true;
-    },
-    numbericNegativeKeys : function(r, param) {
-        var a = r.negative, i;
-        for (i in a) {
-            if (param.keys.indexOf(a[i].key) >= 0) {
-                a[i].value = Number(a[i].value);
-                if (isNaN(a[i].value)) return false;
-            }
-        }
-        return true;
-    },
-    scoresKey : function(ks, param) {
-        var a = ks.positive[param.key], r = {};
-        if (!a.startsWith("{") || !a.endsWith("}")) return false;
-        a = a.slice(1, -1).split(",");
-        a.forEach(function(e) {
-            var i = e.indexOf("=");
-            if (i < 0) throw "Cannot find equals sign";
-            var a = e.slice(0, i), b = e.slice(i + 1), c;
-            if (b.startsWith("!")) {
-                r[a] = {
-                    type : "neq",
-                    score : Number(b.slice(1))
-                }
-            } else {
-                i = b.indexOf("..");
-                if (i < 0) {
-                    r[a] = {
-                        type : "equ",
-                        score : Number(b)
-                    }
-                } else {
-                    c = b.slice(i + 2);
-                    b = b.slice(0, i);
-                    if (b.length == 0) {
-                        r[a] = {
-                            type : "leq",
-                            score : Number(c)
-                        }
-                    } else if (c.length == 0) {
-                        r[a] = {
-                            type : "geq",
-                            score : Number(b)
-                        }
-                    } else {
-                        r[a] = {
-                            type : "in",
-                            scoreMin : Number(b),
-                            scoreMax : Number(c)
-                        }
-                        if (isNaN(r[a].scoreMin) || isNaN(r[a].scoreMax)) throw "Not a number";
-                        return;
-                    }
-                }
-            }
-            if (isNaN(r[a].score)) throw "Not a number";
-        });
-        ks.positive[param.key] = r;
-        return true;
-    }
-};
-window.parseSelector = function(s, filters) {
-    var positive = {}, negative = [], r;
-    try {
-        splitSelector(s).forEach(function(e) {
-            var i = e.indexOf("=");
-            if (i < 0) throw "Cannot find equals sign";
-            var a = e.slice(0, i), b = e.slice(i + 1);
-            if (b.startsWith("!")) {
-                negative.push({key: a, value: b.slice(1)});
-            } else {
-                positive[a] = b;
-            }
-        });
-        r = {positive: positive, negative: negative};
-        if (filters) {
-            Filter.allOf(r, {
-                filters : filters
-            });
-        }
-        return r;
-    } catch(e) {}
-    return null;
-}
-window.normalizeSelectorBox = function(pos) {
-    if (pos.dx < 0) {
-        pos.dx = -pos.dx; pos.x -= pos.dx;
-    }
-    if (pos.dy < 0) {
-        pos.dy = -pos.dy; pos.y -= pos.dy;
-    }
-    if (pos.dz < 0) {
-        pos.dz = -pos.dz; pos.z -= pos.dz;
-    }
-}
-
-window.splitSelector = function(s) {
-    var arr = [], i, j, k;
-    i = 0;
-    while (i < s.length) {
-        j = s.indexOf(",", i);
-        if (j < 0) break;
-        k = s.indexOf("{", i);
-        if (k >= i && k < j) {
-            k = s.indexOf("}", k);
-            if (k < 0) break;
-            j = s.indexOf(",", k + 1);
-            if (j < 0) break;
-        }
-        arr.push(s.slice(i, j));
-        i = j + 1;
-    }
-    arr.push(s.slice(i));
-    return arr;
-}
-function random(seed) {
-    return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
-}
-function wind(str, p) {
-    var seed = [str.length * p], seq = new Array(str.lenght), chs = new Array(str.lenght);
-    for (i = 0; i < str.length; i++) seq[i] = {index : i, code : random(seed)};
-    seq.sort(function(a, b) {
-        return a.code - b.code;
-    });
-    for (i = 0; i < str.length; i++) chs[seq[i].index] = str.charAt(i);
-    return chs.join("");
-}
-function unwind(str, p) {
-    var seed = [str.length * p], seq = [];
-    for (i = 0; i < str.length; i++) seq[i] = {char : str.charAt(i), code : random(seed)};
-    seq.sort(function(a, b) {
-        return a.code - b.code;
-    });
-    return seq.map(function(e) {return e.char}).join("");
-}
-function getDailyQuestion(time) {
-    var i, seed = [Math.floor(Math.abs(time / 86400000))];
-    for (i = question_list.length; i >= 0; i--) random(seed);
-    var r = random(seed);
-    getDailyQuestion.code = fixZero(Math.floor(r * 1000000).toString(), 6);
-    return question_list[getDailyQuestion.index = Math.floor(time / 86400000) % question_list.length];
 }
 function getNextUpdateTime() {
     return new Date(Math.ceil(date / 86400000) * 86400000);
@@ -679,10 +692,10 @@ function fixZero(s, n) {
     s = String(s);
     return n > s.length ? fixZero("0" + s, n) : s;
 }
-function succeed_action() {
+function succeed_action(code) {
     var answer_node = document.getElementById("question_answer");
     var success_node = document.getElementById("question_success");
-    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + getDailyQuestion.code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="http://shang.qq.com/wpa/qunwpa?idkey=d41f5861724c0694d880ae9f3a2b7db8d5f58a94314f57a816c97114c9257b64">MCBE命令助手讨论区</a>';
+    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="https://jq.qq.com/?_wv=1027&k=46Yl84D">MCBE命令助手讨论区</a>';
     success_node.style = "";
     answer_node.style = "display: none";
     isSuccessed = true;
@@ -695,28 +708,21 @@ function failed_action() {
     }, 100);
 }
 window.checkAnswer = function(answer, fromButton) {
+	var code;
     if (answer != null) {
-        var v = answer.value, t;
-        v = v.replace(/^\//, "");
         if (window.localStorage) {
             window.localStorage.lastInput = answer.value;
-            window.localStorage.lastExpired = getNextUpdateTime().getTime();
+            window.localStorage.lastExpired = Verify.getNextUpdateTime().getTime();
         }
-        if (cur.answer instanceof Function) {
-            try {
-                if (cur.answer(v, unwind)) return succeed_action();
-            } catch(e) {
-                console.log(e);
-            }
-        } else {
-            if (t = new RegExp(cur.wp ? unwind(cur.answer, cur.wp) : cur.answer, "").exec(v)) {
-                if (t[0].length == v.length) return succeed_action();
-            }
+        try {
+            code = Verify.checkAnswer(answer.value);
+            if (code) succeed_action(code);
+        } catch(e) {
+            console.log(e);
         }
-        if (fromButton || v.length) failed_action();
+        if (fromButton || answer.value.length) failed_action();
     }
 }
-})();
 </script>
 </body>
 </html>

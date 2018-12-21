@@ -19,7 +19,7 @@ MapScript.loadModule("CA", {
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 6],
+	version : [1, 2, 7],
 	publishDate : "{DATE}",
 	help : Loader.fromFile("raw/about.js"),
 	tips : [],
