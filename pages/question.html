@@ -91,7 +91,7 @@ a:hover, a:active {
 */
 var Verify = (function() {
 function random(seed) {
-	return ((seed[0] = seed[0] * 9301 + 49297) % 233280) / 233280;
+	return (seed[0] = (seed[0] * 9301 + 49297) % 233280) / 233280;
 }
 function unwind(str, p) {
 	var seed = [str.length * p], seq = [], j, t;p
@@ -107,7 +107,7 @@ function unwind(str, p) {
 var Filter = {
 	allOf : function(r, param) {
 		param.filters.forEach(function(e) {
-			if (!Filter[e.type](r, e)) throw unwind(" eyD enibd", 19105) + e.type;
+			if (!Filter[e.type](r, e)) throw unwind("D yi enebd", 19105) + e.type;
 		});
 	},
 	someOf : function(r, param) {
@@ -119,7 +119,7 @@ var Filter = {
 	},
 	noneOf : function(r, param) {
 		param.filters.forEach(function(e) {
-			if (Filter[e.type](r, e)) throw unwind(" eyD enibd", 19105) + e.type;
+			if (Filter[e.type](r, e)) throw unwind("D yi enebd", 19105) + e.type;
 		});
 	},
 	noPositiveKeys : function(r, param) {
@@ -194,7 +194,7 @@ var Filter = {
 		a = a.slice(1, -1).split(",");
 		a.forEach(function(e) {
 			var i = e.indexOf("=");
-			if (i < 0) throw unwind("t dnsgC qeiolnaufnnisa ", 2490);
+			if (i < 0) throw unwind("ilC sgone itun snfqdnaa", 2490);
 			var a = e.slice(0, i), b = e.slice(i + 1), c;
 			if (b.startsWith("!")) {
 				r[a] = {
@@ -227,12 +227,12 @@ var Filter = {
 							scoreMin : Number(b),
 							scoreMax : Number(c)
 						}
-						if (isNaN(r[a].scoreMin) || isNaN(r[a].scoreMax)) throw unwind("auNnboe rm t", 12966);
+						if (isNaN(r[a].scoreMin) || isNaN(r[a].scoreMax)) throw unwind("  nobNemruat", 12966);
 						return;
 					}
 				}
 			}
-			if (isNaN(r[a].score)) throw unwind("auNnboe rm t", 12966);
+			if (isNaN(r[a].score)) throw unwind("  nobNemruat", 12966);
 		});
 		ks.positive[param.key] = r;
 		return true;
@@ -243,7 +243,7 @@ var parseSelector = function(s, filters) {
 	try {
 		splitSelector(s).forEach(function(e) {
 			var i = e.indexOf("=");
-			if (i < 0) throw unwind("t dnsgC qeiolnaufnnisa ", 2490);
+			if (i < 0) throw unwind("ilC sgone itun snfqdnaa", 2490);
 			var a = e.slice(0, i), b = e.slice(i + 1);
 			if (b.startsWith("!")) {
 				negative.push({key: a, value: b.slice(1)});
@@ -292,42 +292,42 @@ var splitSelector = function(s) {
 	return arr;
 }
 var questions = [{
-    question: unwind("带方检命块玩令近是测何家最否如携了？", 8746),
-    answer: unwind("m_n\\\\d+pa\\sms\\l+oec-0c1sarokc+s+bl@", 2656)
+    question: unwind("近方否检块了带是测家令如携命玩何最？", 8746),
+    answer: unwind("\\l+m1-dkecs+c_\\+\\sn\\0salpmbao+srco@", 2656)
 }, {
-    question: unwind("?,标2坐(1的48-、第二制,、)块如方-4Y(-,)-小第)分（,何(内1Z域标0）、-5等到9坐请(个一,区X非的个,,Z6,于5)别让-的X-气有所Y、复空于", 2679),
-    answer: unwind("\\-\\s\\ssmnc+\\+5))s-fse3m|\\+1ssres+5(\\l4+?+\\+oe\\+sc\\ksa+o9+son-2\\(6\\+rl1asd", 2780)
+    question: unwind("5坐于二于Y8有1别坐(,非所3、、)分标到、的一标-域-气第)X-X第等小YZ区复-）,空何的制-)块请Z,(方的1924（)(,内6?个-,,个,、40-让(,如5", 2679),
+    answer: unwind("+s3+\\+2\\nks11\\))ser4ms-d+f\\5sso+s|+s(sa?olc\\l65+-sc\\+\\+rn\\a\\\\eem+s-+\\(so9", 2780)
 }, {
-    question: unwind(",8前制)X请所坐复当位、何、小泥有(Y内让Y127)如位（,方区、置,置的块于制1标)域土,块Z等到一个7制复,2第复二）7的1于个第被X方,(3的，后别标分、Z-坐？9的7使", 2173),
-    answer: unwind("\\\\lfn\\sli+7tssss\\+8+\\sc\\(\\3s+0d9*s+?s\\+\\~asm2t\\)eir+ss+1~\\r\\~)ors*o1rec+e+eld+|onf(\\", 1453)
+    question: unwind("8当有到7让分如方坐块域(、1复（小的于1第2,、个((复7块)标)3个制,7的请等所-第9一使坐Z方被位内的置制土7制泥位），)、别二复的,2,何,X区Z后X1标Y、置于前Y？,", 2173),
+    answer: unwind("\\d1*+d\\s1s+~2te+o\\~+\\*\\7ssc+s0s+sss?rss9)fcrs3eli\\nse++e+r87l)+lm+o~f\\\\o\\(\\t\\a|(\\nr\\i", 1453)
 }, {
-    question: unwind("且最何粒0果予玩1给家？秒无如效敌藏近隐子", 9794),
-    answer: unwind("e0\\]e(s+-pntct9sae\\rse+-+c9)i[\\]f+1r|+etssd5\\s\\f+s@[u1\\", 3193)
+    question: unwind("家近如粒且果01最何敌？予藏无给效秒玩隐子", 9794),
+    answer: unwind("cns+e901s-[tsi)1et+r|s95s\\cs(a+f\\r]\\p\\+]+sf\\+@e\\-deeut[", 3193)
 }, {
-    question: unwind("有如攻无钟果他何实效分予1徒体伤击家其所手给？玩的", 1951),
-    answer: unwind(")f+se6flat\\\\\\e[+|s0src@?s\\e9(e\\](deassu?+et-s1a+nf\\(wk+*))s", 3321)
+    question: unwind("实何果玩钟所效徒他体分有1攻如其伤给予手家的？无击", 1951),
+    answer: unwind(")es([s\\]a|9+eseer-+\\+*t?dtl)\\fse@f0+ksw?scnef1\\a6(a)+s(u\\\\s", 3321)
 }, {
-    question: unwind("玩物为品检鱼测否持被魔？手钓已附如家竿钓近竿钓）是是I何饵（鱼最", 107),
-    answer: unwind("s+?ce+@\\n(\\sua)nh+t1s\\plre", 6766)
+    question: unwind("？如玩测近家已否（鱼何钓手钓持竿品钓物魔被为是）竿检I是饵鱼最附", 107),
+    answer: unwind("a+?nsh\\ct+\\r@l)ee\\(1spusn+", 6766)
 }, {
-    question: unwind("杀行毛执（家色令命玩家羊点何所在玩）死站标坐的为所在有上？灰如", 1544),
-    answer: unwind("|tc(*lse+~ss@+sks\\ew\\\\?os\\7s~~s~\\e++del@o\\t\\+e~ssasu~s\\)s\\-l\\tipc+)*++\\\\1++(@", 1857)
+    question: unwind("命（所？站色所何执毛令点为的如死羊）家在标坐上灰玩杀家在行有玩", 1544),
+    answer: unwind("a~\\slclu\\\\+si-+\\@psesx(?s~l*\\\\o\\s@s~t*\\sse+\\e+~\\+s+7oees)w1s\\s+~c++)d@\\(+ttk~|", 1857)
 }, {
-    question: unwind("送A家玩将格家传方？到前两何如B玩", 4493),
-    answer: unwind("^\\sltpsAu\\spssost+r\\\\(^+\\+~\\+\\2+\\+|\\++\\x~e+ts)sB\\t^\\~seeece", 3432)
+    question: unwind("玩B玩前A格何方送？如家两传家到将", 4493),
+    answer: unwind("e\\)tpec\\~s++++(~^^+x\\s^tt\\suts2+Br\\\\\\e+sp~e\\|e\\l\\osss\\s+\\+A", 3432)
 }, {
-    question: unwind("心为予所1格径中围？)范,5以半玩2罚给家，何有(一“,次5”30雷的如内", 1793),
+    question: unwind("给玩半(何5如范“？家有所2,)围中,的3格5”心一内雷次以罚为0，径1予", 1793),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("u]sesli~gs_?+t+lx.)(\\t\\\\os+s+\\a~cu\\\\\\s\\i@sn[gm~s~e)\\+(~b?t+ns+e^n~+\\\\mhs+o+$", 2181), "").exec(str);
+        var a = new RegExp(unwind("+?+b@ss(i\\)use\\n\\+)se+~o\\set~~+~+.l\\tnsg\\u~c+~m^lxasso\\h?\\[i+(\\_s\\t+g+m]sn\\$", 2181), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: unwind("eviKusyalPtiseoqse", 6786),
+                type: unwind("tvuessyiKPqioesael", 6786),
                 keys: ["x", "y", "z", "r"]
             }, {
-                type: unwind("egoetiyKeNnvas", 1723)
+                type: unwind("NgeeiaynteovKs", 1723)
             }, {
-                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
+                type: unwind("iicmveurtKsiPnyseeob", 6735),
                 keys: ["x", "y", "z", "r"]
             }
         ]);
@@ -336,27 +336,27 @@ var questions = [{
         return pos.x == 5 && pos.y == 31 && pos.z == 2 && pos.r == 50;
     } 
 }, {
-    question: unwind("Z等、,小第6-5个的(1为,2、请换二的(让坐如区,标一坐头有分石于别方（空、个替4)第)何,Y的？内于X）域Z3块所将气X标、Y", 3154),
-    answer: unwind("\\lt+26s\\+(\\r++ea\\ss+3\\05f+ipss+lesl)s\\?+s\\ss\\ears+s10i4\\n\\+o\\c+", 1638)
+    question: unwind("Z方、6别个、坐于？Y为第标石)),的区何(,等X小换域标于所3分(1个将2坐,Y,5Z如-、空内头X、的第）一二4（块替请的气让有", 3154),
+    answer: unwind("+(as\\s\\+\\s+4s+c\\asl5+f0l+13+i\\6sss+)t2?\\sse\\\\se0+rr\\\\ep+nio\\l+s", 1638)
 }, {
-    question: unwind("5小覆、别一分并的玻请X方何有让于第执为点Y的、？六标面、（方标所，上个内将个空X块如以璃Z的坐、体的于）坐第为格二中立盖清行Z在等Y令心命径半", 2772),
-    answer: unwind("~h++ls~slog-ssw5\\\\\\ssl+\\5a5fl+-05\\s-i\\s~~5\\l5\\+++o~ss\\s++~", 2845)
+    question: unwind("、5标个执（何点覆于璃心令并、标方一Y中块如X径二行于体、为有个第坐六小的请？命玻让别内所的Z为第半清盖）在，将的面格的、X上Z以方立分空等Y坐", 2772),
+    answer: unwind("~\\+5s\\lf+o+hlsw\\s50+5o\\s+s~\\s5\\~+a-lgs~s\\~+l-s+i~s\\+s\\l-55", 2845)
 }, {
-    question: unwind("设如模存置为生非存所玩生何式有式家？模", 6889),
-    answer: unwind("mls=v\\ues+mu+m\\@a|(]aaa)g|e)li0svv!v[|or|s0i\\(sr\\sd", 3778)
+    question: unwind("何生模所生式设置存玩模有非式为家如？存", 6889),
+    answer: unwind("e0vs=\\isga0vlsluvri]u+a)+|r|d\\(asa[sm|m|@)\\vos!em\\(", 3778)
 }, {
-    question: unwind("正边如模,所把的式？方(内，以成何5为)长中6,玩的4生家变为有心4体存", 3154),
+    question: unwind("的)把模家5(心式？边如,为内中正存4以成6方生4为变，长何有所玩,体的", 3154),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("+ea|\\)(as0\\i@eu)a$vvml]sm\\g+o.|(?^[r\\sds+", 139), "").exec(str);
+        var a = new RegExp(unwind("a\\iasm)|\\e\\(e0dv)$?@|[]g+vso^+\\lmau+.(rss", 139), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[2], [
             {
-                type: unwind("eviKusyalPtiseoqse", 6786),
+                type: unwind("tvuessyiKPqioesael", 6786),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }, {
-                type: unwind("egoetiyKeNnvas", 1723)
+                type: unwind("NgeeiaynteovKs", 1723)
             }, {
-                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
+                type: unwind("iicmveurtKsiPnyseeob", 6735),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }
         ]);
@@ -366,75 +366,75 @@ var questions = [{
         return pos.x == 2 && pos.y == 3 && pos.z == 4 && pos.dx == 4 && pos.dy == 4 && pos.dz == 4;
     }
 }, {
-    question: unwind("如气完条不氧何伤家（死溺即玩止后血走防？）", 6952),
-    answer: unwind("+msgefeedngsug\\rs+nlolam\\raeidawa", 6061)
+    question: unwind("条走（玩气何止伤氧防后不即完死溺血？家如）", 6952),
+    answer: unwind("e+smnmangeer+giasadoglusrw\\elda\\f", 6061)
 }, {
-    question: unwind("曜在下的近石钻黑险一最镐家只挖玩？予把何模式如石能给冒", 5639),
+    question: unwind("石一的如只石把何挖式冒镐曜给下最？黑模家近能钻予玩险在", 5639),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind(".ssv\\sd+\\kscs)_dnx\\p^+@((iia+++1epimgd++)a\\$\\o\\e", 595), "").exec(str);
+        var a = new RegExp(unwind("+n+kped+x+ss+)ss\\d+\\g@\\si)m\\ia(vico(e\\.+_a1$\\dp^", 595), "").exec(str);
         var p = JSON.parse(a[2]);
-        p = p[unwind("ystrnn:e_tfcdraciamoe", 5864)].blocks;
-        return Array.isArray(p) && p.length == 1 && p[0] == unwind("iaibdons", 21650);
+        p = p[unwind("yetrc:arcn_astdfinmoe", 5864)].blocks;
+        return Array.isArray(p) && p.length == 1 && p[0] == unwind("iaboidns", 21650);
     }
 }, {
-    question: unwind("o~果us内一开始境__盔个d，cry次tx运）utn 行][t考盔架=a~mdt s后en戏m x （ rm~p甲reae~p@a两aeo 几 a虑tu个s制e_游环如tmr戏游执][n会 ~ee行内tr有@架rnd6有  e=me ayseo限不甲oc", 251),
+    question: unwind("a~m境个游a_运spud~t~y架甲  个两）t虑nt考n开mrst会t~ouo a始r]甲es（=次环e内盔~架几 m如[xscmer~m anx戏d有 游制e 有果行不d6 oeneo te_r戏er执pry 行_@u 一=ee@ac内]t[限a盔后，", 251),
     answer: function(str) {
         return Math.abs(Number(str) - 6 * Math.pow(2, 6) * Math.pow(2, 384)) < 1e+115;
     },
     answerType: unwind("ebrunm", 3395)
 }, {
-    question: unwind("？相一家每（所播耳到在亡收同个音人）家影有声的量如次死末边放玩何玩", 1420),
-    answer: unwind("+end+e+esds@a\\e+d\\sma\\+(~\\s+s~?)me~+\\\\@o+\\?\\h?d.\\.xe~sr\\(l\\s+ycs)++\\b(++s+)su\\tnd~ossn\\?~a+st\\(se+su)\\d", 2035)
+    question: unwind("家相死在的耳放亡如玩个边次同所何末）（人播影声收量？一家玩每音到有", 1420),
+    answer: unwind("s\\ms)dnt\\dases+e.xn\\+@~++e~sds?\\+?y~+u+s\\t?ssad\\scebd+s+.\\+\\)(as)ue\\dm\\+ohl\\)(\\s+\\(\\\\er~@e~+p+s++o?(n\\s~", 2035)
 }, {
-    question: unwind("潮内一箱,个品的-(8五1心物涌5何第于换)56子为的位核,如？格替", 2862),
-    answer: unwind("sr+tsno?se?a\\r\\5\\cmt1+st+ocd.kn+n86llis\\p+c1s\\\\d\\+\\i+o4\\s(la\\)t\\)(+5+ei-ssebuso+e", 1258)
+    question: unwind("物的替品,(8子5个为涌潮心5格换五何1,如6箱第于一位核内-？的)", 2862),
+    answer: unwind("\\+1st85?\\\\?1oi+\\s\\ct(\\+rpcndklts4.-n(sse+crtea+mo6o+ia\\nu+lde\\sbo))s\\+\\elic5s\\+ss+", 1258)
 }, {
-    question: unwind("的第玻最何的？放草格一险下块玩方为一只冒上近如在模能捷璃替快家式块栏换在", 1284),
+    question: unwind("方的玻捷在只？上一一模家如放最险式草近在玩换下替块的第璃块快栏能格何为冒", 1284),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("stslc(+ms\\.gyr\\letipnss+l\\aso)+\\1+0o+\\\\ss0e$\\s++eat.p+ia^st@+etsbhr\\", 1709)).exec(str);
+        var a = new RegExp(unwind("+aess+leisctr..a\\myt(\\l@r+s+o)+t\\n\\\\+o\\t0ea$t0bsil+ess\\s^phssg1s\\p++", 1709)).exec(str);
         var p = JSON.parse(a[1]);
-        p = p[unwind("r_noitlanmceafe_:pccan", 7642)].blocks;
+        p = p[unwind("c_eoaal:ncercnpmna_fit", 7642)].blocks;
         return Array.isArray(p) && p.length == 1 && p[0] == unwind("rgssa", 42033);
     }
 }, {
-    question: unwind("3随命？如一钻玩头内格家让上盔石令的用何径机戴0个半", 4611),
-    answer: unwind("0)\\.\\sra\\_[s=so\\imnse\\m(r+e+\\t\\\\+esta+dt@h0ido\\m\\+eeod3r)(+ls\\ycad]t+ms\\r?\\hr+tepae?l.+idsl", 28)
+    question: unwind("一格用？石0何3头内个半如的盔径家让钻机上随戴令玩命", 4611),
+    answer: unwind("e)iisd\\\\\\ns\\tl\\r\\a\\nh\\\\o+.tsml\\+++h+d0ea.pe[(sr+0oteamd\\s)e_e+tsdctai+@ml\\?3+res(s=r?roy\\dm]", 28)
 }, {
-    question: unwind("以有2为，为何如区?玩？中0传(所域将送71的,家半)到5径,心", 3245),
-    answer: unwind("sd7yd+\\+2a\\\\sle++s\\s+p\\a1@\\psresa50+sr", 633)
+    question: unwind("5送)到为玩1家区0,？中7传心(域何所为,径?半将的，如以2有", 3245),
+    answer: unwind("d+a07ys+\\a\\laerr\\+2ess\\ss@+++\\\\spsd15p", 633)
 }, {
-    question: unwind("家有瞬所显1后瞬s何次让显持如间题下示标续消的示，玩？失间给", 5903),
-    answer: unwind("ee++ss00i@sl\\s+a\\\\ts0\\2\\s+t+itm", 5585)
+    question: unwind("s有瞬标玩示如题所显间显给间后让家下何持瞬消1，示次？失的续", 5903),
+    answer: unwind("e\\e0ss0l2s@tss+ta0\\\\s\\+i\\i+++mt", 5585)
 }, {
-    question: unwind("旋让转何有A称名不的断甲如为？盔所地原架", 733),
+    question: unwind("旋所转如称有甲不A为断架的原？盔让地名何", 733),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("(\\s~.@~\\~s(?s?~(++\\ss\\?e~++es\\+d+)\\e\\s)+-+s\\ex~\\ss~)\\[+(@+)ssc\\\\+\\u+t]\\$~p+t", 2952), "").exec(str);
+        var a = new RegExp(unwind("ss+c\\~t+\\\\\\\\@+~\\\\t(\\+~-?eses\\\\s?+e)?~)(~++d\\u+(\\s+s+[)e~+s(~x^+ss+s\\\\@~.$)]sp", 2952), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: unwind("eviKusyalPtiseoqse", 6786),
+                type: unwind("tvuessyiKPqioesael", 6786),
                 keys: [unwind("ypte", 8927), unwind("nema", 48834)]
             }, {
-                type: unwind("egoetiyKeNnvas", 1723)
+                type: unwind("NgeeiaynteovKs", 1723)
             }
         ]);
         if (!p) return false;
         var pos = p.positive;
-        return pos.type == unwind("rtsnam_odar", 3793) && pos.name == "A";
+        return pos.type == unwind("_tmnaorsdar", 3793) && pos.name == "A";
     }
 }, {
-    question: unwind("点懂生有百物顶第的么(为送到正五6方,什把？0,)）,方的不以如叫，)卦长向8边己度何,的里限0（4(体自传97为卦限里所", 2000),
+    question: unwind("五,传体百何64的长顶(自？8向生有0到为为送卦,）里卦边么如方把，9第以限限什的度里点己叫正0),)（懂7物不所,(的方", 2000),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("^+s+t\\\\\\e\\.@(+]+4)?s+[\\0\\ps0$s", 6199), "").exec(str);
+        var a = new RegExp(unwind("(+0++e+s@\\+\\4]t)\\^sp\\\\?0s\\s[$.", 6199), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: unwind("eviKusyalPtiseoqse", 6786),
+                type: unwind("tvuessyiKPqioesael", 6786),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }, {
-                type: unwind("egoetiyKeNnvas", 1723)
+                type: unwind("NgeeiaynteovKs", 1723)
             }, {
-                type: unwind("iitPeeonvmeKiuyscsrb", 6735),
+                type: unwind("iicmveurtKsiPnyseeob", 6735),
                 keys: ["x", "y", "z", "dx", "dy", "dz"]
             }
         ]);
@@ -467,17 +467,17 @@ var questions = [{
         m2 = Math.floor(Math.random() * op.length),
         m3 = Math.floor(Math.random() * op.length);
     var question = [
-        unwind("当我a玩分以家令ra的后分M世行命界项下数请记的写执完的填k", 4974),
-        unwind("eomosetuaodecr amrid /bva ysdcdbj ", 6793),
-        unwind("bdbyddcoo/irmcuosa jseevrb dt aem ", 205),
-        unwind("edrjcs baoomdveedmy dc/ractsb io u", 479),
-        unwind("c aebeaysrsopdrl te/ra   rsakoM", 1515) + a[0],
-        unwind("Mbrkbceoea/esdor rspsa ltray   ", 1815) + b[0],
-        unwind("/yscrrderM  rosaal os tecpkb ea", 2115) + c[0],
-        unwind("ecakiserrydlnoprocb et/ a ars prMa oo", 6289) + op[m1].id + unwind("kMaa  r", 12642),
-        unwind("c/rysae drrnbsoap M eit or aokoarblep", 6038) + op[m2].id + unwind("M c akr", 15300),
-        unwind("slabpMaa/eooitrordykerp rsoc an ae r ", 5786) + op[m3].id + unwind(" rabkM ", 13971)
-    ].join(unwind("/b <r>", 26355));
+        unwind("的M分项分界当行执写的以r我的令后命填家数记完a请玩下世ka", 4974),
+        unwind("jdmiotdoru  dccdm /e eobvryassaeba", 6793),
+        unwind("ed yed tbr/vmiudjbodaecsoo b acrms", 205),
+        unwind("r jed/svbdrmdiad myuocbcecs ta oeo", 479),
+        unwind("eMsepcaetokr /ds r raa arso lyb", 1515) + a[0],
+        unwind("oaokbcaayMretsrb errsl/p d s  e", 1815) + b[0],
+        unwind(" epcsro el  ssb trMaca/keroardy", 2115) + c[0],
+        unwind("dcorco p ra/rnetike ae oyMpsb osrrlaa", 6289) + op[m1].id + unwind("kM a ra", 12642),
+        unwind(" rcp rtoaybMoadro r on/pse lisaeabrek", 6038) + op[m2].id + unwind("aMc rk ", 15300),
+        unwind("raoado ntaM r ypbopceo/krsle raiar es", 5786) + op[m3].id + unwind("  rbkaM", 13971)
+    ].join(unwind("/r <b>", 26355));
     op[m1].op(c, a);
     op[m2].op(b, c);
     op[m3].op(a, b);
@@ -489,25 +489,25 @@ var questions = [{
         answerType: unwind("ebrunm", 3395)
     };
 })(), {
-    question: unwind("使排a如分数让分序项何边栏aa侧？序升显记在示并", 1311),
-    answer: unwind("rbeisvects\\disssc+bdcsoano+odb\\essyjeasipl+n+a+sarerdta\\gseia\\a\\", 2256)
+    question: unwind("项排栏如并序显a让分记a升何示侧？序数在使a分边", 1311),
+    answer: unwind("\\idniejosbeeiccsaprco+v\\s+s\\blsi\\ye+assabrandr+ttssseddoge\\a+aas", 2256)
 }, {
-    question: unwind("不则时线的玩行功让kr败的，等0否如失成km5家分执？aa记在何小项于r于M", 265),
-    answer: unwind("\\r+r*yorbscM+eds\\\\+rtassso\\+50+k\\msea\\lk+s\\rstesaap", 4143)
+    question: unwind("5则功0小不k在，让何败项玩M家于a失成k线r记的如？时分a行等执r于否的m", 265),
+    answer: unwind("sass\\stoo+rr+sssM\\emk\\yere\\t50\\bd\\ap+*+r+lsarc+s\\ka", 4143)
 }, {
-    question: unwind("何玩于检et分于e2，s用使（项大tr测于如）的令家0？于0t3im命等akom有但等fr所小记", 55),
+    question: unwind("t2玩小f记家如0大？t3等项使的于r（re）于令mm于于，i但等用命测所se检oatk0有何分", 55),
     answer: function(str, unwind) {
-        var a = new RegExp(unwind("\\er+\\@toa()]s+stf\\[.", 11060), "").exec(str);
+        var a = new RegExp(unwind("t\\.[+sf\\ra)]s+@oe\\(t", 11060), "").exec(str);
         if (!a) return false;
         var i, p = parseSelector(a[1], [
             {
-                type: unwind("eviKusyalPtiseoqse", 6786),
-                keys: [unwind("sosrec", 12696)]
+                type: unwind("tvuessyiKPqioesael", 6786),
+                keys: [unwind("cosres", 12696)]
             }, {
-                type: unwind("egoetiyKeNnvas", 1723)
+                type: unwind("NgeeiaynteovKs", 1723)
             }, {
-                type: unwind("sersKycoe", 4357),
-                key: unwind("sosrec", 12696)
+                type: unwind("eeosKycrs", 4357),
+                key: unwind("cosres", 12696)
             }
         ]);
         if (!p) return false;
@@ -515,11 +515,11 @@ var questions = [{
         return sk.mark.type == unwind("geq", 66118) && sk.mark.score == 30 && sk.time.type == unwind("leq", 3860) && sk.time.score == 20;
     }
 }, {
-    question: unwind("r的5项a5m为分2m5不k52的数分的设记？家有分玩记r如于所项置k等a何", 2445),
-    answer: unwind("+\\s\\s5e\\cms\\oo[s@5}e{a+2\\bd2++ssrrsecs]lay5o\\krmrprs=5+aatks!=a\\r\\\\e", 926)
+    question: unwind("数的5所如5分等设项于项2k的记记分家不的置？m2k有a为ma5r玩何r分5", 2445),
+    answer: unwind("\\rsrecsmo@a[sess+55rre2bta\\2lropd\\]=r+so\\ay}\\ka5k\\sc!5s\\=+m\\{ess++a\\", 926)
 }, {
-    question: unwind("分m家ka？A换分玩的如何交玩的项数和家rB记", 1470),
-    answer: unwind("r\\te+o++Bals+ss\\dB>raooeska\\++ss<s\\>i(c\\pA<mop)ss\\rrabAn\\sreykr+\\m++\\|a", 1871)
+    question: unwind("交换a玩玩？的r分k项A家分的m和数何家如记B", 1470),
+    answer: unwind("<+ss+sekpspbBlnrosA>++ar\\\\\\o+raka\\y+ams\\i\\sc(<)+|o\\esrA+orsm+r>Be\\atsd\\", 1871)
 }];
 var i = questions.length, j, t, seed = [questions.length];
 while (i > 0) {
@@ -540,13 +540,13 @@ return {
 	},
 	requestQuestion : function() {
 		current.random = random([current.base]);
-		return current.question = questions[Math.floor(current.date / 86400000) % questions.length];
+		return current.question = questions[Math.floor((current.date + 39600000) / 86400000) % questions.length];
 	},
 	requestVerification : function() {
 		var rnd = random([current.base]);
 		current.random = 207.913610;
 		return current.question = {
-			question: unwind("请的天？问码今代是", 959),
+			question: unwind("天请今？的码问代是", 959),
 			answer: function(s) {
 				return parseInt(s) == Math.floor(rnd * 1000000);
 			},
@@ -572,7 +572,7 @@ return {
 		return questions.length;
 	},
 	getLastUpdateAt : function() {
-		return unwind("2年2日8月20110", 18615);
+		return unwind("21月日1年80202", 18615);
 	}
 };
 })();
