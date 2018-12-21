@@ -455,6 +455,14 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 			this.trigger("pageShown", page);
 		}
+		r.getTopPage = function() {
+			if (this.floatVisible && this.floatStack.length > 0) {
+				return this.floatStack[this.floatStack.length - 1].page;
+			} else if (this.defaultVisible && this.visible && this.defaultStack.length > 0) {
+				return this.defaultStack[this.defaultStack.length - 1].page;
+			}
+			return null;
+		}
 		r.show = function() {
 			var i, e;
 			if (this.visible) return;
@@ -741,7 +749,7 @@ MapScript.loadModule("PopupPage", (function() {
 		return this.busy;
 	};
 	r.showDialog = function(name, layout, width, height, modal) {
-		var frame, popup, hasMargins = false;
+		var frame, popup, topPage, hasMargins = false;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
@@ -757,6 +765,24 @@ MapScript.loadModule("PopupPage", (function() {
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
+		topPage = r.getTopPage();
+		popup.enterAnimation(function() {
+			var alphaAni, scaleAni;
+			alphaAni = new G.AlphaAnimation(topPage && topPage.dialog ? 1 : 0, 1);
+			alphaAni.setDuration(200);
+			scaleAni = new G.ScaleAnimation(0.95, 1, 0.95, 1, G.Animation.RELATIVE_TO_SELF, 0.5, G.Animation.RELATIVE_TO_SELF, 0.5);
+			scaleAni.setDuration(200);
+			scaleAni.setAnimationListener(new G.Animation.AnimationListener({
+				onAnimationEnd : function(a) {try {
+					if (callback) callback();
+				} catch(e) {erp(e)}},
+			}));
+			if (G.style == "Material") {
+				alphaAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+				scaleAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+			}
+			return new r.ViewAnimationController(frame, alphaAni).addAnimation(layout, scaleAni).start();
+		});
 		popup.on("resume", function() {
 			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		});
@@ -843,34 +869,65 @@ MapScript.loadModule("PopupPage", (function() {
 	}
 	EventSender.init(r);
 	r.fadeInAnimation = function(v, callback) {
-		trans = new G.AlphaAnimation(0, 1);
-		trans.setDuration(150);
-		trans.setAnimationListener(new G.Animation.AnimationListener({
+		var aniSet;
+		aniSet = new G.AnimationSet(true);
+		aniSet.setDuration(300);
+		if (G.style == "Material") {
+			aniSet.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+		}
+		aniSet.setAnimationListener(new G.Animation.AnimationListener({
 			onAnimationEnd : function(a) {try {
 				if (callback) callback();
 			} catch(e) {erp(e)}},
 		}));
-		v.startAnimation(trans);
-		return new r.ViewAnimationController(v, trans);
+		aniSet.addAnimation(new G.AlphaAnimation(0, 1));
+		aniSet.addAnimation(new G.ScaleAnimation(0.95, 1, 0.95, 1, G.Animation.RELATIVE_TO_SELF, 0.5, G.Animation.RELATIVE_TO_SELF, 0.5));
+		return new r.ViewAnimationController(v, aniSet).start();
 	}
 	r.fadeOutAnimation = function(v, callback) {
-		trans = new G.AlphaAnimation(1, 0);
-		trans.setDuration(150);
-		trans.setAnimationListener(new G.Animation.AnimationListener({
+		var aniSet;
+		aniSet = new G.AnimationSet(true);
+		aniSet.setDuration(200);
+		aniSet.setFillAfter(true);
+		if (G.style == "Material") {
+			aniSet.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+		}
+		aniSet.setAnimationListener(new G.Animation.AnimationListener({
 			onAnimationEnd : function(a) {try {
-				if (callback) callback();
+				v.post(function() {try {
+					if (callback) callback();
+				} catch(e) {erp(e)}});
 			} catch(e) {erp(e)}},
 		}));
-		v.startAnimation(trans);
-		return new r.ViewAnimationController(v, trans);
+		aniSet.addAnimation(new G.AlphaAnimation(1, 0));
+		return new r.ViewAnimationController(v, aniSet).start();
 	}
 	r.ViewAnimationController = function(v, ani) {
-		this.view = v;
-		this.animation = ani;
+		this.views = [];
+		this.animations = [];
+		if (v || ani) this.addAnimation(v, ani);
 	}
 	r.ViewAnimationController.prototype = {
+		addAnimation : function(v, ani) {
+			if (v || ani) {
+				this.views.push(v);
+				this.animations.push(ani);
+			}
+			return this;
+		},
+		start : function() {
+			var i;
+			for (i = 0; i < this.views.length; i++) {
+				if (this.views[i] && this.animations[i]) this.views[i].startAnimation(this.animations[i]);
+			}
+			return this;
+		},
 		cancel : function() {
-			this.view.clearAnimation();
+			var i;
+			for (i = 0; i < this.views.length; i++) {
+				if (this.views[i]) this.views[i].clearAnimation();
+			}
+			return this;
 		}
 	}
 	return r;
