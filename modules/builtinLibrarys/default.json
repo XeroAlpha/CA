@@ -3176,7 +3176,7 @@
 					"sidebar": "侧边栏"
 				},
 				"scoreboard_display_slot": {
-					"belowName": "名称下方"
+					"belowname": "名称下方"
 				},
 				"scoreboard_player": {
 					"*": "所有正在被记分板追踪的对象"
