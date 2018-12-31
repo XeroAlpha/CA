@@ -17,7 +17,7 @@ MapScript.loadModule("PopupPage", (function() {
 			var vcfg = G.ViewConfiguration.get(ctx);
 			var longPressTimeout = vcfg.getLongPressTimeout();
 			var touchSlop = vcfg.getScaledTouchSlop();
-			r.defaultWindow = ScriptActivity.createFrameLayout({
+			r.defaultWindow = ScriptInterface.createFrameLayout({
 				dispatchKeyEvent : function(event) {
 					var state = r.defaultWindow.getKeyDispatcherState();
 					if (event.getKeyCode() == event.KEYCODE_BACK) {
@@ -167,7 +167,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultStub.setText("拖动右上角方块调整大小\n长按右上角方块隐藏顶栏");
 			r.defaultDecorLinear.addView(r.defaultStub);
 			r.defaultWindow.addView(r.defaultDecorLinear);
-			r.floatWindow = r.floatContainer = ScriptActivity.createFrameLayout({
+			r.floatWindow = r.floatContainer = ScriptInterface.createFrameLayout({
 				dispatchKeyEvent : function(event) {
 					var state = r.floatWindow.getKeyDispatcherState();
 					if (event.getKeyCode() == event.KEYCODE_BACK) {
@@ -199,6 +199,7 @@ MapScript.loadModule("PopupPage", (function() {
 			} catch(e) {erp(e)}}}));
 			r.thread = java.lang.Thread.currentThread();
 		} catch(e) {erp(e)}})}
+		r.analytics = ScriptInterface.getAnalyticsPlatform();
 		r.checkThread = function() {
 			var th = java.lang.Thread.currentThread();
 			if (r.thread != th) {
@@ -319,8 +320,8 @@ MapScript.loadModule("PopupPage", (function() {
 			var p = view.getLayoutParams() || new G.WindowManager.LayoutParams(), title = view.getContentDescription();
 			p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
 			p.flags |= p.FLAG_NOT_TOUCH_MODAL | p.FLAG_WATCH_OUTSIDE_TOUCH;
-			p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
-			p.token = ctx.getWindow().getDecorView().getWindowToken();
+			p.type = G.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+			if (ctx instanceof android.app.Activity) p.token = ctx.getWindow().getDecorView().getWindowToken();
 			p.format = G.PixelFormat.TRANSLUCENT;
 			p.height = height;
 			p.width = width;
@@ -409,7 +410,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (stack.length) {
 				t = stack[stack.length - 1];
 				t.page.trigger("pause");
-				TCAgent.onPageEnd(ctx, t.name);
+				r.analytics.onPageEnd(ctx, t.name);
 				Log.d(t.page + " paused");
 			}
 			stack.push(t = {
@@ -417,7 +418,7 @@ MapScript.loadModule("PopupPage", (function() {
 				page : page
 			});
 			page.trigger("enter");
-			TCAgent.onPageStart(ctx, name);
+			r.analytics.onPageStart(ctx, name);
 			Log.d(t.page + " entered");
 			this.trigger("pushPage", name, page);
 		}
@@ -429,12 +430,12 @@ MapScript.loadModule("PopupPage", (function() {
 				t = stack[i];
 				stack.splice(i, 1);
 				t.page.trigger("exit");
-				TCAgent.onPageEnd(ctx, t.name);
+				r.analytics.onPageEnd(ctx, t.name);
 				Log.d(t.page + " exited");
 				if (i > 0 && i == stack.length && this.visible) {
 					t = stack[i - 1];
 					t.page.trigger("resume");
-					TCAgent.onPageStart(ctx, t.name);
+					r.analytics.onPageStart(ctx, t.name);
 					Log.d(t.page + " resumed");
 					while (--i >= 0) {
 						stack[i].page.requestShow();
@@ -508,14 +509,14 @@ MapScript.loadModule("PopupPage", (function() {
 			for (i = this.floatStack.length - 1; i >= 0; i--) {
 				e = this.floatStack[i];
 				e.page.trigger("exit");
-				TCAgent.onPageEnd(ctx, e.name);
+				r.analytics.onPageEnd(ctx, e.name);
 				this.hidePage(e.page, true);
 				e.page.showing = false;
 			}
 			for (i = this.defaultStack.length - 1; i >= 0; i--) {
 				e = this.defaultStack[i];
 				e.page.trigger("exit");
-				TCAgent.onPageEnd(ctx, e.name);
+				r.analytics.onPageEnd(ctx, e.name);
 				this.hidePage(e.page, true);
 				e.page.showing = false;
 			}
@@ -585,7 +586,7 @@ MapScript.loadModule("PopupPage", (function() {
 				if (!this.modal) this.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
 				this.popup.setFocusable(true);
 				this.popup.setSoftInputMode(G.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-				Common.applyPopup(this.popup);
+				this.popup.setWindowLayoutType(G.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL);
 			},
 			enter : function(noAnimation) {
 				var self = this;
@@ -823,17 +824,20 @@ MapScript.loadModule("PopupPage", (function() {
 				this.view.setTranslationY(this.y);
 				this.container = container;
 			} else {
-				this.popup = new G.PopupWindow(this.view, this.width, this.height);
-				Common.applyPopup(this.popup);
-				this.popup.setFocusable(false);
-				this.popup.setTouchable(false);
-				this.popup.showAtLocation(ctx.getWindow().getDecorView(), this.gravity, this.x, this.y);
+				this.popup = new PopupWindow(this.view, this.width, this.height);
+				this.popup.show({
+					x : this.x, y : this.y,
+					width : this.width, height : this.height,
+					gravity : this.gravity,
+					focusable : false,
+					touchable : false
+				});
 				PWM.addFloat(this.popup);
 			}
 		},
 		detach : function() {
 			if (this.popup) {
-				if (this.popup.isShowing()) this.popup.dismiss();
+				if (this.popup.showing) this.popup.hide();
 				this.popup = null;
 			}
 			if (this.container) {

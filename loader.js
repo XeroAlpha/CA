@@ -1,6 +1,6 @@
 const fs = require("fs");
 var charset = "utf-8";
-function parentDir(path) {
+function getParentDir(path) {
 	var sp;
 	path = path.replace(/\\/g, "/");
 	sp = path.lastIndexOf("/")
@@ -12,21 +12,27 @@ function addFrontSpace(arr, frontSpace) {
 		arr[i] = frontSpace + arr[i];
 	}
 }
-function preprocess(code, source, parentDir, path, charset, setAfterFill) {
+function preprocess(code, source, parentDir, path, charset, variables, setAfterFill, addFlags, removeFlags) {
+	var TestOnly = () => addFlags("test");
 	eval(code);
 	return source;
 }
 var sourceCache = {};
-function load(path) {
+function load(path, variables) {
 	path = fs.realpathSync(path);
 	if (path in sourceCache) return sourceCache[path];
-	var r = fs.readFileSync(path, charset), i, afterFill;
-	var parent = parentDir(path);
+	var r = fs.readFileSync(path, charset), i, afterFill, flags = {};
+	var parent = getParentDir(path);
 	var processer = (/\/\*LOADER\s([\s\S]+?)\*\//).exec(r);
 	if (processer) {
-		r = preprocess(processer[1], r, parent, path, charset, function(f) {
+		r = preprocess(processer[1], r, parent, path, charset, variables, function setAfterFill(f) {
 			afterFill = f;
+		}, function addFlags() {
+			for (i = 0; i < arguments.length; i++) flags[arguments[i]] = true;
+		}, function removeFlags() {
+			for (i = 0; i < arguments.length; i++) flags[arguments[i]] = false;
 		}).replace(/\/\*LOADER\s([\s\S]+?)\*\//, "");
+		if (flags.test) return "";
 	}
 	r = r.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 	for (i = 0; i < r.length; i++) {
@@ -46,8 +52,8 @@ function load(path) {
 	return sourceCache[path] = r;
 }
 module.exports = {
-	load : function(path, cs) {
+	load : function(path, cs, variables) {
 		charset = cs || "utf-8";
-		return load(path);
+		return load(path, variables);
 	}
 }

@@ -335,7 +335,7 @@ MapScript.loadModule("JSONEdit", {
 					var p = new G.WindowManager.LayoutParams();
 					p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
 					p.flags = 0;
-					p.type = CA.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+					p.type = G.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 					p.token = ctx.getWindow().getDecorView().getWindowToken();
 					p.format = G.PixelFormat.TRANSLUCENT;
 					p.height = -1;

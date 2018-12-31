@@ -19,45 +19,13 @@ MapScript.loadModule("CA", {
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 7],
+	version : [1, 2, 8],
 	publishDate : "{DATE}",
 	help : Loader.fromFile("raw/about.js"),
 	tips : [],
 
 	initialize : function() {try {
 		this.plugin = Plugins.inject(this);
-		this.supportFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
-		if (this.supportFloat) {
-			if (SettingsCompat.ensureCanFloat()) {
-				this.showContentView(true);
-			} else {
-				this.showContentView(false);
-				this.supportFloat = false;
-				Common.showConfirmDialog({
-					title : "警告\n\n命令助手无法获取到系统悬浮窗权限，已切换为弹窗模式。\n下次打开时将重新检测。",
-					buttons : ["立即重启", "暂时忽略"],
-					callback : function(id) {
-						if (id == 1) return;
-						unload();
-						initialize();
-					}
-				});
-			}
-		}
-		if (MapScript.host == "Android") {
-			AndroidBridge.requestPermissions([
-				"android.permission.READ_EXTERNAL_STORAGE",
-				"android.permission.WRITE_EXTERNAL_STORAGE"
-			], "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等", function(flag, success, denied, sync) {
-				if (sync) return;
-				if (flag) {
-					CA.load();
-					Common.toast("权限请求成功，已重新加载配置");
-				} else {
-					Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
-				}
-			});
-		}
 		this.load();
 		this.checkFeatures();
 		if (!this.hasFeature("enableCommand")) {
@@ -311,7 +279,9 @@ MapScript.loadModule("CA", {
 						self.animateTranslation(0);
 					}
 					if (CA.settings.iconDragMode == 2) break;
-					CA.icon.update(self.cx = e.getRawX() + touch.offx, self.cy = e.getRawY() + touch.offy, -1, -1);
+					CA.icon.attributes.x = self.cx = e.getRawX() + touch.offx;
+					CA.icon.attributes.y = self.cy = e.getRawY() + touch.offy;
+					CA.icon.update();
 					break;
 					case e.ACTION_DOWN:
 					touch.offx = self.cx - (touch.lx = e.getRawX());
@@ -387,7 +357,9 @@ MapScript.loadModule("CA", {
 				}
 				var updater = new java.lang.Runnable({run : function() {try {
 					if (!CA.icon) return;
-					CA.icon.update(self.cx = xani.getAnimatedValue(), self.cy = yani.getAnimatedValue(), -1, -1);
+					CA.icon.attributes.x = self.cx = xani.getAnimatedValue();
+					CA.icon.attributes.y = self.cy = yani.getAnimatedValue();
+					CA.icon.update();
 					if (!xani.isRunning()) {
 						if (callback) callback();
 						return;
@@ -496,27 +468,36 @@ MapScript.loadModule("CA", {
 			CA.settings.iconX = 0;
 			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
 		}
-		CA.icon = new G.PopupWindow(self.view, -2, -2);
-		Common.applyPopup(CA.icon);
-		CA.icon.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.LEFT | G.Gravity.TOP, self.cx = CA.settings.iconX, self.cy = CA.settings.iconY);
+		CA.icon = new PopupWindow(self.view, "CA.Icon");
+		CA.icon.show({
+			x : self.cx = CA.settings.iconX,
+			y : self.cy = CA.settings.iconY,
+			width : -2,
+			height : -2,
+			focusable : false,
+			touchable : true
+		});
 		self.refreshPos();
 		PWM.addFloat(CA.icon);
 		//if (self.tutor) self.tutor();
 	} catch(e) {erp(e)}})},
 	hideIcon : function() {G.ui(function() {try {
-		if (CA.icon) CA.icon.dismiss();
+		if (CA.icon) CA.icon.hide();
 		CA.icon = null;
 	} catch(e) {erp(e)}})},
 
 	showQuickBar : function self() {G.ui(function() {try {
 		if (!self.list) {
+			self.container = new G.FrameLayout(ctx);
 			self.list = new G.LinearLayout(ctx);
 			self.list.setOrientation(G.LinearLayout.VERTICAL);
-			self.list.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			self.container.addView(self.list, new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.RIGHT | G.Gravity.TOP));
+			self.container.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				if (e.getAction() == e.ACTION_DOWN) CA.hideQuickBar();
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			self.lp = new G.LinearLayout.LayoutParams(-1, -2);
+			
 		}
 		if (CA.qbar) return;
 		var i, e, a;
@@ -533,18 +514,20 @@ MapScript.loadModule("CA", {
 			e._view.startAnimation(a);
 			self.list.addView(e._view, self.lp);
 		}
-		CA.qbar = new G.PopupWindow(self.list, -2, -2);
-		CA.qbar.setFocusable(true);
-		CA.qbar.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
+		CA.qbar = new PopupWindow(self.container, "CA.Quickbar");
+		CA.qbar.on("hide", function() {
 			CA.qbar = null;
-		} catch(e) {erp(e)}}}));
-		Common.applyPopup(CA.qbar);
-		CA.qbar.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.RIGHT | G.Gravity.TOP, 0, 0);
+		});
+		CA.qbar.show({
+			x : 0, y : 0,
+			width : -1, height : -1,
+			gravity : G.Gravity.CENTER,
+			focusable : true
+		});
 		PWM.addPopup(CA.qbar);
 	} catch(e) {erp(e)}})},
 	hideQuickBar : function() {G.ui(function() {try {
-		if (CA.qbar) CA.qbar.dismiss();
-		CA.qbar = null;
+		if (CA.qbar) CA.qbar.hide();
 	} catch(e) {erp(e)}})},
 
 	showGen : function self(noani) {G.ui(function() {try {
@@ -604,7 +587,7 @@ MapScript.loadModule("CA", {
 					CA.showSettings();
 				}
 			}];
-			if (CA.supportFloat) {
+			if (G.supportFloat) {
 				self.cmdEdit.push({
 					text : "退出命令助手",
 					onclick : function(v) {
@@ -2476,37 +2459,8 @@ MapScript.loadModule("CA", {
 		if (MapScript.host == "AutoJs") {
 			ctx.finish();
 		} else if (MapScript.host == "Android") {
-			if (G.style == "Material") {
-				ctx.finishAndRemoveTask();
-			} else {
-				ctx.finish();
-			}
+			ScriptInterface.quit();
 		}
-	} catch(e) {erp(e)}})},
-
-	showContentView : function(canFloat) {G.ui(function() {try {
-		var layout, help, exit;
-		layout = new G.LinearLayout(ctx);
-		layout.setBackgroundColor(G.Color.WHITE);
-		layout.setOrientation(G.LinearLayout.VERTICAL);
-		layout.setGravity(G.Gravity.CENTER);
-		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-		layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
-		help = new G.TextView(ctx);
-		help.setTextSize(16);
-		help.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-		help.setText("现在您应该可以看到悬浮窗了，如果没有看到请打开悬浮窗权限。");
-		help.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
-		layout.addView(help);
-		exit = new G.Button(ctx);
-		exit.setText("退出命令助手");
-		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			CA.performExit();
-		} catch(e) {erp(e)}}}));
-		layout.addView(exit);
-		ctx.setContentView(layout);
-		if (canFloat) ctx.moveTaskToBack(true);
 	} catch(e) {erp(e)}})},
 
 	showSettings : function self() {G.ui(function() {try {
@@ -3361,7 +3315,7 @@ MapScript.loadModule("CA", {
 					});
 					if (!success) throw "粘贴失败"
 				} else if (MapScript.host == "Android") {
-					var svc = ScriptActivity.getAccessibilitySvc();
+					var svc = ScriptInterface.getAccessibilitySvc();
 					if (!svc) {
 						if (warnSvcNotRun) {
 							throw "请打开无障碍服务";
@@ -3466,7 +3420,8 @@ MapScript.loadModule("CA", {
 						}
 						touch.stead = false;
 						if (!self.inDrawer) self.list.setVisibility(G.View.GONE);
-						CA.paste.update(Common.getScreenWidth(), -1);
+						CA.paste.attributes.width = Common.getScreenWidth();
+						CA.paste.update();
 					} else {
 						self.updateWidth(touch.slw + (e.getRawX() - touch.lx) * self.dir);
 					}
@@ -3485,7 +3440,8 @@ MapScript.loadModule("CA", {
 					self.updateWidth(touch.slw + (e.getRawX() - touch.lx) * self.dir);
 					case e.ACTION_CANCEL:
 					if (!self.inDrawer) self.list.setVisibility(G.View.VISIBLE);
-					CA.paste.update(self.lparam.width + 16 * G.dp, -1);
+					CA.paste.attributes.width = self.lparam.width + 16 * G.dp;
+					CA.paste.update();
 				}
 				return v == self.bar;
 			} catch(e) {return erp(e), true}}});
@@ -3550,7 +3506,7 @@ MapScript.loadModule("CA", {
 		}
 		if (self.inDrawer) {
 			self.updateWidth(0.4 * Common.getScreenWidth());
-			CA.paste.update(self.lparam.width + 16 * G.dp, -1);
+			CA.paste.update({width : self.lparam.width + 16 * G.dp});
 			self.list.setVisibility(G.View.VISIBLE);
 			if (!CA.settings.noAnimation) self.animateShow();
 		}
@@ -3565,14 +3521,20 @@ MapScript.loadModule("CA", {
 			self.lparam.setMargins(0, 0, 16 * G.dp, 0);
 			self.dir = 1;
 		}
-		CA.paste = new G.PopupWindow(self.bar, self.lparam.width + 16 * G.dp, -1);
-		Common.applyPopup(CA.paste);
-		CA.paste.showAtLocation(ctx.getWindow().getDecorView(), self.gravity, 0, 0);
+		CA.paste = new PopupWindow(self.bar, "CA.PasteBar");
+		CA.paste.show({
+			width : self.lparam.width + 16 * G.dp,
+			height : -1,
+			gravity : self.gravity,
+			x : 0, y : 0,
+			focusable : false,
+			touchable : true
+		});
 		if (!CA.settings.noAnimation) self.animateShow();
 		PWM.addPopup(CA.paste);
 	} catch(e) {erp(e)}})},
 	hidePaste : function() {G.ui(function() {try {
-		if (CA.paste) CA.paste.dismiss();
+		if (CA.paste) CA.paste.hide();
 		CA.paste = null;
 	} catch(e) {erp(e)}})},
 
@@ -4705,8 +4667,8 @@ MapScript.loadModule("CA", {
 				bold : true
 			},
 			" - ", CA.publishDate, " (", CA.version.join("."), ")\n\n", {
-				text : "Copyright ProjectXero 2017 - 2018",
-				bold : true
+				text : "Copyright ProjectXero 2017 - 2019",
+				bold : true 
 			}]),
 			buttons : [
 				"相关信息",

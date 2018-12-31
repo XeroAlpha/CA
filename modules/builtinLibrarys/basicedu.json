@@ -239,5 +239,34 @@
 			],
 			"stepMode": "manual"
 		}]
+	}, {
+		"name": "execute实例教程 (1)",
+		"description": "如何仅用4个命令方块实现多人射击游戏？",
+		"id": "yangzii.executepractice.1",
+		"type": "tutorial",
+		"intro": [
+			"很多CBer在编写命令时，是否会发现自己写的命令往往会有一些莫名其妙的",
+			{
+				"text": "“特性”",
+				"bold": true
+			},
+			"？",
+			"\n\n是否有为了修复这些",
+			{
+				"text": "“特性”",
+				"bold": true
+			},
+			"，自己被迫写了嵌套十几层甚至二十几层execute的硬核指令？",
+			"\n\n或者……憋着不能kill @e非要加多几个name选择器的？再或者手残炸档的以及做到一半发现实现不了弃坑的......",
+			"\n你是否有过这些经历呢？",
+			"\n\n\n如果有，",
+			{
+				"text": "现在，就有一个补习的机会~",
+				"bold": true,
+				"color": "criticalcolor"
+			},
+			"嫌咱文章字多的话可以直接去看视频啦，那么废话也不多说，开始吧~ "
+		],
+		"segments": []
 	}]
 }

@@ -7,6 +7,7 @@ MapScript.loadModule("NeteaseAdapter", {
 		try {
 			return NeteaseAdapter.mcVersion = NeteaseAdapter.getCoreVersion();
 		} catch(e) {
+			Log.e(e);
 			return NeteaseAdapter.mcVersion = "*";
 		}
 	},
@@ -17,35 +18,37 @@ MapScript.loadModule("NeteaseAdapter", {
 			this.mcPackage = CA.settings.mcPackName;
 			this.mcPublisher = CA.settings.mcPublisher;
 			this.autoSelect = false;
-			return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
+			try {
+				return this.getVersionByPar(CA.settings.mcPackName, CA.settings.mcPublisher);
+			} catch(e) {erp(e, true)}
+			CA.settings.mcPackName = CA.settings.mcPublisher = null;
+		}
+		var i, result = [], t;
+		for (i = 0; i < this.packNames.length; i++) {
+			if (MCAdapter.existPackage(this.packNames[i])) {
+				t = {
+					package : this.packNames[i],
+					publisher : this.packages[this.packNames[i]].publisher
+				};
+				t.version = String(this.getVersionByPar(t.package, t.publisher)).split(".");
+				result.push(t);
+			}
+		}
+		if (result.length > 1) {
+			result.sort(function(a, b) {
+				return NeteaseAdapter.compareVersion(b.version, a.version);
+			});
+		}
+		this.multiVersions = result.length > 1;
+		this.autoSelect = true;
+		if (result.length > 0) {
+			this.mcPackage = result[0].package;
+			this.mcPublisher = result[0].publisher;
+			return result[0].version.join(".");
 		} else {
-			var i, result = [], t;
-			for (i = 0; i < this.packNames.length; i++) {
-				if (MCAdapter.existPackage(this.packNames[i])) {
-					t = {
-						package : this.packNames[i],
-						publisher : this.packages[this.packNames[i]].publisher
-					};
-					t.version = String(this.getVersionByPar(t.package, t.publisher)).split(".");
-					result.push(t);
-				}
-			}
-			if (result.length > 1) {
-				result.sort(function(a, b) {
-					return NeteaseAdapter.compareVersion(b.version, a.version);
-				});
-			}
-			this.multiVersions = result.length > 1;
-			this.autoSelect = true;
-			if (result.length > 0) {
-				this.mcPackage = result[0].package;
-				this.mcPublisher = result[0].publisher;
-				return result[0].version.join(".");
-			} else {
-				this.mcPackage = null;
-				this.mcPublisher = null;
-				return "*";
-			}
+			this.mcPackage = null;
+			this.mcPublisher = null;
+			return "*";
 		}
 	},
 	getVersionByPar : function(packName, publisher) {

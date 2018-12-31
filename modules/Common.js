@@ -150,7 +150,7 @@ MapScript.loadModule("Common", {
 		}
 	},
 	applyPopup : function(popup) {
-		if (CA.supportFloat) {
+		if (G.supportFloat) {
 			if (android.os.Build.VERSION.SDK_INT >= 26) {
 				popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
 			} else {
@@ -1383,7 +1383,7 @@ MapScript.loadModule("Common", {
 					self.frame.setBackground(new G.BitmapDrawable(self.bmp));
 					self.cv.setBitmap(self.bmp);
 					self.popup.showAtLocation(decor, G.Gravity.LEFT | G.Gravity.TOP, 0, 0);
-					if (MapScript.host == "Android" && CA.supportFloat) ScriptActivity.bringToFront();
+					//if (MapScript.host == "Android" && G.supportFloat) ScriptActivity.bringToFront();
 					PWM.addFloat(self.popup);
 				}
 				if (!self.queue.length) {

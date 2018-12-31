@@ -1,7 +1,7 @@
 "ui";
 /*
     Command Assistant (命令助手)
-    Copyright (C) 2017-2018  ProjectXero
+    Copyright (C) 2017-2019  ProjectXero
     E-mail: projectxero@163.com
 
     This program is free software: you can redistribute it and/or modify
@@ -185,10 +185,10 @@ MapScript.loadModule("ctx", (function(global) {
 		MapScript.host = "AutoJsNoUI";
 		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
 		return context;
-	} else if ("ScriptActivity" in global) { //在Android脚本外壳中加载
+	} else if ("ScriptInterface" in global) { //在Android脚本外壳中加载
 		MapScript.host = "Android";
-		MapScript.baseDir = ScriptActivity.getDir("rhino", 0).getAbsolutePath() + "/";
-		return ScriptActivity;
+		MapScript.baseDir = ScriptInterface.getContext().getDir("rhino", 0).getAbsolutePath() + "/";
+		return ScriptInterface.getContext();
 	} else if ("World" in global) { //在Inner Core中加载
 		MapScript.host = "InnerCore";
 		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
@@ -338,6 +338,10 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 		self.count = 1;
 	}
 	if (self.count > 3) return;
+	if (MapScript.host == "Android") {
+		ScriptInterface.reportError(tech);
+		return;
+	}
 	gHandler.post(new java.lang.Runnable({run : function() {try {
 		android.widget.Toast.makeText(ctx, error.fileName + "出现了一个错误：" + error + "\n查看对话框获得更多信息。", 0).show();
 		var dialog = new android.app.AlertDialog.Builder(ctx);
@@ -374,9 +378,7 @@ MapScript.loadModule("Loader", {
 			lm = MapScript.loadModule;
 			lmb = lm.bind(MapScript);
 			MapScript.loadModule = function(name, obj, ignoreHook) {
-				gHandler.post(function() {try {
-					ScriptActivity.setLoadingTitle("正在加载模块：" + name);
-				} catch(e) {erp(e)}});
+				ScriptInterface.setLoadingTitle("正在加载模块：" + name);
 				lmb(name, obj, ignoreHook);
 			};
 		}
@@ -393,7 +395,7 @@ MapScript.loadModule("Loader", {
 			f();
 			gHandler.post(function() {try {
 				if (lto) lto.cancel();
-				if (lm) ScriptActivity.setLoadingTitle("初始化模块");
+				if (lm) ScriptInterface.setLoadingTitle("初始化模块");
 			} catch(e) {erp(e)}});
 			if (lm) MapScript.loadModule = lm;
 			Loader.loading = false;
@@ -410,33 +412,39 @@ MapScript.loadModule("Loader", {
 	},
 	open : function(path) {
 		if (MapScript.host == "Android") {
-			var manager = ScriptActivity.getScriptManager();
+			var manager = ScriptInterface.getScriptManager();
 			return manager.open(path);
 		} else if (MapScript.global.modulePath) {
 			return new java.io.FileInputStream(new java.io.File(MapScript.global.modulePath, path));
 		} else Log.throwError(new Error("不支持的平台"));
 	},
 	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
-		var rd, s, parentDir, t;
-		path = new java.io.File(path.replace(/\\/g, "/")).getCanonicalPath();
+		var pathFile, rd, s, parentDir, t;
+		pathFile = new java.io.File(path.replace(/\\/g, "/")).getCanonicalFile();
+		path = pathFile.getPath();
 		if (this.cache && path in this.cache) return this.cache[path];
 		rd = new java.io.BufferedReader(new java.io.InputStreamReader(this.open(path)));
 		s = [];
 		while (t = rd.readLine()) s.push(t);
 		rd.close();
 		s = s.join("\n");
-		parentDir = new java.io.File(path).getParent();
+		parentDir = pathFile.getParent();
 		s = s.replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
 			return match.replace(mpath, new java.io.File(parentDir, mpath));
 		});
 		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-		t = eval.call(null, s);
+		t = this.evalSpecial(s, pathFile.getName(), 0);
 		if (this.cache) this.cache[path] = t;
 		return t;
+	},
+	evalSpecial : function(source, sourceName, lineNumber) {
+		var cx = org.mozilla.javascript.Context.getCurrentContext();
+		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, MapScript.global, null, [new java.lang.String(source)], sourceName, lineNumber);
 	}
 });
 
 Loader.load(function() {
+Loader.fromFile("modules/test/FileLogger.js")
 
 Loader.fromFile("modules/uiCore/G.js")
 
@@ -451,6 +459,8 @@ Loader.fromFile("modules/uiCore/PopupPage.js")
 Loader.fromFile("modules/core/MemSaver.js")
 
 Loader.fromFile("modules/CA.js")
+
+Loader.fromFile("modules/uiCore/PopupWindow.js")
 
 Loader.fromFile("modules/Common.js")
 

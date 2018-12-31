@@ -7,17 +7,19 @@ MapScript.loadModule("SettingsCompat", {
 	// 由 ProjectXero (@XeroAlpha) 翻译，有改动
 
 	SYSVER : android.os.Build.VERSION.SDK_INT,
-	ensureCanFloat : function() {
+	ensureCanFloat : function(silent) {
 		if (this.canDrawOverlays()) {
 			return true;
 		}
 		if (this.setDrawOverlays(true)) {
 			return true;
 		}
-		G.ui(function() {try {
-			G.Toast.makeText(ctx, "系统不允许悬浮窗显示，请在设置中启用", 1).show();
-		} catch(e) {erp(e)}});
-		this.manageDrawOverlays();
+		if (!silent) {
+			G.ui(function() {try {
+				G.Toast.makeText(ctx, "系统不允许命令助手显示悬浮窗，请在设置中启用", 1).show();
+			} catch(e) {erp(e)}});
+			this.manageDrawOverlays();
+		}
 		return false;
 	},
 	showAppSettings : function() {
@@ -216,30 +218,29 @@ MapScript.loadModule("SettingsCompat", {
 		}
 	},
 	onCreate : function() {
-		var i, t;
-		for (i in this.RomCheck) {
-			if (t = this.RomCheck[i].call(this)) {
-				this.rom = i;
-				this.version = t;
-				return;
-			}
-		}
+		var self = this;
 		this.rom = android.os.Build.MANUFACTURER.toUpperCase();
 		this.version = "unknown";
+		var th = new java.lang.Thread(function() {try {
+			var i, t;
+			for (i in self.RomCheck) {
+				if (t = self.RomCheck[i].call(self)) {
+					self.rom = i;
+					self.version = t;
+					return;
+				}
+			}
+		} catch(e) {Log.e(e)}});
+		th.start();
+		th.join(150);
 	},
 	getProp : function(key) {
 		var ln = null, is = null;
-		var th = new java.lang.Thread(function() {
-			try {
-				var p = java.lang.Runtime.getRuntime().exec("getprop " + key);
-				is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
-				ln = is.readLine();
-				is.close();
-			} catch(e) {Log.e(e)}
-		});
-		th.start();
-		th.join(100, 0);
-		if (th.getState() != java.lang.Thread.State.TERMINATED) th.interrupt();
+		try {
+			var p = java.lang.Runtime.getRuntime().exec("getprop " + key);
+			is = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()), 1024);
+			ln = is.readLine();
+		} catch(e) {Log.e(e)}
 		if (is != null) {
 			try {
 				is.close();

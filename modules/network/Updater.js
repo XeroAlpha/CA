@@ -173,7 +173,7 @@ MapScript.loadModule("Updater", {
 				});
 			},
 			visible : function() {
-				return MapScript.host == "Android" && info.hotfix && info.hotfix.shell == ScriptActivity.getShellVersion()
+				return MapScript.host == "Android" && info.hotfix && info.hotfix.shell == ScriptInterface.getShellVersion()
 			}
 		}, {
 			text : "手动更新",

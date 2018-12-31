@@ -709,7 +709,7 @@
 			digest = java.security.MessageDigest.getInstance("SHA-1");
 			digest.update(arr, 9, arr.length - 9);
 			bytes = digest.digest();
-			digest.update(ctx.getVerifyKey());
+			digest.update(ScriptInterface.getVerifyKey());
 			digest.update(bytes);
 			bytes = digest.digest();
 			os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib.hash");
@@ -733,7 +733,7 @@
 			digest = java.security.MessageDigest.getInstance("SHA-1");
 			digest.update(arr, 13 + sourceSize, arr.length - 13 - sourceSize);
 			bytes = digest.digest();
-			digest.update(ctx.getVerifyKey());
+			digest.update(ScriptInterface.getVerifyKey());
 			digest.update(bytes);
 			bytes = digest.digest();
 			arr = this.readAsArray(new java.io.FileInputStream(path + ".hash"));

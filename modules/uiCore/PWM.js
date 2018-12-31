@@ -21,13 +21,7 @@ MapScript.loadModule("PWM", {
 	onPageAdd : function() {
 		var v;
 		this.floats.forEach(function(e) {
-			if (!e.isShowing()) return;
-			v = e.getContentView();
-			if (!v) return;
-			v = v.getRootView();
-			wp = v.getLayoutParams();
-			PWM.wm.removeViewImmediate(v);
-			PWM.wm.addView(v, wp);
+			e.bringToFront();
 		});
 	},
 	addFloat : function(w) {
@@ -42,8 +36,7 @@ MapScript.loadModule("PWM", {
 		var v;
 		this.busy = true;
 		this.floats.forEach(function(e) {
-			if (!e.isShowing()) return;
-			e.dismiss();
+			e.hide();
 		});
 		this.busy = false;
 		this.trigger("dismissFloat");
@@ -52,8 +45,7 @@ MapScript.loadModule("PWM", {
 		var v;
 		this.busy = true;
 		this.popups.forEach(function(e) {
-			if (!e.isShowing()) return;
-			e.dismiss();
+			e.hide();
 		});
 		this.busy = false;
 		this.trigger("dismissPopup");

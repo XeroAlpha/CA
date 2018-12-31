@@ -8,8 +8,8 @@ MapScript.loadModule("GiteeFeedback", {
 	perPage : 20,
 	initialize : function() {
 		if (MapScript.host == "Android") {
-			this.clientId = String(ScriptActivity.getGiteeClientId());
-			this.clientSecret = String(ScriptActivity.getGiteeClientSecret());
+			this.clientId = String(ScriptInterface.getGiteeClientId());
+			this.clientSecret = String(ScriptInterface.getGiteeClientSecret());
 			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback.html";
 		}
 	},
@@ -18,7 +18,7 @@ MapScript.loadModule("GiteeFeedback", {
 	},
 	acquireAccessTokenAnonymous : function() {
 		this.accessType = "anonymous";
-		this.accessToken = String(ScriptActivity.getGiteeFeedbackToken());
+		this.accessToken = String(ScriptInterface.getGiteeFeedbackToken());
 		this.accessData = null;
 	},
 	acquireAccessTokenOAuth : function(authorizationCode) {

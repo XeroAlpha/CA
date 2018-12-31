@@ -1,5 +1,6 @@
 MapScript.loadModule("AndroidBridge", {
 	intentCallback : {},
+	permissionRequestData : [],
 	permissionCallback : {length : 0},
 	onCreate : function() {
 		G.ui(this.initIcon);
@@ -7,11 +8,8 @@ MapScript.loadModule("AndroidBridge", {
 	initialize : function() {try {
 		if (MapScript.host != "Android") return;
 		if (CA.RELEASE) gHandler.post(this.verifyApk);
-		ScriptActivity.setBridgeListener(new com.xero.ca.MainActivity.BridgeListener({
+		ScriptInterface.setBridge({
 			applyIntent : function(intent) {try {
-				if (!ScriptActivity.isForeground()) {
-					AndroidBridge.reorderToFront();
-				}
 				AndroidBridge.callHide();
 				return true;
 			} catch(e) {erp(e)}},
@@ -28,18 +26,8 @@ MapScript.loadModule("AndroidBridge", {
 				delete AndroidBridge.intentCallback[requestCode];
 				cb(resultCode, data);
 			} catch(e) {erp(e)}},
-			onRequestPermissionsResult : function(requestCode, permissions, grantResults) {try {
-				var i, succeed = [], failed = [], cb = AndroidBridge.permissionCallback[requestCode];
-				if (!cb) return;
-				delete AndroidBridge.permissionCallback[requestCode];
-				for (i in grantResults) {
-					if (grantResults[i] == 0) { // PERMISSION_GRANTED == 0
-						succeed.push(String(permissions[i]));
-					} else {
-						failed.push(String(permissions[i]));
-					}
-				}
-				cb(failed.length == 0, succeed, failed, false);
+			onBeginPermissonRequest : function(activity) {try {
+				return AndroidBridge.onBeginPermissonRequest(activity);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -100,11 +88,15 @@ MapScript.loadModule("AndroidBridge", {
 				MCAdapter.connInit = false;
 				AndroidBridge.notifySettings();
 			} catch(e) {erp(e)}}
-		}));
-		this.onNewIntent(ScriptActivity.getIntent(), true);
-		if (CA.settings.autoStartAccSvcRoot) AndroidBridge.startAccessibilitySvcByRootAsync(null, true);
-		if (CA.settings.watchClipboard) AndroidBridge.startWatchClipboard();
+		});
+		this.onNewIntent(ScriptInterface.getIntent(), true);
+		if (CA.settings.autoStartAccSvcRoot) this.startAccessibilitySvcByRootAsync(null, true);
+		if (CA.settings.watchClipboard) this.startWatchClipboard();
 		if (CA.settings.startWSSOnStart) WSServer.start(true);
+		if (G.shouldFloat) this.showActivityContent(G.supportFloat);
+		this.checkNecessaryPermissions(function(success) {
+			if (G.supportFloat) AndroidBridge.exitLoading(!CA.settings.hideRecent);
+		});
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -116,7 +108,7 @@ MapScript.loadModule("AndroidBridge", {
 		var t;
 		if (!intent) return;
 		switch (intent.getAction()) {
-			case ScriptActivity.ACTION_ADD_LIBRARY:
+			case ScriptInterface.ACTION_ADD_LIBRARY:
 			t = AndroidBridge.uriToFile(intent.getData());
 			Common.showConfirmDialog({
 				title : "确定加载拓展包“" + t + "”？",
@@ -133,7 +125,7 @@ MapScript.loadModule("AndroidBridge", {
 				}
 			});
 			break;
-			case ScriptActivity.ACTION_EDIT_COMMAND:
+			case ScriptInterface.ACTION_EDIT_COMMAND:
 			t = intent.getExtras().getString("text", "");
 			G.ui(function() {try {
 				CA.showGen(true);
@@ -141,19 +133,19 @@ MapScript.loadModule("AndroidBridge", {
 				CA.showGen.activate(false);
 			} catch(e) {erp(e)}});
 			break;
-			case ScriptActivity.ACTION_START_FROM_SHORTCUT:
+			case ScriptInterface.ACTION_START_FROM_SHORTCUT:
 			t = ctx.getPackageManager().getLaunchIntentForPackage(intent.getData().getSchemeSpecificPart());
 			if (t) {
 				ctx.startActivity(t);
 			}
 			break;
-			case ScriptActivity.ACTION_SCRIPT_ACTION:
+			case ScriptInterface.ACTION_SCRIPT_ACTION:
 			if (!startByIntent) AndroidBridge.scriptAction();
 			break;
-			case ScriptActivity.ACTION_URI_ACTION:
+			case ScriptInterface.ACTION_URI_ACTION:
 			AndroidBridge.openUriAction(intent.getData(), intent.getExtras());
 			break;
-			case ScriptActivity.ACTION_SHOW_DEBUG:
+			case ScriptInterface.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			Common.showDebugDialog();
 			break;
@@ -164,6 +156,9 @@ MapScript.loadModule("AndroidBridge", {
 				if (t) {
 					ctx.startActivity(t);
 				}
+			}
+			if (!startByIntent) {
+				CA.showIcon();
 			}
 		}
 	},
@@ -193,10 +188,10 @@ MapScript.loadModule("AndroidBridge", {
 			if (cls != com.xero.ca.XApplication) throw 104;
 			if (this.findDeclaredMethodClass(cls, ["attachBaseContext", android.content.Context], android.app.Application)) throw 105;
 			if (this.findDeclaredMethodClass(cls, ["onCreate"], android.app.Application) != com.xero.ca.XApplication) throw 106;
-			cls = ctx.getClass();
+			/*cls = ctx.getClass();
 			if (cls != com.xero.ca.MainActivity) throw 107;
 			if (this.findDeclaredMethodClass(cls, ["attachBaseContext", android.content.Context], com.xero.ca.MainActivity)) throw 108;
-			if (this.findDeclaredMethodClass(cls, ["onCreate", android.os.Bundle], com.xero.ca.MainActivity) != com.xero.ca.MainActivity) throw 109;
+			if (this.findDeclaredMethodClass(cls, ["onCreate", android.os.Bundle], com.xero.ca.MainActivity) != com.xero.ca.MainActivity) throw 109;*/
 		} catch(e) {
 			throw new java.lang.SecurityException(String(e));
 		}
@@ -214,11 +209,6 @@ MapScript.loadModule("AndroidBridge", {
 		if (!parent) parent = java.lang.Object;
 		if (cls == java.lang.Object || cls == parent) return null;
 		return self(cls.getSuperclass(), params, parent);
-	},
-	reorderToFront : function() {
-		ctx.getApplicationContext().startActivity(
-			new android.content.Intent(ctx, ctx.class)
-				.addFlags(android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 	},
 	callHide : function() {
 		if (PopupPage.getCount() > 0) {
@@ -278,7 +268,7 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	addSettings : function(o) {
 		if (MapScript.host != "Android") return;
-
+		var preference = ScriptInterface.getPreference();
 		o.splice(2, 0, {
 			name : "Android版设置",
 			type : "tag"
@@ -287,10 +277,10 @@ MapScript.loadModule("AndroidBridge", {
 			description : "用于支持粘贴命令以及一些其他操作",
 			type : "custom",
 			get : function() {
-				return ScriptActivity.getAccessibilitySvc() != null ? "已启用" : "未启用";
+				return ScriptInterface.getAccessibilitySvc() != null ? "已启用" : "未启用";
 			},
 			onclick : function(fset) {
-				ScriptActivity.goToAccessibilitySetting();
+				ScriptInterface.goToAccessibilitySetting();
 			}
 		}, {
 			name : "加载适配器……",
@@ -345,19 +335,29 @@ MapScript.loadModule("AndroidBridge", {
 			name : "开机自动启动",
 			description : "需要系统允许开机自启",
 			type : "boolean",
-			get : ScriptActivity.getBootStart.bind(ScriptActivity),
-			set : ScriptActivity.setBootStart.bind(ScriptActivity)
+			get : preference.getBootStart.bind(preference),
+			set : preference.setBootStart.bind(preference)
 		}, {
 			name : "隐藏启动界面",
 			type : "boolean",
-			get : ScriptActivity.getHideSplash.bind(ScriptActivity),
-			set : ScriptActivity.setHideSplash.bind(ScriptActivity)
+			get : preference.getHideSplash.bind(preference),
+			set : preference.setHideSplash.bind(preference)
+		}, {
+			name : "隐藏后台任务",
+			type : "boolean",
+			get : function() {
+				return Boolean(CA.settings.hideRecent);
+			},
+			set : function(v) {
+				CA.settings.hideRecent = Boolean(v);
+				Common.toast("本项设置将在重启命令助手后应用");
+			}
 		}, {
 			name : "隐藏通知",
 			description : "可能导致应用被自动关闭",
 			type : "boolean",
-			get : ScriptActivity.getHideNotification.bind(ScriptActivity),
-			set : ScriptActivity.setHideNotification.bind(ScriptActivity)
+			get : preference.getHideNotification.bind(preference),
+			set : ScriptInterface.setHideNotification.bind(ScriptInterface)
 		}, {
 			name : "自动启动无障碍服务",
 			description : "需要Root",
@@ -485,25 +485,58 @@ MapScript.loadModule("AndroidBridge", {
 			return;
 		}
 		this.intentCallback[i] = callback;
-		ScriptActivity.startActivityForResult(intent, i);
+		ScriptInterface.startActivityForResult(intent, i);
 	},
 	requestPermissions : function(permissions, explanation, callback) {
 		var i, denied = [];
 		for (i = 0; i < permissions.length; i++) {
-			if (ScriptActivity.checkSelfPermission(permissions[i]) != 0) { // PERMISSION_GRANTED == 0
+			if (ScriptInterface.checkSelfPermission(permissions[i]) != 0) { // PERMISSION_GRANTED == 0
 				denied.push(permissions[i]);
 			}
 		}
 		if (denied.length) {
-			Common.showTextDialog("命令助手需要申请" + denied.length + "个权限。" + (explanation ? "\n" + explanation : ""), function() {
-				var code = AndroidBridge.permissionCallback.length++;
-				AndroidBridge.permissionCallback[code] = callback;
-				ScriptActivity.requestPermissionsCompat(code, denied);
+			AndroidBridge.permissionRequestData.push({
+				permissions : denied,
+				explanation : explanation,
+				callback : callback
 			});
+			ScriptInterface.beginPermissonRequest();
 		} else {
 			callback(true, permissions.slice(), [], true);
 		}
 		return denied.length;
+	},
+	onBeginPermissonRequest : function(activity) {
+		var lastData, code = 0;
+		lastData = AndroidBridge.permissionRequestData.pop();
+		if (lastData) this.doPermissonRequest(activity, lastData, code);
+		activity.setCallback({
+			onRequestPermissionsResult : function(activity, requestCode, permissions, grantResults) {try {
+				var i, succeed = [], failed = [];
+				if (code == requestCode && lastData && lastData.callback) {
+					for (i in grantResults) {
+						if (grantResults[i] == 0) { // PERMISSION_GRANTED == 0
+							succeed.push(String(permissions[i]));
+						} else {
+							failed.push(String(permissions[i]));
+						}
+					}
+					lastData.callback(failed.length == 0, succeed, failed, false);
+				}
+				lastData = AndroidBridge.permissionRequestData.pop();
+				if (lastData) {
+					this.doPermissonRequest(activity, lastData, ++code);
+				} else {
+					activity.finish();
+				}
+			} catch(e) {erp(e)}}
+			//onEndPermissionRequest : function(activity) {}
+		});
+	},
+	doPermissonRequest : function(activity, data, code) {
+		Common.showTextDialog("命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : ""), function() {
+			activity.requestPermissionsCompat(code, data.permissions);
+		});
 	},
 	getABIs : function() {
 		if (android.os.Build.VERSION.SDK_INT > 21) {
@@ -557,7 +590,7 @@ MapScript.loadModule("AndroidBridge", {
 	fileToUri : function(file) {
 		file = file instanceof java.io.File ? file : new java.io.File(file);
 		if (android.os.Build.VERSION.SDK_INT >= 24 && MapScript.host == "Android") {
-			return ScriptActivity.fileToUri(file);
+			return ScriptInterface.fileToUri(file);
 		} else {
 			return android.net.Uri.fromFile(file);
 		}
@@ -566,33 +599,35 @@ MapScript.loadModule("AndroidBridge", {
 		var i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
 		i.setType(mimeType);
 		this.startActivityForResult(i, function(resultCode, data) {
-			if (resultCode != ctx.RESULT_OK) return;
+			if (resultCode != -1) return; // RESULT_OK = -1
 			callback(AndroidBridge.uriToFile(data.getData()));
 		});
 	},
 	selectImage : function(callback) {
 		if (MapScript.host == "Android") {
-			this.selectFile("image/*", function(path) {
-				callback(path);
-			});
-		} else {
-			Common.showFileDialog({
-				type : 0,
-				check : function(path) {
-					var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
-					if (!bmp) {
-						Common.toast("不支持的图片格式");
-						return false;
-					}
-					bmp.recycle();
-					return true;
-				},
-				callback : function(f) {
-					var path = String(f.result.getAbsolutePath());
+			try {
+				this.selectFile("image/*", function(path) {
 					callback(path);
-				}
-			});
+				});
+				return;
+			} catch(e) {erp(e, true)} //某些垃圾手机不支持这种选择方式
 		}
+		Common.showFileDialog({
+			type : 0,
+			check : function(path) {
+				var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
+				if (!bmp) {
+					Common.toast("不支持的图片格式");
+					return false;
+				}
+				bmp.recycle();
+				return true;
+			},
+			callback : function(f) {
+				var path = String(f.result.getAbsolutePath());
+				callback(path);
+			}
+		});
 	},
 	createShortcut : function(intent, name, icon) {
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
@@ -667,6 +702,76 @@ MapScript.loadModule("AndroidBridge", {
 			} catch(e) {erp(e)}}}));
 		}
 	} catch(e) {erp(e)}})},
+	exitLoading : function(keepActivity) {
+		var activity = ScriptInterface.getBindActivity();
+		if (!activity) return;
+		activity.runOnUiThread(function() {try {
+			if (keepActivity) {
+				activity.moveTaskToBack(false);
+			} else {
+				if (G.style == "Material") {
+					activity.finishAndRemoveTask();
+				} else {
+					activity.finish();
+				}
+			}
+		} catch(e) {erp(e)}});
+	},
+	showActivityContent : function(canFloat) {
+		var activity = ScriptInterface.getBindActivity();
+		if (!activity) return;
+		activity.runOnUiThread(function() {try {
+			var layout, help, ensurefloat, exit;
+			layout = new G.LinearLayout(ctx);
+			layout.setBackgroundColor(G.Color.WHITE);
+			layout.setOrientation(G.LinearLayout.VERTICAL);
+			layout.setGravity(G.Gravity.CENTER);
+			layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			layout.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -1));
+			help = new G.TextView(ctx);
+			help.setGravity(G.Gravity.CENTER);
+			help.setTextSize(16);
+			help.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			help.setText(canFloat ? "当前模式∶悬浮窗模式\n您现在可以在屏幕上找到命令助手的悬浮窗，找不到的话请手动打开命令助手的悬浮窗权限" : "当前模式∶页面模式\n检测到命令助手没有悬浮窗权限，无法以悬浮窗模式打开命令助手。如果您已给予权限，请手动重启命令助手。");
+			help.setLayoutParams(new G.ViewGroup.LayoutParams(-1, -2));
+			layout.addView(help);
+			ensurefloat = new G.Button(ctx);
+			ensurefloat.setText("检查悬浮窗权限");
+			ensurefloat.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			ensurefloat.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (SettingsCompat.ensureCanFloat(false)) {
+					G.ui(function() {try {
+						G.Toast.makeText(ctx, "悬浮窗权限已打开", 0).show();
+					} catch(e) {erp(e)}});
+				}
+			} catch(e) {erp(e)}}}));
+			layout.addView(ensurefloat);
+			exit = new G.Button(ctx);
+			exit.setText("退出命令助手");
+			exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				CA.performExit();
+			} catch(e) {erp(e)}}}));
+			layout.addView(exit);
+			activity.setContentView(layout);
+		} catch(e) {erp(e)}});
+	},
+	checkNecessaryPermissions : function(callback) {
+		AndroidBridge.requestPermissions([
+			"android.permission.READ_EXTERNAL_STORAGE",
+			"android.permission.WRITE_EXTERNAL_STORAGE"
+		], "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等", function(flag, success, denied, sync) {
+			if (!sync) {
+				if (flag) {
+					CA.load();
+					Common.toast("权限请求成功，已重新加载配置");
+				} else {
+					Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
+				}
+			}
+			if (callback) callback(flag);
+		});
+	},
 	keeperMenu : [{
 		text : "显示/隐藏图标",
 		onclick : function() {

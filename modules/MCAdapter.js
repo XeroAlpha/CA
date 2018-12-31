@@ -166,7 +166,7 @@ MapScript.loadModule("MCAdapter", {
 		if (CA.settings.neverAskShortcut) z.callback(CA.settings.needShortcut);
 	},
 	createShortcut : function(name, pkg) {
-		var sc = new android.content.Intent(ScriptActivity.ACTION_START_FROM_SHORTCUT);
+		var sc = new android.content.Intent(ScriptInterface.ACTION_START_FROM_SHORTCUT);
 		sc.setClassName("com.xero.ca", "com.xero.ca.MainActivity");
 		sc.setData(android.net.Uri.fromParts("package", pkg, null));
 		AndroidBridge.createShortcut(sc, name, com.xero.ca.R.mipmap.icon_small);

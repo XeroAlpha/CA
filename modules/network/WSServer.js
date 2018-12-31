@@ -16,7 +16,7 @@ MapScript.loadModule("WSServer", {
 		return this.conn != null && this.conn.isOpen();
 	},
 	build : function(port) {
-		this.server = ScriptActivity.createWebSocketHelper(port, {
+		this.server = ScriptInterface.createWebSocketHelper(port, {
 			onOpen : function(conn, handshake) {try {
 				WSServer.onOpen(conn, handshake);
 			} catch(e) {erp(e)}},

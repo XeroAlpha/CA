@@ -7,8 +7,29 @@ MapScript.loadModule("G", {
 		this.screenWidth = t.widthPixels;
 		this.dp = t.density;
 		this.sp = t.scaledDensity;
+		if (ctx.runOnUiThread) {
+			this.ui = ctx.runOnUiThread.bind(ctx);
+		} else if (MapScript.host == "Android") {
+			this.ui = ScriptInterface.runOnUiThread.bind(ScriptInterface);
+		} else {
+			var uiThread = gHandler.getLooper().getThread();
+			this.ui = function(f) {
+				if (uiThread != java.lang.Thread.currentThread()) {
+					gHandler.post(f);
+				} else {
+					f();
+				}
+			}
+		}
 	},
 	initialize : function() {
+		G.supportFloat = G.shouldFloat = MapScript.host == "AutoJs" || MapScript.host == "Android";
+		if (G.supportFloat) {
+			if (!SettingsCompat.ensureCanFloat(true)) {
+				G.supportFloat = false;
+				if (MapScript.host == "Android") MapScript.global.ctx = ScriptInterface.getBindActivity();
+			}
+		}
 		if (android.os.Build.VERSION.SDK_INT >= 21) {
 			this.style = "Material";
 			ctx.setTheme(android.R.style.Theme_Material_Light);
@@ -20,9 +41,6 @@ MapScript.loadModule("G", {
 			ctx.setTheme(android.R.style.Theme_Light);
 		}
 	},
-	ui : (function() {
-		return ctx.runOnUiThread ? ctx.runOnUiThread.bind(ctx) : gHandler.post.bind(gHandler);
-	})(),
 //IMPORTS_BEGIN
 	AbsListView: android.widget.AbsListView,
 	AccelerateInterpolator: android.view.animation.AccelerateInterpolator,
