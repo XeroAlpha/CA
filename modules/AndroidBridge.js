@@ -1,6 +1,6 @@
 MapScript.loadModule("AndroidBridge", {
 	intentCallback : {},
-	permissionRequestData : [],
+	permissionRequestData : {start : 0, end : 0},
 	permissionCallback : {length : 0},
 	onCreate : function() {
 		G.ui(this.initIcon);
@@ -487,33 +487,56 @@ MapScript.loadModule("AndroidBridge", {
 		this.intentCallback[i] = callback;
 		ScriptInterface.startActivityForResult(intent, i);
 	},
-	requestPermissions : function(permissions, explanation, callback) {
-		var i, denied = [];
+	requestPermissionsByGroup : function(groups, callback) {
+		var result = {
+			flag : true,
+			success : [],
+			denied : [],
+			sync : true
+		}, count = groups.length;
+		groups.forEach(function(e) {
+			AndroidBridge.requestPermissions(e.permissions, e.explanation, function(flag, success, denied, sync) {
+				if (e.callback) e.callback(flag, success, denied, sync);
+				count--;
+				if (!flag) result.flag = false;
+				if (success.length) result.success = result.success.concat(success);
+				if (denied.length) result.denied = result.denied.concat(denied);
+				if (!sync) result.sync = false;
+				if (count <= 0 && callback) callback(result.flag, result.success, result.denied, result.sync);
+			}, e.mode);
+		});
+		if (count == 0 && callback) callback(true, [], [], true);
+	},
+	requestPermissions : function(permissions, explanation, callback, mode) {
+		var i, denied = []; //mode: 0-保留 1-建议拥有(默认) 2-可选拥有 3-仅检测
 		for (i = 0; i < permissions.length; i++) {
 			if (ScriptInterface.checkSelfPermission(permissions[i]) != 0) { // PERMISSION_GRANTED == 0
 				denied.push(permissions[i]);
 			}
 		}
-		if (denied.length) {
-			AndroidBridge.permissionRequestData.push({
+		if (denied.length && mode != 3) {
+			this.permissionRequestData[this.permissionRequestData.end++] = ({
 				permissions : denied,
 				explanation : explanation,
-				callback : callback
+				callback : callback,
+				mode : mode
 			});
-			ScriptInterface.beginPermissonRequest();
-		} else {
+			if (!this.permissionRequest) ScriptInterface.beginPermissonRequest();
+		} else if (callback) {
 			callback(true, permissions.slice(), [], true);
 		}
 		return denied.length;
 	},
 	onBeginPermissonRequest : function(activity) {
 		var lastData, code = 0;
-		lastData = AndroidBridge.permissionRequestData.pop();
-		if (lastData) this.doPermissonRequest(activity, lastData, code);
+		this.permissionRequest = activity;
+		lastData = this.permissionRequestData[this.permissionRequestData.start];
+		if (this.permissionRequestData.start >= this.permissionRequestData.end) activity.finish();
+		this.doPermissonRequest(activity, lastData, code);
 		activity.setCallback({
 			onRequestPermissionsResult : function(activity, requestCode, permissions, grantResults) {try {
 				var i, succeed = [], failed = [];
-				if (code == requestCode && lastData && lastData.callback) {
+				if (code == requestCode && lastData) {
 					for (i in grantResults) {
 						if (grantResults[i] == 0) { // PERMISSION_GRANTED == 0
 							succeed.push(String(permissions[i]));
@@ -521,22 +544,40 @@ MapScript.loadModule("AndroidBridge", {
 							failed.push(String(permissions[i]));
 						}
 					}
-					lastData.callback(failed.length == 0, succeed, failed, false);
+					lastData.showRationale = failed.every(function(e) {
+						return activity.shouldShowRequestPermissionRationale(e);
+					});
+					if (!failed.length || lastData.mode == 2 || !lastData.showRationale) {
+						delete AndroidBridge.permissionRequestData[AndroidBridge.permissionRequestData.start++];
+						if (lastData.callback) lastData.callback(failed.length == 0, succeed, failed, false);
+					}
 				}
-				lastData = AndroidBridge.permissionRequestData.pop();
-				if (lastData) {
-					this.doPermissonRequest(activity, lastData, ++code);
-				} else {
+				lastData = AndroidBridge.permissionRequestData[AndroidBridge.permissionRequestData.start];
+				if (AndroidBridge.permissionRequestData.start < AndroidBridge.permissionRequestData.end) {
+					AndroidBridge.doPermissonRequest(activity, lastData, ++code);
+				} else {Log.s(AndroidBridge.permissionRequestData);
 					activity.finish();
 				}
-			} catch(e) {erp(e)}}
-			//onEndPermissionRequest : function(activity) {}
+			} catch(e) {erp(e)}},
+			onEndPermissionRequest : function(activity) {
+				AndroidBridge.permissionRequest = null;
+			}
 		});
 	},
 	doPermissonRequest : function(activity, data, code) {
-		Common.showTextDialog("命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : ""), function() {
+		if (data.showRationale) {
+			new android.app.AlertDialog.Builder(activity)
+				.setTitle("请求权限")
+				.setCancelable(false)
+				.setMessage("命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : ""))
+				.setPositiveButton("确定", new android.content.DialogInterface.OnClickListener({
+					onClick : function(dia, w) {
+						activity.requestPermissionsCompat(code, data.permissions);
+					}
+				})).show();
+		} else {
 			activity.requestPermissionsCompat(code, data.permissions);
-		});
+		}
 	},
 	getABIs : function() {
 		if (android.os.Build.VERSION.SDK_INT > 21) {
@@ -610,7 +651,7 @@ MapScript.loadModule("AndroidBridge", {
 					callback(path);
 				});
 				return;
-			} catch(e) {erp(e, true)} //某些垃圾手机不支持这种选择方式
+			} catch(e) {erp(e, true)}
 		}
 		Common.showFileDialog({
 			type : 0,
@@ -757,19 +798,31 @@ MapScript.loadModule("AndroidBridge", {
 		} catch(e) {erp(e)}});
 	},
 	checkNecessaryPermissions : function(callback) {
-		AndroidBridge.requestPermissions([
-			"android.permission.READ_EXTERNAL_STORAGE",
-			"android.permission.WRITE_EXTERNAL_STORAGE"
-		], "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等", function(flag, success, denied, sync) {
-			if (!sync) {
-				if (flag) {
-					CA.load();
-					Common.toast("权限请求成功，已重新加载配置");
-				} else {
-					Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
+		AndroidBridge.requestPermissionsByGroup([{
+			permissions : [
+				"android.permission.READ_EXTERNAL_STORAGE",
+				"android.permission.WRITE_EXTERNAL_STORAGE"
+			],
+			explanation : "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等",
+			callback : function(flag, success, denied, sync) {
+				if (!sync) {
+					if (flag) {
+						CA.load();
+						Common.toast("权限请求成功，已重新加载配置");
+					} else {
+						Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
+					}
 				}
-			}
-			if (callback) callback(flag);
+			},
+			mode : 2
+		}, {
+			permissions : [
+				"android.permission.READ_PHONE_STATE"
+			],
+			explanation : "获取手机识别码（可选）\n\n此权限用于向命令助手作者反馈错误时唯一标识用户",
+			mode : 2
+		}], function(flag, success, denied, sync) {
+			if (callback) callback();
 		});
 	},
 	keeperMenu : [{

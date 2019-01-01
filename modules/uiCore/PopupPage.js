@@ -13,6 +13,7 @@ MapScript.loadModule("PopupPage", (function() {
 	if (MapScript.host == "Android") {
 		r.fullscreen = true;
 		r.focusable = true;
+		r.debugPrint = false;
 		r.initialize = function() {G.ui(function() {try {
 			var vcfg = G.ViewConfiguration.get(ctx);
 			var longPressTimeout = vcfg.getLongPressTimeout();
@@ -294,12 +295,12 @@ MapScript.loadModule("PopupPage", (function() {
 				return this;
 			},
 			requestShow : function() {
-				Log.d("Show " + this);
+				if (r.debugPrint) Log.d("Show " + this);
 				this.mainView.setVisibility(G.View.VISIBLE);
 				return this;
 			},
 			requestHide : function() {
-				Log.d("Hide " + this);
+				if (r.debugPrint) Log.d("Hide " + this);
 				this.mainView.setVisibility(G.View.GONE);
 				return this;
 			},
@@ -361,7 +362,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
 			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
 			page.currentContainer.addView(page.mainView);
-			Log.d("Attach " + page + " to " + page.currentContainer);
+			if (r.debugPrint) Log.d("Attach " + page + " to " + page.currentContainer);
 			if (this.visible && !this.defaultVisible) {
 				if (this.fullscreen) {
 					this.showView(this.defaultWindow, 0, 0, -1, -1);
@@ -387,7 +388,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (page.mainView.getParent() != page.currentContainer) Log.throwError(new Error("This view has been moved unexpectedly."));
 			if (page.currentAnimation) page.currentAnimation.cancel();
 			page.currentContainer.removeView(page.mainView);
-			Log.d("Detach " + page + " from " + page.currentContainer);
+			if (r.debugPrint) Log.d("Detach " + page + " from " + page.currentContainer);
 			if (stack.length == 0 && !notRemoveWindow) {
 				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
 					this.hideView(this.defaultWindow);
@@ -411,7 +412,7 @@ MapScript.loadModule("PopupPage", (function() {
 				t = stack[stack.length - 1];
 				t.page.trigger("pause");
 				r.analytics.onPageEnd(ctx, t.name);
-				Log.d(t.page + " paused");
+				if (r.debugPrint) Log.d(t.page + " paused");
 			}
 			stack.push(t = {
 				name : name,
@@ -419,7 +420,7 @@ MapScript.loadModule("PopupPage", (function() {
 			});
 			page.trigger("enter");
 			r.analytics.onPageStart(ctx, name);
-			Log.d(t.page + " entered");
+			if (r.debugPrint) Log.d(t.page + " entered");
 			this.trigger("pushPage", name, page);
 		}
 		r.popPage = function(page) {
@@ -431,12 +432,12 @@ MapScript.loadModule("PopupPage", (function() {
 				stack.splice(i, 1);
 				t.page.trigger("exit");
 				r.analytics.onPageEnd(ctx, t.name);
-				Log.d(t.page + " exited");
+				if (r.debugPrint) Log.d(t.page + " exited");
 				if (i > 0 && i == stack.length && this.visible) {
 					t = stack[i - 1];
 					t.page.trigger("resume");
 					r.analytics.onPageStart(ctx, t.name);
-					Log.d(t.page + " resumed");
+					if (r.debugPrint) Log.d(t.page + " resumed");
 					while (--i >= 0) {
 						stack[i].page.requestShow();
 						if (!stack[i].page.dialog) break;
