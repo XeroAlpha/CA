@@ -531,7 +531,7 @@ MapScript.loadModule("AndroidBridge", {
 		var lastData, code = 0;
 		this.permissionRequest = activity;
 		lastData = this.permissionRequestData[this.permissionRequestData.start];
-		if (this.permissionRequestData.start >= this.permissionRequestData.end) activity.finish();
+		if (this.permissionRequestData.start >= this.permissionRequestData.end) return activity.finish();
 		this.doPermissonRequest(activity, lastData, code);
 		activity.setCallback({
 			onRequestPermissionsResult : function(activity, requestCode, permissions, grantResults) {try {
@@ -565,16 +565,24 @@ MapScript.loadModule("AndroidBridge", {
 		});
 	},
 	doPermissonRequest : function(activity, data, code) {
+		var msg = "命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : "");
 		if (data.showRationale) {
 			new android.app.AlertDialog.Builder(activity)
 				.setTitle("请求权限")
 				.setCancelable(false)
-				.setMessage("命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : ""))
+				.setMessage(msg)
 				.setPositiveButton("确定", new android.content.DialogInterface.OnClickListener({
 					onClick : function(dia, w) {
 						activity.requestPermissionsCompat(code, data.permissions);
 					}
 				})).show();
+		} else if (data.explanation) {
+			var handler = new android.os.Handler();
+			var toast = android.widget.Toast.makeText(activity, msg, 0);
+			toast.show();
+			handler.postDelayed(function() {try {
+				activity.requestPermissionsCompat(code, data.permissions);
+			} catch(e) {erp(e)}}, 1500);
 		} else {
 			activity.requestPermissionsCompat(code, data.permissions);
 		}

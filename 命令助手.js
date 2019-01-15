@@ -141,7 +141,7 @@ var MapScript = {
 				r = new Array();
 				for (i in x) r.push(toJSON(i, lev) + ":" + toJSON(x[i], lev - 1));
 				p = "{" + r.join(",") + "}";
-			} else if (x instanceof java.lang.CharSequence) {
+			} else if (typeof x == "object") {
 				p = _toJSON(String(x), lev);
 			} else {
 				p = String(x);

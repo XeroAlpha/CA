@@ -8,7 +8,7 @@ Common.themelist = {
 		"name" : "默认风格"
 	},
 	"dark" : {
-		"name" : "暗黑风格",
+		"name" : "夜间风格",
 		"bgcolor" : "#202020",
 		"float_bgcolor" : "#404040",
 		"message_bgcolor" : "#202020",

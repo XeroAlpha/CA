@@ -191,7 +191,7 @@ MapScript.loadModule("Tutorial", {
 					return {
 						type : "command",
 						command : e.command,
-						view : self.generateCopyable(ISegment.rawJson({command : e.command}, null))
+						view : self.generateCopyable(ISegment.rawJson({formattedCommand : e.command}, null))
 					};
 				} else if (e.link) {
 					t = e.prompt || e.link;

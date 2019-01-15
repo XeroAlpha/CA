@@ -3137,7 +3137,7 @@ MapScript.loadModule("CA", {
 			PWM.registerResetFlag(self, "prompt");
 		}
 		if (v) self.prompt.setText(FCString.parseFC(v));
-		if (CA.fcs) return CA.fcs.bringToFront();
+		if (CA.fcs) CA.hideFCS();
 		CA.fcs = self.frame;
 		self.setVisible(true);
 		CA.con.addView(CA.fcs);

@@ -2,38 +2,6 @@ MapScript.loadModule("EasterEgg", {
 	onCreate : function() {
 		G.ui(this.initIcon);
 	},
-	start : function self() {G.ui(function() {try {
-		if (EasterEgg.view) return;
-		if (!self.view) {
-			self.view = new G.ImageView(ctx);
-			self.view.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-			self.view.setBackgroundColor(G.Color.TRANSPARENT);
-			self.view.setImageBitmap(EasterEgg.getBitmap(G.screenHeight));
-		}
-		EasterEgg.view = new G.PopupWindow(self.view, -1, -1);
-		EasterEgg.view.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		EasterEgg.view.setFocusable(true);
-		EasterEgg.view.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			EasterEgg.view = null;
-		} catch(e) {erp(e)}}}));
-		var anis = new G.AnimationSet(true);
-		var ani1 = new G.AlphaAnimation(0, 1);
-		ani1.setDuration(200);
-		var ani2 = new G.AlphaAnimation(1, 0);
-		ani2.setDuration(200);
-		ani2.setStartOffset(1800);
-		ani2.setAnimationListener(new G.Animation.AnimationListener({
-			onAnimationEnd : function(a) {
-				EasterEgg.view.dismiss();
-			}
-		}));
-		anis.setInterpolator(new G.LinearInterpolator());
-		anis.addAnimation(ani1);
-		anis.addAnimation(ani2);
-		self.view.startAnimation(anis);
-		EasterEgg.view.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.addPopup(EasterEgg.view);
-	} catch(e) {Log.e(e)}})},
 	getBitmap : function(w) {
 		var zf = new java.util.zip.ZipFile(ctx.getPackageManager().getApplicationInfo("com.mojang.minecraftpe", 128).publicSourceDir);
 		var b = zf.getInputStream(zf.getEntry("assets/resource_packs/vanilla/textures/blocks/command_block_front_mipmap.png"));

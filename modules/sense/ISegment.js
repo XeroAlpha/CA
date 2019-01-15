@@ -140,14 +140,24 @@ MapScript.loadModule("ISegment", {
 		} else if (o instanceof Object) {
 			if (o.text) {
 				result.append(o.text);
+			} else if (o.lines) {
+				for (i = 0; i < o.lines.length; i++) {
+					if (i > 0) result.append("\n");
+					result.append(self(o.lines[i], variableMap));
+				}
 			} else if (o.variable) {
 				result.append(String(variableMap[o.variable]));
-			} else if (o.command) {
-				result.append(o.command);
+			} else if (o.formattedCommand) {
+				result.append(o.formattedCommand);
 				self.coverSpan(result, new G.ForegroundColorSpan(G.Color.WHITE));
 				FCString.colorFC(result, G.Color.WHITE);
 				self.coverSpan(result, new G.TypefaceSpan("monospace"));
 				self.coverSpan(result, new G.BackgroundColorSpan(G.Color.BLACK));
+			} else if (o.formattedText) {
+				result.append(FCString.parseFC(o.formattedText));
+			} else if (o.command) {
+				result.append(o.command);
+				self.coverSpan(result, new G.TypefaceSpan("monospace"));
 			} else if (o.list) {
 				for (i in o.list) {
 					result.setSpan(new G.BulletSpan(), result.length(), result.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
