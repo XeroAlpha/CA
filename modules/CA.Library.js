@@ -1,6 +1,123 @@
 {
 	inner : {},
 	cache : {},
+	loadingStatus : null,
+	currentLoadingLibrary : null,
+	initLibrary : function(callback) {
+		var info, flag = true, t, t2, lib;
+		CA.IntelliSense.library = lib = {
+			commands : {},
+			enums : {},
+			selectors : {},
+			json : {},
+			help : {},
+			tutorials : [],
+			idlist : [],
+			info : info = []
+		};
+		this.loadingStatus = "core";
+		CA.settings.coreLibrarys.forEach(function(e, i, a) {
+			CA.Library.currentLoadingLibrary = e;
+			var data = CA.Library.loadLibrary(String(e), null);
+			data.core = true;
+			data.index = i;
+			if (data.hasError) flag = false;
+			info.push(data);
+		});
+		this.loadingStatus = "normal";
+		new java.lang.Thread(function() {try {
+			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
+				CA.Library.currentLoadingLibrary = e;
+				var data = CA.Library.loadLibrary(String(e), lib);
+				data.index = i;
+				if (data.hasError) flag = false;
+				info.push(data);
+			});
+			//快捷操作
+			CA.Library.onLibraryLoadFinished(lib);
+			CA.Library.loadingStatus = null;
+			if (callback) callback(flag);
+		} catch(e) {erp(e)}}).start();
+	},
+	clearCache : function(src) {
+		if (src) {
+			delete this.cache[src];
+		} else {
+			this.cache = {};
+		}
+	},
+	isLibrary : function(path) {
+		return path in CA.Library.inner || new java.io.File(path).isFile();
+	},
+	enableLibrary : function(path) {
+		Common.removeSet(CA.settings.disabledLibrarys, path);
+		Common.removeSet(CA.settings.coreLibrarys, path);
+		return Common.addSet(CA.settings.enabledLibrarys, path);
+	},
+	disableLibrary : function(path) {
+		Common.removeSet(CA.settings.enabledLibrarys, path);
+		Common.removeSet(CA.settings.coreLibrarys, path);
+		return Common.addSet(CA.settings.disabledLibrarys, path);
+	},
+	removeLibrary : function(path) {
+		var fl = false;
+		fl = Common.removeSet(CA.settings.enabledLibrarys, path) || fl;
+		fl = Common.removeSet(CA.settings.coreLibrarys, path) || fl;
+		return Common.removeSet(CA.settings.disabledLibrarys, path) || fl;
+	},
+	enableCoreLibrary : function(path) {
+		Common.removeSet(CA.settings.enabledLibrarys, path);
+		Common.removeSet(CA.settings.disabledLibrarys, path);
+		return Common.addSet(CA.settings.coreLibrarys, path);
+	},
+	loadLibrary : function(path, targetLib) {
+		var m, v, cur, resolved;
+		try {
+			if (this.cache[path]) {
+				cur = this.cache[path].data;
+				m = this.cache[path].mode;
+			} else {
+				if ((v = this.shouldVerifySigned(path)) == 0) {
+					throw "未被验证的拓展包";
+				}
+				cur = this.readLibrary(path, v);
+				if (!cur) throw "无法读取或解析拓展包";
+				if (cur.error) throw cur.error;
+				if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
+				this.cache[path] = cur;
+				m = cur.mode;
+				cur = cur.data;
+			}
+			resolved = {
+				src : path,
+				name : cur.name,
+				author : cur.author,
+				description : cur.description,
+				uuid : cur.uuid,
+				version : cur.version,
+				update : cur.update,
+				menu : cur.menu,
+				mode : m
+			};
+			resolved.stat = !cur.noCommand && targetLib ? this.resolveLibrary(targetLib, cur) : null;
+			resolved.loaded = true;
+			return resolved;
+		} catch(err) {
+			if (resolved) {
+				resolved.hasError = true;
+				resolved.error = err;
+				return resolved;
+			} else {
+				return {
+					src : e,
+					name : m == 0 ? e : (new java.io.File(e)).getName(),
+					hasError : true,
+					mode : m,
+					error : err
+				};
+			}
+		}
+	},
 	readLibrary : function(path, version) {
 		var t, er, securityLevel = CA.settings.securityLevel, requiredSecLevel;
 		//-1 禁止所有非内置拓展包
@@ -75,138 +192,15 @@
 			return 1;
 		} else return 0;
 	},
-	initLibrary : function(callback) {(new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-		var info, flag = true, t, t2, lib;
-		CA.IntelliSense.library = lib = {
-			commands : {},
-			command_snap : {},
-			enums : {},
-			selectors : {},
-			json : {},
-			help : {},
-			tutorials : [],
-			idlist : [],
-			info : info = []
-		};
-		CA.settings.enabledLibrarys.forEach(function(e, i, a) {
-			var m, v, cur, resolved, stat;
-			e = String(e);
-			try {
-				if (CA.Library.cache[e]) {
-					cur = CA.Library.cache[e].data;
-					m = CA.Library.cache[e].mode;
-				} else {
-					if ((v = CA.Library.shouldVerifySigned(e)) == 0) {
-						throw "未被验证的拓展包";
-					}
-					cur = CA.Library.readLibrary(e, v);
-					if (!cur) throw "无法读取或解析拓展包";
-					if (cur.error) throw cur.error;
-					if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
-					CA.Library.cache[e] = cur;
-					m = cur.mode;
-					cur = cur.data;
-				}
-				resolved = true;
-				if ((v = CA.Library.checkPackVer(cur)) != 0) throw v > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
-				if (cur.minCAVersion && Date.parse(CA.publishDate) < Date.parse(cur.minCAVersion)) throw "命令助手版本过低";
-				stat = CA.Library.statLib(cur);
-				CA.Library.loadLibrary(lib, cur, stat);
-				info.push({
-					src : e,
-					index : i,
-					name : cur.name,
-					author : cur.author,
-					description : cur.description,
-					uuid : cur.uuid,
-					version : cur.version,
-					update : cur.update,
-					menu : cur.menu,
-					mode : m,
-					stat : stat,
-					loaded : true
-				});
-			} catch(err) {
-				flag = false;
-				if (resolved) {
-					info.push({
-						src : e,
-						index : i,
-						name : cur.name,
-						version : cur.version,
-						update : cur.update,
-						menu : cur.menu,
-						hasError : true,
-						mode : m,
-						error : err
-					});
-				} else {
-					info.push({
-						src : e,
-						index : i,
-						name : m == 0 ? e : (new java.io.File(e)).getName(),
-						hasError : true,
-						mode : m,
-						error : err
-					});
-				}
-			}
-		}, this);
-		//快捷操作
-		t = lib.commands;
-		Object.keys(t).forEach(function(e) {
-			t2 = e;
-			while (t[t2].alias) t2 = t[t2].alias;
-			t2 = t[t2];
-			lib.command_snap[e] = t2.description ? t2.description : "";
-		});
-		Tutorial.library = lib.tutorials;
-		if (callback) callback(flag);
-	} catch(e) {erp(e)}}}))).start()},
-	clearCache : function(src) {
-		if (src) {
-			delete this.cache[src];
-		} else {
-			this.cache = {};
-		}
-	},
-	enableLibrary : function(name) {
-		var a, p;
-		if (!(name in CA.Library.inner) && !(new java.io.File(name)).isFile()) return false;
-		a = CA.settings.disabledLibrarys;
-		p = a.indexOf(name);
-		if (p >= 0) a.splice(p, 1);
-		a = CA.settings.enabledLibrarys;
-		p = a.indexOf(name);
-		if (p < 0) a.push(name);
-		return true;
-	},
-	disableLibrary : function(name) {
-		var a, p;
-		a = CA.settings.enabledLibrarys;
-		p = a.indexOf(name);
-		if (p >= 0) a.splice(p, 1);
-		a = CA.settings.disabledLibrarys;
-		p = a.indexOf(name);
-		if (p < 0) a.unshift(name);
-		return true;
-	},
-	removeLibrary : function(name) {
-		var a, p;
-		a = CA.settings.enabledLibrarys;
-		p = a.indexOf(name);
-		if (p >= 0) a.splice(p, 1);
-		a = CA.settings.disabledLibrarys;
-		p = a.indexOf(name);
-		if (p >= 0) a.splice(p, 1);
-		return true;
-	},
-	loadLibrary : function(cur, l, stat) {
-		var c, i, t, lib = CA.IntelliSense.library;
+	resolveLibrary : function(cur, l) {
+		var c, i, t, stat, libinfo = CA.IntelliSense.library.info;
+		if ((t = CA.Library.checkPackVer(l)) != 0) throw t > 0 ? "拓展包版本过低" : "游戏版本过低"; //兼容旧版
+		if (l.minCAVersion && Date.parse(CA.publishDate) < Date.parse(l.minCAVersion)) throw "命令助手版本过低";
+		stat = CA.Library.statLib(l);
 		this.checkLibrary(l);
 		if (CA.Library.findByUUID(l.uuid)) throw "已存在相同的拓展包";
 		if (l.require.some(function(e1) {
-			return !lib.info.some(function(e2) {
+			return !libinfo.some(function(e2) {
 				return e1 == e2.uuid;
 			});
 		}, this)) throw "前提包并未全部加载，请检查加载顺序及拓展包列表";
@@ -217,6 +211,19 @@
 			t = this.joinPack(cur, c[i]); //加载版本包
 			if (stat && t) stat.availablePack++;
 		}
+		return stat;
+	},
+	onLibraryLoadFinished : function(lib) {
+		var t, t2;
+		t = lib.commands;
+		lib.command_snap = {};
+		Object.keys(t).forEach(function(e) {
+			t2 = e;
+			while (t[t2].alias) t2 = t[t2].alias;
+			t2 = t[t2];
+			lib.command_snap[e] = t2.description ? t2.description : "";
+		});
+		Tutorial.library = lib.tutorials;
 	},
 	findByUUID : function(uuid) {
 		var i, a = CA.IntelliSense.library.info;

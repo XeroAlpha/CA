@@ -1668,5 +1668,29 @@ MapScript.loadModule("Common", {
 	toFixedNumber : function(number, bits) {
 		var pw = Math.pow(10, bits);
 		return Math.floor(number * pw) / pw;
+	},
+	
+	addSet : function(s, value) {
+		var p = s.indexOf(value);
+		if (p < 0) {
+			s.push(value);
+			return true;
+		} else {
+			return false;
+		}
+	},
+	removeSet : function(s, value) {
+		var p = s.indexOf(value);
+		if (p >= 0) {
+			s.splice(p, 1);
+			return true;
+		} else {
+			return false;
+		}
+	},
+	exchangeProperty : function(o, i, j) {
+		var t = o[i];
+		o[i] = o[j];
+		o[j] = t;
 	}
 });

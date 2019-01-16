@@ -81,6 +81,7 @@ MapScript.loadModule("CA", {
 				Common.loadTheme(f.settings.theme);
 			}
 			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.Library.inner);
+			if (!f.settings.coreLibrarys) f.settings.coreLibrarys = [];
 			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
 			if (f.settings.libPath) {
 				this.Library.enableLibrary(f.settings.libPath);
@@ -3566,11 +3567,13 @@ MapScript.loadModule("CA", {
 						type : 0,
 						callback : function(f) {
 							self.postTask(function(cb) {
-								if (!CA.Library.enableLibrary(String(f.result.getAbsolutePath()))) {
+								var path = String(f.result.getAbsolutePath());
+								if (!CA.Library.isLibrary(path)) {
 									Common.toast("无法导入该拓展包，可能文件不存在");
 									cb(false);
 									return;
 								}
+								CA.Library.enableLibrary(path);
 								cb(true, function() {
 									Common.toast("导入成功！");
 								});
@@ -3773,7 +3776,7 @@ MapScript.loadModule("CA", {
 					var f = new java.io.File(tag.data.src), s;
 					s = "名称 : " + tag.data.name;
 					if (f.isFile()) s += "\n位置 : " + tag.data.src + "\n大小 : " + Common.getFileSize(f, true) + "\n时间 : " + new Date(f.lastModified()).toLocaleString();
-					if (!tag.data.disabled && !tag.data.hasError) s += "\n\n" + tag.data.stat.toString();
+					if (!tag.data.disabled && !tag.data.hasError && tag.data.stat) s += "\n\n" + tag.data.stat.toString();
 					Common.showTextDialog(s);
 				}
 			}];
@@ -3979,8 +3982,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						var a = CA.settings.enabledLibrarys;
-						a.splice(tag.data.index - 1, 0, a.splice(tag.data.index, 1)[0]);
+						Common.exchangeProperty(tag.data.core ? CA.settings.coreLibrarys : CA.settings.enabledLibrarys, tag.data.index - 1, tag.data.index);
 						cb(true, function() {});
 					});
 				}
@@ -3988,12 +3990,15 @@ MapScript.loadModule("CA", {
 				text : "下移",
 				description : "使该拓展包较晚加载",
 				hidden : function(tag) {
-					return tag.data.index > CA.settings.enabledLibrarys.length - 2;
+					if (tag.data.core) {
+						return tag.data.index > CA.settings.coreLibrarys.length - 2;
+					} else {
+						return tag.data.index > CA.settings.enabledLibrarys.length - 2;
+					}
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						var a = CA.settings.enabledLibrarys;
-						a.splice(tag.data.index + 1, 0, a.splice(tag.data.index, 1)[0]);
+						Common.exchangeProperty(tag.data.core ? CA.settings.coreLibrarys : CA.settings.enabledLibrarys, tag.data.index, tag.data.index + 1);
 						cb(true, function() {});
 					});
 				}
@@ -4051,7 +4056,7 @@ MapScript.loadModule("CA", {
 				return layout;
 			}
 			self.vbinder = function(holder, e, i, a) {
-				holder.text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : e.mode == 3 ? "[官方] " : "") + e.name + (e.disabled || e.hasError ? "" : " (已启用)"));
+				holder.text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : e.mode == 3 ? "[官方] " : "") + e.name + (e.disabled || e.hasError ? "" : e.core ? " (已优先启动)" : " (已启用)"));
 				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : e.hasError ? "item_critical" : "item_default", 3);
 				holder.text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
 			}

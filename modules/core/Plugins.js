@@ -9,8 +9,11 @@ MapScript.loadModule("Plugins", {
 		"mainMenuAppendable",
 		//可使用Plugins.addMenu
 		
-		"userExpressionMenuAppendable"
+		"userExpressionMenuAppendable",
 		//可使用Plugins.addExpressionMenu
+		
+		"corePlugin"
+		//可使用this.requestLoadAsCore和this.cancelLoadAsCore
 		
 		//"quickBarAppendable",
 		//可使用Plugins.addQuickBar
@@ -43,11 +46,21 @@ MapScript.loadModule("Plugins", {
 			for (i in arguments) {
 				if (this._parent.FEATURES.indexOf(arguments[i]) < 0) Log.throwError(new Error("Require Feature:" + arguments[i]));
 			}
+		},
+		requestLoadAsCore : function() {
+			if (this.corePlugin) return false;
+			return CA.Library.enableCoreLibrary(this.path);
+		},
+		cancelLoadAsCore : function() {
+			if (!this.corePlugin) return false;
+			return CA.Library.enableLibrary(this.path);
 		}
 	},
 	inject : function(f) {
 		var o = Object.create(this.Plugin);
 		o._parent = this;
+		o.path = CA.Library.currentLoadingLibrary;
+		o.corePlugin = CA.Library.loadingStatus == "core";
 		try {
 			o.core = typeof f == "function" ? f.call(o, o) : Object(f);
 		} catch(e) {
@@ -91,7 +104,8 @@ MapScript.loadModule("Plugins", {
 			version : o.version,
 			require : o.require,
 			update : o.update,
-			menu : o.menu
+			menu : o.menu,
+			noCommand : o.noCommand
 		};
 		if (!CA.settings.moduleSettings) CA.settings.moduleSettings = {};
 		if (!CA.settings.moduleSettings[o.uuid]) CA.settings.moduleSettings[o.uuid] = {};
@@ -149,6 +163,16 @@ MapScript.loadModule("Plugins", {
 	},
 	addMenu : function(obj) {
 		var i, a = CA.PluginMenu;
+		for (i = 0; i < a.length; i++) {
+			if (a[i].text == obj.text) {
+				return a[i] = obj;
+			}
+		}
+		a.push(obj);
+		return obj;
+	},
+	addExpressionMenu : function(obj) {
+		var i, a = CA.PluginExpression;
 		for (i = 0; i < a.length; i++) {
 			if (a[i].text == obj.text) {
 				return a[i] = obj;
