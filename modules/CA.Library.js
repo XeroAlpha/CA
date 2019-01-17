@@ -16,6 +16,7 @@
 			info : info = []
 		};
 		this.loadingStatus = "core";
+		this.processDeprecated();
 		CA.settings.coreLibrarys.forEach(function(e, i, a) {
 			CA.Library.currentLoadingLibrary = e;
 			var data = CA.Library.loadLibrary(String(e), null);
@@ -48,6 +49,9 @@
 	},
 	isLibrary : function(path) {
 		return path in CA.Library.inner || new java.io.File(path).isFile();
+	},
+	isDeprecated : function(uuid, version) {
+		return false;
 	},
 	enableLibrary : function(path) {
 		Common.removeSet(CA.settings.disabledLibrarys, path);
@@ -97,6 +101,7 @@
 				version : cur.version,
 				update : cur.update,
 				menu : cur.menu,
+				deprecated : cur.deprecated || this.isDeprecated(cur.uuid, cur.version),
 				mode : m
 			};
 			resolved.stat = !cur.noCommand && targetLib ? this.resolveLibrary(targetLib, cur) : null;
@@ -224,6 +229,15 @@
 			lib.command_snap[e] = t2.description ? t2.description : "";
 		});
 		Tutorial.library = lib.tutorials;
+		lib.info.forEach(function(e) {
+			if (e.deprecated) Common.addSet(CA.settings.deprecatedLibrarys, e.src);
+		});
+	},
+	processDeprecated : function() {
+		CA.settings.deprecatedLibrarys.forEach(function(e) {
+			CA.Library.disableLibrary(e);
+		});
+		CA.settings.deprecatedLibrarys.length = 0;
 	},
 	findByUUID : function(uuid) {
 		var i, a = CA.IntelliSense.library.info;
@@ -775,7 +789,7 @@
 		}
 	},
 	requestUpdate : function(libinfo, callback) {
-		var r, u = libinfo.update, i, f = false;
+		var r, u = libinfo.update;
 		try { 
 			if (typeof u == "function") {
 				r = libinfo.update();
@@ -787,15 +801,7 @@
 			if (!(r instanceof Object) || !Array.isArray(r.version)) {
 				return callback(-1);
 			}
-			for (i = 0; i < libinfo.version.length; i++) {
-				if (libinfo.version[i] > r.version[i]) {
-					break;
-				} else if (libinfo.version[i] < r.version[i]) {
-					f = true;
-					break;
-				}
-			}
-			callback(f ? 1 : 0, r);
+			callback(NeteaseAdapter.compareVersion(libinfo.version, r.version) > 0 ? 1 : 0, r);
 		} catch(e) {
 			callback(-2, e);
 		}

@@ -440,6 +440,20 @@ MapScript.loadModule("Loader", {
 	evalSpecial : function(source, sourceName, lineNumber) {
 		var cx = org.mozilla.javascript.Context.getCurrentContext();
 		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, MapScript.global, null, [new java.lang.String(source)], sourceName, lineNumber);
+	},
+	lockProperty : function(obj, propertyName) {
+		Object.defineProperty(obj, propertyName, {
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: obj[propertyName]
+		});
+	},
+	lockMethods : function(obj, methods) {
+		var i, a = methods || Object.getOwnPropertyNames(obj);
+		for (i = 0; i < a.length; i++) {
+			if (typeof obj[a[i]] == "function") this.lockProperty(obj, a[i]);
+		}
 	}
 });
 
@@ -508,4 +522,5 @@ Loader.fromFile("modules/uiCore/LPlugins.js")
 
 Loader.fromFile("modules/builtinData.js")
 
+Loader.fromFile("modules/LockClasses.js")
 });

@@ -1688,6 +1688,9 @@ MapScript.loadModule("Common", {
 			return false;
 		}
 	},
+	inSet : function(s, value) {
+		return s.indexOf(value) >= 0;
+	},
 	exchangeProperty : function(o, i, j) {
 		var t = o[i];
 		o[i] = o[j];

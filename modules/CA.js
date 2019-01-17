@@ -83,23 +83,10 @@ MapScript.loadModule("CA", {
 			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.Library.inner);
 			if (!f.settings.coreLibrarys) f.settings.coreLibrarys = [];
 			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
+			if (!f.settings.deprecatedLibrarys) f.settings.deprecatedLibrarys = [];
 			if (f.settings.libPath) {
 				this.Library.enableLibrary(f.settings.libPath);
 				delete f.settings.libPath;
-			}
-			if (f.library) {
-				Common.showFileDialog({
-					type : 1,
-					callback : function(f) {
-						var t;
-						MapScript.saveJSON(t = String(f.result.getAbsolutePath()), f.l);
-						CA.Library.enableLibrary(t);
-						CA.Library.initLibrary();
-						Common.toast("命令库已保存");
-					},
-					l : f.library
-				});
-				Common.showTextDialog("兼容性警告\n\n由于版本更新，命令助手已不再支持旧版无文件基础的自定义命令库，请选择一个位置来保存当前的命令库，以避免不必要的数据丢失。\n\n您也可以选择忽略。");
 			}
 			Object.keys(this.Library.inner).forEach(function(e) {
 				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) this.enabledLibrarys.push(e);
@@ -178,7 +165,9 @@ MapScript.loadModule("CA", {
 				tipsRead : 0,
 				iiMode : -1,
 				enabledLibrarys : Object.keys(this.Library.inner),
+				coreLibrarys : [],
 				disabledLibrarys : [],
+				deprecatedLibrarys : [],
 				customExpression : []
 			};
 			Common.loadTheme();
@@ -4057,8 +4046,8 @@ MapScript.loadModule("CA", {
 			}
 			self.vbinder = function(holder, e, i, a) {
 				holder.text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : e.mode == 3 ? "[官方] " : "") + e.name + (e.disabled || e.hasError ? "" : e.core ? " (已优先启动)" : " (已启用)"));
-				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : e.hasError ? "item_critical" : "item_default", 3);
-				holder.text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
+				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : e.hasError || e.deprecated ? "item_critical" : "item_default", 3);
+				holder.text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : (e.deprecated ? "目前该拓展包不适合在您的设备上使用，下次加载时该拓展包将不会被加载\n\n" : "") + "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
 			}
 			self.refresh = function() {
 				var arr = CA.IntelliSense.library.info.concat(CA.settings.disabledLibrarys.map(function(e, i, a) {
