@@ -27,7 +27,15 @@ MapScript.loadModule("G", {
 		if (G.supportFloat) {
 			if (!SettingsCompat.ensureCanFloat(true)) {
 				G.supportFloat = false;
-				if (MapScript.host == "Android") MapScript.global.ctx = ScriptInterface.getBindActivity();
+				if (MapScript.host == "Android") {
+					var activity = ScriptInterface.getBindActivity();
+					if (activity != null) {
+						MapScript.global.ctx = activity;
+					} else {
+						G.supportFloat = true;
+						ScriptInterface.quit();
+					}
+				}
 			}
 		}
 		if (android.os.Build.VERSION.SDK_INT >= 21) {

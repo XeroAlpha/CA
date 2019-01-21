@@ -114,8 +114,8 @@
 				return resolved;
 			} else {
 				return {
-					src : e,
-					name : m == 0 ? e : (new java.io.File(e)).getName(),
+					src : path,
+					name : m == 0 ? path : (new java.io.File(path)).getName(),
 					hasError : true,
 					mode : m,
 					error : err
@@ -635,13 +635,29 @@
 			return stat;
 		}
 	})(),
-	requestLibSource : function(url) {
+	sourceInfoCache : {},
+	requestDefaultSourceInfo : function() {
+		return this.requestSourceInfoCached(this.getSourceUrl());
+	},
+	requestSourceInfoCached : function(url) {
+		var sourceInfo;
+		if (url.slice(-1) != "/") url += "/";
+		sourceInfo = this.sourceInfoCache[url];
+		if (!sourceInfo || !(Date.now() < sourceInfo.accessExpired)) {
+			sourceInfo = this.requestSourceInfo(url);
+			sourceInfo.accessExpired = Date.now() + 60000;
+			this.sourceInfoCache[url] = sourceInfo;
+		}
+		return sourceInfo;
+	},
+	requestSourceInfo : function(url) {
 		var info, infourl;
 		if (url.slice(-1) != "/") url += "/";
 		infourl = url + "info.json";
 		try {
 			info = JSON.parse(Updater.queryPage(infourl));
 		} catch(e) {
+			Log.e(e);
 			return;
 		}
 		info.pages = [];
@@ -651,7 +667,7 @@
 		info.url = url;
 		return info;
 	},
-	requestLibIndex : function(info, pageNo) {
+	requestSourceIndex : function(info, pageNo) {
 		var page;
 		if (pageNo < 0 || pageNo >= info.indexPages) return;
 		if (pageNo < info.pages.length) return info.pages[pageNo];
@@ -664,8 +680,24 @@
 				if (pageNo < info.pages.length) return info.pages[pageNo];
 			}
 		} catch(e) {
+			Log.e(e);
 			return;
 		}
+	},
+	requestSourceMap : function(info) {
+		var map;
+		if (info.libMap) return info.libMap;
+		try {
+			map = JSON.parse(Updater.queryPage(info.map));
+			if (map.sourceId != info.sourceId) throw "Not a regular library source";
+			return info.libMap = map.content;
+		} catch(e) {
+			Log.e(e);
+			return;
+		}
+	},
+	getSourceUrl : function() {return "http://192.168.1.103:8888/clib/";
+		return this.getOriginSourceUrl();
 	},
 	getOriginSourceUrl : function() {
 		return "https://projectxero.gitee.io/ca/clib/";
@@ -788,22 +820,62 @@
 			return defaultValue;
 		}
 	},
-	requestUpdate : function(libinfo, callback) {
-		var r, u = libinfo.update;
-		try { 
+	requestUpdateUrlFromDefSrc : function(uuid) {
+		var source, map;
+		source = this.requestDefaultSourceInfo();
+		if (!source) return;
+		map = this.requestSourceMap(source);
+		if (!map) return;
+		return map[uuid];
+	},
+	requestUpdateInfo : function(libinfo, callback) {
+		var r, u = libinfo.update, t;
+		try {
 			if (typeof u == "function") {
 				r = libinfo.update();
 			} else if (typeof u == "string") {
 				r = JSON.parse(Updater.queryPage(u));
 			} else {
-				//r = findInLocalSource(libinfo.uuid);
+				t = this.requestUpdateUrlFromDefSrc(libinfo.uuid);
+				if (t) r = JSON.parse(Updater.queryPage(t));
 			}
 			if (!(r instanceof Object) || !Array.isArray(r.version)) {
 				return callback(-1);
 			}
-			callback(NeteaseAdapter.compareVersion(libinfo.version, r.version) > 0 ? 1 : 0, r);
 		} catch(e) {
 			callback(-2, e);
+			return;
+		}
+		callback(NeteaseAdapter.compareVersion(r.version, libinfo.version) > 0 ? 1 : 0, r, libinfo);
+	},
+	doUpdate : function(updateInfo, libInfo, statusListener) {
+		var path;
+		if (updateInfo.method == "intent") { //通过链接启动
+			statusListener("downloadFromUri", String(updateInfo.uri));
+		} else {
+			statusListener("startDownload");
+			try {
+				if (updateInfo.source) {
+					path = this.downloadLib({
+						downloadurl : updateInfo.url,
+						sha1 : updateInfo.sha1,
+						uuid : updateInfo.uuid
+					}, this.requestSourceInfoCached(updateInfo.source));
+					if (path != libInfo.src) {
+						this.removeLibrary(libInfo.src);
+						if (libInfo.core) {
+							this.enableCoreLibrary(path);
+						} else {
+							this.enableLibrary(path);
+						}
+					}
+				} else {
+					Updater.download(updateInfo.url, libInfo.src);
+				}
+			} catch(e) {
+				statusListener("downloadError", e);
+			}
+			statusListener("completeDownload", updateInfo.message);
 		}
 	}
 }

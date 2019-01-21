@@ -108,9 +108,8 @@ MapScript.loadModule("CA", {
 			}
 			if (!f.settings.customExpression) f.settings.customExpression = [];
 			if (!(f.settings.securityLevel >= -9 && f.settings.securityLevel <= 9)) f.settings.securityLevel = 1;
-			if (f.settings.customTips) {
-				this.tips = f.settings.customTips;
-			}
+			if (f.settings.customTips) this.tips = f.settings.customTips;
+			if (isNaN(f.settings.libraryAutoUpdate)) f.settings.libraryAutoUpdate = 1;
 			
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
@@ -164,6 +163,7 @@ MapScript.loadModule("CA", {
 				iconAlpha : 0,
 				tipsRead : 0,
 				iiMode : -1,
+				libraryAutoUpdate : 1,
 				enabledLibrarys : Object.keys(this.Library.inner),
 				coreLibrarys : [],
 				disabledLibrarys : [],
@@ -3732,6 +3732,8 @@ MapScript.loadModule("CA", {
 					self.postTask(function(cb) {
 						CA.settings.enabledLibrarys = Object.keys(CA.Library.inner);
 						CA.settings.disabledLibrarys = [];
+						CA.settings.coreLibrarys = [];
+						CA.settings.deprecatedLibrarys = [];
 						CA.Library.clearCache();
 						cb(true, function() {
 							Common.toast("已恢复为默认拓展包列表");
@@ -3773,70 +3775,50 @@ MapScript.loadModule("CA", {
 				text : "检测更新",
 				description : "如果可行，连接服务器检测是否有更新",
 				hidden : function(tag) {
-					return tag.data.mode == 0 || !tag.data.update;
+					return tag.data.mode == 0;
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {new java.lang.Thread(function() {try {
-						var r, d = tag.data, u = d.update, i, f = false, dl;
-						try {
-							if (typeof u == "function") {
-								r = tag.data.update();
-							} else if (typeof u == "string" && u.startsWith("http")) {
-								r = JSON.parse(Updater.queryPage(u));
-							} else {
-								Common.toast("暂不支持从在线拓展包库更新");
-								return cb(false); 
-								//r = findInLocalSource();
-							}
-							if (!(r instanceof Object) || !Array.isArray(r.version)) {
-								Common.toast("拓展包“" + tag.data.name + "”没有更新数据");
-								return cb(false);
-							}
-							for (i = 0; i < d.version.length; i++) {
-								if (d.version[i] > r.version[i]) {
-									break;
-								} else if (d.version[i] < r.version[i]) {
-									f = true;
-									break;
-								}
-							}
-							if (f) {
+						CA.Library.requestUpdateInfo(tag.data, function(statusCode, arg1, arg2) {
+							if (statusCode == 1) {
+								Common.toast("检测到更新：\n" + arg2.version.join(".") + " -> " + arg1.version.join("."));
 								CA.Library.clearCache(tag.data.src);
-								if (f.method == "intent") {
-									cb(true);
-									Common.showConfirmDialog({
-										title : "拓展包“" + tag.data.name + "”请求访问下方的链接，确定访问？",
-										description : String(r.uri),
-										callback : function(id) {
-											if (id != 0) return;
-											try {
-												ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.description))
-													.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-												return;
-											} catch(e) {Log.e(e)}
-											Common.toast("打开链接失败");
-										}
-									});
-									Common.toast("检测到更新：\n" + d.version.join(".") + " -> " + r.version.join("."));
-								} else {
-									Common.toast("更新中……\n" + d.version.join(".") + " -> " + r.version.join("."));
-									Updater.download(r.url, tag.data.src);
-									cb(true, function() {
-										if (r.message) {
-											Common.showTextDialog("更新完成：" + r.version.join(".") + "\n" + r.message);
-										} else {
-											Common.toast("更新完成：" + r.version.join("."));
-										}
-									});
-								}
+								CA.Library.doUpdate(arg1, arg2, function(statusMessage, arg_1) {
+									if (statusMessage == "downloadFromUri") {
+										cb(true);
+										Common.showConfirmDialog({
+											title : "拓展包“" + tag.data.name + "”请求访问下方的链接，确定访问？",
+											description : arg_1,
+											callback : function(id) {
+												if (id != 0) return;
+												try {
+													ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(arg_1))
+														.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+													return;
+												} catch(e) {Log.e(e)}
+												Common.toast("打开链接失败");
+											}
+										});
+									} else if (statusMessage == "downloadError") {
+										Common.toast("更新失败\n" + arg_1);
+										cb(false);
+									} else if (statusMessage == "completeDownload") {
+										cb(true, function() {
+											Common.toast("更新完成：拓展包“" + tag.data.name + "”已是最新版本：" + arg1.version.join("."));
+										});
+									}
+								});
 							} else {
-								Common.toast("拓展包“" + tag.data.name + "”已是最新版本：" + r.version.join("."));
+								if (statusCode == -2) {
+									Common.toast("检测更新失败\n" + arg1);
+								} else if (statusCode == 0) {
+									Common.toast("拓展包“" + tag.data.name + "”已是最新版本：" + arg1.version.join("."));
+								} else {
+									Common.toast("拓展包“" + tag.data.name + "”没有更新数据");
+								}
 								cb(false);
 							}
-						} catch(e) {
-							Common.toast("检测更新失败\n" + e);
-							cb(false);
-						}
+						});
 					} catch(e) {erp(e)}}).start()});
 				}
 			},{
@@ -4247,8 +4229,7 @@ MapScript.loadModule("CA", {
 				var progress = Common.showProgressDialog();
 				progress.setText("正在加载……");
 				progress.async(function() {
-					var src = Date.now() < self.accessExpired ? self.libsrc : CA.Library.requestLibSource(CA.Library.getOriginSourceUrl());
-					self.accessExpired = Date.now() + 60000;
+					var src = CA.Library.requestDefaultSourceInfo();
 					self.loading = false;
 					if (!src) return Common.toast("拓展包源加载失败");
 					self.libsrc = src;
@@ -4264,7 +4245,7 @@ MapScript.loadModule("CA", {
 					});
 				} else {
 					if (self.loading) return Common.toast("正在加载中……");
-					var i, off = self.libs.length, page = CA.Library.requestLibIndex(self.libsrc, self.pages);
+					var i, off = self.libs.length, page = CA.Library.requestSourceIndex(self.libsrc, self.pages);
 					if (!page) return Common.toast("拓展包列表加载失败");
 					self.pages++;
 					G.ui(function() {try {
@@ -4305,11 +4286,14 @@ MapScript.loadModule("CA", {
 					CA.Library.initLibrary(function() {
 						progress.close();
 						Common.toast("拓展包“" + data.name + "”已下载并启用");
+						data.installed = true;
+						G.ui(function() {try {
+							self.adpt.notifyChange();
+						} catch(e) {erp(e)}});
 					});
 				});
 			}
 			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.libs = [], self.vmaker, self.vbinder));
-			self.accessExpired = -Infinity;
 
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
@@ -4356,8 +4340,7 @@ MapScript.loadModule("CA", {
 				if (!data.installed) {
 					Common.showOperateDialog(self.itemMenu, {
 						pos : parseInt(pos),
-						data : data,
-						callback : function() {}
+						data : data
 					});
 				}
 			} catch(e) {erp(e)}}}));

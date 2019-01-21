@@ -22,7 +22,7 @@ function getDateId(d) {
 function buildSnapshot() {
 	var s = loader.load(script, "utf-8");
 	var id = getDateId(new Date());
-	s = s.replace(/\{DATE\}/g, "S" + id).replace(/\{HELP\}/g, fs.readFileSync(help, 'utf-8').replace(/\s*\n\s*/g, ""));
+	s = s.replace(/\{DATE\}/g, "S" + id).replace(/\s*\n\s*/g, ""));
 	fs.writeFileSync(cwd + "/snapshot/命令助手快照" + id + ".lib", asLibrary([
 		'Plugins.inject(function(o){',
 			'const id=' + JSON.stringify(id) + ';',
