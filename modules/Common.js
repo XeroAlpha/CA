@@ -672,212 +672,298 @@ MapScript.loadModule("Common", {
 		if (o.onDismiss) popup.on("exit", o.onDismiss);
 	} catch(e) {erp(e)}})},
 
-	showSettings : function self(data, onSave) {G.ui(function() {try {
+	showSettings : function self(title, data, callback) {G.ui(function() {try {
 		if (!self.linear) {
 			self.refreshText = function() {
 				if (!self.popup.showing) return;
-				self.data.forEach(function(e, i) {
-					if (!e._view) return;
-					if (e.type == "text") {
-						e._text.setText(String(e.get ? e.get() : e.text));
-					} else if (e.type == "custom") {
-						e._text.setText(e.get ? String(e.get()) : "");
-					} else if (e.type == "boolean") {
-						e._box.setChecked(e.get());
-					} else if (e.type == "seekbar") {
-						e._seekbar.setProgress(e.get());
-					}
-				});
+				self.adpt.notifyChange();
 			}
-			self.adapter = function(e, i, a, extra) {
-				var hl, vl;
-				switch (e.type) {
-					case "boolean":
-					case "custom":
-					hl = new G.LinearLayout(ctx);
-					hl.setOrientation(G.LinearLayout.HORIZONTAL);
-					hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-					vl = new G.LinearLayout(ctx);
-					vl.setOrientation(G.LinearLayout.VERTICAL);
-					vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
-					vl.getLayoutParams().gravity = G.Gravity.CENTER;
-					e._name = new G.TextView(ctx);
-					e._name.setText(String(e.name));
-					e._name.setSingleLine(true);
-					e._name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-					Common.applyStyle(e._name, "textview_default", 3);
-					vl.addView(e._name);
-					if (e.description) {
-						e._description = new G.TextView(ctx);
-						e._description.setText(String(e.description));
-						e._description.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-						Common.applyStyle(e._description, "textview_prompt", 1);
-						vl.addView(e._description);
-					}
-					hl.addView(vl);
-					if (e.type == "custom") {
-						e._text = new G.TextView(ctx);
-						e._text.setText(e.get ? String(e.get()) : "");
-						e._text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-						e._text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-						e._text.getLayoutParams().gravity = G.Gravity.CENTER;
-						Common.applyStyle(e._text, "textview_prompt", 2);
-						hl.addView(e._text);
-					} else {
-						e._box = new G.CheckBox(ctx);
-						e._box.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
-						e._box.getLayoutParams().gravity = G.Gravity.CENTER;
-						e._box.setChecked(e.get());
-						e._box.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
-							e.set(s);
-							if (e.onclick) e.onclick(function() {
+			self.adapterTypes = {
+				"boolean" : {
+					maker : function(holder) {
+						var hl, vl;
+						hl = new G.LinearLayout(ctx);
+						hl.setOrientation(G.LinearLayout.HORIZONTAL);
+						hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
+						vl = new G.LinearLayout(ctx);
+						vl.setOrientation(G.LinearLayout.VERTICAL);
+						vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
+						vl.getLayoutParams().gravity = G.Gravity.CENTER;
+						holder.name = new G.TextView(ctx);
+						holder.name.setSingleLine(true);
+						holder.name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						Common.applyStyle(holder.name, "textview_default", 3);
+						vl.addView(holder.name);
+						holder.description = new G.TextView(ctx);
+						holder.description.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						Common.applyStyle(holder.description, "textview_prompt", 1);
+						vl.addView(holder.description);
+						hl.addView(vl);
+						holder.box = new G.CheckBox(ctx);
+						holder.box.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
+						holder.box.getLayoutParams().gravity = G.Gravity.CENTER;
+						holder.box.setOnCheckedChangeListener(new G.CompoundButton.OnCheckedChangeListener({onCheckedChanged : function(v, s) {try {
+							if (holder.busy) return;
+							holder.e.set(s);
+							if (holder.e.onclick) holder.e.onclick(function() {
 								self.refreshText();
 							});
-							e._box.setChecked(e.get());
+							holder.busy = true;
+							holder.box.setChecked(holder.e.get());
+							holder.busy = false;
 						} catch(e) {erp(e)}}}));
-						e._box.setFocusable(false);
-						hl.addView(e._box);
+						holder.box.setFocusable(false);
+						hl.addView(holder.box);
+						return hl;
+					},
+					binder : function(holder, e) {
+						holder.e = e;
+						holder.name.setText(String(e.name));
+						if (e.description) {
+							holder.description.setText(String(e.description));
+							holder.description.setVisibility(G.View.VISIBLE);
+						} else {
+							holder.description.setVisibility(G.View.GONE);
+						}
+						holder.busy = true;
+						holder.box.setChecked(e.get());
+						holder.busy = false;
 					}
-					return e._view = hl;
-					case "space":
-					e._sp = new G.Space(ctx);
-					e._sp.setLayoutParams(new G.AbsListView.LayoutParams(-1, e.height));
-					e._sp.setFocusable(true);
-					return e._view = e._sp;
-					case "tag":
-					e._tag = new G.TextView(ctx);
-					e._tag.setText(String(e.name));
-					e._tag.setPadding(20 * G.dp, 25 * G.dp, 0, 0);
-					e._tag.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					e._tag.setFocusable(true);
-					Common.applyStyle(e._tag, "textview_highlight", 2);
-					return e._view = e._tag;
-					case "text":
-					e._text = new G.TextView(ctx);
-					e._text.setText(String(e.get ? e.get() : e.text));
-					e._text.setPadding(20 * G.dp, 0, 20 * G.dp, 10 * G.dp);
-					e._text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					e._text.setFocusable(true);
-					Common.applyStyle(e._text, "textview_prompt", 2);
-					return e._view = e._text;
-					case "seekbar":
-					vl = new G.LinearLayout(ctx);
-					vl.setOrientation(G.LinearLayout.VERTICAL);
-					vl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-					vl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-					hl = new G.LinearLayout(ctx);
-					hl.setOrientation(G.LinearLayout.HORIZONTAL);
-					hl.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-					hl.setPadding(0, 0, 0, 10 * G.dp);
-					hl.getLayoutParams().gravity = G.Gravity.CENTER;
-					e._name = new G.TextView(ctx);
-					e._name.setText(String(e.name));
-					e._name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-					Common.applyStyle(e._name, "textview_default", 3);
-					hl.addView(e._name);
-					e._progress = new G.TextView(ctx);
-					e._progress.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-					e._progress.setGravity(G.Gravity.CENTER | G.Gravity.RIGHT);
-					e._progress.setPadding(0, 0, 10 * G.dp, 0);
-					Common.applyStyle(e._progress, "textview_prompt", 2);
-					hl.addView(e._progress);
-					vl.addView(hl);
-					e._seekbar = new G.SeekBar(ctx);
-					e._seekbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-					e._seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
-						onProgressChanged : function(v, progress, fromUser) {try {
-							e._progress.setText(e.current ? e.current(progress) : progress);
-							return true;
-						} catch(e) {erp(e)}},
-						onStopTrackingTouch : function(v) {try {
-							e.set(v.getProgress());
-							return true;
-						} catch(e) {erp(e)}}
-					}));
-					e._seekbar.setMax(e.max);
-					e._seekbar.setProgress(e.get());
-					vl.addView(e._seekbar);
-					return e._view = vl;
+				},
+				"custom" : {
+					maker : function(holder) {
+						var hl, vl;
+						hl = new G.LinearLayout(ctx);
+						hl.setOrientation(G.LinearLayout.HORIZONTAL);
+						hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
+						vl = new G.LinearLayout(ctx);
+						vl.setOrientation(G.LinearLayout.VERTICAL);
+						vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
+						vl.getLayoutParams().gravity = G.Gravity.CENTER;
+						holder.name = new G.TextView(ctx);
+						holder.name.setSingleLine(true);
+						holder.name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						Common.applyStyle(holder.name, "textview_default", 3);
+						vl.addView(holder.name);
+						holder.description = new G.TextView(ctx);
+						holder.description.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						Common.applyStyle(holder.description, "textview_prompt", 1);
+						vl.addView(holder.description);
+						hl.addView(vl);
+						holder.text = new G.TextView(ctx);
+						holder.text.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+						holder.text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						holder.text.getLayoutParams().gravity = G.Gravity.CENTER;
+						Common.applyStyle(holder.text, "textview_prompt", 2);
+						hl.addView(holder.text);
+						return hl;
+					},
+					binder : function(holder, e) {
+						holder.e = e;
+						holder.name.setText(String(e.name));
+						if (e.description) {
+							holder.description.setText(String(e.description));
+							holder.description.setVisibility(G.View.VISIBLE);
+						} else {
+							holder.description.setVisibility(G.View.GONE);
+						}						
+						holder.text.setText(e.get ? String(e.get()) : "");
+					}
+				},
+				"space" : {
+					maker : function(holder) {
+						holder.sp = new G.Space(ctx);
+						holder.sp.setLayoutParams(holder.lp = new G.AbsListView.LayoutParams(-1, 0));
+						holder.sp.setFocusable(true);
+						return holder.sp;
+					},
+					binder : function(holder, e) {
+						holder.lp.height = e.height;
+						holder.sp.setLayoutParams(holder.lp);
+					}
+				},
+				"tag" : {
+					maker : function(holder) {
+						holder.tag = new G.TextView(ctx);
+						holder.tag.setPadding(20 * G.dp, 20 * G.dp, 0, 0);
+						holder.tag.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						holder.tag.setFocusable(true);
+						Common.applyStyle(holder.tag, "textview_highlight", 2);
+						return holder.tag;
+					},
+					binder : function(holder, e) {
+						holder.tag.setText(String(e.name));
+					}
+				},
+				"text" : {
+					maker : function(holder) {
+						holder.text = new G.TextView(ctx);
+						holder.text.setPadding(20 * G.dp, 0, 20 * G.dp, 10 * G.dp);
+						holder.text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						holder.text.setFocusable(true);
+						Common.applyStyle(holder.text, "textview_prompt", 2);
+						return holder.text;
+					},
+					binder : function(holder, e) {
+						holder.text.setText(String(e.get ? e.get() : e.text));
+					}
+				},
+				"seekbar" : {
+					maker : function(holder) {
+						var vl, hl;
+						vl = new G.LinearLayout(ctx);
+						vl.setOrientation(G.LinearLayout.VERTICAL);
+						vl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						vl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
+						hl = new G.LinearLayout(ctx);
+						hl.setOrientation(G.LinearLayout.HORIZONTAL);
+						hl.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+						hl.setPadding(0, 0, 0, 10 * G.dp);
+						hl.getLayoutParams().gravity = G.Gravity.CENTER;
+						holder.name = new G.TextView(ctx);
+						holder.name.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
+						Common.applyStyle(holder.name, "textview_default", 3);
+						hl.addView(holder.name);
+						holder.progress = new G.TextView(ctx);
+						holder.progress.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+						holder.progress.setGravity(G.Gravity.CENTER | G.Gravity.RIGHT);
+						holder.progress.setPadding(0, 0, 10 * G.dp, 0);
+						Common.applyStyle(holder.progress, "textview_prompt", 2);
+						hl.addView(holder.progress);
+						vl.addView(hl);
+						holder.seekbar = new G.SeekBar(ctx);
+						holder.seekbar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+						holder.seekbar.setOnSeekBarChangeListener(new G.SeekBar.OnSeekBarChangeListener({
+							onProgressChanged : function(v, progress, fromUser) {try {
+								holder.progress.setText(holder.e.current ? holder.e.current(progress) : progress);
+								return true;
+							} catch(e) {erp(e)}},
+							onStopTrackingTouch : function(v) {try {
+								holder.e.set(v.getProgress());
+								return true;
+							} catch(e) {erp(e)}}
+						}));
+						vl.addView(holder.seekbar);
+						return vl;
+					},
+					binder : function(holder, e) {
+						holder.e = e;
+						holder.name.setText(String(e.name));
+						holder.seekbar.setMax(e.max);
+						holder.seekbar.setProgress(e.get());
+					}
+				}
+			};
+			self.setData = function(data) {
+				self.adpt.setArray(data.data);
+				self.title.setText(data.title || "设置");
+			}
+			self.onBack = function() {
+				self.current.data.forEach(function(e, i) {
+					switch (e.type) {
+						case "boolean":
+						case "seekbar":
+						if (e.get() != self.current.last[i] && e.refresh) e.refresh();
+						return;
+						case "custom":
+						case "space":
+						case "tag":
+						case "text":
+						return;
+					}
+				});
+				if (self.current.callback) self.current.callback();
+				self.current = self.stack.pop();
+				if (self.current) {
+					self.setData(self.current);
+				} else {
+					self.popup.exit();
 				}
 			}
+			self.adpt = MultipleListAdapter.getController(new MultipleListAdapter([], self.adapterTypes, function(e) {
+				return e.type;
+			}));
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "message_bg");
 
+			self.titlebar = new G.LinearLayout(ctx);
+			self.titlebar.setOrientation(G.LinearLayout.HORIZONTAL);
+			Common.applyStyle(self.titlebar, "bar_float");
 			self.title = new G.TextView(ctx);
-			self.title.setText("设置");
-			self.title.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.title, "bar_float");
+			self.title.setPadding(15 * G.dp, 15 * G.dp, 0, 15 * G.dp);
 			Common.applyStyle(self.title, "textview_default", 4);
-			self.title.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+			self.titlebar.addView(self.title, new G.LinearLayout.LayoutParams(0, -1, 1.0));
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("返回");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (self.current) self.onBack();
+				return true;
+			} catch(e) {erp(e)}}}));
+			self.titlebar.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -1));
+			self.linear.addView(self.titlebar, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.list = new G.ListView(ctx);
 			self.list.setDividerHeight(0);
-			self.list.addHeaderView(self.title);
+			self.list.setAdapter(self.adpt.self);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				var e = parent.getAdapter().getItem(pos);
-				if (!e) return true;
+				var e = self.adpt.array[pos];
+				if (!e) return;
 				if (e.type == "custom") {
-					if (e.onclick) e.onclick(function(v) {
+					if (e.onclick) e.onclick(function() {
 						self.refreshText();
-						e._text.setText(String(v == null ? e.get() : v));
 					});
 				} else if (e.type == "boolean") {
-					e._box.performClick();
+					self.adpt.getHolder(pos, view).box.performClick();
 				}
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
-			self.exit = new G.TextView(ctx);
-			self.exit.setText("确定");
-			self.exit.setGravity(G.Gravity.CENTER);
-			self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
-			Common.applyStyle(self.exit, "bar_float");
-			Common.applyStyle(self.exit, "button_critical", 3);
-			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.exit();
-				return true;
-			} catch(e) {erp(e)}}}));
-			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
-
 			self.popup = new PopupPage(self.linear, "common.Settings");
-
+			self.popup.on("back", function(name, cancelDefault) {
+				self.onBack();
+				cancelDefault();
+			});
+			self.popup.on("exit", function() {
+				var e;
+				while (self.stack.length) {
+					e = self.stack.pop();
+					if (e.callback) e.callback();
+				}
+			});
+			
+			self.stack = [];
+			self.current = null;
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.on("exit", function() {
-			self.data.forEach(function(e, i) {
+		data = data.filter(function(e) {
+			if (e.hidden && e.hidden()) return false;
+			return true;
+		});
+		if (self.current) self.stack.push(self.current);
+		self.current = {
+			title : title,
+			data : data,
+			last : data.map(function(e) {
 				switch (e.type) {
 					case "boolean":
 					case "seekbar":
-					if (e.get() != self.last[i] && e.refresh) e.refresh();
-					return;
+					return e.get();
 					case "custom":
 					case "space":
 					case "tag":
 					case "text":
-					return;
+					return null;
 				}
-			});
-			if (onSave) onSave();
-		});
-		self.data = data.filter(function(e) {
-			if (e.hidden && e.hidden()) return false;
-			return true;
-		});
-		self.last = self.data.map(function(e) {
-			switch (e.type) {
-				case "boolean":
-				case "seekbar":
-				return e.get();
-				case "custom":
-				case "space":
-				case "tag":
-				case "text":
-				return null;
-			}
-		});
-		self.list.setAdapter(new RhinoListAdapter(self.data, self.adapter));
+			}),
+			callback : callback
+		};
+		self.setData(self.current);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 

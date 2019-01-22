@@ -2454,7 +2454,7 @@ MapScript.loadModule("CA", {
 	} catch(e) {erp(e)}})},
 
 	showSettings : function self() {G.ui(function() {try {
-		if (!self.data) {
+		if (!self.root) {
 			self.getsettingbool = function() {
 				return Boolean(CA.settings[this.id]);
 			}
@@ -2470,17 +2470,48 @@ MapScript.loadModule("CA", {
 				if (f) CA.showSettings();
 				CA.showIcon();
 			}
-			self.data = [{
-				name : "当前版本",
-				description : "基于Rhino (" + MapScript.host + ")",
+			self.root = [{
+				name : "关于命令助手",
 				type : "custom",
 				get : function() {
-					return CA.version.join(".");
+					return "v" + CA.version.join(".");
 				},
 				onclick : function(fset) {
-					CA.showAboutDialog();
+					Common.showSettings("关于", self.about);
 				}
-			},{
+			}, {
+				name : "外观",
+				description : "主题、悬浮窗、背景图片",
+				type : "custom",
+				onclick : function(fset) {
+					Common.showSettings("外观", self.appearance);
+				}
+			}, {
+				name : "智能补全",
+				description : "智能模式、拓展包管理、粘贴模式",
+				type : "custom",
+				onclick : function(fset) {
+					Common.showSettings("智能补全", self.intellisense);
+				}
+			}, {
+				name : "用户数据",
+				description : "历史、收藏、自定义短语",
+				type : "custom",
+				onclick : function(fset) {
+					Common.showSettings("用户数据", self.userdata);
+				}
+			}, {
+				name : "辅助设置",
+				description : "无障碍服务、WebSocket服务器",
+				type : "custom",
+				hidden : function() {
+					return MapScript.host != "Android";
+				},
+				onclick : function(fset) {
+					AndroidBridge.showSettings("辅助设置");
+				}
+			}];
+			self.about = [{
 				name : "检查更新",
 				description : "点击检查更新",
 				type : "custom",
@@ -2501,10 +2532,221 @@ MapScript.loadModule("CA", {
 						} catch(e) {erp(e)}});
 					});
 				}
+			}, {
+				name : "相关信息",
+				type : "custom",
+				onclick : function() {
+					Common.showWebViewDialog({
+						mimeType : "text/html; charset=UTF-8",
+						code : CA.help
+					});
+				}
 			},{
-				name : "智能补全设置",
+				name : "分享链接",
+				type : "custom",
+				onclick : function() {
+					var t = "https://www.coolapk.com/game/190152";
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
+							.setType("text/plain")
+							.putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.setClipboardText(t);
+						Common.toast("下载链接已复制到剪贴板");
+					}
+				}
+			},{
+				name : "加入交流群",
+				type : "custom",
+				onclick : function() {
+					Common.toast("QQ群号已复制至剪贴板");
+					Common.setClipboardText("303697689");
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=57Ac2tp"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Log.e(e);
+					}
+				}
+			},{
+				name : "提出意见/反馈bug",
+				type : "custom",
+				onclick : function() {
+					GiteeFeedback.showFeedbacks();
+				}
+			},{
+				name : "向作者捐助",
+				type : "custom",
+				onclick : function() {
+					CA.showDonateDialog();
+				}
+			},{
+				name : "开发者工具",
 				type : "tag"
 			},{
+				name : "JSON编辑器",
+				type : "custom",
+				onclick : function() {
+					JSONEdit.main();
+				}
+			},{
+				name : "错误记录",
+				type : "custom",
+				onclick : function() {
+					CA.manageErrors();
+				}
+			},{
+				name : "控制台",
+				type : "custom",
+				onclick : function(fset) {
+					Common.showDebugDialog();
+				}
+			}];
+			self.appearance = [{
+				name : "界面主题",
+				type : "custom",
+				get : function() {
+					return Common.theme.name;
+				},
+				onclick : function() {
+					Common.showChangeTheme(function() {
+						self.refresh(true);
+					});
+				}
+			}, {
+				id : "noAnimation",
+				name : "关闭动画",
+				description : "关闭部分动画以减轻卡顿。",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				name : "悬浮窗",
+				type : "tag"
+			}, {
+				name : "图标样式",
+				type : "custom",
+				get : function() {
+					return "点击以修改";
+				},
+				onclick : function() {
+					CA.showIconChooser(function() {
+						if (CA.showIcon.refresh) CA.showIcon.refreshIcon();
+					});
+				}
+			}, {
+				name : "图标大小",
+				type : "seekbar",
+				values : [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
+				current : function(p) {
+					return parseInt(this.values[p] * 100) + "%";
+				},
+				max : 10,
+				get : function() {
+					var i = this.values.indexOf(CA.settings.iconSize);
+					return i >= 0 ? i : 3;
+				},
+				set : function(v) {
+					CA.settings.iconSize = this.values[v];
+					if (CA.showIcon.refresh) {
+						CA.showIcon.refreshIcon();
+						CA.showIcon.refreshPos();
+					}
+				}
+			}, {
+				name : "不透明度",
+				type : "seekbar",
+				current : function(p) {
+					return p == 0 ? "自动" : p + "0%";
+				},
+				max : 10,
+				get : function() {
+					return isNaN(CA.settings.iconAlpha) ? 0 : CA.settings.iconAlpha;
+				},
+				set : function(v) {
+					CA.settings.iconAlpha = v;
+					if (CA.showIcon.refresh) CA.showIcon.refreshAlpha();
+				}
+			}, {
+				name : "拖动方式",
+				type : "custom",
+				list : [
+					"自由拖动",
+					"自动贴边",
+					"固定"
+				],
+				get : function() {
+					if (CA.settings.iconDragMode in this.list) {
+						return this.list[CA.settings.iconDragMode];
+					} else {
+						return this.list[CA.settings.iconDragMode = 0];
+					}
+				},
+				onclick : function(fset) {
+					Common.showListChooser(this.list, function(i) {
+						CA.settings.iconDragMode = i;
+						if (CA.showIcon.refresh) CA.showIcon.refreshPos();
+						fset();
+					});
+				}
+			}, {
+				id : "autoHideIcon",
+				name : "自动隐藏悬浮窗",
+				type : "boolean",
+				hidden : function() {
+					return MapScript.host != "BlockLauncher";
+				},
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				name : "命令生成器",
+				type : "tag"
+			}, {
+				name : "背景图片",
+				type : "custom",
+				hidden : function() {
+					return android.os.Build.VERSION.SDK_INT < 16;
+				},
+				get : function() {
+					return "点击选择";
+				},
+				onclick : function() {
+					CA.showManageBgImage(function() {
+						self.refresh(true);
+					});
+				}
+			}, {
+				id : "keepWhenIME",
+				name : "禁用压缩列表栏",
+				description : "当输入法弹出时不再压缩列表栏。",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				id : "splitScreenMode",
+				name : "双栏模式",
+				description : "推荐大屏手机/Pad使用",
+				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				id : "showClearButton",
+				name : "显示输入栏右侧的删除图标",
+				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				id : "noWebImage",
+				name : "不加载图片",
+				description : "加载网页时不加载图片",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}];
+			self.intellisense = [{
 				name : "智能模式",
 				type : "custom",
 				get : function() {
@@ -2516,7 +2758,7 @@ MapScript.loadModule("CA", {
 						self.refresh(true);
 					});
 				}
-			},{
+			}, {
 				name : "拓展包",
 				type : "custom",
 				get : function() {
@@ -2527,21 +2769,21 @@ MapScript.loadModule("CA", {
 						fset();
 					});
 				}
-			},{
+			}, {
 				id : "senseDelay",
 				name : "启用多线程",
 				description : "IntelliSense将不会即时输出结果以避免卡顿。",
 				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
-			},{
+			}, {
 				id : "autoFormatCmd",
 				name : "启用样式代码显示",
 				description : "输入框会自动解释输入命令中的样式代码。",
 				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
-			},{
+			}, {
 				name : "粘贴模式",
 				type : "custom",
 				list : [{
@@ -2564,7 +2806,7 @@ MapScript.loadModule("CA", {
 						fset();
 					});
 				}
-			},{
+			}, {
 				name : "粘贴栏位置",
 				type : "custom",
 				list : [{
@@ -2586,7 +2828,7 @@ MapScript.loadModule("CA", {
 						CA.hidePaste();
 					});
 				}
-			},{
+			}, {
 				name : "粘贴延迟",
 				type : "custom",
 				hidden : function() {
@@ -2599,7 +2841,7 @@ MapScript.loadModule("CA", {
 				onclick : function(fset) {
 					CA.showPasteDelaySet(fset)
 				}
-			},{
+			}, {
 				id : "overwriteMCTextbox",
 				name : "替换MC文本框文本",
 				description : "粘贴文本时会自动将文本框中原来的文本替换为新的文本，而不是直接粘贴",
@@ -2609,7 +2851,8 @@ MapScript.loadModule("CA", {
 				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
-			},{
+			}];
+			self.userdata = [{
 				name : "管理历史",
 				type : "custom",
 				get : function() {
@@ -2621,7 +2864,7 @@ MapScript.loadModule("CA", {
 						if (CA.history) CA.showHistory();
 					});
 				}
-			},{
+			}, {
 				name : "管理收藏",
 				type : "custom",
 				get : function() {
@@ -2633,7 +2876,7 @@ MapScript.loadModule("CA", {
 						if (CA.history) CA.showHistory();
 					});
 				}
-			},{
+			}, {
 				name : "历史记录容量",
 				type : "seekbar",
 				current : function(p) {
@@ -2649,7 +2892,7 @@ MapScript.loadModule("CA", {
 					CA.settings.histroyCount = parseInt(this.list[v]);
 					if (CA.settings.histroyCount) CA.his.splice(CA.settings.histroyCount);
 				}
-			},{
+			}, {
 				name : "管理自定义短语",
 				type : "custom",
 				get : function() {
@@ -2660,152 +2903,7 @@ MapScript.loadModule("CA", {
 						fset();
 					});
 				}
-			},{
-				name : "外观设置",
-				type : "tag"
-			},{
-				name : "界面主题",
-				type : "custom",
-				get : function() {
-					return Common.theme.name;
-				},
-				onclick : function() {
-					Common.showChangeTheme(function() {
-						self.refresh(true);
-					});
-				}
-			},{
-				name : "背景图片",
-				type : "custom",
-				hidden : function() {
-					return android.os.Build.VERSION.SDK_INT < 16;
-				},
-				get : function() {
-					return "点击选择";
-				},
-				onclick : function() {
-					CA.showManageBgImage(function() {
-						self.refresh(true);
-					});
-				}
-			},{
-				id : "noAnimation",
-				name : "关闭动画",
-				description : "关闭部分动画以减轻卡顿。",
-				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "keepWhenIME",
-				name : "禁用压缩列表栏",
-				description : "当输入法弹出时不再压缩列表栏。",
-				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "splitScreenMode",
-				name : "双栏模式",
-				description : "推荐大屏手机/Pad使用",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				id : "showClearButton",
-				name : "显示输入栏右侧的删除图标",
-				type : "boolean",
-				refresh : self.refresh,
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				name : "悬浮窗设置",
-				type : "tag"
-			},{
-				name : "图标样式",
-				type : "custom",
-				get : function() {
-					return "点击以修改";
-				},
-				onclick : function() {
-					CA.showIconChooser(function() {
-						if (CA.showIcon.refresh) CA.showIcon.refreshIcon();
-					});
-				}
-			},{
-				name : "图标大小",
-				type : "seekbar",
-				values : [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
-				current : function(p) {
-					return parseInt(this.values[p] * 100) + "%";
-				},
-				max : 10,
-				get : function() {
-					var i = this.values.indexOf(CA.settings.iconSize);
-					return i >= 0 ? i : 3;
-				},
-				set : function(v) {
-					CA.settings.iconSize = this.values[v];
-					if (CA.showIcon.refresh) {
-						CA.showIcon.refreshIcon();
-						CA.showIcon.refreshPos();
-					}
-				}
-			},{
-				name : "不透明度",
-				type : "seekbar",
-				current : function(p) {
-					return p == 0 ? "自动" : p + "0%";
-				},
-				max : 10,
-				get : function() {
-					return isNaN(CA.settings.iconAlpha) ? 0 : CA.settings.iconAlpha;
-				},
-				set : function(v) {
-					CA.settings.iconAlpha = v;
-					if (CA.showIcon.refresh) CA.showIcon.refreshAlpha();
-				}
-			},{
-				name : "拖动方式",
-				type : "custom",
-				list : [
-					"自由拖动",
-					"自动贴边",
-					"固定"
-				],
-				get : function() {
-					if (CA.settings.iconDragMode in this.list) {
-						return this.list[CA.settings.iconDragMode];
-					} else {
-						return this.list[CA.settings.iconDragMode = 0];
-					}
-				},
-				onclick : function(fset) {
-					Common.showListChooser(this.list, function(i) {
-						CA.settings.iconDragMode = i;
-						if (CA.showIcon.refresh) CA.showIcon.refreshPos();
-						fset();
-					});
-				}
-			},{
-				id : "autoHideIcon",
-				name : "自动隐藏悬浮窗",
-				type : "boolean",
-				hidden : function() {
-					return MapScript.host != "BlockLauncher";
-				},
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
-				name : "辅助功能",
-				type : "tag"
-			},{
-				id : "noWebImage",
-				name : "不加载图片",
-				description : "加载网页时不加载图片",
-				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
-			},{
+			}, {
 				name : "每日提示",
 				type : "custom",
 				get : function() {
@@ -2825,7 +2923,7 @@ MapScript.loadModule("CA", {
 						}
 					});
 				}
-			},{
+			}, {
 				name : "导入用户数据",
 				type : "custom",
 				onclick : function() {
@@ -2840,13 +2938,13 @@ MapScript.loadModule("CA", {
 						}
 					});
 				}
-			},{
+			}, {
 				name : "导出用户数据",
 				type : "custom",
 				onclick : function() {
 					CA.exportSettings();
 				}
-			},{
+			}, {
 				name : "恢复默认数据",
 				type : "custom",
 				onclick : function(fset) {
@@ -2864,41 +2962,10 @@ MapScript.loadModule("CA", {
 						}
 					});
 				}
-			},{
-				name : "调试工具",
-				type : "tag"
-			},{
-				name : "JSON编辑器",
-				type : "custom",
-				get : function() {
-					return "";
-				},
-				onclick : function() {
-					JSONEdit.main();
-				}
-			},{
-				name : "错误记录",
-				type : "custom",
-				get : function() {
-					return "";
-				},
-				onclick : function() {
-					CA.manageErrors();
-				}
-			},{
-				name : "控制台",
-				type : "custom",
-				get : function() {
-					return "开发者专用";
-				},
-				onclick : function(fset) {
-					Common.showDebugDialog();
-				}
 			}];
-			AndroidBridge.addSettings(self.data);
 		}
 		self.refreshed = false;
-		Common.showSettings(self.data, function() {
+		Common.showSettings("设置", self.root, function() {
 			CA.trySave();
 		});
 	} catch(e) {erp(e)}})},
@@ -4636,67 +4703,6 @@ MapScript.loadModule("CA", {
 			minSupportVer : "1.1",
 			maxSupportVer : "1.1.*",
 		}
-	},
-	showAboutDialog : function() {
-		Common.showConfirmDialog({
-			title : ISegment.rawJson([{
-				text : "命令助手",
-				bold : true
-			},
-			" - ", CA.publishDate, " (", CA.version.join("."), ")\n\n", {
-				text : "Copyright ProjectXero 2017 - 2019",
-				bold : true 
-			}]),
-			buttons : [
-				"相关信息",
-				"分享链接",
-				"加入交流群",
-				"提出意见/反馈bug",
-				"向作者捐助",
-				"关闭"
-			],
-			callback : function(id) {
-				var t;
-				switch (id) {
-					case 0:
-					Common.showWebViewDialog({
-						mimeType : "text/html; charset=UTF-8",
-						code : CA.help
-					});
-					break;
-					case 1:
-					t = "https://www.coolapk.com/game/190152";
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
-							.setType("text/plain")
-							.putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.setClipboardText(t);
-						Common.toast("下载链接已复制到剪贴板");
-					}
-					break;
-					case 2:
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.toast("QQ群号已复制至剪贴板");
-						Common.setClipboardText("207913610");
-					}
-					break;
-					case 3:
-					GiteeFeedback.showFeedbacks();
-					break;
-					case 4:
-					CA.showDonateDialog();
-					break;
-					case 5:
-					return;
-				}
-				offset = 30 * 24 * 60 * 60 * 1000; //30d
-			},
-		});
 	},
 	getQRCode : function(w, size, code) {
 		var bytes = android.util.Base64.decode(code, 2), x, y;

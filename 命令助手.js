@@ -121,7 +121,7 @@ var MapScript = {
 		var strtok = ["\\\\", "\\n", "\\t", /*"\\b",*/ "\\r", "\\f", "\\\"", "\\\'"];
 		var _toJSON = function toJSON(x, lev) {
 			var p = "", r, i;
-			if (lev < 0) return String(x);
+			if (lev < 0) return toJSON(String(x), 0);
 			if (typeof x == "string") {
 				for (i = 0; i < strtok.length; i++) x = x.replace(new RegExp(strtok[i], "g"), strtok[i]);
 				return "\"" + x + "\"";
@@ -142,7 +142,7 @@ var MapScript = {
 				for (i in x) r.push(toJSON(i, lev) + ":" + toJSON(x[i], lev - 1));
 				p = "{" + r.join(",") + "}";
 			} else if (typeof x == "object") {
-				p = _toJSON(String(x), lev);
+				p = toJSON(String(x), lev);
 			} else {
 				p = String(x);
 			}
@@ -493,6 +493,8 @@ Loader.fromFile("modules/listAdapter/RhinoListAdapter.js")
 Loader.fromFile("modules/listAdapter/FilterListAdapter.js")
 
 Loader.fromFile("modules/listAdapter/SimpleListAdapter.js")
+
+Loader.fromFile("modules/listAdapter/MultipleListAdapter.js")
 
 Loader.fromFile("modules/listAdapter/ExpandableListAdapter.js")
 

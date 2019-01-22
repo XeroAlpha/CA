@@ -645,6 +645,7 @@
 		sourceInfo = this.sourceInfoCache[url];
 		if (!sourceInfo || !(Date.now() < sourceInfo.accessExpired)) {
 			sourceInfo = this.requestSourceInfo(url);
+			if (!sourceInfo) return;
 			sourceInfo.accessExpired = Date.now() + 60000;
 			this.sourceInfoCache[url] = sourceInfo;
 		}

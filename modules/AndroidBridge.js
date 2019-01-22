@@ -266,142 +266,141 @@ MapScript.loadModule("AndroidBridge", {
 			if (Common.showSettings.refreshText) Common.showSettings.refreshText();
 		} catch(e) {erp(e)}});
 	},
-	addSettings : function(o) {
-		if (MapScript.host != "Android") return;
-		var preference = ScriptInterface.getPreference();
-		o.splice(2, 0, {
-			name : "Android版设置",
-			type : "tag"
-		}, {
-			name : "管理无障碍服务",
-			description : "用于支持粘贴命令以及一些其他操作",
-			type : "custom",
-			get : function() {
-				return ScriptInterface.getAccessibilitySvc() != null ? "已启用" : "未启用";
-			},
-			onclick : function(fset) {
-				ScriptInterface.goToAccessibilitySetting();
-			}
-		}, {
-			name : "加载适配器……",
-			description : "在输入命令时提供一些与游戏相关的信息",
-			type : "custom",
-			get : function() {
-				return MCAdapter.connInit ? "已连接" : "未连接";
-			},
-			onclick : function(fset) {
-				fset(this.get());
-				MCAdapter.listAdapters();
-			}
-		}, {
-			name : "连锁启动……",
-			description : "设置启动命令助手时自动启动的应用",
-			type : "custom",
-			get : function() {
-				var r = CA.settings.chainLaunch, ai;
-				try {
-					if (r) ai = ctx.getPackageManager().getApplicationInfo(r, 128);
-				} catch(e) {/*App not found*/}
-				if (!ai) return "无";
-				return ctx.getPackageManager().getApplicationLabel(ai);
-			},
-			onclick : function(fset) {
-				AndroidBridge.listApp((function(pkg) {
-					if (pkg == ctx.getPackageName()) {
-						Common.toast("不能连锁启动自身！");
-						return;
-					}
-					CA.settings.chainLaunch = pkg;
+	showSettings : function self(title) {
+		if (!self.root) {
+			var preference = ScriptInterface.getPreference();
+			self.root = [{
+				name : "管理无障碍服务",
+				description : "用于支持粘贴命令以及一些其他操作",
+				type : "custom",
+				get : function() {
+					return ScriptInterface.getAccessibilitySvc() != null ? "已启用" : "未启用";
+				},
+				onclick : function(fset) {
+					ScriptInterface.goToAccessibilitySetting();
+				}
+			}, {
+				name : "加载适配器……",
+				description : "在输入命令时提供一些与游戏相关的信息",
+				type : "custom",
+				get : function() {
+					return MCAdapter.connInit ? "已连接" : "未连接";
+				},
+				onclick : function(fset) {
 					fset(this.get());
-				}).bind(this));
-			}
-		}, {
-			name : "WebSocket服务器",
-			description : "实验性功能",
-			type : "custom",
-			get : function() {
-				return WSServer.isAvailable() ? (WSServer.isConnected() ? "已连接" : "已启动") : "未启动";
-			},
-			onclick : function(fset) {
-				if (WSServer.isConnected()) {
-					WSServer.showConsole();
-				} else if (WSServer.isAvailable()) {
-					WSServer.howToUse();
-				} else {
-					WSServer.start();
+					MCAdapter.listAdapters();
 				}
-			}
-		}, {
-			name : "开机自动启动",
-			description : "需要系统允许开机自启",
-			type : "boolean",
-			get : preference.getBootStart.bind(preference),
-			set : preference.setBootStart.bind(preference)
-		}, {
-			name : "隐藏启动界面",
-			type : "boolean",
-			get : preference.getHideSplash.bind(preference),
-			set : preference.setHideSplash.bind(preference)
-		}, {
-			name : "隐藏后台任务",
-			type : "boolean",
-			get : function() {
-				return Boolean(CA.settings.hideRecent);
-			},
-			set : function(v) {
-				CA.settings.hideRecent = Boolean(v);
-				Common.toast("本项设置将在重启命令助手后应用");
-			}
-		}, {
-			name : "隐藏通知",
-			description : "可能导致应用被自动关闭",
-			type : "boolean",
-			get : preference.getHideNotification.bind(preference),
-			set : ScriptInterface.setHideNotification.bind(ScriptInterface)
-		}, {
-			name : "自动启动无障碍服务",
-			description : "需要Root",
-			type : "boolean",
-			get : function() {
-				return Boolean(CA.settings.autoStartAccSvcRoot);
-			},
-			set : function(v) {
-				CA.settings.autoStartAccSvcRoot = Boolean(v);
-				if (v) {
-					AndroidBridge.startAccessibilitySvcByRootAsync();
+			}, {
+				name : "连锁启动……",
+				description : "设置启动命令助手时自动启动的应用",
+				type : "custom",
+				get : function() {
+					var r = CA.settings.chainLaunch, ai;
+					try {
+						if (r) ai = ctx.getPackageManager().getApplicationInfo(r, 128);
+					} catch(e) {/*App not found*/}
+					if (!ai) return "无";
+					return ctx.getPackageManager().getApplicationLabel(ai);
+				},
+				onclick : function(fset) {
+					AndroidBridge.listApp((function(pkg) {
+						if (pkg == ctx.getPackageName()) {
+							Common.toast("不能连锁启动自身！");
+							return;
+						}
+						CA.settings.chainLaunch = pkg;
+						fset(this.get());
+					}).bind(this));
 				}
-			}
-		}, {
-			name : "监听剪切板",
-			type : "boolean",
-			get : function() {
-				return Boolean(CA.settings.watchClipboard);
-			},
-			set : function(v) {
-				CA.settings.watchClipboard = Boolean(v);
-				if (v) {
-					if (!AndroidBridge.clipListener) AndroidBridge.startWatchClipboard();
+			}, {
+				name : "WebSocket服务器",
+				description : "实验性功能",
+				type : "custom",
+				get : function() {
+					return WSServer.isAvailable() ? (WSServer.isConnected() ? "已连接" : "已启动") : "未启动";
+				},
+				onclick : function(fset) {
+					if (WSServer.isConnected()) {
+						WSServer.showConsole();
+					} else if (WSServer.isAvailable()) {
+						WSServer.howToUse();
+					} else {
+						WSServer.start();
+					}
 				}
-			}
-		}, {
-			name : "隐藏“启用适配器”的提示",
-			type : "boolean",
-			get : function() {
-				return Boolean(CA.settings.neverAskAdapter);
-			},
-			set : function(v) {
-				CA.settings.neverAskAdapter = Boolean(v);
-			}
-		}, {
-			name : "启动时自动启动WebSocket服务器",
-			type : "boolean",
-			get : function() {
-				return Boolean(CA.settings.startWSSOnStart);
-			},
-			set : function(v) {
-				CA.settings.startWSSOnStart = Boolean(v);
-			}
-		});
+			}, {
+				name : "开机自动启动",
+				description : "需要系统允许开机自启",
+				type : "boolean",
+				get : preference.getBootStart.bind(preference),
+				set : preference.setBootStart.bind(preference)
+			}, {
+				name : "隐藏启动界面",
+				type : "boolean",
+				get : preference.getHideSplash.bind(preference),
+				set : preference.setHideSplash.bind(preference)
+			}, {
+				name : "隐藏后台任务",
+				type : "boolean",
+				get : function() {
+					return Boolean(CA.settings.hideRecent);
+				},
+				set : function(v) {
+					CA.settings.hideRecent = Boolean(v);
+					Common.toast("本项设置将在重启命令助手后应用");
+				}
+			}, {
+				name : "隐藏通知",
+				description : "可能导致应用被自动关闭",
+				type : "boolean",
+				get : preference.getHideNotification.bind(preference),
+				set : ScriptInterface.setHideNotification.bind(ScriptInterface)
+			}, {
+				name : "自动启动无障碍服务",
+				description : "需要Root",
+				type : "boolean",
+				get : function() {
+					return Boolean(CA.settings.autoStartAccSvcRoot);
+				},
+				set : function(v) {
+					CA.settings.autoStartAccSvcRoot = Boolean(v);
+					if (v) {
+						AndroidBridge.startAccessibilitySvcByRootAsync();
+					}
+				}
+			}, {
+				name : "监听剪切板",
+				type : "boolean",
+				get : function() {
+					return Boolean(CA.settings.watchClipboard);
+				},
+				set : function(v) {
+					CA.settings.watchClipboard = Boolean(v);
+					if (v) {
+						if (!AndroidBridge.clipListener) AndroidBridge.startWatchClipboard();
+					}
+				}
+			}, {
+				name : "隐藏“启用适配器”的提示",
+				type : "boolean",
+				get : function() {
+					return Boolean(CA.settings.neverAskAdapter);
+				},
+				set : function(v) {
+					CA.settings.neverAskAdapter = Boolean(v);
+				}
+			}, {
+				name : "启动时自动启动WebSocket服务器",
+				type : "boolean",
+				get : function() {
+					return Boolean(CA.settings.startWSSOnStart);
+				},
+				set : function(v) {
+					CA.settings.startWSSOnStart = Boolean(v);
+				}
+			}];
+		}
+		Common.showSettings(title, self.root);
 	},
 	initIcon : function() {
 		var logo, icon;

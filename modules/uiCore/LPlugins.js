@@ -7,7 +7,7 @@ MapScript.loadModule("LPlugins", {
 		}
 	},
 	SimpleAdapter : function(baseView, callback, array) {
-		var template = L.Template(baseView), event = EventSender.init({listener : {}});;
+		var template = L.Template(baseView), event = EventSender.init({listener : {}});
 		var adapter = new SimpleListAdapter(array || [], function(holder) {
 			var r;
 			event.trigger("beforeCreate", holder, template);

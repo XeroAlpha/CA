@@ -314,60 +314,17 @@ MapScript.loadModule("JSONEdit", {
 			EventSender.init(self);
 			self.listener = {};
 
-			if (MapScript.host == "Android") {
-				self.popup = new PopupPage(self.main, "jsonedit.Main");
-				self.popup.on("back", function(name, cancelDefault) {
-					self.onBack();
-					cancelDefault();
-				});
-				self.popup.on("exit", function() {
-					if (JSONEdit.updateListener) JSONEdit.updateListener();
-				});
-			} else {
-				self.main.setFocusableInTouchMode(true);
-				self.main.setOnKeyListener(new G.View.OnKeyListener({onKey : function(v, code, e) {try {
-					if (code == e.KEYCODE_BACK && e.getAction() == e.ACTION_DOWN) {
-						self.onBack();
-					}
-					return false;
-				} catch(e) {return erp(e), true}}}));
-				self.enter = function() {
-					var p = new G.WindowManager.LayoutParams();
-					p.gravity = G.Gravity.LEFT | G.Gravity.TOP;
-					p.flags = 0;
-					p.type = G.supportFloat ? (android.os.Build.VERSION.SDK_INT >= 26 ? G.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : G.WindowManager.LayoutParams.TYPE_PHONE) : G.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
-					p.token = ctx.getWindow().getDecorView().getWindowToken();
-					p.format = G.PixelFormat.TRANSLUCENT;
-					p.height = -1;
-					p.width = -1;
-					p.x = 0;
-					p.y = 0;
-					Common.initEnterAnimation(self.main);
-					PWM.wm.addView(self.main, p);
-					JSONEdit.edit = self;
-					PopupPage.pushPage("jsonedit.Main", self);
-				}
-				self.exit = function() {
-					JSONEdit.edit = null;
-					if (JSONEdit.updateListener) JSONEdit.updateListener();
-					PWM.wm.removeViewImmediate(self.main);
-					PopupPage.popPage(self);
-				}
-				self.dismiss = function() {
-					self.exit();
-				}
-				self.requestShow = function() {
-					self.main.setVisibility(G.View.VISIBLE);
-				}
-				self.requestHide = function() {
-					self.main.setVisibility(G.View.GONE);
-				}
-				self.popup = self;
-			}
-
+			self.popup = new PopupPage(self.main, "jsonedit.Main");
+			self.popup.on("back", function(name, cancelDefault) {
+				self.onBack();
+				cancelDefault();
+			});
+			self.popup.on("exit", function() {
+				if (JSONEdit.updateListener) JSONEdit.updateListener();
+			});
 			PWM.registerResetFlag(self, "main");
 		}
-		self.popup.enter();
+		JSONEdit.edit = self.popup.enter();
 	} catch(e) {erp(e)}})},
 	hideEdit : function() {G.ui(function() {try {
 		if (JSONEdit.edit) JSONEdit.edit.exit();
