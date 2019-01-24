@@ -1,12 +1,12 @@
 {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.8.0.10 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.9.0.5 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.8.0.10",
+	"targetSupportVer": "1.9.0.5",
 	"commands": {},
 	"idlist": [
 		{

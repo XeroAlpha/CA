@@ -277,7 +277,11 @@ MapScript.loadModule("AndroidBridge", {
 					return ScriptInterface.getAccessibilitySvc() != null ? "已启用" : "未启用";
 				},
 				onclick : function(fset) {
-					ScriptInterface.goToAccessibilitySetting();
+					try {
+						ScriptInterface.goToAccessibilitySetting();
+					} catch(e) {
+						Common.toast("无法打开无障碍设置\n" + e);
+					}
 				}
 			}, {
 				name : "加载适配器……",

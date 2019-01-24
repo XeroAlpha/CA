@@ -1732,6 +1732,7 @@ MapScript.loadModule("CA", {
 				if (CA.settings.splitScreenMode || self.tx < 0) self.hLoad();
 			} catch(e) {erp(e)}})}
 			self.hLoad = function() {
+				if (!self.wvAvailable) return self.hUpdate = false;
 				self.help.getSettings().setCacheMode(Updater.isConnected() ? android.webkit.WebSettings.LOAD_DEFAULT : android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK);
 				switch (self.htype) {
 					case 0:
@@ -1769,8 +1770,10 @@ MapScript.loadModule("CA", {
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.con = new G.FrameLayout(ctx);
 			self.linear.addView(self.con);
-			self.help = new G.WebView(ctx);
-			self.initBrowser(self.help);
+			self.help = Common.newWebView(function(wv) {
+				self.initBrowser(wv);
+				self.wvAvailable = true;
+			});
 			self.linear.addView(self.help);
 			CA.con.addOnLayoutChangeListener(self.layoutListener = new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
 				if (r - l == or - ol) return;
@@ -1796,7 +1799,7 @@ MapScript.loadModule("CA", {
 						f = true; t = self.x;
 						self.x = e.getRawX();
 						//网页情况下检查网页是否滑到最左侧
-						if (self.lx == -self.screenWidth && self.help.getScrollX() != 0) break;
+						if (self.lx == -self.screenWidth && (self.wvAvailable && self.help.getScrollX() != 0)) break;
 						if (self.vscr && Math.abs(e.getRawX() - self.sx) - Math.abs(e.getRawY() - self.sy) < touchSlop) break;
 						self.vscr = false;
 						self.stead = false;
@@ -1813,7 +1816,7 @@ MapScript.loadModule("CA", {
 						if (self.cancelled) return true;
 						if (self.hPaused) {
 							self.hPaused = false;
-							self.help.onResume();
+							if (self.wvAvailable) self.help.onResume();
 						}
 						self.hCheck(); //检测是否需要加载网页
 						e.setAction(e.ACTION_CANCEL);
@@ -1839,7 +1842,7 @@ MapScript.loadModule("CA", {
 							self.linear.startAnimation(animation);
 						}
 						if (!self.hPaused && self.tx == 0) {
-							self.help.onPause();
+							if (self.wvAvailable) self.help.onPause();
 							self.hPaused = true;
 						}
 						if (self.cancelled) return true;
@@ -4890,9 +4893,9 @@ MapScript.loadModule("CA", {
 			self.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var text = self.ids[self.adpt.array[pos]];
-				if (callback) {
+				if (self.callback) {
 					self.popup.exit();
-					callback(text);
+					self.callback(text);
 				} else {
 					self.edit.setText(text);
 					self.edit.setSelection(self.edit.length());

@@ -1415,7 +1415,12 @@ MapScript.loadModule("Common", {
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		Common.applyStyle(layout, "message_bg");
-		wv = new G.WebView(ctx);
+		try {
+			wv = new G.WebView(ctx);
+		} catch(e) {
+			Common.toast("您的设备无法加载Android System WebView\n" + e);
+			return;
+		}
 		wv.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 		if (s.url && s.code) {
 			wv.loadDataWithBaseURL(String(s.url), String(s.code), s.mimeType ? String(s.mimeType) : null, null, null);
@@ -1599,6 +1604,25 @@ MapScript.loadModule("Common", {
 		}
 		self.toast(str);
 	} catch(e) {erp(e)}})},
+	
+	newWebView : function(callback) {
+		var result, error;
+		try {
+			result = new G.WebView(ctx);
+			callback(result);
+			return result;
+		} catch(e) {
+			erp(e, true);
+			error = e;
+		}
+		result = new G.TextView(ctx);
+		result.setBackgroundColor(G.Color.WHITE);
+		result.setTextColor(G.Color.BLACK);
+		result.setGravity(G.Gravity.CENTER);
+		result.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+		result.setText("您的设备无法加载Android System WebView\n\n" + error);
+		return result;
+	},
 
 	fileCopy : function(src, dest) {
 		const BUFFER_SIZE = 4096;

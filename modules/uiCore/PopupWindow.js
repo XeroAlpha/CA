@@ -22,12 +22,12 @@ MapScript.loadModule("PopupWindow", (function() {
 			init : function() {
 				var self = this;
 				this.decorView = ScriptInterface.createFrameLayout({
-					dispatchKeyEvent : function(event) {
-						var state = r.defaultWindow.getKeyDispatcherState();
+					dispatchKeyEvent : function(event, thisObj) {
+						var state = thisObj.getKeyDispatcherState();
 						if (event.getKeyCode() == event.KEYCODE_BACK) {
 							if (!state) return 0;
 							if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-								state.startTracking(event, self.decorView);
+								state.startTracking(event, thisObj);
 								return 1;
 							} else if (event.getAction() == event.ACTION_UP) {
 								if (state.isTracking(event) && !event.isCanceled()) {
@@ -38,7 +38,7 @@ MapScript.loadModule("PopupWindow", (function() {
 						}
 						return 0;
 					},
-					dispatchTouchEvent : function(e) {
+					dispatchTouchEvent : function(e, thisObj) {
 						var consumed = false;
 						self.trigger("touch", e, function() {
 							consumed = true;

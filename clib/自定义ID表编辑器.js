@@ -35,10 +35,15 @@
 		if (!f.blockname) f.blockname = {};
 		if (!f.itemname) f.itemname = {};
 		if (!f.soundname) f.soundname = {};
+		if (!f.entityname) f.entityname = {};
+		if (!f.particlename) f.particlename = {};
 		if (!f.blockadd) f.blockadd = [];
 		if (!f.blockremove) f.blockremove = [];
 		if (!f.itemadd) f.itemadd = [];
 		if (!f.itemremove) f.itemremove = [];
+		if (!f.entityadd) f.entityadd = [];
+		if (!f.entityremove) f.entityremove = [];
+		if (!f.entitysummonable) f.entitysummonable = {};
 		return f;
 	}
 	function saveFilter(o) {
@@ -53,27 +58,31 @@
 	function getExportData() {
 		var z = loadExport();
 		if (!z) return null;
+		var i, entities = {}, e, hasMinecraftNamespace = CA.Library.checkPackVer({minSupportVer : "1.8"}) == 0;
+		for (i in z.entity) {
+			e = z.entity[i];
+			if (z.entity_summonable[i] == "unsummonable") {
+				e += "(无法用summon生成)";
+			}
+			if (hasMinecraftNamespace && z.entity_minecraft[i]) {
+				entities["minecraft:" + i] = e;
+			} else {
+				entities[i] = e;
+			}
+		}
 		return {
 			"block" : z.block,
 			"item" : z.item,
-			"sound" : z.sound
+			"sound" : z.sound,
+			"entity" : entities,
+			"particle_emitter" : z.particle
 		}
 	}
 	function loadWikiData() {
 		return MapScript.readJSON(wikiDataPath, null);
 	}
 	function getPackageName() {
-		if (CA.settings.mcPublisher && CA.settings.mcPackName) {
-			return CA.settings.mcPackName;
-		} else {
-			var i, result;
-			for (i = 0; i < NeteaseAdapter.packNames.length; i++) {
-				if (MCAdapter.existPackage(NeteaseAdapter.packNames[i])) {
-					return NeteaseAdapter.packNames[i];
-				}
-			}
-			return null;
-		}
+		return NeteaseAdapter.mcPackage;
 	}
 	function showProgress() {
 		var r = Common.showProgressDialog(null, true);
@@ -99,40 +108,70 @@
 		var items = Object.keys(readAssetJSON(zf, "assets/resource_packs/" + resPack + "/items_client.json", {}).items || {}),
 			blocks = Object.keys(readAssetJSON(zf, "assets/resource_packs/" + resPack + "/blocks.json", {})),
 			sounds = Object.keys(readAssetJSON(zf, "assets/resource_packs/" + resPack + "/sounds/sound_definitions.json", {})),
+			entities = listAssetFiles(zf, "assets/behavior_packs/" + resPack + "/entities/").map(function(e) {
+				try {
+					var k = readAssetJSON(zf, e, null)["minecraft:entity"];
+					if (k.description) return k.description.identifier;
+					return k.components["minecraft:identifier"].id;
+				} catch(e) {Log.e(e)}
+			}).filter(function(e) {
+				return e != null;
+			}),
+			particles = listAssetFiles(zf, "assets/particles/").map(function(e) {
+				try {
+					var k = readAssetJSON(zf, e, null).particles;
+					return Object.keys(k);
+				} catch(e) {Log.e(e)}
+			}).reduce(function(acc, e) {
+				return acc.concat(e);
+			}, []),
 			imports = loadFilter();
 		var ret = {
 			block : {},
-			item : {},
-			sound : {},
 			block_src : {},
-			item_src : {},
-			sound_src : {},
 			block_notranslation : {},
+			item : {},
+			item_src : {},
 			item_notranslation : {},
-			sound_notranslation : {}
+			sound : {},
+			sound_src : {},
+			sound_notranslation : {},
+			entity : {},
+			entity_src : {},
+			entity_notranslation : {},
+			entity_minecraft : {},
+			entity_summonable : {},
+			particle : {},
+			particle_src : {},
+			particle_notranslation : {}
 		};
 		prg.info = "正在加载过滤器";
-		if (!imports.soundname) imports.soundname = {};
-		if (!imports.itemname) imports.itemname = {};
-		if (!imports.blockname) imports.blockname = {};
 		if (imports.itemremove) imports.itemremove.forEach(function(e) {
 			var t = items.indexOf(e);
 			if (t >= 0) items.splice(t, 1);
-		});
-		if (imports.blockremove) imports.blockremove.forEach(function(e) {
-			var t = blocks.indexOf(e);
-			if (t >= 0) blocks.splice(t, 1);
 		});
 		if (imports.itemadd) imports.itemadd.forEach(function(e) {
 			var t = items.indexOf(e);
 			if (t < 0) items.push(e);
 		});
+		if (imports.blockremove) imports.blockremove.forEach(function(e) {
+			var t = blocks.indexOf(e);
+			if (t >= 0) blocks.splice(t, 1);
+		});
 		if (imports.blockadd) imports.blockadd.forEach(function(e) {
 			var t = blocks.indexOf(e);
 			if (t < 0) blocks.push(e);
 		});
+		if (imports.entityremove) imports.entityremove.forEach(function(e) {
+			var t = entities.indexOf(e);
+			if (t >= 0) entities.splice(t, 1);
+		});
+		if (imports.entityadd) imports.entityadd.forEach(function(e) {
+			var t = entities.indexOf(e);
+			if (t < 0) entities.push(e);
+		});
 		prg.info = "正在排序";
-		blocks.sort(); items.sort();
+		blocks.sort(); items.sort(); entities.sort();
 		blocks.forEach(function(e, i, a) {
 			var el = e.toLowerCase();
 			prg.info = "正在翻译方块ID：" + e;
@@ -180,6 +219,34 @@
 				ret.sound_notranslation[e] = "NoTranslation";
 			}
 		});
+		entities.forEach(function(e, i, a) {
+			var minecraftOwn = e.startsWith("minecraft:");
+			if (minecraftOwn) e = e.slice(10);
+			if (e in ret.entity) return;
+			prg.info = "正在翻译实体ID：" + e;
+			if (e in imports.entityname) {
+				ret.entity[e] = imports.entityname[e];
+				ret.entity_src[e] = ret.entity[e] ? "filter" : "filter_void";
+			} else if (("entity." + e + ".name") in lang) {
+				ret.entity[e] = lang["entity." + e + ".name"];
+				ret.entity_src[e] = "lang_exact";
+			} else {
+				ret.entity[e] = "";
+				ret.entity_notranslation[e] = "NoTranslation";
+			}
+			ret.entity_minecraft[e] = minecraftOwn;
+			ret.entity_summonable[e] = e in imports.entitysummonable ? imports.entitysummonable[e] : "summonable";
+		});
+		particles.forEach(function(e, i, a) {
+			prg.info = "正在翻译粒子ID：" + e;
+			if (e in imports.particlename) {
+				ret.particle[e] = imports.particlename[e];
+				ret.particle_src[e] = ret.particle[e] ? "filter" : "filter_void";
+			} else {
+				ret.particle[e] = "";
+				ret.particle_notranslation[e] = "NoTranslation";
+			}
+		});
 		prg.info = "正在保存文件";
 		saveExport(ret);
 		Common.toast("翻译已保存，重启命令助手后将应用");
@@ -190,6 +257,16 @@
 		var entry = zf.getEntry(path);
 		if (entry == null) return null;
 		return new java.io.BufferedReader(new java.io.InputStreamReader(zf.getInputStream(entry)));
+	}
+	function listAssetFiles(zf, path) {
+		var entries = zf.entries(), e, r = [];
+		while (entries.hasMoreElements()) {
+			e = entries.nextElement();
+			if (!e.isDirectory() && e.getName().startsWith(path)) {
+				r.push(String(e.getName()));
+			}
+		}
+		return r;
 	}
 	function initLang(zf, path, prg) {
 		var rd = readAsset(zf, path), q, di, ei, t, r = {};
@@ -284,10 +361,13 @@
 		var blocks = convertList(fetchWikiSource("模块:Autolink/Block"), prg);
 		prg.info = "正在获取物品标准化译名列表";
 		var items = convertList(fetchWikiSource("模块:Autolink/Item"), prg);
+		prg.info = "正在获取其他标准化译名列表";
+		var others = convertList(fetchWikiSource("模块:Autolink/Other"), prg);
 		prg.info = "正在保存标准化译名列表";
 		Common.saveFile(wikiDataPath, JSON.stringify({
 			block : blocks,
 			item : items,
+			others : others
 		}, null, "\t"));
 		Common.toast("标准化译名数据已保存");
 	} catch(e) {
@@ -303,19 +383,23 @@
 		Common.toast("代码已复制");
 	}
 	function importFromCA() {
-		var p = CA.IntelliSense.inner.default.enums;
+		var p = CA.Library.inner.default.enums;
 		var i, r = Object.copy({
 			blockname : p.block,
 			itemname : p.item,
-			soundname : p.sound
+			soundname : p.sound,
+			entityname : p.entity,
+			particlename : p.particle_emitter
 		});
 		for (i in r.blockname) if (!r.blockname[i]) delete r.blockname[i];
 		for (i in r.itemname) if (!r.itemname[i]) delete r.itemname[i];
 		for (i in r.soundname) if (!r.soundname[i]) delete r.soundname[i];
+		for (i in r.entityname) if (!r.entityname[i]) delete r.entityname[i];
+		for (i in r.particlename) if (!r.particlename[i]) delete r.particlename[i];
 		return r;
 	}
 	var showTranslation = function self(o, onModify) {
-		if (!self.linear) {
+		if (!self.popup) {
 			self.vmaker = function(holder) {
 				var layout = holder.layout = new G.LinearLayout(ctx),
 					text1 = holder.text1 = new G.TextView(ctx),
@@ -352,6 +436,11 @@
 				notranslation : Common.theme.promptcolor
 			}
 			self.menu = [{
+				name : "关闭",
+				onClick : function() {
+					self.popup.exit();
+				}
+			}, {
 				name : "导出为文本",
 				onClick : function() {
 					self.exportAsText();
@@ -406,7 +495,7 @@
 				self.statInfo = stat;
 				for (i in states) states[i].sort(function(a, b) {
 					return a.name.localeCompare(b.name);
-				});
+				});Log.s(self.data)
 				self.list.setAdapter(t = new SimpleListAdapter(self.menu.concat(states.notranslation, states.lang, states.lang_exact, states.filter_void, states.filter), self.vmaker, self.vbinder));
 				self.adpt = SimpleListAdapter.getController(t);
 			}
@@ -475,7 +564,7 @@
 						var kv = self.data.items;
 						self.saveFileDialog("[" + self.data.title + ",1,0]\n" + Object.keys(kv).map(function(k) {
 							return k + " " + kv[k];
-						}).join(""));
+						}).join("\n"));
 					}
 				}]);
 			}
@@ -490,28 +579,23 @@
 					data.onClick();
 					return;
 				}
-				if (onModify) self.editItem(pos, data, onModify);
+				if (self.onModify) self.editItem(pos, data, self.onModify);
 			} catch(e) {erp(e)}}}));
 			if (G.style == "Material") {
 				self.list.setFastScrollEnabled(true);
 				self.list.setFastScrollAlwaysVisible(false);
 			}
 			self.frame.addView(self.list);
+			
+			self.popup = new PopupPage(self.frame, "xero.Translation");
+			
+			PWM.registerResetFlag(self, "popup");
 		}
-		if (self.popup) self.popup.dismiss();
-		Common.initEnterAnimation(self.frame);
-		self.popup = new G.PopupWindow(self.frame, -1, -1);
-		if (CA.supportFloat) self.popup.setWindowLayoutType(G.WindowManager.LayoutParams.TYPE_PHONE);
-		self.popup.setBackgroundDrawable(new G.ColorDrawable(G.Color.TRANSPARENT));
-		self.popup.setFocusable(true);
-		self.popup.setOnDismissListener(new G.PopupWindow.OnDismissListener({onDismiss : function() {try {
-			self.popup = null;
-		} catch(e) {erp(e)}}}));
 		self.data = o;
+		self.onModify = onModify;
 		if (!o.suggestion) o.suggestion = {};
+		self.popup.enter();
 		self.refresh();
-		self.popup.showAtLocation(ctx.getWindow().getDecorView(), G.Gravity.CENTER, 0, 0);
-		PWM.add(self.popup);
 	}
 	function convertWikiData(o) {
 		var i, r = {}, t;
@@ -539,7 +623,7 @@
 					items : d.block,
 					sources : d.block_src,
 					notranslation : d.block_notranslation,
-					suggestion : convertWikiData(w.block),
+					suggestion : w ? convertWikiData(w.block) : null,
 				}, function(name, translation) {
 					var a = loadFilter();
 					a.blockname[name] = translation;
@@ -554,7 +638,7 @@
 					items : d.item,
 					sources : d.item_src,
 					notranslation : d.item_notranslation,
-					suggestion : convertWikiData(w.item)
+					suggestion : w ? convertWikiData(w.item) : null
 				}, function(name, translation) {
 					var a = loadFilter();
 					a.itemname[name] = translation;
@@ -572,6 +656,55 @@
 				}, function(name, translation) {
 					var a = loadFilter();
 					a.soundname[name] = translation;
+					saveFilter(a);
+				});
+			}
+		}, {
+			text : "实体",
+			onclick : function() {
+				showTranslation({
+					title : "实体",
+					items : d.entity,
+					sources : d.entity_src,
+					notranslation : d.entity_notranslation,
+					suggestion : w ? convertWikiData(w.others) : null
+				}, function(name, translation) {
+					var a = loadFilter();
+					a.entityname[name] = translation;
+					saveFilter(a);
+				});
+			}
+		}, {
+			text : "实体是否可生成",
+			onclick : function() {
+				var i, sources = {};
+				for (i in d.entity_summonable) sources[i] = "filter";
+				showTranslation({
+					title : "实体是否可生成",
+					items : d.entity_summonable,
+					sources : sources,
+					notranslation : {},
+					suggestion : {
+						"summonable": "可用summon生成",
+						"unsummonable": "不可用summon生成"
+					}
+				}, function(name, translation) {
+					var a = loadFilter();
+					a.entitysummonable[name] = translation;
+					saveFilter(a);
+				});
+			}
+		}, {
+			text : "粒子",
+			onclick : function() {
+				showTranslation({
+					title : "粒子",
+					items : d.particle,
+					sources : d.particle_src,
+					notranslation : d.particle_notranslation
+				}, function(name, translation) {
+					var a = loadFilter();
+					a.particlename[name] = translation;
 					saveFilter(a);
 				});
 			}
@@ -620,9 +753,8 @@
 		"author": "ProjectXero",
 		"description": "已在" + basePath + "上加载",
 		"uuid": "41e7d897-8f85-441a-8a81-89573cd6cfaf",
-		"version": [0, 0, 5],
+		"version": [0, 0, 6],
 		"require": [],
-		"update" : "https://projectxero.gitee.io/ca/clib/idmapeditor.json",
 		"menu" : [{
 			text : "切换资源包",
 			onclick : function() {
@@ -682,9 +814,8 @@
 		"author": "ProjectXero",
 		"description": "加载失败：" + e,
 		"uuid": "41e7d897-8f85-441a-8a81-89573cd6cfaf",
-		"version": [0, 0, 5],
-		"require": [],
-		"update" : "https://projectxero.gitee.io/ca/clib/idmapeditor.json"
+		"version": [0, 0, 6],
+		"require": []
 	};
 }
 })()

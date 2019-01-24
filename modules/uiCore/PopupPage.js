@@ -23,12 +23,12 @@ MapScript.loadModule("PopupPage", (function() {
 				return false;
 			} catch(e) {return erp(e), false}}});
 			r.defaultWindow = ScriptInterface.createFrameLayout({
-				dispatchKeyEvent : function(event) {
-					var state = r.defaultWindow.getKeyDispatcherState();
+				dispatchKeyEvent : function(event, thisObj) {
+					var state = thisObj.getKeyDispatcherState();
 					if (event.getKeyCode() == event.KEYCODE_BACK) {
 						if (!state) return 0;
 						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-							state.startTracking(event, r.defaultWindow);
+							state.startTracking(event, thisObj);
 							return 1;
 						} else if (event.getAction() == event.ACTION_UP) {
 							if (state.isTracking(event) && !event.isCanceled()) {
@@ -39,7 +39,7 @@ MapScript.loadModule("PopupPage", (function() {
 					}
 					return 0;
 				},
-				dispatchTouchEvent : function(e) {
+				dispatchTouchEvent : function(e, thisObj) {
 					switch (e.getAction()) {
 						case e.ACTION_DOWN:
 						if (!r.focusable) {
@@ -174,12 +174,12 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultDecorLinear.addView(r.defaultStub);
 			r.defaultWindow.addView(r.defaultDecorLinear);
 			r.floatWindow = r.floatContainer = ScriptInterface.createFrameLayout({
-				dispatchKeyEvent : function(event) {
-					var state = r.floatWindow.getKeyDispatcherState();
+				dispatchKeyEvent : function(event, thisObj) {
+					var state = thisObj.getKeyDispatcherState();
 					if (event.getKeyCode() == event.KEYCODE_BACK) {
 						if (!state) return 0;
 						if (event.getAction() == event.ACTION_DOWN && event.getRepeatCount() == 0) {
-							state.startTracking(event, this);
+							state.startTracking(event, thisObj);
 							return 1;
 						} else if (event.getAction() == event.ACTION_UP) {
 							if (state.isTracking(event) && !event.isCanceled()) {
@@ -190,7 +190,7 @@ MapScript.loadModule("PopupPage", (function() {
 					}
 					return 0;
 				},
-				dispatchTouchEvent : function(event) {
+				dispatchTouchEvent : function(event, thisObj) {
 					return 0;
 				}
 			});

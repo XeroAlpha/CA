@@ -1,100 +1,226 @@
 Plugins.inject(function(o) {
 o.name = "MC图标";
 o.author = "ProjectXero";
-o.version = [1, 0, 0];
+o.version = [2, 0, 0];
 o.uuid = "06b2fb31-668e-4693-92ad-c0ac8da3e7a9";
 o.description = "允许命令助手显示MC的图标";
-o.update = "https://projectxero.gitee.io/ca/clib/mcicon.json";
 o.feature("userExpressionMenuAppendable");
-var Icons = [
-	{
-		"code": 57504,
-		"icon": "iVBORw0KGgoAAAANSUhEUgAAABsAAAAPCAYAAAAVk7TYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACcSURBVDhPY2BgYPhPAQZqJQ38JxUcO3YM5kDSbAL5CgS0lUWJxhFhEeSGBsKybZNiwBYuyrbDwCBxmDzMMgcHh//EYmhUYfrMV1fyPzpG9jlVLAP5CGQJPhpkKTbL6uvr/4MwLp9i+AxmCTafwRxBdctGfYYcPyTHGSzF0SU1Dkg+I1SaUFSCgMo6kAGkYFi+IbVwJLecA+kjCQAAAUNrHL1P7cQAAAAASUVORK5CYII="
-	},
-	{
-		"code": 57505,
-		"icon": "iVBORw0KGgoAAAANSUhEUgAAABsAAAAPCAYAAAAVk7TYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACgSURBVDhPY2AgHfwHaiEXk2zbf1LBsWPHYI4j3ZUgy7SVRYnGEWERCMvq6+v/E4tBQQizbNukGLCFi7LtMDBIHCZPFctgvvPVlfyPjpF9TpRlDg4O/0EY2dfIPgP5CGQJPhpkKVUtw+YzmCOobtmoz0A5muhkD0ooyAmEqqkRW96jOJ+RWtZRUoKQWjj+B5V1oLxDCoZ6iFS7SC9LYSEHAFvopW83SHYHAAAAAElFTkSuQmCC"
-	},
-	{
-		"code": 57600,
-		"icon": "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABZSURBVChTY2DADv4DhUEYJ/i/SULi/xUtLZwK/+9oiQAruL+xH6tCsIK5uc5whSAT0a0FKwDh6kDd/4k20litA0viUgDW8ejqKphO7Cb8/36HoJdBYYFXEQCftkOMxJyu4AAAAABJRU5ErkJggg=="
-	},
-	{
-		"code": 57601,
-		"icon": "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABJSURBVChTY2CAgP9QDOViiv1/9vzT/x07jyArxBADK4BhkInofLBVmVkFKBIwRSBxZGdgVYTuTioqAtmPjrEECzysYI4F0WAAAGo7iuFT7s+SAAAAAElFTkSuQmCC"
-	},
-	{
-		"code": 57602,
-		"icon": "iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAYAAACprHcmAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACOSURBVChTY2BAAg5aDP+RsbM2639keTgbJPH/z1kMbK/OgqoBrPDfzf//74hB8KNkFAzXAGLAFJ6ZKYrQANQE5oM0AtlgDWDFYBMlwJIQDchsiG1YFcMUImjKFUPdCHQCyFRkkzdWSECcAQJ++pxQBdDQgIUKUBNIIUZ426gwgCXQMSiSsEYMSAM6RlYIAHH+7pVbSXorAAAAAElFTkSuQmCC"
-	}
-];
 o.init = function() {
-	CA.PluginExpression.push({
+	Plugins.addExpressionMenu({
 		text : "MC图标",
 		get : function() {
-			showMCIcons();
+			MCIcon.show(function(text) {
+				Common.replaceSelection(CA.cmd.getText(), text);
+			});
 		}
 	});
 }
 function fixZero(s, n) {
-    s = String(s);
-    return n > s.length ? fixZero("0" + s, n) : s;
+	while (n > s.length) {
+		s = "0" + s;
+	}
+	return s;
 }
-function showMCIcons() {
-	var a;
-	showIconChooser(a = Icons.map(function(e) {
-		var r = new G.SpannableStringBuilder(String.fromCharCode(e.code));
-		r.setSpan(toSpan(e.icon), 0, r.length(), r.SPAN_EXCLUSIVE_EXCLUSIVE);
-		return { 
-			text : r,
-			description : e.description
-		};
-	}), function(i) {
-		Common.replaceSelection(CA.cmd.getText(), a[i].text);
-	});
+function readAsset(zf, path) {
+	var entry = zf.getEntry(path);
+	if (entry == null) return null;
+	return new java.io.BufferedReader(new java.io.InputStreamReader(zf.getInputStream(entry)));
 }
-function vmaker(holder) {
-	var view = new G.TextView(ctx);
-	view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-	view.setGravity(G.Gravity.CENTER);
-	view.setLayoutParams(new G.AbsListView.LayoutParams(-2, -2));
-	Common.applyStyle(view, "textview_default", 2);
-	return view;
+function readAssetJSON(zf, path, defaultValue) {
+	try{
+		var rd = readAsset(zf, path);
+		var s = [], q;
+		while (q = rd.readLine()) s.push(q);
+		rd.close();
+		return JSON.parse(s.join("\n"));
+	} catch(e) {
+		return defaultValue;
+	}
 }
-function vbinder(holder, e) {
-	holder.self.setText(Common.toString(e.text));
-}
-function showIconChooser(l, callback) {G.ui(function() {try {
-	var frame, list, popup;
-	frame = new G.FrameLayout(ctx);
-	Common.applyStyle(frame, "message_bg");
-	list = new G.GridView(ctx);
-	list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
-	list.setHorizontalSpacing(20 * G.dp);
-	list.setVerticalSpacing(20 * G.dp);
-	list.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-	list.setGravity(G.Gravity.CENTER);
-	list.setNumColumns(-1);
-	list.setStretchMode(2);
-	list.setAdapter(new SimpleListAdapter(l, vmaker, vbinder));
-	list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-		callback(pos, l);
-		popup.dismiss();
-	} catch(e) {erp(e)}}}));
-	frame.addView(list);
-	popup = Common.showDialog(frame, -1, -2);
-} catch(e) {erp(e)}})}
-function toSpan(base64) {
-	var bytes = android.util.Base64.decode(base64, 2);
-	var bmp = G.BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-	var pt = new G.Paint(), fontsize = Common.theme.textsize[3];
-	pt.setAntiAlias(true);
-	pt.setTextSize(fontsize * G.sp);
-	pt.setTypeface(G.Typeface.MONOSPACE);
-	var fm = pt.getFontMetrics();
-	var fitHeight = fm.bottom - fm.top;
-	var fitWidth = fitHeight / bmp.getHeight() * bmp.getWidth();
-	var bmp2 = G.Bitmap.createScaledBitmap(bmp, fitWidth, fitHeight, false);
-	return new G.ImageSpan(ctx, bmp2, 0);
-}
+MapScript.loadModule("MCIcon", {
+	preload : function() {
+		var pkg = NeteaseAdapter.mcPackage;
+		if (!pkg) throw "未找到Minecraft应用";
+		this.zipFile = new java.util.zip.ZipFile(ctx.getPackageManager().getApplicationInfo(pkg, 128).publicSourceDir);
+		this.emoticons = readAssetJSON(this.zipFile, "assets/resource_packs/vanilla/font/emoticons.json", []);
+		this.initCache();
+		this.ready = true;
+	},
+	checkReady : function() {
+		if (this.ready) return;
+		this.preload();
+	},
+	getGlyphSheet : function(index) {
+		var entry = this.zipFile.getEntry("assets/resource_packs/vanilla/font/glyph_" + fixZero(index.toString(16).toUpperCase(), 2) + ".png");
+		if (!entry) Log.throwError(new Error("GlyphSheet not exist. index=" + index));
+		var stream = this.zipFile.getInputStream(entry);
+		var bmp = G.BitmapFactory.decodeStream(stream);
+		stream.close();
+		return bmp;
+	},
+	getGlyphSheetCached : function(index) {
+		if (this.glyphSheet[index]) {
+			return this.glyphSheet[index];
+		} else {
+			return this.glyphSheet[index] = this.getGlyphSheet(index);
+		}
+	},
+	getGlyphBitmap : function(code) {
+		var sheet = this.getGlyphSheetCached(code >> 8);
+		var width = sheet.getWidth() >> 4, height = sheet.getHeight() >> 4;
+		var cn = code & 0xf, rn = (code >> 4) & 0xf;
+		return G.Bitmap.createBitmap(sheet, cn * width, rn * height, width, height);
+	},
+	getGlyphBitmapCached : function(code) {
+		if (this.glyph[code]) {
+			return this.glyph[code];
+		} else {
+			return this.glyph[code] = this.getGlyphBitmap(code);
+		}
+	},
+	initCache : function() {
+		this.glyph = new Array(65536);
+		this.glyphSheet = new Array(256);
+	},
+	releaseCache : function() {
+		var i;
+		for (i in this.glyph) {
+			if (this.glyph[i]) {
+				this.glyph[i].recycle();
+			}
+		}
+		for (i in this.glyphSheet) {
+			if (this.glyphSheet[i]) {
+				this.glyphSheet[i].recycle();
+			}
+		}
+		this.initCache();
+	},
+	getGlyphDrawable : function(code, heightPixels) {
+		var bmp = this.getGlyphBitmapCached(code);
+		var drawable = new G.BitmapDrawable(ctx.getResources(), bmp);
+		drawable.setFilterBitmap(false);
+		var scaleFactor = heightPixels / bmp.getHeight();
+		drawable.setBounds(0, 0, bmp.getWidth() * scaleFactor, bmp.getHeight() * scaleFactor);
+		return drawable;
+	},
+	getGlyphSpannable : function(code, heightPixels) {
+		var span = new G.ImageSpan(this.getGlyphDrawable(code, heightPixels));
+		var spannableStr = new G.SpannableString(String.fromCharCode(code));
+		spannableStr.setSpan(span, 0, spannableStr.length(), G.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+		return spannableStr;
+	},
+	getFontHeightPixel : function(textSize, typeface) {
+		var pt = new G.Paint();
+		textSize *= G.sp;
+		pt.setTextSize(textSize);
+		if (typeface) pt.setTypeface(typeface);
+		var fm = pt.getFontMetrics();
+		return fm.descent - fm.ascent;
+	},
+	show : function self(callback) {
+		if (!self.linear) {
+			self.vmaker = function(holder) {
+				var view = new G.ImageView(ctx);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(64 * G.dp, 64 * G.dp));
+				view.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
+				view.setScaleType(G.ImageView.ScaleType.FIT_CENTER);
+				return view;
+			}
+			self.vbinder = function(holder, e) {
+				if (!e.drawable) e.drawable = MCIcon.getGlyphDrawable(e.code, 64 * G.dp);
+				holder.self.setImageDrawable(e.drawable);
+			}
+			self.init = function() {
+				MCIcon.checkReady();
+				self.icons = MCIcon.emoticons.map(function(e) {
+					return {
+						name : e.name,
+						lcname : e.name.toLowerCase(),
+						code : parseInt(e.code)
+					};
+				});
+				self.fontHeight = MCIcon.getFontHeightPixel(Common.theme.textsize[3]) * 1.5;
+				self.update("");
+			}
+			self.update = function(s) {
+				s = s.toLowerCase();
+				self.adpt.setArray(self.icons.filter(function(e) {
+					return e.lcname.indexOf(s) >= 0;
+				}));
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.linear = new G.LinearLayout(ctx);
+			self.linear.setOrientation(G.LinearLayout.VERTICAL);
+			Common.applyStyle(self.linear, "container_default");
+			self.header = new G.LinearLayout(ctx);
+			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
+			self.header.setPadding(5 * G.dp, 0, 0, 0)
+			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+			Common.applyStyle(self.header, "bar_float");
+			self.edit = new G.EditText(ctx);
+			self.edit.setSingleLine(true);
+			self.edit.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
+			self.edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+			self.edit.setTypeface(G.Typeface.MONOSPACE);
+			Common.applyStyle(self.edit, "edittext_default", 3);
+			self.edit.addTextChangedListener(new G.TextWatcher({
+				afterTextChanged : function(s) {try {
+					self.update(String(s));
+				} catch(e) {erp(e)}}
+			}));
+			self.header.addView(self.edit);
+			self.exit = new G.TextView(ctx);
+			self.exit.setText("×");
+			self.exit.setGravity(G.Gravity.CENTER);
+			self.exit.setPadding(10 * G.dp, 0, 10 * G.dp, 0)
+			self.exit.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+			Common.applyStyle(self.exit, "button_critical", 3);
+			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				self.popup.exit();
+			} catch(e) {erp(e)}}}));
+			self.header.addView(self.exit);
+			self.linear.addView(self.header);
+			self.list = new G.GridView(ctx);
+			self.list.setAdapter(self.adpt.self);
+			self.list.setGravity(G.Gravity.CENTER);
+			self.list.setNumColumns(4);
+			self.list.setStretchMode(2);
+			self.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
+			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+				var e = self.adpt.array[pos];
+				if (self.callback) {
+					self.popup.exit();
+					self.callback(MCIcon.getGlyphSpannable(e.code, self.fontHeight));
+				} else {
+					self.edit.setText(e.name);
+					self.edit.setSelection(self.edit.length());
+				}
+			} catch(e) {erp(e)}}}));
+			self.list.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
+				var e = self.adpt.array[pos];
+				self.edit.setText(e.name);
+				self.edit.setSelection(self.edit.length());
+				return true;
+			} catch(e) {return erp(e), true}}}));
+			if (G.style == "Material") {
+				self.list.setFastScrollEnabled(true);
+				self.list.setFastScrollAlwaysVisible(false);
+			}
+			self.linear.addView(self.list);
+
+			self.popup = new PopupPage(self.linear, "mcicon.SelectIcon");
+
+			PWM.registerResetFlag(self, "linear");
+		}
+		try {
+			self.init();
+		} catch(e) {
+			Common.toast("加载MC图标列表失败\n" + e);
+			return;
+		}
+		self.callback = callback;
+		self.popup.enter();
+	}
+});
 })
