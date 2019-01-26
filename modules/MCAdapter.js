@@ -188,7 +188,7 @@ MapScript.loadModule("MCAdapter", {
 			this.unpackAssets("adapter/ModPE.js", f);
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-			ctx.startActivity(i);
+			if (!SettingsCompat.startSafely(i)) return Common.toast("导入适配器失败");
 			this.askShortcut("BlockLauncher", i.getComponent().getPackageName());
 		}
 	}, {
@@ -206,7 +206,7 @@ MapScript.loadModule("MCAdapter", {
 			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-			ctx.startActivity(i);
+			if (!SettingsCompat.startSafely(i)) return Common.toast("导入适配器失败");
 			this.askShortcut("多玩我的世界盒子", i.getComponent().getPackageName());
 			Common.showTextDialog("因为多玩我的世界盒子采用了沙盒机制，该适配器可能无法与本体连接。");
 		}
@@ -222,7 +222,7 @@ MapScript.loadModule("MCAdapter", {
 				this.unpackAssets("adapter/InnerCore.icmod", f);
 				i.setDataAndType(AndroidBridge.fileToUri(f), "application/icmod");
 				i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-				ctx.startActivity(i);
+				if (!SettingsCompat.startSafely(i)) return Common.toast("导入适配器失败");
 			} else if (!isNaN(ver)) {
 				var fs = [
 					"main.js",

@@ -641,7 +641,7 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	fileToUri : function(file) {
 		file = file instanceof java.io.File ? file : new java.io.File(file);
-		if (android.os.Build.VERSION.SDK_INT >= 24 && MapScript.host == "Android") {
+		if (MapScript.host == "Android") {
 			return ScriptInterface.fileToUri(file);
 		} else {
 			return android.net.Uri.fromFile(file);

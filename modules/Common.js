@@ -676,7 +676,9 @@ MapScript.loadModule("Common", {
 		if (!self.linear) {
 			self.refreshText = function() {
 				if (!self.popup.showing) return;
-				self.adpt.notifyChange();
+				G.ui(function() {try {
+					self.adpt.notifyChange();
+				} catch(e) {erp(e)}});
 			}
 			self.adapterTypes = {
 				"boolean" : {

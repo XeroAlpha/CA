@@ -174,7 +174,7 @@ MapScript.loadModule("CA", {
 			CA.checkFeatures();
 			this.Library.initLibrary(function() {
 				if (NeteaseAdapter.multiVersions) {
-					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
+					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→智能补全→游戏版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
 				}
 			});
 		}
@@ -2762,17 +2762,6 @@ MapScript.loadModule("CA", {
 					});
 				}
 			}, {
-				name : "拓展包",
-				type : "custom",
-				get : function() {
-					return CA.settings.enabledLibrarys.length + "个已启用";
-				},
-				onclick : function(fset) {
-					CA.showLibraryMan(function() {
-						fset();
-					});
-				}
-			}, {
 				id : "senseDelay",
 				name : "启用多线程",
 				description : "IntelliSense将不会即时输出结果以避免卡顿。",
@@ -2854,6 +2843,55 @@ MapScript.loadModule("CA", {
 				type : "boolean",
 				get : self.getsettingbool,
 				set : self.setsettingbool
+			}, {
+				name : "拓展包",
+				type : "tag"
+			}, {
+				name : "本地拓展包",
+				type : "custom",
+				get : function() {
+					return CA.settings.enabledLibrarys.length + "个已启用";
+				},
+				onclick : function(fset) {
+					CA.showLibraryMan(function() {
+						fset();
+					});
+				}
+			}, {
+				name : "游戏版本",
+				description : "命令助手只会解析适合该游戏版本的内容",
+				type : "custom",
+				get : function() {
+					return NeteaseAdapter.getMinecraftVersion();
+				},
+				onclick : function(fset) {
+					NeteaseAdapter.switchVersion(function() {
+						var progress = Common.showProgressDialog();
+						progress.setText("正在重新加载拓展包……");
+						CA.checkFeatures();
+						if (!CA.Library.initLibrary(function(fl) {
+							Common.toast("版本已切换为" + getMinecraftVersion() + "。");
+							progress.close();
+							fset();
+						})) {
+							progress.close();
+							Common.toast("无法加载拓展包，请稍后重试");
+							fset();
+						}
+					});
+				}
+			}, {
+				name : "在线拓展包",
+				type : "custom",
+				onclick : function(fset) {
+					if (CA.settings.securityLevel >= 0) {
+						CA.showOnlineLib(function() {G.ui(function() {try {
+							fset();
+						} catch(e) {erp(e)}})});
+					} else {
+						Common.toast("您正在使用的安全等级不允许加载外部的拓展包");
+					}
+				}
 			}];
 			self.userdata = [{
 				name : "管理历史",
@@ -4128,14 +4166,18 @@ MapScript.loadModule("CA", {
 						return self.processing = false;
 					}
 					progress.setText("正在刷新命令库……");
-					CA.Library.initLibrary(function() {
+					if (!CA.Library.initLibrary(function() {
 						progress.close();
 						G.ui(function() {try {
 							self.refresh();
 							self.processing = false;
 							callback();
 						} catch(e) {erp(e)}});
-					});
+					})) {
+						progress.close();
+						Common.toast("无法加载拓展包，请稍后重试");
+						return self.processing = false;
+					}
 				});
 			}
 			self.processing = false;
@@ -4172,28 +4214,10 @@ MapScript.loadModule("CA", {
 			Common.applyStyle(self.menu, "button_highlight", 3);
 			self.header.addView(self.menu, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
-			
-			self.more = new G.TextView(ctx);
-			self.more.setText("显示在线拓展包……");
-			self.more.setGravity(G.Gravity.CENTER);
-			self.more.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
-			self.more.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			Common.applyStyle(self.more, "textview_prompt", 2);
 
 			self.list = new G.ListView(ctx);
 			self.list.setAdapter(self.adpt.self);
-			self.list.addFooterView(self.more);
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				if (view == self.more) {
-					if (CA.settings.securityLevel >= 0) {
-						CA.showOnlineLib(function() {G.ui(function() {try {
-							self.refresh();
-						} catch(e) {erp(e)}})});
-					} else {
-						Common.toast("您正在使用的安全等级不允许加载外部的拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别");
-					}
-					return;
-				}
 				var data = parent.getAdapter().getItem(pos);
 				var mnu = data.disabled ? self.disabledMenu : data.hasError ? self.errMenu : self.enabledMenu;
 				if (data.menu) {

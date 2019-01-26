@@ -88,7 +88,7 @@ MapScript.loadModule("SettingsCompat", {
 	startSafely : function(intent) {
 		try {
 			if (ctx.getPackageManager().queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).size() > 0) {
-				intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+				intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 				ctx.startActivity(intent);
 				return true;
 			}

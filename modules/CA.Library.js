@@ -5,6 +5,8 @@
 	currentLoadingLibrary : null,
 	initLibrary : function(callback) {
 		var info, flag = true, t, t2, lib;
+		if (this.loadingStatus) return false;
+		this.loadingStatus = "core";
 		CA.IntelliSense.library = lib = {
 			commands : {},
 			enums : {},
@@ -15,7 +17,6 @@
 			idlist : [],
 			info : info = []
 		};
-		this.loadingStatus = "core";
 		this.processDeprecated();
 		CA.settings.coreLibrarys.forEach(function(e, i, a) {
 			CA.Library.currentLoadingLibrary = e;
@@ -39,6 +40,7 @@
 			CA.Library.loadingStatus = null;
 			if (callback) callback(flag);
 		} catch(e) {erp(e)}}).start();
+		return true;
 	},
 	clearCache : function(src) {
 		if (src) {
@@ -697,7 +699,7 @@
 			return;
 		}
 	},
-	getSourceUrl : function() {return "http://192.168.1.103:8888/clib/";
+	getSourceUrl : function() {
 		return this.getOriginSourceUrl();
 	},
 	getOriginSourceUrl : function() {

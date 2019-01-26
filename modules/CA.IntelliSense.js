@@ -37,7 +37,7 @@
 		if (this.ui) this.show.apply(this);
 	},
 	proc : function(s) {try {
-		if (CA.settings.iiMode != 2) return;
+		if (CA.settings.iiMode != 2 || CA.Library.loadingStatus) return;
 		var r = this.procCmd(s);
 		this.source = r.source;
 		this.cmdname = r.cmdname;
