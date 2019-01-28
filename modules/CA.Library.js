@@ -53,6 +53,10 @@
 		return path in CA.Library.inner || new java.io.File(path).isFile();
 	},
 	isDeprecated : function(uuid, version) {
+		if (!Array.isArray(version)) return true;
+		if (uuid == "04a9e9b2-8fae-4f30-84fa-d52f9457f4eb") return true; //自适配ID表：用户瞎加载
+		if (uuid == "06b2fb31-668e-4693-92ad-c0ac8da3e7a9" && NeteaseAdapter.compareVersion(version, [2, 0, 0]) < 0) return true; //MC图标：bug
+		if (uuid == "5a204d07-4b6d-4c51-9470-a2d8c8676ab8") return true; //调试屏幕：根本没用
 		return false;
 	},
 	enableLibrary : function(path) {
@@ -100,7 +104,7 @@
 				author : cur.author,
 				description : cur.description,
 				uuid : cur.uuid,
-				version : cur.version,
+				version : Array.isArray(cur.version) ? cur.version : [cur.version],
 				update : cur.update,
 				menu : cur.menu,
 				deprecated : cur.deprecated || this.isDeprecated(cur.uuid, cur.version),
