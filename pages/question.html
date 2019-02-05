@@ -295,8 +295,8 @@ var questions = [{
     question: unwind("近方否检块了带是测家令如携命玩何最？", 8746),
     answer: unwind("\\l+m1-dkecs+c_\\+\\sn\\0salpmbao+srco@", 2656)
 }, {
-    question: unwind("5坐于二于Y8有1别坐(,非所3、、)分标到、的一标-域-气第)X-X第等小YZ区复-）,空何的制-)块请Z,(方的1924（)(,内6?个-,,个,、40-让(,如5", 2679),
-    answer: unwind("+s3+\\+2\\nks11\\))ser4ms-d+f\\5sso+s|+s(sa?olc\\l65+-sc\\+\\+rn\\a\\\\eem+s-+\\(so9", 2780)
+    question: unwind("别-,（5标X58)方2?区的4块-个,0请所第、4复非(分制标),等-、、坐、坐(小如),内二3Z有Y的于(个6,空）让(1域)一到-1第何的于X9,,,ZY-气", 1071),
+    answer: unwind("oc-\\\\?re+ss\\4s21o+sss+skas(5\\)rn|\\+f\\1+\\\\+8ms3-\\s6el5sm++l\\c++ea+d(\\nso)", 117)
 }, {
     question: unwind("8当有到7让分如方坐块域(、1复（小的于1第2,、个((复7块)标)3个制,7的请等所-第9一使坐Z方被位内的置制土7制泥位），)、别二复的,2,何,X区Z后X1标Y、置于前Y？,", 2173),
     answer: unwind("\\d1*+d\\s1s+~2te+o\\~+\\*\\7ssc+s0s+sss?rss9)fcrs3eli\\nse++e+r87l)+lm+o~f\\\\o\\(\\t\\a|(\\nr\\i", 1453)
@@ -519,7 +519,7 @@ var questions = [{
     answer: unwind("\\rsrecsmo@a[sess+55rre2bta\\2lropd\\]=r+so\\ay}\\ka5k\\sc!5s\\=+m\\{ess++a\\", 926)
 }, {
     question: unwind("交换a玩玩？的r分k项A家分的m和数何家如记B", 1470),
-    answer: unwind("<+ss+sekpspbBlnrosA>++ar\\\\\\o+raka\\y+ams\\i\\sc(<)+|o\\esrA+orsm+r>Be\\atsd\\", 1871)
+    answer: unwind("+\\+tkardc(ssakpBi\\++s\\m+\\sp)\\y+<r\\A\\+|<km+nsa\\o>sBrl>s+ks+srb+aareAssosme\\aoroe\\ar\\rms", 378)
 }];
 var i = questions.length, j, t, seed = [questions.length];
 while (i > 0) {
@@ -611,14 +611,17 @@ function reload() {
         body_node.innerHTML = "检测到可能存在代码注入";
         return;
     }
-    var siteName;
+    var siteName, hostName;
     if (location.protocol == "file:") {
     	siteName = "本地文件系统";
     } else {
-    	if (location.hostname.toLowerCase() == "projectxero.gitee.io") {
+        hostName = location.hostname.toLowerCase();
+    	if (hostName == "projectxero.gitee.io") {
             siteName = "码云";
-        } else if (location.hostname.toLowerCase() == "xeroalpha.github.io") {
+        } else if (hostName == "xeroalpha.github.io") {
             siteName = "GitHub";
+        } else if (hostName.endsWith("projectxero.top")) {
+            siteName = "话唠兔的小站";
         }
     }
     if (!siteName) return;
@@ -630,7 +633,7 @@ function reload() {
     }
     body_node.innerHTML = cur.question;
     usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
-    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(Verify.getNextUpdateTime()) + "<br />题库:" + Verify.getCount() + "题 | " + Verify.getLastUpdateAt() + "<br /><br />命令助手讨论区 @ ProjectXero<br />本站由" + siteName + "托管";
+    about_node.innerHTML = "下次更换问题于" + toChineseDateTime(Verify.getNextUpdateTime()) + "<br />题库:" + Verify.getCount() + "题 | " + Verify.getLastUpdateAt() + "<br /><br />命令助手讨论区 @ ProjectXero<br />本页面由" + siteName + "托管";
     answer_node.style = "";
     success_node.style = "display: none";
     success_node.innerHTML = "";
@@ -679,9 +682,6 @@ window.dayControl = function() {
     }
     reload();
 }
-function getNextUpdateTime() {
-    return new Date(Math.ceil(date / 86400000) * 86400000);
-}
 function toChineseDateTime(date) {
     return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日 " + fixZero(date.getHours(), 2) + ":" + fixZero(date.getMinutes(), 2) + ":" + fixZero(date.getSeconds(), 2);
 }
@@ -695,7 +695,7 @@ function fixZero(s, n) {
 function succeed_action(code) {
     var answer_node = document.getElementById("question_answer");
     var success_node = document.getElementById("question_success");
-    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + code + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="https://jq.qq.com/?_wv=1027&k=46Yl84D">MCBE命令助手讨论区</a>';
+    success_node.innerHTML = "祝贺你！你答对了！<br />代码为：" + fixZero(code, 6) + '<br /><br />如果你希望你的题目出现在题库里，您可以加群<a target="_blank" href="https://jq.qq.com/?_wv=1027&k=46Yl84D">MCBE命令助手讨论区</a>';
     success_node.style = "";
     answer_node.style = "display: none";
     isSuccessed = true;
