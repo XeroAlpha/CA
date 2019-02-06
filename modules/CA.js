@@ -46,7 +46,6 @@ MapScript.loadModule("CA", {
 	chatHook : function(s) {try {
 		var i;
 		if ((/^\//).test(s)) this.addHistory(s);
-		if (s == "cadebug") Common.showDebugDialog();
 	} catch(e) {erp(e)}},
 	screenChangeHook : function self(screenName) {try {
 		if (screenName) {
@@ -132,6 +131,9 @@ MapScript.loadModule("CA", {
 				Updater.showNewVersionInfo(f.publishDate);
 			}
 		} else {
+			if (new java.io.File(this.profilePath).exists()) {
+				erp("Profile cannot resolved:\n" + Common.readFile(this.profilePath, "Content cannot read", true), true);
+			}
 			this.his = [
 				"/say 你好，我是命令助手！左边是历史，右边是收藏，可以拖来拖去，也可以长按编辑哦"
 			];
@@ -2603,7 +2605,7 @@ MapScript.loadModule("CA", {
 				name : "控制台",
 				type : "custom",
 				onclick : function(fset) {
-					Common.showDebugDialog();
+					DebugUtils.showDebugDialog();
 				}
 			}];
 			self.appearance = [{
@@ -2878,6 +2880,29 @@ MapScript.loadModule("CA", {
 							Common.toast("无法加载拓展包，请稍后重试");
 							fset();
 						}
+					});
+				}
+			}, {
+				name : "自动更新",
+				type : "custom",
+				list : [{
+					text : "关闭"
+				}, {
+					text : "检测更新并提示"
+				}, {
+					text : "检测更新并下载"
+				}],
+				get : function() {
+					if (CA.settings.libraryAutoUpdate in this.list) {
+						return this.list[CA.settings.libraryAutoUpdate].text;
+					} else {
+						return this.list[CA.settings.libraryAutoUpdate = 1].text;
+					}
+				},
+				onclick : function(fset) {
+					Common.showListChooser(this.list, function(i) {
+						CA.settings.libraryAutoUpdate = i;
+						fset();
 					});
 				}
 			}, {
@@ -3859,10 +3884,7 @@ MapScript.loadModule("CA", {
 					self.postTask(function(cb) {
 						var f = new java.io.File(tag.data.src);
 						CA.Library.removeLibrary(tag.data.src);
-						if (tag.data.src.startsWith(MapScript.baseDir + "libs/")) {
-							f.delete();
-							new java.io.File(tag.data.src + ".hash").delete();
-						}
+						CA.Library.cleanLibrary();
 						cb(true, function() {
 							Common.toast("该拓展包已从列表中移除");
 						});
@@ -4459,6 +4481,10 @@ MapScript.loadModule("CA", {
 		self.reload();
 	} catch(e) {erp(e)}})},
 	
+	checkLibUpdate : function(level) {
+		
+	},
+	
 	showModeChooser : function(callback) {
 		Common.showOperateDialog([{
 			text : "关闭",
@@ -4495,6 +4521,7 @@ MapScript.loadModule("CA", {
 			text : "从文件中选择",
 			onclick : function(v, tag) {
 				AndroidBridge.selectImage(function(path) {
+					if (!path) return Common.toast("背景图片无效");
 					CA.settings.bgImage = path;
 					callback();
 					Common.toast("背景图片已设置为 " + path);
@@ -4534,6 +4561,7 @@ MapScript.loadModule("CA", {
 			}
 			self.selectIcon = function(callback) {
 				AndroidBridge.selectImage(function(path) {
+					if (!path) return Common.toast("图片无效");
 					CA.settings.icon = path;
 					if (self.recent.indexOf(path) < 0) self.recent.push(path);
 					if (callback) callback();

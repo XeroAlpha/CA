@@ -147,7 +147,7 @@ MapScript.loadModule("AndroidBridge", {
 			break;
 			case ScriptInterface.ACTION_SHOW_DEBUG:
 			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-			Common.showDebugDialog();
+			DebugUtils.showDebugDialog();
 			break;
 
 			default:

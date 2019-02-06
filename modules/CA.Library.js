@@ -707,7 +707,7 @@
 		return this.getOriginSourceUrl();
 	},
 	getOriginSourceUrl : function() {
-		return "https://projectxero.gitee.io/ca/clib/";
+		return "https://projectxero.top/ca/clib/";
 	},
 	getVerify : function(source) {
 		return source.verifyObject ? source.verifyObject : (source.verifyObject = this.downloadAsArray(source.pubkey));
@@ -721,7 +721,7 @@
 		return true;
 	},
 	readAsArray : function(stream, keep) {
-		var BUFFER_SIZE = 4096;
+		var BUFFER_SIZE = 2048;
 		var os, buf, hr;
 		os = new java.io.ByteArrayOutputStream();
 		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
@@ -827,6 +827,19 @@
 			return defaultValue;
 		}
 	},
+	cleanLibrary : function() {
+		var base = new java.io.File(MapScript.baseDir + "libs"), libs;
+		base.mkdirs();
+		libs = CA.settings.enabledLibrarys.concat(CA.settings.coreLibrarys, CA.settings.disabledLibrarys);
+		var i, fl = base.listFiles(), fn;
+		for (i = 0; i < fl.length; i++) {
+			if (!fl[i].isFile()) continue;
+			fn = String(fl[i].getName());
+			if (libs.indexOf(fn) >= 0) continue;
+			if (fn.slice(-5) == ".hash" && libs.indexOf(fn.slice(0, -5)) >= 0) continue;
+			fl[i].delete();
+		}
+	},
 	requestUpdateUrlFromDefSrc : function(uuid) {
 		var source, map;
 		source = this.requestDefaultSourceInfo();
@@ -869,11 +882,15 @@
 						uuid : updateInfo.uuid
 					}, this.requestSourceInfoCached(updateInfo.source));
 					if (path != libInfo.src) {
-						this.removeLibrary(libInfo.src);
-						if (libInfo.core) {
-							this.enableCoreLibrary(path);
+						if (Common.inSet(CA.settings.coreLibrarys, libInfo.src)) {
+							Common.replaceLinkedSet(CA.settings.coreLibrarys, libInfo.src, path);
+							Common.removeSet(CA.settings.enabledLibrarys, path);
 						} else {
-							this.enableLibrary(path);
+							Common.replaceLinkedSet(CA.settings.enabledLibrarys, libInfo.src, path);
+							Common.removeSet(CA.settings.coreLibrarys, path);
+						}
+						if (libInfo.mode == 0) {
+							Common.addSet(CA.settings.disabledLibrarys, libInfo.src);
 						}
 					}
 				} else {

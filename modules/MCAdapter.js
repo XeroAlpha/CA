@@ -251,7 +251,7 @@ MapScript.loadModule("MCAdapter", {
 		Common.toast("请选择系统适用的适配器");
 	},
 	unpackAssets : function(fn, path) {
-		const BUFFER_SIZE = 4096;
+		const BUFFER_SIZE = 8192;
 		var is, os, buf, hr;
 		is = ctx.getAssets().open(fn);
 		(new java.io.File(path)).getParentFile().mkdirs();

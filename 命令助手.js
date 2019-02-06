@@ -173,31 +173,34 @@ var MapScript = {
 MapScript.init(this);
 
 MapScript.loadModule("ctx", (function(global) {
+	var cx;
 	if ("ModPE" in global) { //以ModPE脚本加载(BlockLauncher及衍生App)
 		MapScript.host = "BlockLauncher";
-		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
-		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/ca/";
+		cx = com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
 	} else if ("activity" in global) { //以AutoJS脚本加载（UI模式）
 		MapScript.host = "AutoJs";
-		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
-		return activity;
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.script/";
+		cx = activity;
 	} else if ("context" in global) { //以AutoJS脚本加载（非UI模式）
 		MapScript.host = "AutoJsNoUI";
-		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
-		return context;
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.script/";
+		cx = context;
 	} else if ("ScriptInterface" in global) { //在Android脚本外壳中加载
 		MapScript.host = "Android";
 		MapScript.baseDir = ScriptInterface.getContext().getDir("rhino", 0).getAbsolutePath() + "/";
-		return ScriptInterface.getContext();
+		cx = ScriptInterface.getContext();
 	} else if ("World" in global) { //在Inner Core中加载
 		MapScript.host = "InnerCore";
-		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
-		return Packages.zhekasmirnov.launcher.utils.UIUtils.getContext();
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/ca/";
+		cx = Packages.zhekasmirnov.launcher.utils.UIUtils.getContext();
 	} else {
 		MapScript.host = "Unknown";
-		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/minecraftWorlds/";
-		return com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
+		MapScript.baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/games/com.mojang/ca/";
+		cx = com.mojang.minecraftpe.MainActivity.currentMainActivity.get();
 	}
+	new java.io.File(MapScript.baseDir).mkdirs();
+	return cx;
 })(this));
 
 MapScript.loadModule("gHandler", new android.os.Handler(ctx.getMainLooper()));
@@ -261,7 +264,7 @@ var proto = {
 		return this.println("Debug", k.stack);
 	},
 	s : function(s) { //树状解析对象
-		return this.println("Debug", this.debug("D", s, 0).join("\n")), s;
+		return (this.println("Debug", this.debug("D", s, 0).join("\n")), s);
 	},
 	t : function self(s) { //显示Toast
 		ctx.runOnUiThread(function() {
@@ -521,6 +524,8 @@ Loader.fromFile("modules/network/WSServer.js")
 Loader.fromFile("modules/network/GiteeFeedback.js")
 
 Loader.fromFile("modules/uiCore/LPlugins.js")
+
+Loader.fromFile("modules/DebugUtils.js")
 
 Loader.fromFile("modules/builtinData.js")
 

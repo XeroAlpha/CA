@@ -1216,201 +1216,6 @@ MapScript.loadModule("Common", {
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
-	showDebugDialog : function self() {G.ui(function() {try {
-		if (!self.main) {
-			self.LINE_LIMIT = 200;
-			self.history = [];
-			self.lines = [];
-			self.vmaker = function(holder) {
-				var text = holder.text = new G.TextView(ctx);
-				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-				Common.applyStyle(text, "textview_default", 2);
-				return text;
-			}
-			self.vbinder = function(holder, e, i, a) {
-				holder.text.setText(e);
-				holder.text.setPadding(10 * G.dp, i == 0 ? 10 * G.dp : 0, 10 * G.dp, i == a.length - 1 ? 10 * G.dp : 0);
-			}
-			self.cls = function() {
-				self.lines.length = 0;
-				self.history.length = 0;
-				self.lines.push(new G.SpannableStringBuilder());
-				self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-				self.ready(null);
-			}
-			self.print = function(str, span) {
-				var t = self.lines[self.lines.length - 1];
-				if (span) {
-					appendSSB(t, str, span);
-				} else {
-					t.append(str);
-				}
-				gHandler.post(function() {try {
-					self.prompt.smoothScrollToPosition(self.lines.length - 1);
-				} catch(e) {erp(e)}});
-			}
-			self.ready = function(cmd) {
-				cmd = String(cmd);
-				self.history[self.lines.length - 1] = cmd;
-				self.lines.push(new G.SpannableStringBuilder());
-				if (self.lines.length > self.LINE_LIMIT) {
-					self.lines.splice(0, self.lines.length - self.LINE_LIMIT - 1);
-					self.history.splice(0, self.history.length - self.LINE_LIMIT - 1);
-				}
-				self.hiscur = -1;
-				self.adapter.notifyChange();
-				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
-			}
-			self.exec = function(_s) {
-				var _t;
-				if (_s.toLowerCase() == "exit") {
-					self.popup.exit();
-					return;
-				} else if (_s.toLowerCase() == "cls") {
-					self.cls();
-					return;
-				} else if (_s.toLowerCase() == "ls") {
-					JSONEdit.traceGlobal();
-				} else if (_s.toLowerCase().startsWith("ls ")) {
-					JSONEdit.trace(eval.call(null, _s.slice(3)));
-				} else if (_s.toLowerCase().startsWith("cp ")) {
-					try {
-						var _t = MapScript.toSource(eval.call(null, _s.slice(3)));
-						self.print(_t);
-						Common.setClipboardText(_t);
-					} catch(_e) {
-						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-						Common.setClipboardText(_e + "\n" + _e.stack);
-					}
-				} else if (_s.toLowerCase().startsWith("sn ")) {
-					try {
-						_t = MapScript.toSource(eval.call(null, _s.slice(3)));
-						self.print(_t);
-					} catch(_e) {
-						self.print(_t = _e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-					}
-					var _file = new java.io.File(ctx.getExternalCacheDir(), "sn.txt");
-					var _fs = new java.io.PrintWriter(new java.io.FileOutputStream(_file));
-					_fs.println(_t);
-					_fs.close();
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
-							.setType("text/plain")
-							.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(_file))
-							.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.toast("文件已生成于" + _file.getAbsolutePath());
-					}
-				} else if (_s.toLowerCase().startsWith("exec ")) {
-					try {
-						_t = eval(Common.readFile(_s.slice(5), ""));
-						self.print(Log.debug("D", _t, 0).join("\n"));
-					} catch(_e) {
-						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-					}
-				} else if (_s.toLowerCase().startsWith("#")) {
-					new java.lang.Thread(function() {
-						try {
-							var _t = eval(_s.slice(1));
-							self.print(Log.debug("D", _t, 0).join("\n"));
-						} catch(_e) {
-							self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-						}
-						G.ui(function() {try {
-							self.ready(_s);
-						} catch(e) {erp(e)}});
-					}).start();
-					return;
-				} else {
-					try {
-						_t = eval(_s);
-						self.print(Log.debug("D", _t, 0).join("\n"));
-					} catch(_e) {
-						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-					}
-				}
-				self.ready(_s);
-			}
-			function print(str) {
-				self.print(Common.toString(str));
-			}
-			function println(str) {
-				self.print(str + "\n");
-			}
-			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
-
-			self.main = new G.LinearLayout(ctx);
-			self.main.setOrientation(G.LinearLayout.VERTICAL);
-
-			self.bar = new G.LinearLayout(ctx);
-			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
-			Common.applyStyle(self.bar, "bar_float");
-
-			self.cmd = new G.EditText(ctx);
-			self.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2, 1.0));
-			self.cmd.setFocusableInTouchMode(true);
-			self.cmd.setPadding(5 * G.dp, 10 * G.dp, 0, 10 * G.dp);
-			self.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-			Common.applyStyle(self.cmd, "edittext_default", 3);
-			self.bar.addView(self.cmd);
-			Common.postIME(self.cmd);
-
-			self.eval = new G.TextView(ctx);
-			self.eval.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			self.eval.setGravity(G.Gravity.CENTER);
-			self.eval.setText(">");
-			self.eval.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.eval, "button_reactive", 3);
-			self.eval.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				switch (e.getAction()) {
-					case e.ACTION_DOWN:
-					Common.applyStyle(v, "button_reactive_pressed", 3);
-					break;
-					case e.ACTION_CANCEL:
-					case e.ACTION_UP:
-					Common.applyStyle(v, "button_reactive", 3);
-				}
-				return false;
-			} catch(e) {return erp(e), true}}}));
-			self.eval.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				if (!self.cmd.getText().length()) return;
-				var s = String(self.cmd.getText());
-				self.print(s);
-				self.print("\n");
-				self.exec(s);
-				self.cmd.setText("");
-			} catch(e) {erp(e)}}}));
-			self.bar.addView(self.eval);
-
-			self.prompt = new G.ListView(ctx);
-			self.prompt.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-			self.prompt.setDividerHeight(0);
-			Common.applyStyle(self.prompt, "message_bg");
-			self.prompt.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				if (self.history[pos]) {
-					self.history[self.lines.length - 1] = String(self.cmd.getText());
-					self.cmd.setText(self.history[pos]);
-					self.cmd.setSelection(self.cmd.length());
-				}
-			} catch(e) {erp(e)}}}));
-			self.prompt.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
-				Common.setClipboardText(self.lines[pos]);
-				Common.toast("内容已复制");
-				return true;
-			} catch(e) {return erp(e), true}}}));
-			self.prompt.setAdapter(self.adapter.self);
-			self.main.addView(self.prompt);
-			self.main.addView(self.bar);
-
-			self.popup = new PopupPage(self.main, "common.Console");
-
-			self.cls();
-			PWM.registerResetFlag(self, "main");
-		}
-		self.popup.enter();
-	} catch(e) {erp(e)}})},
-
 	showWebViewDialog : function(s) {G.ui(function() {try {
 		var layout, wv, ws, exit, popup;
 		layout = new G.LinearLayout(ctx);
@@ -1627,7 +1432,7 @@ MapScript.loadModule("Common", {
 	},
 
 	fileCopy : function(src, dest) {
-		const BUFFER_SIZE = 4096;
+		const BUFFER_SIZE = 8192;
 		var fi, fo, buf, hr;
 		var fd = (dest instanceof java.io.File ? dest : new java.io.File(dest)).getParentFile();
 		if (fd) fd.mkdirs();
@@ -1682,23 +1487,6 @@ MapScript.loadModule("Common", {
 		}
 		if (showBytes) r += " (" + l.toLocaleString() + " 字节)";
 		return r;
-	},
-
-	traceStack : function() {
-		var s = [], i;
-		var ts = java.lang.Thread.getAllStackTraces();
-		var it = ts.keySet().iterator();
-		var ct, cts, ctid = java.lang.Thread.currentThread().getId();
-		while (it.hasNext()) {
-			ct = it.next();
-			s.push((ctid == ct.getId() ? "<当前>" : "") + "线程" + ct.getId() + ":" + ct.getName() + " (优先级" + ct.getPriority() + (ct.isDaemon() ? "守护线程" : "") + ") - " + ct.getState().toString());
-			cts = ts.get(ct);
-			for (i in cts) {
-				s.push(" at " + cts[i].toString());
-			}
-			s.push("");
-		}
-		return s.join("\n");
 	},
 
 	toString : function(s) {
@@ -1798,6 +1586,17 @@ MapScript.loadModule("Common", {
 			return true;
 		} else {
 			return false;
+		}
+	},
+	replaceLinkedSet : function(s, fromValue, toValue) {
+		//本函数只保证运行后s中不含fromValue而一定包含toValue，同时会尽可能用toValue去替换fromValue（位置不变）。
+		//fromValue === toValue时，s将包含toValue
+		var p1 = s.indexOf(fromValue), p2 = s.indexOf(toValue);
+		if (p1 >= 0) {
+			s[p1] = toValue;
+			if (p2 > 0 && p2 != p1) s.splice(p2, 1);
+		} else if (p2 < 0) {
+			s.push(toValue);
 		}
 	},
 	inSet : function(s, value) {

@@ -61,7 +61,7 @@ MapScript.loadModule("WSServer", {
 	},
 	onOpen : function(conn, handshake) {
 		if (this.conn != null) {
-			conn.close(1, "A client has been binded to CA.");
+			conn.close(1003, "A client has been binded to CA.");
 			Common.toast("WebSocket服务器已拒绝设备" + conn.getRemoteSocketAddress() + "连接，因为本设备已经和其他设备连接");
 			return;
 		}

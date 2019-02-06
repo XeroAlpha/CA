@@ -46,7 +46,7 @@ MapScript.loadModule("Updater", {
 		}
 	},
 	download : function(url, path) {
-		const BUFFER_SIZE = 4096;
+		const BUFFER_SIZE = 8192;
 		var url = new java.net.URL(url);
 		var conn = url.openConnection();
 		conn.setConnectTimeout(5000);
@@ -302,6 +302,7 @@ MapScript.loadModule("Updater", {
 	lastcheck : null,
 	checking : false,
 	sources : [
+		"https://projectxero.top/ca/hotfix.json",
 		"https://projectxero.gitee.io/ca/hotfix.json",
 		"https://xeroalpha.github.io/CA/pages/hotfix.json"
 	]
