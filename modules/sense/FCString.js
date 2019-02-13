@@ -1,5 +1,6 @@
 MapScript.loadModule("FCString", {
-	BEGIN : "§",
+	JAVA_EDITION : false,
+	BEGIN : "\u00a7", //分节符
 	COLOR : {
 		"0" : Common.rgbInt(0, 0, 0),
 		"1" : Common.rgbInt(0, 0, 170),
@@ -32,7 +33,7 @@ MapScript.loadModule("FCString", {
 					c = s.slice(i, i + 1);
 					if (f) {
 						if (c in FCString.COLOR) {
-							self.reset(o);
+							if (FCString.JAVA_EDITION) self.reset(o);
 							self.startColor(o, c);
 						} else if (c in o.style) {
 							self.startStyle(o, c);
@@ -132,7 +133,7 @@ MapScript.loadModule("FCString", {
 					if (f) {
 						if (c in FCString.COLOR) {
 							o.index--;
-							self.reset(o);
+							if (FCString.JAVA_EDITION) self.reset(o);
 							self.startColor(o, c);
 							self.colorTag(o, 2);
 						} else if (c in o.style) {

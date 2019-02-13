@@ -445,10 +445,10 @@ MapScript.loadModule("Loader", {
 		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, MapScript.global, null, [new java.lang.String(source)], sourceName, lineNumber);
 	},
 	lockProperty : function(obj, propertyName) {
-		Object.defineProperty(obj, propertyName, {
+		Object.defineProperty(obj, propertyName, { /*
 			enumerable: false,
 			configurable: false,
-			writable: false,
+			writable: false, by default */
 			value: obj[propertyName]
 		});
 	},
