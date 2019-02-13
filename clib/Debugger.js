@@ -4,8 +4,27 @@ o.name = "调试器";
 o.author = "ProjectXero";
 o.version = [1, 0, 0];
 o.uuid = "56b45fa6-ee17-43c4-968d-05c7bd3ee134";
+o.feature("corePlugin");
 var preference = ctx.getSharedPreferences("user_settings", ctx.MODE_PRIVATE);
 o.menu = [{
+	text : "启用在线调试器",
+	hidden : function() {
+		return o.corePlugin;
+	},
+	onclick : function() {
+		o.requestLoadAsCore();
+		Common.toast("已启用，下次启动时生效");
+	}
+}, {
+	text : "关闭在线调试器",
+	hidden : function() {
+		return !o.corePlugin;
+	},
+	onclick : function() {
+		o.cancelLoadAsCore();
+		Common.toast("已关闭，下次启动时生效");
+	}
+}, {
 	text : "使用外置代码源",
 	hidden : function() {
 		return String(preference.getString("debugSource", "")).length > 0;
@@ -32,6 +51,51 @@ o.menu = [{
 		preference.edit().remove("debugSource").apply();
 		Common.toast("源已更改，下次调试启动时生效");
 	}
+}, {
+	text : "打开当前代码源",
+	onclick : function() {
+		try {
+			var sm = ScriptInterface.getScriptManager();
+			var cls = sm.getClass();
+			var method = cls.getDeclaredMethod("getScriptReader");
+			method.setAccessible(true);
+			var q, s = [], rd = new java.io.BufferedReader(method.invoke(sm));
+			while (q = rd.readLine()) s.push(q);
+			rd.close();
+			var f = new java.io.File(ctx.getExternalCacheDir(), "sourcedump.js");
+			f.delete();
+			var fs = new java.io.FileOutputStream(f);
+			fs.write(new java.lang.String(s.join("\n")).getBytes());
+			fs.close();
+			ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW)
+				.setDataAndType(AndroidBridge.fileToUri(f), "text/plain")
+				.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+		} catch(e) {
+			Common.toast(e);
+		}
+	}
+}, {
+	text : "导出当前代码源",
+	onclick : function() {
+		try {
+			var sm = ScriptInterface.getScriptManager();
+			var cls = sm.getClass();
+			var method = cls.getDeclaredMethod("getScriptReader");
+			method.setAccessible(true);
+			var q, s = [], rd = new java.io.BufferedReader(method.invoke(sm));
+			while (q = rd.readLine()) s.push(q);
+			rd.close();
+			Common.showFileDialog({
+				type : 1,
+				callback : function(f) {
+					Common.saveFile(f.result.getAbsolutePath(), s.join("\n"));
+					Common.toast("代码源已保存");
+				}
+			});
+		} catch(e) {
+			Common.toast(e);
+		}
+	}
 }];
 MapScript.loadModule("OnlineDebugger", {
 	unload : function() {
@@ -39,10 +103,10 @@ MapScript.loadModule("OnlineDebugger", {
 	}
 });
 try {
-	startServer();
+	if (o.corePlugin) startServer();
 } catch(e) {Common.toast(e)}
 function startServer() {
-	server = ScriptActivity.createWebSocketHelper(port, {
+	server = ScriptInterface.createWebSocketHelper(port, {
 		onOpen : function(conn, handshake) {try {
 			if (connection) conn.close(1);
 			connection = conn;
@@ -70,7 +134,7 @@ function startServer() {
 			}
 		} catch(e) {erp(e)}},
 		onError : function(conn, err) {
-			erp(err);
+			Common.toast(err);
 		},
 		onStart : function() {try {
 			Common.toast("服务器已在端口" + port + "开启");

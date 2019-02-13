@@ -102,6 +102,13 @@ function main(path) {
 	fs.writeFileSync(libs.lockFile, JSON.stringify(libslock));
 }
 
+/*
+如何生成所需的signKey(私钥)和verifyKey(公钥)：
+1) 打开openssl
+2) genrsa -out 输出私钥文件.pem 密钥位数(e.g. 2048)
+3) rsa -in 输出私钥文件.pem -out 输出公钥文件.pub -pubout
+*/
+
 function toIndex(o, libs) {
 	var r = {
 		"name": o.name,

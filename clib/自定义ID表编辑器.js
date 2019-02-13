@@ -117,13 +117,15 @@
 			}).filter(function(e) {
 				return e != null;
 			}),
-			particles = listAssetFiles(zf, "assets/particles/").map(function(e) {
+			particles = Log.d([].concat(listAssetFiles(zf, "assets/particles/"), listAssetFiles(zf, "assets/resource_packs/" + resPack + "/particles/"))).map(function(e) {
+				var k;
 				try {
-					var k = readAssetJSON(zf, e, null).particles;
-					return Object.keys(k);
+					var k = readAssetJSON(zf, e, null);
+					if (k.particles) return Object.keys(k.particles);
+					return k.particle_effect.description.identifier;
 				} catch(e) {Log.e(e)}
 			}).reduce(function(acc, e) {
-				return acc.concat(e);
+				return Array.isArray(e) ? acc.concat(e) : (acc.push(e), acc);
 			}, []),
 			imports = loadFilter();
 		var ret = {

@@ -1,9 +1,9 @@
 Plugins.inject(function(o) {
 o.name = "MC图标";
 o.author = "ProjectXero";
-o.version = [2, 0, 0];
+o.version = [2, 0, 1];
 o.uuid = "06b2fb31-668e-4693-92ad-c0ac8da3e7a9";
-o.description = "允许命令助手显示MC的图标";
+o.description = "在命令助手中添加MC图标\n\n用法：在菜单里点击“显示样式代码栏”，然后点击省略号，再点击“MC图标”\n或者在菜单里点击“插入……”，然后点击“短语”，再点击“MC图标”";
 o.feature("userExpressionMenuAppendable");
 o.init = function() {
 	Plugins.addExpressionMenu({

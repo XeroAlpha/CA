@@ -1,4 +1,4 @@
-(function() {try {
+(function() {try {//已经弃用 命令助手已经支持自定义更新了
 	Updater.checkUpdate(function(){});
 	return {
 		"name": "自动检查更新",
