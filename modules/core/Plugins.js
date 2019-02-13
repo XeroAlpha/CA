@@ -12,8 +12,11 @@ MapScript.loadModule("Plugins", {
 		"userExpressionMenuAppendable",
 		//可使用Plugins.addExpressionMenu
 		
-		"corePlugin"
+		"corePlugin",
 		//可使用this.requestLoadAsCore和this.cancelLoadAsCore
+		
+		"hookMethod"
+		//可使用Plugins.hookMethod
 		
 		//"quickBarAppendable",
 		//可使用Plugins.addQuickBar
@@ -180,5 +183,17 @@ MapScript.loadModule("Plugins", {
 		}
 		a.push(obj);
 		return obj;
+	},
+	hookMethod : function self(obj, propName, replacement, tag) {
+		var oldFunc = obj[propName];
+		if (typeof oldFunc != "function") Log.throwError(new Error(propName + " is not a method."));
+		if (oldFunc.__hookHelper__ === self) Log.throwError(new Error(propName + " is already hooked."));
+		return obj[propName] = Object.defineProperties(function() {
+			return replacement.call(obj, propName, oldFunc, arguments, tag);
+		}, {
+			"__hookHelper__" : { value : self },
+			"__hookReplacement__" : { value : replacement },
+			"__hookTag__" : { value : tag }
+		});
 	}
 });

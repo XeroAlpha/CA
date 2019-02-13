@@ -79,6 +79,12 @@ MapScript.loadModule("PopupWindow", (function() {
 					PWM.wm.addView(this.decorView, this.decorView.getLayoutParams());
 				}
 			},
+			isVisible : function() {
+				return this.decorView.getVisibility() == G.View.VISIBLE;
+			},
+			setVisibility : function(visible) {
+				this.decorView.setVisibility(visible ? G.View.VISIBLE : G.View.GONE);
+			},
 			getWidth : function() {
 				return this.mainView.getWidth();
 			},
@@ -125,7 +131,7 @@ MapScript.loadModule("PopupWindow", (function() {
 		r.updateView = function(view, attributes) {
 			PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, attributes));
 		};
-	} else { //暂不维护
+	} else { //TODO: 这段代码有很大问题
 		r.prototype = {
 			init : function() {
 				var self = this;
@@ -141,7 +147,7 @@ MapScript.loadModule("PopupWindow", (function() {
 				return this;
 			},
 			hide : function() {
-				this.popupWnd.showAtLocation(ctx.getWindow().getDecorView(), this.attributes.gravity, this.attributes.x, this.attributes.y);
+				this.popupWnd.dismiss();
 				return this;
 			},
 			update : function(attr) {
@@ -159,6 +165,13 @@ MapScript.loadModule("PopupWindow", (function() {
 				wp = v.getLayoutParams();
 				PWM.wm.removeViewImmediate(v);
 				PWM.wm.addView(v, wp);
+			},
+			isVisible : function() {
+				var v = this.popupWnd.getContentView();
+				return this.decorView.getVisibility() == G.View.VISIBLE;
+			},
+			setVisibility : function(visible) {
+				this.decorView.setVisibility(visible ? G.View.VISIBLE : G.View.GONE);
 			},
 			getWidth : function() {
 				return this.mainView.getWidth();
