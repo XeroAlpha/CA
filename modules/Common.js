@@ -386,7 +386,7 @@ MapScript.loadModule("Common", {
 		list.setAdapter(new RhinoListAdapter(s, self.adapter));
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 			var e = s[pos];
-			if (e.onclick) if (!e.onclick(e.button, tag)) popup.exit();
+			if (e.onclick) if (!e.onclick(e, tag)) popup.exit();
 			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
@@ -471,7 +471,7 @@ MapScript.loadModule("Common", {
 			text.setText(Common.toString(s.description));
 			text.setPadding(0, 0, 0, 10 * G.dp);
 			text.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-			Common.applyStyle(text, "textview_prompt", 2);
+			Common.applyStyle(text, s.title ? "textview_prompt" : "textview_default", 2);
 			layout.addView(text);
 		}
 		if (s.skip) {
@@ -1266,6 +1266,120 @@ MapScript.loadModule("Common", {
 		popup = PopupPage.showDialog("common.WebDialog", layout, -1, -1);
 		popup.on("exit", function() {
 			wv.destroy();
+		});
+	} catch(e) {erp(e)}})},
+	
+	showSortDialog : function self(o) {G.ui(function() {try {
+		var params, layout, list, right, up, down, exit, popup;
+		if (!self.vmaker) {
+			self.vmaker = function(holder) {
+				var view = new G.LinearLayout(ctx);
+				view.setOrientation(G.LinearLayout.VERTICAL);
+				view.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				var title = holder.title = new G.TextView(ctx);
+				title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
+				title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				view.addView(title);
+				var desp = holder.desp = new G.TextView(ctx);
+				desp.setPadding(0, 3 * G.dp, 0, 0);
+				desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(desp, "textview_prompt", 1);
+				view.addView(desp);
+				return view;
+			}
+			self.vbinder = function(holder, e, i, a, params) {
+				var title = params.getTitle(e), desp = params.getDescription(e);
+				holder.title.setText(Common.toString(title));
+				if (desp) {
+					holder.desp.setText(Common.toString(desp));
+					holder.desp.setVisibility(G.View.VISIBLE);
+				} else {
+					holder.desp.setVisibility(G.View.GONE);
+				}
+				Common.applyStyle(holder.title, params.selectIndex == i ? "item_highlight" : "item_default", 2);
+			}
+			self.tryExchange = function(params, from, to) {
+				if (params.canExchange(params.array, from, to)) {
+					Common.exchangeProperty(params.array, from, to);
+					params.adpt.notifyChange();
+					return true;
+				}
+				return false;
+			}
+		}
+		params = {
+			selectIndex : parseInt(o.selectIndex),
+			array : Array.isArray(o.array) ? o.array : [],
+			getTitle : o.getTitle ? o.getTitle : function(e) {
+				return e.title;
+			},
+			getDescription : o.getDescription ? o.getDescription : function(e) {
+				return e.description;
+			},
+			canExchange : o.canExchange ? o.canExchange : function(array, fromIndex, toIndex) {
+				return true;
+			}
+		};
+		params.adpt = SimpleListAdapter.getController(new SimpleListAdapter(params.array, self.vmaker, self.vbinder, params));
+		layout = new G.LinearLayout(ctx);
+		layout.setOrientation(G.LinearLayout.HORIZONTAL);
+		Common.applyStyle(layout, "message_bg");
+		list = new G.ListView(ctx);
+		list.setAdapter(params.adpt.self);
+		list.setLayoutParams(new G.LinearLayout.LayoutParams(0, -1, 1.0));
+		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+			params.selectIndex = pos;
+			params.adpt.notifyChange();
+		} catch(e) {erp(e)}}}));
+		layout.addView(list);
+		right = new G.LinearLayout(ctx);
+		right.setOrientation(G.LinearLayout.VERTICAL);
+		right.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+		Common.applyStyle(right, "bar_float_second");
+		up = new G.TextView(ctx);
+		up.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 2.0));
+		up.setText("▲");
+		up.setGravity(G.Gravity.BOTTOM);
+		up.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+		Common.applyStyle(up, "button_highlight", 4);
+		up.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			if (params.selectIndex > 0) {
+				if (self.tryExchange(params, params.selectIndex - 1, params.selectIndex)) {
+					params.selectIndex--;
+				}
+			}
+		} catch(e) {erp(e)}}}));
+		right.addView(up);
+		down = new G.TextView(ctx);
+		down.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 2.0));
+		down.setText("▼");
+		down.setGravity(G.Gravity.TOP);
+		down.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+		Common.applyStyle(down, "button_highlight", 4);
+		down.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			if (params.selectIndex < params.array.length - 1) {
+				if (self.tryExchange(params, params.selectIndex, params.selectIndex + 1)) {
+					params.selectIndex++;
+				}
+			}
+		} catch(e) {erp(e)}}}));
+		right.addView(down);
+		exit = new G.TextView(ctx);
+		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+		exit.setText("×");
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+		Common.applyStyle(exit, "button_critical", 4);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			popup.exit();
+			return true;
+		} catch(e) {erp(e)}}}));
+		right.addView(exit);
+		layout.addView(right);
+		o.dialog = popup = PopupPage.showDialog("common.SortDialog", layout, -1, -1);
+		if (o.callback) popup.on("exit", function() {
+			o.callback(params.array);
 		});
 	} catch(e) {erp(e)}})},
 

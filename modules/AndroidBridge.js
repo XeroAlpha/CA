@@ -216,7 +216,11 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	},
 	scriptAction : function() {
-		Common.showOperateDialog(this.keeperMenu);
+		var a = CA.settings.notificationActions;
+		if (!a) {
+			CA.settings.notificationActions = a = Object.copy(this.defaultKeeperMenu);
+		}
+		CA.showActions(a);
 	},
 	openUriAction : function(uri, extras) {
 		switch (String(uri.getHost()).toLowerCase()) {
@@ -401,6 +405,15 @@ MapScript.loadModule("AndroidBridge", {
 				},
 				set : function(v) {
 					CA.settings.startWSSOnStart = Boolean(v);
+				}
+			}, {
+				name : "通知动作菜单",
+				type : "custom",
+				get : function() {
+					return CA.settings.notificationActions.length + "个动作";
+				},
+				onclick : function(fset) {
+					CA.showActionEdit(CA.settings.notificationActions, fset, AndroidBridge.defaultKeeperMenu);
 				}
 			}];
 		}
@@ -836,26 +849,10 @@ MapScript.loadModule("AndroidBridge", {
 			if (callback) callback();
 		});
 	},
-	keeperMenu : [{
-		text : "显示/隐藏图标",
-		onclick : function() {
-			if (CA.icon) {
-				CA.hideIcon();
-			} else {
-				CA.showIcon();
-			}
-		}
-	}, {
-		text : "快捷栏",
-		onclick : function() {
-			CA.showQuickBar();
-		}
-	}, {
-		text : "退出命令助手",
-		onclick : function() {
-			CA.performExit();
-		}
-	}],
+	defaultKeeperMenu : [
+		{ action : "ca.switchIconVisibility" },
+		{ action : "ca.exit" }
+	],
 	uriActions : {
 		open : {
 			default : function() {

@@ -1,4 +1,4 @@
-{
+({
 	inner : {},
 	cache : {},
 	loadingStatus : null,
@@ -235,8 +235,9 @@
 			lib.command_snap[e] = t2.description ? t2.description : "";
 		});
 		Tutorial.library = lib.tutorials;
+		this.updateLibraries(CA.settings.libraryAutoUpdate);
 		lib.info.forEach(function(e) {
-			if (e.deprecated) Common.addSet(CA.settings.deprecatedLibrarys, e.src);
+			if (e.deprecated && !e.updateInfo) Common.addSet(CA.settings.deprecatedLibrarys, e.src);
 		});
 	},
 	processDeprecated : function() {
@@ -834,7 +835,7 @@
 		var i, fl = base.listFiles(), fn;
 		for (i = 0; i < fl.length; i++) {
 			if (!fl[i].isFile()) continue;
-			fn = String(fl[i].getName());
+			fn = String(fl[i].getAbsolutePath());
 			if (libs.indexOf(fn) >= 0) continue;
 			if (fn.slice(-5) == ".hash" && libs.indexOf(fn.slice(0, -5)) >= 0) continue;
 			fl[i].delete();
@@ -853,7 +854,7 @@
 		try {
 			if (typeof u == "function") {
 				r = libinfo.update();
-			} else if (typeof u == "string") {
+			} else if (typeof u == "string" && (u.startsWith("http://") || u.startsWith("https://"))) {
 				r = JSON.parse(Updater.queryPage(u));
 			} else {
 				t = this.requestUpdateUrlFromDefSrc(libinfo.uuid);
@@ -901,5 +902,34 @@
 			}
 			statusListener("completeDownload", updateInfo.message);
 		}
+	},
+	updateLibraries : function(level) {
+		var fUpdate = level == 2, updateCount = 0;
+		if (level <= 0) return 0;
+		CA.IntelliSense.library.info.forEach(function(e) {
+			CA.Library.requestUpdateInfo(e, function(statusCode, arg1, arg2) {
+				if (statusCode == 1) {
+					e.updateInfo = arg1;
+					e.updateState = "ready";
+					updateCount++;
+					if (fUpdate) {
+						CA.Library.clearCache(e.src);
+						CA.Library.doUpdate(arg1, arg2, function(statusMessage) {
+							if (statusMessage == "downloadFromUri") {
+								e.updateState = "waitForUser";
+							} else if (statusMessage == "downloadError") {
+								e.updateState = "error";
+							} else if (statusMessage == "completeDownload") {
+								e.updateState = "finished";
+							}
+						});
+					}
+				}
+			});
+		});
+		return updateCount;
+	},
+	versionToString : function(v) {
+		return Array.isArray(v) ? v.join(".") : String(v);
 	}
-}
+})

@@ -109,6 +109,7 @@ MapScript.loadModule("CA", {
 			if (!(f.settings.securityLevel >= -9 && f.settings.securityLevel <= 9)) f.settings.securityLevel = 1;
 			if (f.settings.customTips) this.tips = f.settings.customTips;
 			if (isNaN(f.settings.libraryAutoUpdate)) f.settings.libraryAutoUpdate = 1;
+			if (!f.settings.quickBarActions) f.settings.quickBarActions = Object.copy(CA.quickBarDefaultActions);
 			
 			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
@@ -170,8 +171,10 @@ MapScript.loadModule("CA", {
 				coreLibrarys : [],
 				disabledLibrarys : [],
 				deprecatedLibrarys : [],
-				customExpression : []
+				customExpression : [],
+				quickBarActions : Object.copy(CA.quickBarDefaultActions)
 			};
+			this.tips = this.defalutTips;
 			Common.loadTheme();
 			CA.checkFeatures();
 			this.Library.initLibrary(function() {
@@ -306,7 +309,7 @@ MapScript.loadModule("CA", {
 			self.longClick = new java.lang.Runnable({run : function() {try {
 				if (self.longClicked) {
 					if (PopupPage.getCount() == 0 || !PopupPage.visible) {
-						CA.showQuickBar();
+						CA.showActions(CA.settings.quickBarActions);
 					} else if (PopupPage.supportResize) {
 						if (PopupPage.isLocked()) {
 							PopupPage.setFullScreen(PopupPage.isFullScreen(), false);
@@ -477,50 +480,12 @@ MapScript.loadModule("CA", {
 		if (CA.icon) CA.icon.hide();
 		CA.icon = null;
 	} catch(e) {erp(e)}})},
-
-	showQuickBar : function self() {G.ui(function() {try {
-		if (!self.list) {
-			self.container = new G.FrameLayout(ctx);
-			self.list = new G.LinearLayout(ctx);
-			self.list.setOrientation(G.LinearLayout.VERTICAL);
-			self.container.addView(self.list, new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.RIGHT | G.Gravity.TOP));
-			self.container.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				if (e.getAction() == e.ACTION_DOWN) CA.hideQuickBar();
-				return true;
-			} catch(e) {return erp(e), true}}}));
-			self.lp = new G.LinearLayout.LayoutParams(-1, -2);
-			
-		}
-		if (CA.qbar) return;
-		var i, e, a;
-		self.list.removeAllViews();
-		for (i in CA.QuickBar) {
-			e = CA.QuickBar[i];
-			a = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, 1, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0, G.Animation.RELATIVE_TO_SELF, 0);
-			a.setDuration(100);
-			a.setStartOffset(self.list.getChildCount() * 30);
-			if (!e._view) {
-				e._view = e.create(CA.hideQuickBar);
-			}
-			if (e.refresh) e.refresh();
-			e._view.startAnimation(a);
-			self.list.addView(e._view, self.lp);
-		}
-		CA.qbar = new PopupWindow(self.container, "CA.Quickbar");
-		CA.qbar.on("hide", function() {
-			CA.qbar = null;
-		});
-		CA.qbar.show({
-			x : 0, y : 0,
-			width : -1, height : -1,
-			gravity : G.Gravity.CENTER,
-			focusable : true
-		});
-		PWM.addPopup(CA.qbar);
-	} catch(e) {erp(e)}})},
-	hideQuickBar : function() {G.ui(function() {try {
-		if (CA.qbar) CA.qbar.hide();
-	} catch(e) {erp(e)}})},
+	
+	quickBarDefaultActions : [
+		{ action : "ca.exit" },
+		{ action : "ca.editClipboard" },
+		{ action : "ca.quickPaste" }
+	],
 
 	showGen : function self(noani) {G.ui(function() {try {
 		if (!self.main) {
@@ -729,12 +694,12 @@ MapScript.loadModule("CA", {
 					CA.cmdstr = String(s);
 					if (CA.settings.iiMode == 1 && CA.Assist.active) {
 						if (state != 3) gostate3();
-					} else if (state != 2 && s == "/help") {
-						gostate2();
-					} else if (state != 1 && s.length() && s != "/help") {
-						gostate1();
-					} else if (state != 0 && !s.length()) {
-						gostate0();
+					} else if (s == "/help") {
+						if (state != 2) gostate2();
+					} else if (s.length() && s != "/help" && !CA.Library.loadingStatus) {
+						if (state != 1) gostate1();
+					} else {
+						if (state != 0) gostate0();
 					}
 					if (CA.fcs) CA.showFCS(s);
 					if (CA.history) CA.showHistory();
@@ -799,6 +764,10 @@ MapScript.loadModule("CA", {
 			self.add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.add, "textview_default", 3);
 			self.add.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+				if (CA.Library.loadingStatus) {
+					Common.toast("拓展包正在加载中，请稍候");
+					return;
+				}
 				if (CA.settings.iiMode == 1) {
 					CA.Assist.active = true;
 					CA.cmd.setFocusable(false);
@@ -2705,6 +2674,15 @@ MapScript.loadModule("CA", {
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			}, {
+				name : "快捷栏动作菜单",
+				type : "custom",
+				get : function() {
+					return CA.settings.quickBarActions.length + "个动作";
+				},
+				onclick : function(fset) {
+					CA.showActionEdit(CA.settings.quickBarActions, fset, CA.quickBarDefaultActions);
+				}
+			}, {
 				name : "命令生成器",
 				type : "tag"
 			}, {
@@ -3751,6 +3729,44 @@ MapScript.loadModule("CA", {
 					});
 				}
 			},{
+				text : "检测更新",
+				description : "连接网络检测所有拓展包是否有更新",
+				hidden : function() {
+					return CA.settings.libraryAutoUpdate != 0;
+				},
+				onclick : function(v, tag) {
+					self.postTask(function(cb) {
+						new java.lang.Thread(function() {try {
+							var count = CA.Library.updateLibraries(1);
+							if (count > 0) {
+								Common.toast("检测到" + count + "个拓展包有更新");
+							} else {
+								Common.toast("所有拓展包都是最新的");
+							}
+							cb(false);
+						} catch(e) {erp(e)}}).start();
+					});
+				}
+			},{
+				text : "检测更新并下载",
+				description : "连接网络检测所有拓展包是否有更新，如果有就下载更新",
+				hidden : function() {
+					return CA.settings.libraryAutoUpdate != 1;
+				},
+				onclick : function(v, tag) {
+					self.postTask(function(cb) {
+						new java.lang.Thread(function() {try {
+							var count = CA.Library.updateLibraries(2);
+							if (count > 0) {
+								Common.toast("检测到" + count + "个拓展包有更新");
+							} else {
+								Common.toast("所有拓展包都是最新的");
+							}
+							cb(false);
+						} catch(e) {erp(e)}}).start();
+					});
+				}
+			},{
 				text : "设置安全级别",
 				secLevels : [0, 1, 2, -1],
 				secLevelDetails : {
@@ -4076,31 +4092,40 @@ MapScript.loadModule("CA", {
 					});
 				}
 			},{
-				text : "上移",
-				description : "使该拓展包较早加载",
-				hidden : function(tag) {
-					return tag.data.index < 1;
-				},
+				text : "排序",
+				description : "调整拓展包加载的顺序",
 				onclick : function(v, tag) {
-					self.postTask(function(cb) {
-						Common.exchangeProperty(tag.data.core ? CA.settings.coreLibrarys : CA.settings.enabledLibrarys, tag.data.index - 1, tag.data.index);
-						cb(true, function() {});
-					});
-				}
-			},{
-				text : "下移",
-				description : "使该拓展包较晚加载",
-				hidden : function(tag) {
-					if (tag.data.core) {
-						return tag.data.index > CA.settings.coreLibrarys.length - 2;
-					} else {
-						return tag.data.index > CA.settings.enabledLibrarys.length - 2;
-					}
-				},
-				onclick : function(v, tag) {
-					self.postTask(function(cb) {
-						Common.exchangeProperty(tag.data.core ? CA.settings.coreLibrarys : CA.settings.enabledLibrarys, tag.data.index, tag.data.index + 1);
-						cb(true, function() {});
+					Common.showSortDialog({
+						array : CA.IntelliSense.library.info.slice(),
+						selectIndex : tag.pos,
+						getTitle : function(e) {
+							return e.name;
+						},
+						getDescription : function(e) {
+							return e.description;
+						},
+						canExchange : function(array, fromIndex, toIndex) {
+							if (array[fromIndex].core == array[toIndex].core) {
+								return true;
+							} else {
+								Common.toast("您不能交换优先加载拓展包和普通拓展包的顺序");
+								return false;
+							}
+						},
+						callback : function(a) {
+							self.postTask(function(cb) {
+								var i;
+								CA.settings.coreLibrarys.length = CA.settings.enabledLibrarys.length = 0;
+								for (i = 0; i < a.length; i++) {
+									if (a[i].core) {
+										CA.settings.coreLibrarys.push(a[i].src);
+									} else {
+										CA.settings.enabledLibrarys.push(a[i].src);
+									}
+								}
+								cb(true, function() {});
+							});
+						}
 					});
 				}
 			},{
@@ -4157,11 +4182,50 @@ MapScript.loadModule("CA", {
 				return layout;
 			}
 			self.vbinder = function(holder, e, i, a) {
-				holder.text1.setText((e.mode == 0 ? "[内置] " : e.mode == 2 ? "[锁定] " : e.mode == 3 ? "[官方] " : "") + e.name + (e.disabled || e.hasError ? "" : e.core ? " (已优先启动)" : " (已启用)"));
+				var title = [], detail = [];
+				if (e.mode == 0) {
+					title.push("[内置] ");
+				} else if (e.mode == 2) {
+					title.push("[锁定] ");
+				} else if (e.mode == 3) {
+					title.push("[官方] ");
+				}
+				title.push(e.name);
+				if (!e.disabled && !e.hasError) {
+					if (e.core) {
+						title.push(" (已优先启用)");
+					} else {
+						title.push(" (已启用)");
+					}
+				}
+				holder.text1.setText(title.join(""));
 				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : e.hasError || e.deprecated ? "item_critical" : "item_default", 3);
-				holder.text2.setText(e.disabled ? "已禁用" : e.hasError ? "加载出错 :\n" + e.error : (e.deprecated ? "目前该拓展包不适合在您的设备上使用，下次加载时该拓展包将不会被加载\n\n" : "") + "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description && e.description.length ? "\n\n" + e.description : ""));
+				if (e.disabled) {
+					detail.push("已禁用");
+				} else if (e.hasError) {
+					detail.push("加载出错 :", e.error);
+				} else {
+					if (e.updateState == "ready" || e.updateState == "waitForUser" || e.updateState == "error") {
+						detail.push("检测到更新 : " + CA.Library.versionToString(e.updateInfo.version));
+					} else if (e.updateState == "finished") {
+						detail.push("已经更新至最新版本 " + CA.Library.versionToString(e.updateInfo.version) + "，重启命令助手生效");
+					}
+					if (e.deprecated) {
+						detail.push("目前该拓展包不适合在您的设备上使用");
+					}
+					if (detail.length) detail.push("");
+					detail.push("版本 : " + e.version.join("."), "作者 : " + e.author);
+					if (e.description && e.description.length) {
+						detail.push("\n" + e.description);
+					}
+				}
+				holder.text2.setText(detail.join("\n"));
 			}
 			self.refresh = function() {
+				if (CA.Library.loadingStatus) {
+					Common.toast("命令库加载中，请加载完成后手动刷新");
+					return;
+				}
 				var arr = CA.IntelliSense.library.info.concat(CA.settings.disabledLibrarys.map(function(e, i, a) {
 					var k = e in CA.Library.inner;
 					return {
@@ -4185,6 +4249,9 @@ MapScript.loadModule("CA", {
 				f(function(success, callback) {
 					if (!success) {
 						progress.close();
+						G.ui(function() {try {
+							self.adpt.notifyChange(true);
+						} catch(e) {erp(e)}});
 						return self.processing = false;
 					}
 					progress.setText("正在刷新命令库……");
@@ -4200,6 +4267,7 @@ MapScript.loadModule("CA", {
 						Common.toast("无法加载拓展包，请稍后重试");
 						return self.processing = false;
 					}
+					return true;
 				});
 			}
 			self.processing = false;
@@ -4331,9 +4399,13 @@ MapScript.loadModule("CA", {
 				return layout;
 			}
 			self.vbinder = function(holder, e, i, a) {
+				var detail = [];
 				holder.text1.setText((e.installed ? "[已安装] " : "") + e.name);
 				Common.applyStyle(holder.text1, e.disabled ? "item_disabled" : "item_default", 3);
-				holder.text2.setText((e.disabled ? "目前您使用的版本不支持此命令库\n\n" : "") + "版本 : " + e.version.join(".") + "\n作者 : " + e.author + (e.description ? "\n\n" + e.description : ""));
+				if (e.disabled) detail.push("目前您使用的版本不支持此命令库\n");
+				detail.push("版本 : " + e.version.join("."), "作者 : " + e.author);
+				if (e.description) detail.push("\n" + e.description);
+				holder.text2.setText(detail.join("\n"));
 			}
 			self.reload = function() {
 				if (self.loading) return Common.toast("正在加载中……");
@@ -4480,10 +4552,6 @@ MapScript.loadModule("CA", {
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
-	
-	checkLibUpdate : function(level) {
-		
-	},
 	
 	showModeChooser : function(callback) {
 		Common.showOperateDialog([{
@@ -4668,73 +4736,6 @@ MapScript.loadModule("CA", {
 			return view;
 		}
 	},
-	QuickBar : [{
-		create : function(hide) {
-			var v = new G.Button(ctx);
-			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			v.setText("退出");
-			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				hide();
-				CA.performExit();
-			} catch(e) {erp(e)}}}));
-			return v;
-		}
-	}, {
-		create : function(hide) {
-			var v = new G.Button(ctx);
-			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			v.setText("编辑剪贴板");
-			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				hide();
-				if (!Common.hasClipboardText()) {
-					Common.toast("剪切板为空");
-					return;
-				}
-				CA.showGen(CA.settings.noAnimation);
-				CA.cmd.setText(String(Common.getClipboardText()));
-				CA.showGen.activate(false);
-			} catch(e) {erp(e)}}}));
-			return v;
-		}
-	}, {
-		create : function(hide) {
-			var v = new G.Button(ctx);
-			v.setPadding(5 * G.dp, 5 * G.dp, 5 * G.dp, 5 * G.dp);
-			v.setText("快速粘贴");
-			v.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				hide();
-				var a = [], t;
-				if (Common.hasClipboardText()) {
-					t = Common.getClipboardText();
-					a.push({
-						text : t,
-						description : "剪贴板",
-						cmd : t
-					});
-				}
-				CA.his.forEach(function(e) {
-					if (e == t) return;
-					a.push({
-						text : e,
-						cmd : e
-					});
-				});
-				CA.fav.forEach(function(e) {
-					a.push({
-						text : e.key,
-						description : e.value,
-						cmd : e.value
-					});
-				});
-				Common.showListChooser(a, function(id) {
-					gHandler.post(function() {
-						CA.performPaste(String(a[id].cmd), true);
-					});
-				}, true);
-			} catch(e) {erp(e)}}}));
-			return v;
-		}
-	}],
 	checkFeatures : function() {
 		var i;
 		for (i in this.Features) {
@@ -5881,6 +5882,266 @@ MapScript.loadModule("CA", {
 	},
 	PluginMenu : [],
 	PluginExpression : [],
+	showActions : function(actions, onDismiss) {
+		var list = actions.map(function(e) {
+			var action = CA.Actions[e.action];
+			if (!action) return {};
+			return {
+				text : action.getName ? action.getName(e) : action.name,
+				description : action.getDescription ? action.getDescription(e) : action.description,
+				action : action.available && !action.available(e) ? null : action,
+				param : e
+			};
+		}).filter(function(e) {
+			return e.action != null;
+		});
+		if (list.length == 0) return false;
+		Common.showListChooser(list, function(i, a) {
+			var e = a[i];
+			return e.action.execute(e.param);
+		}, false, onDismiss);
+		return true;
+	},
+	showActionEdit : function self(actions, callback, defaultActions) {G.ui(function() {try {
+		var adpt, linear, header, title, menu, list, exit, popup;
+		if (!self.linear) {
+			self.contextMenu = [{
+				text : "添加动作",
+				onclick : function(v, tag) {
+					self.createAction(function(data) {
+						tag.actions.push(data);
+						tag.callback();
+					});
+				}
+			}, {
+				text : "恢复默认",
+				hidden : function(tag) {
+					return !Array.isArray(tag.defaultActions);
+				},
+				onclick : function(v, tag) {
+					var i, a = tag.defaultActions;
+					tag.actions.length = a.length;
+					for (i = 0; i < a.length; i++) {
+						tag.actions[i] = Object.copy(a[i]);
+					}
+					tag.callback();
+				}
+			}];
+			self.itemMenu = [{
+				text : "编辑",
+				description : "编辑该动作",
+				hidden : function(tag) {
+					var action = CA.Actions[tag.data.action];
+					return !action || !action.edit;
+				},
+				onclick : function(v, tag) {
+					var action = CA.Actions[tag.data.action];
+					action.edit(tag.data, false, function() {
+						tag.callback();
+					});
+				}
+			}, {
+				text : "替换",
+				description : "用新的动作替换该动作",
+				onclick : function(v, tag) {
+					self.createAction(function(data) {
+						tag.actions[tag.pos] = data;
+						tag.callback();
+					});
+				}
+			}, {
+				text : "排序",
+				description : "调整动作显示的顺序",
+				onclick : function(v, tag) {
+					Common.showSortDialog({
+						array : tag.actions,
+						selectIndex : tag.pos,
+						getTitle : function(e) {
+							var action = CA.Actions[e.action];
+							return action.getName ? action.getName(e) : action.name;
+						},
+						getDescription : function(e) {
+							var action = CA.Actions[e.action];
+							return action.getDescription ? action.getDescription(e) : action.description;
+						},
+						callback : function(a) {
+							tag.callback();
+						}
+					});
+				}
+			}, {
+				text : "移除",
+				description : "从列表中移除该动作",
+				onclick : function(v, tag) {
+					tag.actions.splice(tag.pos);
+					tag.callback();
+				}
+			}];
+			self.vmaker = function(holder) {
+				var layout = new G.LinearLayout(ctx),
+					text1 = holder.text1 = new G.TextView(ctx),
+					text2 = holder.text2 = new G.TextView(ctx);
+				layout.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				layout.setOrientation(G.LinearLayout.VERTICAL);
+				layout.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
+				text1.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text1, "item_default", 3);
+				layout.addView(text1);
+				text2.setPadding(0, 5 * G.dp, 0, 0);
+				text2.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(text2, "textview_prompt", 1);
+				layout.addView(text2);
+				return layout;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				var action = CA.Actions[e.action];
+				var desp = action.getDescription ? action.getDescription(e) : action.description;
+				holder.text1.setText(String(action.getName ? action.getName(e) : action.name));
+				if (desp) {
+					holder.text2.setText(String(desp));
+					holder.text2.setVisibility(G.View.VISIBLE);
+				} else {
+					holder.text2.setVisibility(G.View.GONE);
+				}
+			}
+			self.createAction = function(callback) {
+				var keys = Object.keys(CA.Actions).map(function(e) {
+					var data = CA.Actions[e];
+					return {
+						text : data.name,
+						description : data.description,
+						key : e
+					};
+				});
+				Common.showListChooser(keys, function(i) {
+					var e = keys[i];
+					var action = CA.Actions[e.key];
+					var data = action.create ? action.create() : {};
+					data.action = e.key;
+					if (action.edit) {
+						action.edit(data, true, function() {
+							callback(data);
+						});
+					} else {
+						callback(data);
+					}
+				});
+			}
+		}
+		adpt = SimpleListAdapter.getController(new SimpleListAdapter(actions, self.vmaker, self.vbinder));
+		linear = new G.LinearLayout(ctx);
+		linear.setOrientation(G.LinearLayout.VERTICAL);
+		linear.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 0);
+		Common.applyStyle(linear, "message_bg");
+		header = new G.LinearLayout(ctx);
+		header.setOrientation(G.LinearLayout.HORIZONTAL);
+		header.setPadding(0, 0, 0, 10 * G.dp);
+		header.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			Common.showOperateDialog(self.contextMenu, {
+				actions : actions,
+				defaultActions : defaultActions,
+				callback : function() {
+					adpt.notifyChange();
+				}
+			});
+			return true;
+		} catch(e) {erp(e)}}}));
+		title = new G.TextView(ctx);
+		title.setText("编辑动作菜单");
+		title.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
+		title.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+		Common.applyStyle(title, "textview_default", 4);
+		header.addView(title, new G.LinearLayout.LayoutParams(0, -2, 1.0));
+		menu = new G.TextView(ctx);
+		menu.setText("▼");
+		menu.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
+		menu.setGravity(G.Gravity.CENTER);
+		Common.applyStyle(menu, "button_highlight", 3);
+		header.addView(menu, new G.LinearLayout.LayoutParams(-2, -1));
+		linear.addView(header, new G.LinearLayout.LayoutParams(-1, -2));
+		list = new G.ListView(ctx);
+		list.setAdapter(adpt.self);
+		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+			var data = parent.getAdapter().getItem(pos);
+			Common.showOperateDialog(self.itemMenu, {
+				pos : parseInt(pos),
+				data : data,
+				actions : actions,
+				callback : function() {
+					adpt.notifyChange();
+				}
+			});
+		} catch(e) {erp(e)}}}));
+		linear.addView(list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
+		exit = new G.TextView(ctx);
+		exit.setText("关闭");
+		exit.setGravity(G.Gravity.CENTER);
+		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
+		Common.applyStyle(exit, "button_critical", 3);
+		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+			popup.exit();
+		} catch(e) {erp(e)}}}));
+		linear.addView(exit, new G.LinearLayout.LayoutParams(-1, -2));
+		popup = new PopupPage(linear, "ca.ActionEdit");
+		if (callback) popup.on("exit", callback);
+		popup.enter();
+	} catch(e) {erp(e)}})},
+	Actions : {
+		"ca.exit" : {
+			name : "关闭命令助手",
+			execute : function() {
+				CA.performExit();
+			}
+		},
+		"ca.editClipboard" : {
+			name : "编辑剪贴板",
+			execute : function() {
+				if (!Common.hasClipboardText()) {
+					Common.toast("剪切板为空");
+					return;
+				}
+				CA.showGen(CA.settings.noAnimation);
+				CA.cmd.setText(String(Common.getClipboardText()));
+				CA.showGen.activate(false);
+			}
+		},
+		"ca.quickPaste" : {
+			name : "快速粘贴",
+			execute : function() {
+				var a = [], t;
+				if (Common.hasClipboardText()) {
+					t = Common.getClipboardText();
+					a.push({
+						text : t,
+						description : "剪贴板",
+						cmd : t
+					});
+				}
+				CA.his.forEach(function(e) {
+					if (e == t) return;
+					a.push({
+						text : e,
+						cmd : e
+					});
+				});
+				Common.showListChooser(a, function(id) {
+					gHandler.post(function() {
+						CA.performPaste(String(a[id].cmd), true);
+					});
+				}, true);
+			}
+		},
+		"ca.switchIconVisibility" : {
+			name : "显示/隐藏图标",
+			execute : function() {
+				if (CA.icon) {
+					CA.hideIcon();
+				} else {
+					CA.showIcon();
+				}
+			}
+		}
+	},
 	
 	Library : Loader.fromFile("CA.Library.js"),
 	IntelliSense : Loader.fromFile("CA.IntelliSense.js"),
