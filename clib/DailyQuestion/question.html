@@ -145,7 +145,7 @@ function reload() {
     } else {
 	    cur = Verify.requestQuestion();
     }
-    body_node.innerHTML = cur.question;
+    body_node.innerText = cur.question;
     usage_node.innerHTML = cur.answerType == "number" ? "请使用一个数字来解答以下问题（允许使用1.203e56这样的科学表示法）" : "请使用一句命令来解答以下问题（如非必要，请不要使用嵌套命令）";
     about_node.innerHTML = "下次更换问题于" + toChineseDateTime(Verify.getNextUpdateTime()) + "<br />题库:" + Verify.getCount() + "题 | " + Verify.getLastUpdateAt() + "<br /><br />命令助手讨论区 @ ProjectXero<br />本页面由" + siteName + "托管";
     answer_node.style = "";

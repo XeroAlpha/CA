@@ -1,7 +1,7 @@
 Plugins.inject(function(host) {
 host.name = "每日问题";
 host.author = "ProjectXero";
-host.version = [1, 0, 0];
+host.version = [1, 0, 1];
 host.uuid = "9ab8c0af-8749-4758-9e96-c25d340c9ee3";
 host.description = "每日一问题，提升你的命令水平";
 host.init = function() {

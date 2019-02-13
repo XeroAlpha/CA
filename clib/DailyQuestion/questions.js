@@ -184,7 +184,7 @@
         "/scoreboard players operation Mark c " + op[m1].id + " Mark a",
         "/scoreboard players operation Mark b " + op[m2].id + " Mark c",
         "/scoreboard players operation Mark a " + op[m3].id + " Mark b"
-    ].join("<br />");
+    ].join("\n");
     op[m1].op(c, a);
     op[m2].op(b, c);
     op[m3].op(a, b);
