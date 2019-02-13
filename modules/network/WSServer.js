@@ -123,7 +123,14 @@ MapScript.loadModule("WSServer", {
 		Common.toast("出现错误！错误代码：" + json.body.statusCode + "\n" + json.body.statusMessage);
 	},
 	howToUse : function() {
-		Common.showTextDialog("WebSocket服务器已开启。请在客户端输入以下指令来连接到服务器。\n/connect " + this.getAddress() + "\n\n用法：\n长按命令助手主界面右下角的按钮可执行主界面输入框中的命令\n\n如果显示无法连接请重启命令助手与Minecraft客户端。");
+		var cmd = "/connect " + this.getAddress();
+		Common.showConfirmDialog({
+			description : "WebSocket服务器已开启。请在客户端输入以下命令来连接到服务器。\n" + cmd + "\n\n用法：\n长按命令助手主界面右下角的按钮可执行主界面输入框中的命令\n\n如果显示无法连接请重启命令助手与Minecraft客户端。",
+			buttons : ["复制命令", "关闭"],
+			callback : function(i) {
+				if (i == 0) Common.setClipboardText(cmd);
+			}
+		});
 	},
 	getIp : function() {
 		var wm = ctx.getSystemService(ctx.WIFI_SERVICE);
