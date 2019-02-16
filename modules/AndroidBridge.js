@@ -97,6 +97,7 @@ MapScript.loadModule("AndroidBridge", {
 		this.checkNecessaryPermissions(function(success) {
 			if (G.supportFloat) AndroidBridge.exitLoading(!CA.settings.hideRecent);
 		});
+		if (!CA.settings.notificationActions) CA.settings.notificationActions = Object.copy(this.defaultKeeperMenu);
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -216,11 +217,7 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	},
 	scriptAction : function() {
-		var a = CA.settings.notificationActions;
-		if (!a) {
-			CA.settings.notificationActions = a = Object.copy(this.defaultKeeperMenu);
-		}
-		CA.showActions(a);
+		CA.showActions(CA.settings.notificationActions);
 	},
 	openUriAction : function(uri, extras) {
 		switch (String(uri.getHost()).toLowerCase()) {

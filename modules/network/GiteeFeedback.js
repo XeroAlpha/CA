@@ -1024,7 +1024,9 @@ MapScript.loadModule("GiteeFeedback", {
 							GiteeFeedback.save(GiteeFeedback.getUserInfo());
 						} catch(e) {
 							Log.e(e);
-							return Common.toast("登录失败\n" + GiteeFeedback.userInfo.name);
+							GiteeFeedback.accessType = GiteeFeedback.accessData = null;
+							GiteeFeedback.save(null);
+							return Common.toast("登录失败\n" + e);
 						}
 					}
 					GiteeFeedback.showRecentFeedback(callback);

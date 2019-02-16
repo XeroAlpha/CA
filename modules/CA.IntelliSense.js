@@ -887,7 +887,7 @@
 				if (self.adptcon) {
 					self.adptcon.setArray(z.input);
 				} else {
-					var a = new SimpleListAdapter(z.input.slice(), self.vmaker, self.vbinder);
+					var a = new SimpleListAdapter(z.input.slice(), self.vmaker, self.vbinder, null, true);
 					self.adptcon = SimpleListAdapter.getController(a);
 					self.list.setAdapter(a);
 				}

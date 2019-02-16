@@ -107,10 +107,14 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 		},
 		setArray : function(a) {
 			if (this.array != a) {
-				this.array.length = 0;
-				for (i in a) this.array.push(a[i]);
+				this.array.length = a.length;
+				for (i in a) this.array[i] = a[i];
 			}
 			this.notifyChange(true);
+		},
+		setSync : function(a) {
+			this.sync = a;
+			this.notifyChange(false);
 		}
 	}
 	r.getController = function(adapter) {

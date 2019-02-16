@@ -1257,7 +1257,7 @@ MapScript.loadModule("CA", {
 					self.history.setAdapter(EmptyAdapter);
 				} else {
 					if (self.hisEmpty || force) {
-						self.hisAdapter.setArray(CA.his);
+						self.hisAdapter.notifyChange();
 						self.history.setAdapter(self.hisAdapter.self);
 					} else {
 						self.hisAdapter.notifyChange();
@@ -2101,7 +2101,7 @@ MapScript.loadModule("CA", {
 					self.list.setAdapter(EmptyAdapter);
 				} else {
 					if (self.adapter) {
-						self.adapter.setArray(self.array);
+						self.adapter.setSync(self.array);
 					} else {
 						self.list.setAdapter(a = new SimpleListAdapter(self.array, self.vmaker, self.vbinder));
 						self.adapter = SimpleListAdapter.getController(a);
@@ -2327,7 +2327,7 @@ MapScript.loadModule("CA", {
 				return layout;
 			}
 			self.vbinder = function(holder, e, i) {
-				holder.busy = true;
+				holder.busy = true;Log.d(i);
 				holder.check.setChecked(self.selection[i] == true);
 				holder.text1.setText(e.key);
 				holder.text2.setText(e.children ? "文件夹，包含" + e.children.length + "个成员" : e.value);
@@ -4271,7 +4271,7 @@ MapScript.loadModule("CA", {
 				});
 			}
 			self.processing = false;
-			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
 
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
@@ -4909,7 +4909,7 @@ MapScript.loadModule("CA", {
 				}
 				self.adpt.setArray(arr);
 			}
-			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
 			self.linear = new G.LinearLayout(ctx);
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 			Common.applyStyle(self.linear, "container_default");
