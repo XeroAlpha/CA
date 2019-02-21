@@ -663,7 +663,7 @@
 		if (url.slice(-1) != "/") url += "/";
 		infourl = url + "info.json";
 		try {
-			info = JSON.parse(Updater.queryPage(infourl));
+			info = JSON.parse(NetworkUtils.queryPage(infourl));
 		} catch(e) {
 			Log.e(e);
 			return;
@@ -681,7 +681,7 @@
 		if (pageNo < info.pages.length) return info.pages[pageNo];
 		try {
 			while (true) {
-				page = JSON.parse(Updater.queryPage(info.nextPage));
+				page = JSON.parse(NetworkUtils.queryPage(info.nextPage));
 				if (page.pageNo != info.pages.length || page.sourceId != info.sourceId) throw "Not a regular library source";
 				info.nextPage = page.nextPage;
 				info.pages.push(page.content);
@@ -696,7 +696,7 @@
 		var map;
 		if (info.libMap) return info.libMap;
 		try {
-			map = JSON.parse(Updater.queryPage(info.map));
+			map = JSON.parse(NetworkUtils.queryPage(info.map));
 			if (map.sourceId != info.sourceId) throw "Not a regular library source";
 			return info.libMap = map.content;
 		} catch(e) {
@@ -855,10 +855,10 @@
 			if (typeof u == "function") {
 				r = libinfo.update();
 			} else if (typeof u == "string" && (u.startsWith("http://") || u.startsWith("https://"))) {
-				r = JSON.parse(Updater.queryPage(u));
+				r = JSON.parse(NetworkUtils.queryPage(u));
 			} else {
 				t = this.requestUpdateUrlFromDefSrc(libinfo.uuid);
-				if (t) r = JSON.parse(Updater.queryPage(t));
+				if (t) r = JSON.parse(NetworkUtils.queryPage(t));
 			}
 			if (!(r instanceof Object) || !Array.isArray(r.version)) {
 				return callback(-1);
@@ -895,7 +895,7 @@
 						}
 					}
 				} else {
-					Updater.download(updateInfo.url, libInfo.src);
+					NetworkUtils.download(updateInfo.url, libInfo.src);
 				}
 			} catch(e) {
 				statusListener("downloadError", e);

@@ -14,7 +14,11 @@ MapScript.loadModule("GiteeFeedback", {
 		}
 	},
 	getAuthorizeUrl : function() {
-		return "https://gitee.com/oauth/authorize?client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&response_type=code";
+		return "https://gitee.com/oauth/authorize?" + NetworkUtils.toQueryString({
+			client_id : this.clientId,
+			redirect_uri : this.redirectUrl,
+			response_type : "code"
+		});
 	},
 	acquireAccessTokenAnonymous : function() {
 		this.accessType = "anonymous";
@@ -22,21 +26,27 @@ MapScript.loadModule("GiteeFeedback", {
 		this.accessData = null;
 	},
 	acquireAccessTokenOAuth : function(authorizationCode) {
-		var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token?grant_type=authorization_code&code=" + authorizationCode + "&client_id=" + this.clientId + "&redirect_uri=" + encodeURIComponent(this.redirectUrl) + "&client_secret=" + this.clientSecret));
+		var d = JSON.parse(NetworkUtils.postPage("https://gitee.com/oauth/token?" + NetworkUtils.toQueryString({
+			grant_type : "authorization_code",
+			code : authorizationCode,
+			client_id : this.clientId,
+			redirect_uri : this.redirectUrl,
+			client_secret : this.clientSecret
+		})));
 		this.accessType = "oauth";
 		this.accessToken = d.access_token;
 		d.expiredDate = d.created_at + d.expires_in;
 		this.accessData = d;
 	},
 	acquireAccessToken : function(userName, password) {
-		var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token", [
-			"grant_type=password",
-			"username=" + encodeURIComponent(userName),
-			"password=" + encodeURIComponent(password),
-			"client_id=" + this.clientId,
-			"client_secret=" + this.clientSecret,
-			"scope=" + encodeURIComponent("user_info issues notes")
-		].join("&"), "application/x-www-form-urlencoded"));
+		var d = JSON.parse(NetworkUtils.postPage("https://gitee.com/oauth/token", NetworkUtils.toQueryString({
+			grant_type : "password",
+			username : userName,
+			password : password,
+			client_id : this.clientId,
+			client_secret : this.clientSecret,
+			scope : "user_info issues notes"
+		}), "application/x-www-form-urlencoded"));
 		this.accessType = "basic";
 		this.accessToken = d.access_token;
 		d.expiredDate = d.created_at + d.expires_in;
@@ -45,7 +55,10 @@ MapScript.loadModule("GiteeFeedback", {
 	refreshAccessToken : function(force) {
 		if (this.accessData) {
 			if (force || this.accessData.expiredDate < Date.now()) {
-				var d = JSON.parse(Updater.postPage("https://gitee.com/oauth/token?grant_type=refresh_token&refresh_token=" + this.accessData.refresh_token));
+				var d = JSON.parse(NetworkUtils.postPage("https://gitee.com/oauth/token?" + NetworkUtils.toQueryString({
+					grant_type : "refresh_token",
+					refresh_token : this.accessData.refresh_token
+				})));
 				this.accessToken = d.access_token;
 				d.expiredDate = d.created_at + d.expires_in;
 				this.accessData = d;
@@ -69,13 +82,19 @@ MapScript.loadModule("GiteeFeedback", {
 		return t;
 	},
 	getUserInfo : function() {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/user?access_token=" + this.accessToken));
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/user?" + NetworkUtils.toQueryString({access_token : this.accessToken})));
 	},
 	getIssues : function(state, page) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues?state=" + state + "&sort=created&direction=desc&page=" + page + "&per_page=" + this.perPage));
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues?" + NetworkUtils.toQueryString({
+			state : state,
+			sort : "created",
+			direction : "desc",
+			page : page,
+			per_page : this.perPage
+		})));
 	},
 	createIssue : function(title, body) {
-		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues", JSON.stringify({
+		return JSON.parse(NetworkUtils.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues", JSON.stringify({
 			"access_token": this.accessToken,
 			"repo": this.targetRepo,
 			"title": title,
@@ -83,10 +102,10 @@ MapScript.loadModule("GiteeFeedback", {
 		}), "application/json;charset=UTF-8"));
 	},
 	getIssue : function(number) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number));
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number));
 	},
 	updateIssue : function(number, map) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues/" + number, "PATCH", JSON.stringify({
+		return JSON.parse(NetworkUtils.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/issues/" + number, "PATCH", JSON.stringify({
 			"access_token": this.accessToken,
 			"repo": this.targetRepo,
 			"title": map.title,
@@ -95,25 +114,28 @@ MapScript.loadModule("GiteeFeedback", {
 		}), "application/json;charset=UTF-8"));
 	},
 	getIssueComment : function(id) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id));
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id));
 	},
 	getIssueComments : function(number, page) {
-		return JSON.parse(Updater.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments?page=" + page + "&per_page=" + this.perPage));
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments?" + NetworkUtils.toQueryString({
+			page : page,
+			per_page : this.perPage
+		})));
 	},
 	createIssueComment : function(number, body) {
-		return JSON.parse(Updater.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments", JSON.stringify({
+		return JSON.parse(NetworkUtils.postPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/" + number + "/comments", JSON.stringify({
 			"access_token": this.accessToken,
 			"body": body
 		}), "application/json;charset=UTF-8"));
 	},
 	updateIssueComment : function(id, body) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "PATCH", JSON.stringify({
+		return JSON.parse(NetworkUtils.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "PATCH", JSON.stringify({
 			"access_token": this.accessToken,
 			"body": body
 		}), "application/json;charset=UTF-8"));
 	},
 	deleteIssueComment : function(id) {
-		return JSON.parse(Updater.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "DELETE", JSON.stringify({
+		return JSON.parse(NetworkUtils.request("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues/comments/" + id, "DELETE", JSON.stringify({
 			"access_token": this.accessToken
 		}), "application/json;charset=UTF-8"));
 	},

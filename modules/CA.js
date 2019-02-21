@@ -387,7 +387,7 @@ MapScript.loadModule("CA", {
 						PopupPage.show();
 					}
 				} else {
-					CA.showGen(CA.settings.noAnimation);
+					CA.showMain(CA.settings.noAnimation);
 				}
 			}
 			self.refreshAlpha = function() {
@@ -486,6 +486,10 @@ MapScript.loadModule("CA", {
 		{ action : "ca.editClipboard" },
 		{ action : "ca.quickPaste" }
 	],
+
+	showMain : function(noAnimation) {
+		this.showGen(noAnimation);
+	},
 
 	showGen : function self(noani) {G.ui(function() {try {
 		if (!self.main) {
@@ -2440,7 +2444,7 @@ MapScript.loadModule("CA", {
 				if (self.refreshed) return;
 				self.refreshed = true;
 				CA.resetGUI();
-				CA.showGen(true);
+				CA.showMain(true);
 				if (f) CA.showSettings();
 				CA.showIcon();
 			}
@@ -2493,18 +2497,15 @@ MapScript.loadModule("CA", {
 					return Updater.getVersionInfo();
 				},
 				onclick : function(fset) {
-					if (Updater.latest && Date.parse(CA.publishDate) >= Date.parse(Updater.latest)) {
-						Updater.askHurryDevelop(function(yes) {
-							if (yes) {
-								CA.showDonateDialog();
-							}
+					if (Updater.latest && !(Date.parse(CA.publishDate) < Date.parse(Updater.latest))) {
+						Common.toast("目前没有已公开的更新版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
+					} else {
+						Updater.checkUpdate(function() {
+							G.ui(function() {try {
+								fset();
+							} catch(e) {erp(e)}});
 						});
 					}
-					Updater.checkUpdate(function() {
-						G.ui(function() {try {
-							fset();
-						} catch(e) {erp(e)}});
-					});
 				}
 			}, {
 				name : "相关信息",
@@ -2515,7 +2516,7 @@ MapScript.loadModule("CA", {
 						code : CA.help
 					});
 				}
-			},{
+			}, {
 				name : "分享链接",
 				type : "custom",
 				onclick : function() {
@@ -2530,7 +2531,7 @@ MapScript.loadModule("CA", {
 						Common.toast("下载链接已复制到剪贴板");
 					}
 				}
-			},{
+			}, {
 				name : "加入交流群",
 				type : "custom",
 				onclick : function() {
@@ -2543,34 +2544,41 @@ MapScript.loadModule("CA", {
 						Log.e(e);
 					}
 				}
-			},{
+			}, {
 				name : "提出意见/反馈bug",
 				type : "custom",
 				onclick : function() {
 					GiteeFeedback.showFeedbacks();
 				}
-			},{
+			}, {
 				name : "向作者捐助",
 				type : "custom",
 				onclick : function() {
 					CA.showDonateDialog();
 				}
-			},{
+			}, {
+				id : "betaUpdate",
+				name : "加入Beta计划",
+				description : "体验新功能，但可能不稳定",
+				type : "boolean",
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
 				name : "开发者工具",
 				type : "tag"
-			},{
+			}, {
 				name : "JSON编辑器",
 				type : "custom",
 				onclick : function() {
 					JSONEdit.main();
 				}
-			},{
+			}, {
 				name : "错误记录",
 				type : "custom",
 				onclick : function() {
 					CA.manageErrors();
 				}
-			},{
+			}, {
 				name : "控制台",
 				type : "custom",
 				onclick : function(fset) {
@@ -4760,29 +4768,36 @@ MapScript.loadModule("CA", {
 			maxSupportVer : "1.1.*",
 		}
 	},
-	getQRCode : function(w, size, code) {
-		var bytes = android.util.Base64.decode(code, 2), x, y;
-		var bmp = G.Bitmap.createBitmap(w, w, G.Bitmap.Config.ARGB_8888);
+	getQRCode : function(bmp, code, decorator) {
+		var bytes = android.util.Base64.decode(code.bytes, 2), x, y, p;
 		var cv = new G.Canvas(bmp);
 		var pt = new G.Paint();
 		pt.setAntiAlias(true);
 		pt.setColor(G.Color.BLACK);
 		pt.setStyle(G.Paint.Style.FILL);
 		cv.drawColor(G.Color.WHITE);
-		cv.scale(w / (size + 2), w / (size + 2));
+		cv.scale(bmp.width / (code.width + 2), bmp.height / (code.height + 2));
 		cv.translate(1, 1);
-		for (x = 0; x < size; x++) {
-			for (y = 0; y < size; y++) {
-				t = x * size + y;
-				if (bytes[t >> 3] & new java.lang.Integer(1 << (t & 7)).byteValue()) {
+		for (y = 0; y < code.height; y++) {
+			for (x = 0; x < code.width; x++) {
+				p = y * code.width + x;
+				if (bytes[p >> 3] & new java.lang.Integer(1 << (p & 7)).byteValue()) {
 					cv.drawRect(x, y, x + 1, y + 1, pt);
 				}
+			}
+		}
+		if (decorator) {
+			if (decorator.type == "drawable") {
+				var wr = code.whiteRect, dr = decorator.drawable;
+				dr.setBounds(wr.x, wr.y, wr.width + wr.x, wr.height + wr.y);
+				dr.draw(cv);
 			}
 		}
 		return bmp;
 	},
 	showDonateDialog : function() {G.ui(function() {try {
-		var layout, scr, text, img, exit, popup, bmp;
+		var layout, scr, text, img, exit, popup;
+		var bmp = G.Bitmap.createBitmap(240 * G.dp, 240 * G.dp, G.Bitmap.Config.ARGB_8888);
 		scr = new G.ScrollView(ctx);
 		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
@@ -4797,7 +4812,15 @@ MapScript.loadModule("CA", {
 		Common.applyStyle(text, "textview_default", 4);
 		layout.addView(text);
 		img = new G.ImageView(ctx);
-		img.setImageBitmap(bmp = CA.getQRCode(240 * G.dp, 37, "f14l0z9I5TYKdmlZGN0u/Fqj23XvNXSDsjOw4F9VVfUHyOz0AOLWOvZhY0LFaqU5K4ae3tR7QsN1ohFOM+T/sdDdGmA6z4wzpGj+UIJ3zPZMdJtCMYGq25wk00tBnyRrXC/gBPP2NvS/IVGoqmhh9vOqg6r3/O3sZJ+d5TUcEhEzZH1mj/8BBAsu+t9uZlYJOv+vGF1mVPa1S9lj5nRBFDaWoDvEzvsHu9S5AQ=="));
+		img.setImageBitmap(bmp = CA.getQRCode(bmp, {
+			width : 37,
+			height : 37,
+			bytes : "f+5oxj9oaDwKdmHNTN0u32Sn26X/93WDmjaW4F9VVfUHSJy6APDamtfo4k7gfkVVGHqmVyYOINE/Gh7ENfBFvnNfAeDlwm0AGJfrCIDm1OID4FN+IwDaHtgLgGHtnwEIPRYWAD4BFAKAZVRkAIhmU1Sr575z4GtlMC9mq3ZQMFMqPj66Qr8Bqko9xt/cjVcI6vKK6F2HMPa/y4FlUndxX9u9IPHQHvgHZQOTAQ==",
+			whiteRect : { x : 14, y : 15, width : 8, height : 8 }
+		}, {
+			type : "drawable",
+			drawable : MapScript.host == "Android" ? ctx.getResources().getDrawable(com.xero.ca.R.drawable.icon, ctx.getTheme()) : new G.ColorDrawable(G.Color.BLACK)
+		}));
 		img.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
 		img.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			try {
@@ -4820,12 +4843,17 @@ MapScript.loadModule("CA", {
 		Common.applyStyle(exit, "button_critical", 3);
 		exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 			popup.exit();
-			bmp.recycle();
 			Common.toast("感谢您的支持！");
 		} catch(e) {erp(e)}}}));
 		layout.addView(exit);
 		scr.addView(layout);
 		popup = PopupPage.showDialog("ca.DonateDialog", scr, -2, -2);
+		popup.on("exit", function() {
+			img.postDelayed(function() {try {
+				img.setImageDrawable(null);
+				bmp.recycle();
+			} catch(e) {erp(e)}}, 1000);
+		});
 	} catch(e) {erp(e)}})},
 	chooseIDList : function(callback) {
 		var allIds = [];

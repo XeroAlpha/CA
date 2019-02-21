@@ -457,6 +457,12 @@ MapScript.loadModule("Loader", {
 		for (i = 0; i < a.length; i++) {
 			if (typeof obj[a[i]] == "function") this.lockProperty(obj, a[i]);
 		}
+	},
+	lockFields : function(obj, fields) {
+		var i, a = fields || Object.getOwnPropertyNames(obj);
+		for (i = 0; i < a.length; i++) {
+			if (typeof obj[a[i]] != "function") this.lockProperty(obj, a[i]);
+		}
 	}
 });
 
@@ -500,6 +506,8 @@ Loader.fromFile("modules/listAdapter/SimpleListAdapter.js")
 Loader.fromFile("modules/listAdapter/MultipleListAdapter.js")
 
 Loader.fromFile("modules/listAdapter/ExpandableListAdapter.js")
+
+Loader.fromFile("modules/network/NetworkUtils.js")
 
 Loader.fromFile("modules/network/Updater.js")
 
