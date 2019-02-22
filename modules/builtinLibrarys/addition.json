@@ -6,7 +6,7 @@
 	"version": [0, 0, 1],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.4.0.5",
+	"targetSupportVer": "1.11.0.1",
 	"commands": {},
 	"enums": {
 		"structure": {
@@ -16,6 +16,8 @@
 			"mansion": "林地府邸",
 			"mineshaft": "废弃矿井",
 			"monument": "海底遗迹",
+			"newvillage": "村庄（新版）",
+			"pillageroutpost": "掠夺者前哨站",
 			"ruins": "水下遗迹",
 			"shipwreck": "沉船",
 			"stronghold": "要塞",
@@ -101,7 +103,7 @@
 			},
 			"minSupportVer": "0.17"
 		},
-		"1.0.3 build 1": {
+		"transferserver": {
 			"commands": {
 				"transferserver": {
 					"description": "将玩家转送至另一服务器",
@@ -122,7 +124,8 @@
 					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#transferserver"
 				}
 			},
-			"minSupportVer": "1.0.3.0"
+			"minSupportVer": "1.0.3.0",
+			"maxSupportVer": "1.3.*"
 		},
 		"1.1": {
 			"commands": {
@@ -196,6 +199,47 @@
 				}
 			},
 			"minSupportVer": "1.2.5.12"
+		},
+		"1.10.0.3": {
+			"commands": {
+				"videostream": {
+					"description": "尝试连接到一个WebSocket服务器以发送视频流",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "服务器URL"
+								},
+								{
+									"type": "uint",
+									"name": "截屏发送频率"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#videostream"
+				},
+				"videostreamaction": {
+					"description": "执行一个视频流操作",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "enum",
+									"name": "操作名",
+									"list": {
+										"none": "",
+										"close": ""
+									}
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#videostream"
+				}
+			},
+			"minSupportVer": "1.10.0.3"
 		}
 	}
 }
