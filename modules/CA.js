@@ -603,6 +603,10 @@ MapScript.loadModule("CA", {
 			self.getBgImage = function() {
 				if (CA.settings.bgImage) {
 					var drawable = G.Drawable.createFromPath(CA.settings.bgImage);
+					if (drawable instanceof G.AnimatedImageDrawable) {
+						drawable.setRepeatCount(-1);
+						drawable.start();
+					}
 					return drawable;
 				}
 			}
@@ -4682,7 +4686,23 @@ MapScript.loadModule("CA", {
 		var frm = new G.FrameLayout(ctx);
 		var view = new G.ImageView(ctx);
 		var drawable;
-		drawable = G.Drawable.createFromPath(path);
+		if (android.os.Build.VERSION.SDK_INT >= 28) {
+			try {
+				drawable = G.ImageDecoder.decodeDrawable(G.ImageDecoder.createSource(new java.io.File(path)), new G.ImageDecoder.OnHeaderDecodedListener({
+					onHeaderDecoded : function(decoder, info, source) {
+						decoder.setTargetSize(w, w);
+					}
+				}));
+				if (drawable instanceof G.AnimatedImageDrawable) {
+					drawable.setRepeatCount(-1);
+					drawable.start();
+				}
+			} catch(e) {
+				Log.e(e);
+			}
+		} else {
+			drawable = G.Drawable.createFromPath(path);
+		}
 		if (drawable) {
 			view.setImageDrawable(drawable);
 		} else if (preview) {
