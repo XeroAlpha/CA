@@ -1,3 +1,4 @@
+const fs = require("fs");
 module.exports = function(context, args) {
 	fs.writeFileSync(context.cwd + "/dist/update.json", JSON.stringify({
 		"time": context.buildConfig.publishTime,
