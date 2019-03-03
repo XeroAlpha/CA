@@ -1,12 +1,12 @@
 const process = require("process");
 const fs = require("fs");
-var Tasks = {};
+var Tasks = require("./tasks");
 var Build = {
-	execute : function(task, args, topLevel) {
+	execute : function(task, args) {
 		console.log("Process " + task);
 		return executeTask(task, args)
 			.then(result => {
-				if (!topLevel) console.log("Success " + task);
+				console.log("Success " + task);
 				return result;
 			}, reason => {
 				console.log("Failed  " + task + " : " + reason);
@@ -32,13 +32,26 @@ function getFileName(nameWithExt) {
 	return p >= 0 ? nameWithExt.slice(0, p) : nameWithExt;
 }
 function procArgs() {
-	var i, args = process.argv, taskArgs = [], time = Date.now();
+	var i, args = process.argv, task, taskArgs = [], time = Date.now();
+	task = args[2] || "help";
 	for (i = 3; i < args.length; i++) {
 		taskArgs.push(args[i]);
 	}
-	Build.execute(args[2], taskArgs, true).then(() => {
-		console.log("Success " + args[2] + " in " + ((Date.now() - time) / 1000).toFixed(2) + "s")
-	});
+	console.log("Process " + task);
+	try {
+		if (!(task in Tasks)) throw new Error("Task not found: " + task);
+		if (Tasks[task].input != "cli") throw new Error("Task is not available in CLI: " + task);
+		executeTask(task, taskArgs)
+			.then(result => {
+				console.log("Success " + task + " in " + ((Date.now() - time) / 1000).toFixed(2) + "s");
+				return result;
+			}, reason => {
+				console.log("Failed  " + task + " : " + reason);
+				process.exit(1);
+			});
+	} catch(e) {
+		console.log(String(e));
+	}
 }
 function initTasks(path) {
 	var e, fn, files = fs.readdirSync(path);

@@ -6,7 +6,7 @@ function digestSHA1(data) {
 	return digest.digest("base64");
 }
 module.exports = function(context, args) {
-	fs.writeFileSync(context.cwd + "/dist/hotfix.json", JSON.stringify({
+	fs.writeFileSync(context.cwd + "/dist/hotfix/" + context.buildConfig.variants + ".json", JSON.stringify({
 		"time": context.buildConfig.publishTime,
 		"version": context.buildConfig.date,
 		"belongs": context.buildConfig.version,

@@ -29,3 +29,4 @@ module.exports = function(context, args) {
 		.then(context.task("shellExportApk"))
 		.then(context.task("shellWriteUpdate"));
 }
+module.exports.input = "cli";

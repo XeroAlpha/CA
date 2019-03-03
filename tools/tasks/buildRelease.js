@@ -10,3 +10,4 @@ module.exports = function(context, args) {
 		.then(context.pipe("writeRelease"))
 		.then(context.task("writeUpdate"));
 }
+module.exports.input = "cli";

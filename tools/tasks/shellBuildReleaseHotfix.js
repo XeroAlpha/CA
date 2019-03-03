@@ -17,3 +17,4 @@ module.exports = function(context, args) {
 		.then(context.pipe("shellWriteHotfixLib"))
 		.then(context.task("shellWriteUpdate"));
 }
+module.exports.input = "cli";

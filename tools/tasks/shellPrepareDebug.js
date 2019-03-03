@@ -9,3 +9,4 @@ module.exports = function(context, args) {
 		.then(context.pipe("shellWriteScript"))
 		.then(context.task("shellUpdateGradle"));
 }
+module.exports.input = "cli";

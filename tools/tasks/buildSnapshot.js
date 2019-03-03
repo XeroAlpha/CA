@@ -4,5 +4,7 @@ module.exports = function(context, args) {
 		.then(context.task("getBuildConfig", "snapshot"))
 		.then(context.task("getSourceCode"))
 		.then(context.pipe("preprocessSnapshot"))
-		.then(context.pipe("writeSnapshot"));
+		.then(context.pipe("writeSnapshot"))
+		.then(context.task("writeUpdate"));
 }
+module.exports.input = "cli";
