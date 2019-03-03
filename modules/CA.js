@@ -19,8 +19,9 @@ MapScript.loadModule("CA", {
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
-	version : [1, 2, 8],
-	publishDate : "{DATE}",
+	version : BuildConfig.versionCode,
+	versionName : BuildConfig.version,
+	publishDate : BuildConfig.date,
 	help : Loader.fromFile("raw/about.js"),
 	tips : [],
 
@@ -2456,7 +2457,7 @@ MapScript.loadModule("CA", {
 				name : "关于命令助手",
 				type : "custom",
 				get : function() {
-					return "v" + CA.version.join(".");
+					return CA.versionName;
 				},
 				onclick : function(fset) {
 					Common.showSettings("关于", self.about);

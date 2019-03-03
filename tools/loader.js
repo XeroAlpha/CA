@@ -38,7 +38,7 @@ function load(path, variables) {
 	for (i = 0; i < r.length; i++) {
 		r[i] = r[i].replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
 			var frontSpace = r[i].match(/^\s*/);
-			var res = load(parent ? parent + "/" + mpath : mpath).split("\n");
+			var res = load(parent ? parent + "/" + mpath : mpath, variables).split("\n");
 			if (frontSpace) {
 				addFrontSpace(res, frontSpace[0]);
 			}

@@ -1,0 +1,1 @@
+exports.initDirectory = require("./tasks/initDirectory.js");

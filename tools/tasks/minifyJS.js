@@ -1,29 +1,9 @@
-var fs = require("fs");
-var process = require("process");
-var zlib = require("zlib");
-
-function main(src, dest) {
-	var s = fs.readFileSync(src), o;
-	var dh = Buffer.alloc(15), date = Date.now();
-	dh.write("LIBRARY");
-	dh.writeInt32BE(Math.floor(date / 0xffffffff), 7);
-	dh.writeInt32BE(date & 0xffffffff, 11);
-	s = zlib.gzipSync(s);
-	o = Buffer.alloc(dh.length + s.length);
-	dh.copy(o, 0);
-	s.copy(o, dh.length);
-	if (dest) fs.writeFileSync(dest, o);
-	return o;
+module.exports = function(context, args) {
+	return jsmin("", args[0], 1);
 }
-
-// JavaScript Document
 String.prototype.has = function(c) {
     return this.indexOf(c) > -1;
 };
-
-if (process.argv.length == 4) main(process.argv[2], process.argv[3]);
-module.exports = main;
-
 function jsmin(comment, input, level) {
     if (input === undefined) {
         input = comment;

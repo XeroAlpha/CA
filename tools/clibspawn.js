@@ -142,5 +142,5 @@ function digestSHA1(data) {
 	return digest.digest("base64");
 }
 
-if (process.argv[2]) main(process.argv[2]);
+if (require.main == module) main(process.argv[2]);
 module.exports = main;

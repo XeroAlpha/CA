@@ -19,5 +19,5 @@ function main(src, prvkey, dest) {
 	return o;
 }
 
-if (process.argv.length == 5) main(process.argv[2], process.argv[3], process.argv[4]);
+if (require.main == module) main(process.argv[2], process.argv[3], process.argv[4]);
 module.exports = main;

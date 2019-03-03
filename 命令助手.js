@@ -467,6 +467,8 @@ MapScript.loadModule("Loader", {
 });
 
 Loader.load(function() {
+Loader.fromFile("modules/BuildConfig.js")
+
 Loader.fromFile("modules/test/FileLogger.js")
 
 Loader.fromFile("modules/uiCore/G.js")
