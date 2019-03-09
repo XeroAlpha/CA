@@ -16,15 +16,18 @@ MapScript.loadModule("Updater", {
 		}
 		throw lastError;
 	},
-	getUpdateInfo : function(callback, silently) {
+	cleanCache : function() {
+		this.lastcheck = this.latest = null;
+	},
+	getUpdateInfo : function(sources, callback, silently) {
 		var r;
 		try {
 			if (this.lastcheck) {
 				r = this.lastcheck;
 			} else {
-				this.lastcheck = r = JSON.parse(this.queryFromSources(this.sources));
+				this.lastcheck = r = JSON.parse(this.queryFromSources(sources));
 			}
-			callback(Date.parse(r.version) - Date.parse(CA.publishDate), r.version, r);
+			callback(r);
 		} catch(e) {
 			Log.e(e);
 			if (!silently) return Common.toast("检测更新失败，请检查网络连接\n(" + e + ")");
@@ -32,13 +35,13 @@ MapScript.loadModule("Updater", {
 	},
 	getVersionInfo : function() {
 		if (this.checking) return "正在检查版本……";
-		if (!this.latest) return "版本：" + CA.publishDate;
-		if (Date.parse(CA.publishDate) < Date.parse(this.latest)) {
-			return "更新：" + CA.publishDate + " -> " + this.latest;
-		} else if (Date.parse(CA.publishDate) == Date.parse(this.latest)) {
+		if (!this.latest) return "版本：" + BuildConfig.date;
+		if (Date.parse(BuildConfig.date) < Date.parse(this.latest)) {
+			return "更新：" + BuildConfig.date + " -> " + this.latest;
+		} else if (Date.parse(BuildConfig.date) == Date.parse(this.latest)) {
 			return "您使用的是最新版本";
 		} else {
-			return "Beta版本：" + CA.publishDate;
+			return "Beta版本：" + BuildConfig.date;
 		}
 	},
 	checkUpdate : function(callback, silently) {
@@ -49,18 +52,42 @@ MapScript.loadModule("Updater", {
 		this.checking = true;
 		if (callback) callback();
 		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-			Updater.getUpdateInfo(function(flag, date, info) {
-				if (flag > 0) {
-					Updater.showUpdateDialog(info);
-				} else if (!silently) {
-					if (flag == 0) {
-						Common.toast("当前已经是最新版本：" + date);
-					} else {
-						Common.toast("目前您正在使用Beta版本，目前暂未公开Beta版的更新");
-					}
+			if (CA.settings.betaUpdate) {
+				var snapshotVer;
+				try {
+					snapshotVer = JSON.parse(Common.readFile(MapScript.baseDir + "snapshot.json", null, true)).version;
+				} catch(e) {
+					Log.e(e);
 				}
-				Updater.latest = date;
-			}, silently);
+				if (!snapshotVer) snapshotVer = BuildConfig.date;
+				Updater.getUpdateInfo(Updater.betaSources, function(info) {
+					var flag = Date.parse(info.version) - Date.parse(snapshotVer);
+					if (flag > 0) {
+						Updater.showBetaUpdateDialog(info);
+					} else if (!silently) {
+						if (flag == 0) {
+							Common.toast("当前已经是最新Beta版本：" + snapshotVer);
+						} else {
+							Common.toast("目前没有更新的Beta版本，您可以在设置中关闭Beta计划以查看是否有更新的正式版");
+						}
+					}
+					Updater.latest = info.version;
+				}, silently);
+			} else {
+				Updater.getUpdateInfo(Updater.sources, function(info) {
+					var flag = Date.parse(info.version) - Date.parse(BuildConfig.date);
+					if (flag > 0) {
+						Updater.showUpdateDialog(info);
+					} else if (!silently) {
+						if (flag == 0) {
+							Common.toast("当前已经是最新版本：" + BuildConfig.date);
+						} else {
+							Common.toast("目前您正在使用Beta版本，目前暂未公开Beta版的更新");
+						}
+					}
+					Updater.latest = info.version;
+				}, silently);
+			}
 			if (callback) callback();
 			Updater.checking = false;
 		} catch(e) {erp(e)}}}));
@@ -153,7 +180,7 @@ MapScript.loadModule("Updater", {
 						bold : true
 					},
 					"\n发布时间：", String(Updater.toChineseDate(info.time)),
-					"\n最近更新内容：\n", info.info
+					"\n更新内容：\n", info.info
 				],
 				color : "textcolor"
 			}]),
@@ -182,31 +209,76 @@ MapScript.loadModule("Updater", {
 			}
 		});
 	},
+	showBetaUpdateDialog : function(info) {
+		var buttons = [{
+			text : "快速更新",
+			onclick : function() {
+				Common.showProgressDialog(function(dia) {
+					dia.setText("下载中……");
+					try {
+						if (!NetworkUtils.downloadGz(info.snapshot.url, MapScript.baseDir + "snapshot.js", info.snapshot.sha1)) {
+							Updater.cleanBeta();
+							throw "文件校验失败";
+						}
+						ctx.getSharedPreferences("user_settings", ctx.MODE_PRIVATE).edit().putString("debugSource", MapScript.baseDir + "snapshot.js").apply();
+						Common.saveFile(MapScript.baseDir + "snapshot.json", JSON.stringify(info), true);
+						Common.toast("更新成功，将在下次启动快照时生效");
+					} catch(e) {
+						Common.toast("下载更新失败\n" + e);
+					}
+				});
+			},
+			visible : function() {
+				return MapScript.host == "Android";
+			}
+		}, {
+			text : "加入内测群获得",
+			onclick : function() {
+				Common.setClipboardText("671317302");
+				Common.toast("群号已复制到剪贴板");
+			},
+			visible : function() {
+				return MapScript.host != "Android";
+			}
+		}, {
+			text : "稍后提醒"
+		}].filter(function(e) {
+			if (e.visible && !e.visible()) return false;
+			return true;
+		});
+		Common.showConfirmDialog({
+			title : "命令助手Beta版更新啦！", 
+			description : ISegment.rawJson({
+				extra : [
+					{
+						text : "最新版本：" + info.version,
+						bold : true
+					},
+					"\n发布时间：", String(Updater.toChineseDate(info.time)),
+					"\n更新内容：\n", info.info
+				],
+				color : "textcolor"
+			}),
+			buttons : buttons.map(function(e) {
+				return e.text;
+			}),
+			callback : function(i) {
+				if (i in buttons && buttons[i].onclick) buttons[i].onclick();
+			}
+		});
+	},
+	cleanBeta : function() {
+		Common.deleteFile(MapScript.baseDir + "snapshot.json");
+		Common.deleteFile(MapScript.baseDir + "snapshot.js");
+	},
 	showNewVersionInfo : function(oldVer) {
-		this.checking = true;
-		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-			Updater.getUpdateInfo(function(flag, date, info) {
-				if (flag >= 0) {
-					Common.showTextDialog(G.Html.fromHtml([
-						"<b>命令助手已更新！</b>",
-						"<b>" + oldVer + " -> " + info.version + "</b>\t(" + info.belongs + ")",
-						"发布时间：" + Updater.toChineseDate(info.time),
-						"<br />最近更新内容：",
-						info.info.replace(/\n/g, "<br />")
-					].join("<br />")));
-				} else {
-					Common.showTextDialog(G.Html.fromHtml([
-						"<b>欢迎使用命令助手 公测版本</b>",
-						"<b>" + oldVer + " -> " + CA.publishDate + "</b>\t(" + CA.version.join(".") + ")",
-						"公测版容易出现bug。如果出现bug，欢迎加入命令助手讨论区向我反馈。",
-						"MCPE命令助手讨论区：" + Updater.toAnchor("207913610", "https://jq.qq.com/?_wv=1027&k=46Yl84D")
-					].join("<br />")));
-				}
-				Updater.latest = date;
-			}, true);
-			Updater.checking = false;
-		} catch(e) {erp(e)}}}));
-		thread.start();
+		Common.showTextDialog(G.Html.fromHtml([
+			"<b>命令助手已更新！</b>",
+			"<b>" + oldVer + " -> " + BuildConfig.date + "</b>\t(" + BuildConfig.version + ")",
+			"发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
+			"<br />更新内容：",
+			BuildConfig.description.replace(/\n/g, "<br />")
+		].join("<br />")));
 	},
 	askHurryDevelop : function(callback) {
 		Common.showConfirmDialog({
@@ -233,7 +305,9 @@ MapScript.loadModule("Updater", {
 	initialize : function() {
 		if (!CA.settings.skipCheckUpdate && this.isConnected() && !(CA.settings.nextCheckUpdate > Date.now())) {
 			this.checkUpdate(function() {
-				CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600 * 1000;
+				if (!CA.settings.betaUpdate) {
+					CA.settings.nextCheckUpdate = Date.now() + 7 * 24 * 3600 * 1000;
+				}
 			}, true);
 		}
 	},
@@ -244,5 +318,8 @@ MapScript.loadModule("Updater", {
 		"https://projectxero.top/ca/hotfix.json",
 		"https://projectxero.gitee.io/ca/hotfix.json",
 		"https://xeroalpha.github.io/CA/pages/hotfix.json"
+	],
+	betaSources : [
+		"https://projectxero.top/ca/snapshot.json"
 	]
 });

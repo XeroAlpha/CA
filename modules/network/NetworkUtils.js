@@ -61,6 +61,34 @@ MapScript.loadModule("NetworkUtils", {
 		os.close();
 		is.close();
 	},
+	downloadGz : function(url, path, sha1) {
+		const BUFFER_SIZE = 8192;
+		var url = new java.net.URL(url);
+		var conn = url.openConnection();
+		conn.setConnectTimeout(5000);
+		conn.setUseCaches(false);
+		conn.setRequestMethod("GET");
+		conn.connect();
+		var is, os, buf, hr, digest;
+		digest = java.security.MessageDigest.getInstance("SHA-1");
+		is = new java.util.zip.GZIPInputStream(new java.security.DigestInputStream(conn.getInputStream(), digest));
+		os = new java.io.FileOutputStream(path);
+		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
+		while ((hr = is.read(buf)) > 0) os.write(buf, 0, hr);
+		os.close();
+		is.close();
+		return android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP) == sha1;
+	},
+	verifyFile : function(path, sha1) {
+		const BUFFER_SIZE = 8192;
+		var is, digest, buf, hr;
+		digest = java.security.MessageDigest.getInstance("SHA-1");
+		is = new java.io.FileInputStream(path);
+		buf = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, BUFFER_SIZE);
+		while ((hr = is.read(buf)) > 0) digest.update(buf, 0, hr);
+		is.close();
+		return android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP) == sha1;
+	},
 	toQueryString : function(obj) {
 		var i, r = [];
 		for (i in obj) {

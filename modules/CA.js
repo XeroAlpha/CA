@@ -2564,10 +2564,23 @@ MapScript.loadModule("CA", {
 			}, {
 				id : "betaUpdate",
 				name : "加入Beta计划",
-				description : "体验新功能，但可能不稳定",
+				description : "检测Beta版更新，体验新版功能",
 				type : "boolean",
 				get : self.getsettingbool,
-				set : self.setsettingbool
+				set : function(v) {
+					CA.settings.betaUpdate = Boolean(v);
+					if (v) {
+						AndroidBridge.createShortcut(new android.content.Intent("com.xero.ca.DEBUG_EXEC")
+							.setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK), 
+							"命令助手快照",
+							com.xero.ca.R.mipmap.icon_small);
+						Common.toast("桌面快捷方式已创建，如果没看到请检查命令助手是否有创建桌面快捷方式的权限");
+						Updater.cleanCache();
+					} else {
+						Updater.cleanBeta();
+					}
+				}
 			}, {
 				name : "开发者工具",
 				type : "tag"
@@ -3012,7 +3025,7 @@ MapScript.loadModule("CA", {
 							if (id != 0) return;
 							G.ui(function() {try {
 								CA.resetGUI();
-								(new java.io.File(CA.profilePath)).delete();
+								Common.deleteFile(CA.profilePath);
 								CA.initialize();
 								Common.toast("命令助手已重新启动");
 							} catch(e) {erp(e)}});
@@ -4818,9 +4831,11 @@ MapScript.loadModule("CA", {
 			self.getTextHeight = function(text, maxWidth, pt, spacingMult, spacingAdd) {
 				var fontHeight = pt.descent() - pt.ascent();
 				var spacing = spacingMult * fontHeight + spacingAdd;
-				var fromIndex = 0, charCount, lines = 0;
+				var fromIndex = 0, charCount, lfPos, lines = 0;
 				while (fromIndex < text.length) {
 					charCount = pt.breakText(text, fromIndex, text.length, true, maxWidth, null);
+					lfPos = text.indexOf("\n", fromIndex);
+					if (lfPos >= 0 && charCount >= lfPos) charCount = lfPos + 1;
 					lines++;
 					fromIndex += charCount;
 				}
@@ -4829,9 +4844,11 @@ MapScript.loadModule("CA", {
 			self.drawText = function(canvas, text, x, y, maxWidth, pt, spacingMult, spacingAdd) {
 				var fontHeight = pt.descent() - pt.ascent();
 				var spacing = spacingMult * fontHeight + spacingAdd;
-				var fromIndex = 0, charCount;
+				var fromIndex = 0, charCount, lfPos;
 				while (fromIndex < text.length) {
 					charCount = pt.breakText(text, fromIndex, text.length, true, maxWidth, null);
+					lfPos = text.indexOf("\n", fromIndex);
+					if (lfPos >= 0 && charCount >= lfPos) charCount = lfPos + 1;
 					canvas.drawText(text, fromIndex, fromIndex + charCount, x, y, pt);
 					y += fontHeight + spacing;
 					fromIndex += charCount;

@@ -1602,6 +1602,10 @@ MapScript.loadModule("Common", {
 		if (showBytes) r += " (" + l.toLocaleString() + " 字节)";
 		return r;
 	},
+	
+	deleteFile : function(path) {
+		new java.io.File(path).delete();
+	},
 
 	toString : function(s) {
 		return s instanceof java.lang.CharSequence ? s : String(s);
@@ -1629,27 +1633,15 @@ MapScript.loadModule("Common", {
 	},
 
 	hasClipboardText : function() {
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasPrimaryClip();
-		} else {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasText();
-		}
+		return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasPrimaryClip();
 	},
 	getClipboardText : function() {
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			var clip = ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getPrimaryClip();
-			if (!clip) return null;
-			return clip.getItemAt(0).coerceToText(ctx);
-		} else {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getText();
-		}
+		var clip = ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getPrimaryClip();
+		if (!clip) return null;
+		return clip.getItemAt(0).coerceToText(ctx);
 	},
 	setClipboardText : function(text) {
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setPrimaryClip(android.content.ClipData.newPlainText("", text));
-		} else {
-			return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setText(text);
-		}
+		return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setPrimaryClip(android.content.ClipData.newPlainText("", text));
 	},
 
 	getMetrics : function() {
