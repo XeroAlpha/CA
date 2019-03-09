@@ -1,6 +1,7 @@
 module.exports = function(context, args) {
 	context.cwd = args[0];
 	return context.execute("initDirectory")
+		.then(context.task("initUpdateConfig"))
 		.then(context.task("getBuildConfig", "release"))
 		.then(context.task("getSourceCode"))
 		.then(context.pipe("minifyJS"))

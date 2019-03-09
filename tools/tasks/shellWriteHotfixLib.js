@@ -3,7 +3,7 @@ const asLibrary = require("../js2lib");
 module.exports = function(context, args) {
 	var bc = context.buildConfig;
 	var ver = bc.version.split(".").map((e) => parseInt(e));
-	fs.writeFileSync(context.cwd + "/dist/hotfix/hotfix.lib", asLibrary(Buffer.from([
+	fs.writeFileSync(context.cwd + "/dist/hotfix/" + context.buildConfig.variants + ".lib", asLibrary(Buffer.from([
 		'Plugins.inject(function(o){',
 			'const pub=' + JSON.stringify(bc.date) + ',ver=' + JSON.stringify(ver) + ',shell=' + JSON.stringify(context.gradleConfig.shellVersion) + ',ds=' + JSON.stringify(bc.description) + ';',
 			'function u(p,b){',
@@ -23,10 +23,10 @@ module.exports = function(context, args) {
 			'if(MapScript.host!="Android")return void(o.description+="本安装器仅在App版上可用");',
 			'if(shell!=ScriptActivity.getShellVersion())return void(o.description+="本安装器不适用于您的版本");',
 			'u(MapScript.baseDir+"core.js",' + JSON.stringify(args[0].toString("base64")) + ');',
-			'u(MapScript.baseDir+"core.sign",' + JSON.stringify(fs.readFileSync(context.cwd + "/dist/hotfixApk/hotfix.sign").toString("base64")) + ');',
+			'u(MapScript.baseDir+"core.sign",' + JSON.stringify(fs.readFileSync(context.cwd + "/dist/hotfixApk/" + context.buildConfig.variants + ".sign").toString("base64")) + ');',
 			'Common.showTextDialog(o.description+="重新启动命令助手后即可使用");',
 		'})'
 	].join(""))));
-	fs.copyFileSync(context.cwd + "/dist/hotfix/hotfix.lib", context.cwd + "/dist/命令助手(" + bc.date + ").lib");
+	fs.copyFileSync(context.cwd + "/dist/hotfix/" + context.buildConfig.variants + ".lib", context.cwd + "/dist/命令助手(" + bc.date + ").lib");
 	return args[0];
 }

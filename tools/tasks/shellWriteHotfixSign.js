@@ -6,6 +6,6 @@ module.exports = function(context, args) {
 	var signBytes = signature.sign(fs.readFileSync(context.shellcwd + "/app/signatures/privatekey.pem").toString());
 	var versionBytes = Buffer.alloc(4);
 	versionBytes.writeInt32LE(context.gradleConfig.versionCode, 0);
-	fs.writeFileSync(context.cwd + "/dist/hotfixApk/hotfix.sign", Buffer.concat([versionBytes, signBytes]));
+	fs.writeFileSync(context.cwd + "/dist/hotfixApk/" + context.buildConfig.variants + ".sign", Buffer.concat([versionBytes, signBytes]));
 	return args[0];
 }

@@ -4,6 +4,7 @@ module.exports = function(context, args) {
 	context.shellsign = args[2];
 	return context.execute("initDirectory")
 		.then(context.task("initShellConfig"))
+		.then(context.task("initUpdateConfig"))
 		.then(context.task("getBuildConfig", "release"))
 		.then(context.task("shellUpdateGradle"))
 		.then(context.task("getSourceCode"))
