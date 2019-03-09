@@ -1712,5 +1712,17 @@ MapScript.loadModule("Common", {
 		var t = o[i];
 		o[i] = o[j];
 		o[j] = t;
+	},
+	iterableToArray : function(o) {
+		var e, r = [];
+		if (o instanceof java.lang.Iterable) {
+			o = o.iterator();
+		}
+		if (o instanceof java.util.Enumeration) {
+			while (o.hasMoreElements()) r.push(o.nextElement());
+		} else {
+			while (o.hasNext()) r.push(o.next());
+		}
+		return r;
 	}
 });

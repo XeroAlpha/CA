@@ -123,26 +123,23 @@ MapScript.loadModule("WSServer", {
 		Common.toast("出现错误！错误代码：" + json.body.statusCode + "\n" + json.body.statusMessage);
 	},
 	howToUse : function() {
-		var cmd = "/connect " + this.getAddress();
+		var cmd = this.getConnectCommands();
 		Common.showConfirmDialog({
-			description : "WebSocket服务器已开启。请在客户端输入以下命令来连接到服务器。\n" + cmd + "\n\n用法：\n长按命令助手主界面右下角的按钮可执行主界面输入框中的命令\n\n如果显示无法连接请重启命令助手与Minecraft客户端。",
+			description : "WebSocket服务器已开启。请在客户端输入以下命令之一来连接到服务器。\n" + cmd.join("\n") + "\n\n用法：\n长按命令助手主界面右下角的按钮可执行主界面输入框中的命令\n\n如果显示无法连接请重启命令助手与Minecraft客户端。",
 			buttons : ["复制命令", "关闭"],
 			callback : function(i) {
-				if (i == 0) Common.setClipboardText(cmd);
+				if (i == 0) {
+					Common.showListChooser(cmd, function(i) {
+						Common.setClipboardText(cmd[i]);
+					}, true);
+				}
 			}
 		});
 	},
-	getIp : function() {
-		var wm = ctx.getSystemService(ctx.WIFI_SERVICE);
-        if (wm != null && wm.isWifiEnabled()) {
-            var wifiInfo = wm.getConnectionInfo();
-            var i = wifiInfo.getIpAddress();
-            return [i & 0xFF, (i >> 8) & 0xFF, (i >> 16 ) & 0xFF, i >> 24 & 0xFF].join(".");
-        }
-        return "127.0.0.1";
-	},
-	getAddress : function() {
-		return this.getIp() + ":" + this.port;
+	getConnectCommands : function() {
+		return NetworkUtils.getIps().map(function(e) {
+			return "/connect " + e + ":" + WSServer.port;
+		});
 	},
 	uuid : function() {
 		return String(java.util.UUID.randomUUID().toString());

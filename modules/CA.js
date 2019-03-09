@@ -919,7 +919,7 @@ MapScript.loadModule("CA", {
 						if (!WSServer.isAvailable()) {
 							Common.toast("请先在设置中打开WebSocket服务器");
 						} else {
-							Common.toast("请在客户端输入以下指令来连接到服务器。\n/connect " + WSServer.getAddress());
+							Common.toast("请在客户端输入以下指令之一来连接到服务器。\n" + WSServer.getConnectCommands().join("\n"));
 						}
 					}
 					return true;
@@ -3620,7 +3620,7 @@ MapScript.loadModule("CA", {
 						if (!WSServer.isAvailable()) {
 							Common.toast("请先在设置中打开WebSocket服务器");
 						} else {
-							Common.toast("请在客户端输入以下指令来连接到服务器。\n/connect " + WSServer.getAddress());
+							Common.toast("请在客户端输入以下指令之一来连接到服务器。\n" + WSServer.getConnectCommands().join("\n"));
 						}
 					}
 					return true;

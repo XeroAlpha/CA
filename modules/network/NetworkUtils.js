@@ -96,5 +96,19 @@ MapScript.loadModule("NetworkUtils", {
 			r.push(i + "=" + encodeURIComponent(obj[i]));
 		}
 		return r.join("&");
+	},
+	getIps : function() {
+		var ni = Common.iterableToArray(java.net.NetworkInterface.getNetworkInterfaces());
+		var i, e, ips = [];
+		for (i = 0; i < ni.length; i++) {
+			e = Common.iterableToArray(ni[i].getInetAddresses());
+			for (j = 0; j < e.length; j++) {
+				ip = e[j];
+				if (ip instanceof java.net.Inet4Address) {
+					ips.push(ip.getHostAddress());
+				}
+			}
+		}
+		return ips;
 	}
 });
