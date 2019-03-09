@@ -111,6 +111,10 @@ MapScript.loadModule("AndroidBridge", {
 		switch (intent.getAction()) {
 			case ScriptInterface.ACTION_ADD_LIBRARY:
 			t = AndroidBridge.uriToFile(intent.getData());
+			if (!t) {
+				Common.toast("无法从" + intent.getData() + "读取拓展包");
+				break;
+			}
 			Common.showConfirmDialog({
 				title : "确定加载拓展包“" + t + "”？",
 				callback : function(id) {
@@ -127,7 +131,8 @@ MapScript.loadModule("AndroidBridge", {
 			});
 			break;
 			case ScriptInterface.ACTION_EDIT_COMMAND:
-			t = intent.getExtras().getString("text", "");
+			t = intent.getExtras();
+			t = t ? t.getString("text", "") : "";
 			G.ui(function() {try {
 				CA.showGen(true);
 				CA.cmd.setText(t);
@@ -135,6 +140,7 @@ MapScript.loadModule("AndroidBridge", {
 			} catch(e) {erp(e)}});
 			break;
 			case ScriptInterface.ACTION_START_FROM_SHORTCUT:
+			if (!intent.getData()) break;
 			t = ctx.getPackageManager().getLaunchIntentForPackage(intent.getData().getSchemeSpecificPart());
 			if (t) {
 				ctx.startActivity(t);
@@ -220,6 +226,7 @@ MapScript.loadModule("AndroidBridge", {
 		CA.showActions(CA.settings.notificationActions);
 	},
 	openUriAction : function(uri, extras) {
+		if (!uri) return;
 		switch (String(uri.getHost()).toLowerCase()) {
 			case "base":
 			var path, obj, query, fragment;
@@ -611,6 +618,7 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	uriToFile : function(uri) { //Source : https://www.cnblogs.com/panhouye/archive/2017/04/23/6751710.html
 		var r = null, cursor, column_index, selection = null, selectionArgs = null, isKitKat = android.os.Build.VERSION.SDK_INT >= 19, docs;
+		if (!(uri instanceof android.net.Uri)) return null;
 		if (uri.getScheme().equalsIgnoreCase("content")) {
 			if (isKitKat && android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 				if (String(uri.getAuthority()) == "com.android.externalstorage.documents") {
