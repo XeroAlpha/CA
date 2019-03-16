@@ -2502,14 +2502,22 @@ MapScript.loadModule("CA", {
 					return Updater.getVersionInfo();
 				},
 				onclick : function(fset) {
-					if (Updater.latest && !(Date.parse(CA.publishDate) < Date.parse(Updater.latest))) {
-						Common.toast("目前没有已公开的更新版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
-					} else {
-						Updater.checkUpdate(function() {
-							G.ui(function() {try {
+					if (BuildConfig.variants == "release") {
+						if (Updater.updateFlag >= 0) {
+							Common.toast("目前没有已公开的更新版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
+						} else {
+							Updater.checkUpdate(function(statusMsg) {
 								fset();
-							} catch(e) {erp(e)}});
-						});
+							});
+						}
+					} else {
+						if (Updater.updateFlagBeta >= 0) {
+							Common.toast("目前没有已公开的更新Beta版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
+						} else {
+							Updater.checkUpdateBeta(function(statusMsg) {
+								fset();
+							});
+						}
 					}
 				}
 			}, {
@@ -2562,23 +2570,36 @@ MapScript.loadModule("CA", {
 					CA.showDonate();
 				}
 			}, {
-				id : "betaUpdate",
-				name : "加入Beta计划",
-				description : "检测Beta版更新，体验新版功能",
+				id : "skipCheckUpdate",
+				name : "停用自动检查更新",
 				type : "boolean",
 				get : self.getsettingbool,
-				set : function(v) {
-					CA.settings.betaUpdate = Boolean(v);
-					if (v) {
-						AndroidBridge.createShortcut(new android.content.Intent("com.xero.ca.DEBUG_EXEC")
-							.setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK), 
-							"命令助手快照",
-							com.xero.ca.R.mipmap.icon_small);
-						Common.toast("桌面快捷方式已创建，如果没看到请检查命令助手是否有创建桌面快捷方式的权限");
-						Updater.cleanCache();
+				set : self.setsettingbool
+			}, {
+				name : "Beta计划",
+				description : "检测Beta版更新，体验新版功能",
+				type : "custom",
+				get : function() {
+					return CA.settings.betaUpdate ? "已加入" : "未加入";
+				},
+				onclick : function(fset) {
+					if (CA.settings.betaUpdate) {
+						Updater.cleanBetaFiles();
+						Common.toast("快照已删除，请手动删除快照桌面快捷方式");
+						CA.settings.betaUpdate = false;
+						fset();
 					} else {
-						Updater.cleanBeta();
+						Updater.installBeta(function(error) {
+							if (error) return Common.toast("下载快照失败\n" + error);
+							AndroidBridge.createShortcut(new android.content.Intent("com.xero.ca.DEBUG_EXEC")
+								.setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity"))
+								.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK), 
+								"命令助手快照",
+								com.xero.ca.R.mipmap.icon_small);
+							Common.toast("桌面快捷方式已创建，如果没看到请检查命令助手是否有创建桌面快捷方式的权限");
+							CA.settings.betaUpdate = true;
+							fset();
+						}, true);
 					}
 				}
 			}, {
@@ -2762,7 +2783,7 @@ MapScript.loadModule("CA", {
 					var t = CA.settings.iiMode;
 					return t == 1 ? "初学者模式" : t == 2 ? "专家模式" : "关闭";
 				},
-				onclick : function(fset) {
+				onclick : function() {
 					CA.showModeChooser(function() {
 						self.refresh(true);
 					});
@@ -2914,9 +2935,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function(fset) {
 					if (CA.settings.securityLevel >= 0) {
-						CA.showOnlineLib(function() {G.ui(function() {try {
-							fset();
-						} catch(e) {erp(e)}})});
+						CA.showOnlineLib(fset);
 					} else {
 						Common.toast("您正在使用的安全等级不允许加载外部的拓展包");
 					}
@@ -3017,7 +3036,7 @@ MapScript.loadModule("CA", {
 			}, {
 				name : "恢复默认数据",
 				type : "custom",
-				onclick : function(fset) {
+				onclick : function() {
 					Common.showConfirmDialog({
 						title : "确定恢复默认？",
 						description : "*此操作无法撤销",

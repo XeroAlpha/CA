@@ -463,7 +463,24 @@ MapScript.loadModule("Loader", {
 		for (i = 0; i < a.length; i++) {
 			if (typeof obj[a[i]] != "function") this.lockProperty(obj, a[i]);
 		}
-	}
+	},
+	freezeObject : function(obj) {
+		var i, a = Object.getOwnPropertyNames(obj);
+		for (i = 0; i < a.length; i++) {
+			if (typeof obj[a[i]] == "object") this.freezeObject(obj[a[i]]);
+		}
+		Object.freeze(obj);
+	},
+	freezeProperty : function(obj, propertyName) {
+		if (typeof obj[propertyName] == "object") this.freezeObject(obj[propertyName]);
+		this.lockProperty(obj, propertyName);
+	},
+	freezeFields : function(obj, fields) {
+		var i, a = fields || Object.getOwnPropertyNames(obj);
+		for (i = 0; i < a.length; i++) {
+			if (typeof obj[a[i]] != "function") this.freezeProperty(obj, a[i]);
+		}
+	},
 });
 
 Loader.load(function() {
