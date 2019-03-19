@@ -1,12 +1,12 @@
 {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.11.0.1 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.11.0.5 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.11.0.1",
+	"targetSupportVer": "1.11.0.5",
 	"commands": {},
 	"idlist": [
 		{
@@ -43,6 +43,10 @@
 				"gamerule_bool",
 				"gamerule_int"
 			]
+		},
+		{
+			"name": "生物事件",
+			"list": "mobevent"
 		}
 	],
 	"enums": {
@@ -1424,6 +1428,11 @@
 			"2": "",
 			//"3": ""
 		},
+		"mobevent": {
+			"minecraft:pillager_patrols_event": "生成灾厄巡逻队",
+			"minecraft:wandering_trader_event": "生成流浪商人",
+			"events_enabled": "启用生物事件"
+		},
 		"bool": {
 			"true": "是",
 			"false": "否"
@@ -1646,7 +1655,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clone"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/clone"
 				},
 				"execute": {
 					"description": "让某一实体在某一位置执行一条命令",
@@ -1670,7 +1679,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#execute"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/execute"
 				},
 				"fill": {
 					"description": "用特定方块全部或部分填充一个区域",
@@ -1748,7 +1757,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#fill"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/fill"
 				},
 				"gamemode": {
 					"description": "设置某个玩家的游戏模式",
@@ -1779,7 +1788,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamemode"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/gamemode"
 				},
 				"give": {
 					"description": "给一位玩家一种物品",
@@ -1815,7 +1824,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#give"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/give"
 				},
 				"help": {
 					"description": "显示帮助",
@@ -1838,7 +1847,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#kill"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/kill"
 				},
 				"msg": {
 					"alias": "tell"
@@ -1855,7 +1864,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#say"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/say"
 				},
 				"setblock": {
 					"description": "将一个方块更改为另一个方块",
@@ -1889,7 +1898,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setblock"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/setblock"
 				},
 				"setworldspawn": {
 					"description": "设置世界出生点",
@@ -1906,7 +1915,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setworldspawn"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/setworldspawn"
 				},
 				"spawnpoint": {
 					"description": "为特定玩家设置出生点",
@@ -1937,7 +1946,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spawnpoint"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/spawnpoint"
 				},
 				"summon": {
 					"description": "生成一个实体",
@@ -1957,7 +1966,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#summon"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/summon"
 				},
 				"tell": {
 					"description": "发送一条私密信息给一个或多个玩家",
@@ -1976,7 +1985,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tell"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tell"
 				},
 				"testforblock": {
 					"description": "探测某个方块是否在特定位置",
@@ -2000,7 +2009,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblock"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testforblock"
 				},
 				"testforblocks": {
 					"description": "测试两个区域的方块是否相同",
@@ -2032,7 +2041,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testforblocks"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testforblocks"
 				},
 				"time": {
 					"description": "更改或查询游戏中的世界时间",
@@ -2107,14 +2116,14 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#time"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/time"
 				},
 				"toggledownfall": {
 					"description": "切换天气",
 					"noparams": {
 						"description": "如果天气目前晴朗，就会转换成下雨或下雪。如果天气目前是雨雪天气，它将停止下雨下雪。"
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#toggledownfall"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/toggledownfall"
 				},
 				"tp": {
 					"description": "传送实体",
@@ -2188,7 +2197,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tp"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tp"
 				},
 				"teleport": {
 					"alias": "tp"
@@ -2229,7 +2238,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#weather"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/weather"
 				},
 				"xp": {
 					"description": "将经验值给予一个玩家",
@@ -2267,7 +2276,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#xp"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/xp"
 				},
 				"?": {
 					"alias": "help"
@@ -2318,7 +2327,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#enchant"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/enchant"
 				}
 			},
 			"minSupportVer": "0.15.90.5"
@@ -2364,7 +2373,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#clear"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/clear"
 				},
 				"difficulty": {
 					"description": "设置游戏难度等级",
@@ -2379,7 +2388,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#difficulty"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/difficulty"
 				},
 				"effect": {
 					"description": "设置玩家及实体的状态效果",
@@ -2431,7 +2440,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#effect"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/effect"
 				},
 				"gamerule": {
 					"description": "设置或查询一条游戏规则的值",
@@ -2486,7 +2495,7 @@
 							]
 						}*/
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#gamerule"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/gamerule"
 				},
 				"me": {
 					"description": "显示一条关于你自己的信息",
@@ -2500,7 +2509,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#me"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/me"
 				},
 				"playsound": {
 					"description": "对指定玩家播放指定声音",
@@ -2540,7 +2549,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#playsound"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/playsound"
 				},
 				"replaceitem": {
 					"description": "用给出的物品替换方块或实体物品栏内的物品",
@@ -2650,7 +2659,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#replaceitem"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/replaceitem"
 				},
 				"spreadplayers": {
 					"description": "把实体随机传送到区域内地表的某个位置",
@@ -2682,7 +2691,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#spread"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/spreadplayers"
 				},
 				"stopsound": {
 					"description": "停止音效播放",
@@ -2717,7 +2726,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#stopsound"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/stopsound"
 				},
 				"testfor": {
 					"description": "检测并统计符合指定条件的实体",
@@ -2732,7 +2741,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#testfor"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testfor"
 				},
 				"title": {
 					"description": "标题命令相关",
@@ -2852,7 +2861,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/title"
 				}
 			},
 			"minSupportVer": "1.0.5.0"
@@ -2908,7 +2917,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/particle"
 				}
 			},
 			"minSupportVer": "1.0.5.0",
@@ -3001,7 +3010,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#detect"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/detect"
 				}
 			}
 		},
@@ -3022,7 +3031,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#alwaysday"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/alwaysday"
 				},
 				"daylock": {
 					"alias": "alwaysday"
@@ -3123,7 +3132,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tickingarea"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tickingarea"
 				},
 				"tp": {
 					"patterns": {
@@ -3886,12 +3895,12 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#particle"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/particle"
 				},
 				"reload": {
 					"description": "重新加载数据包",
 					"noparams": {},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#reload"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/reload"
 				}
 			},
 			"minSupportVer": "1.8.0.8"
@@ -3910,7 +3919,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#function"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/function"
 				}
 			},
 			"minSupportVer": "1.8.0.10"
@@ -3918,7 +3927,7 @@
 		"1.9.0.0": {
 			"enums": {
 				"gamerule_bool": {
-					"showdeathmessage": "是否在聊天框中显示玩家以及驯养宠物的死亡信息",
+					"showdeathmessages": "是否在聊天框中显示玩家以及驯养宠物的死亡信息",
 					"doimmediaterespawn": "是否玩家死亡后立即重生"
 				}
 			},
@@ -3940,7 +3949,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tellraw"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tellraw"
 				}
 			},
 			"minSupportVer": "1.9.0.0"
@@ -4016,7 +4025,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#tag"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tag"
 				},
 				"titleraw": {
 					"description": "标题命令相关（使用JSON文本）",
@@ -4136,7 +4145,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#title"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/titleraw"
 				}
 			},
 			"minSupportVer": "1.9.0.2"
@@ -4185,10 +4194,46 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#worldage"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/worldage"
 				},
 			},
 			"minSupportVer": "1.11.0.1"
+		},
+		"1.11.0.3": {
+			"commands": {
+				"mobevent": {
+					"description": "控制或查询允许运行的生物事件",
+					"patterns": {
+						"query": {
+							"description": "查询允许运行的生物事件",
+							"params": [
+								{
+									"type": "string",
+									"name": "事件名",
+									"suggestion": "mobevent"
+								}
+							]
+						},
+						"set": {
+							"description": "设置允许运行的生物事件",
+							"params": [
+								{
+									"type": "string",
+									"name": "事件名",
+									"suggestion": "mobevent"
+								},
+								{
+									"type": "enum",
+									"name": "是否启用",
+									"list": "bool"
+								}
+							]
+						}
+					},
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/mobevent"
+				},
+			},
+			"minSupportVer": "1.11.0.3"
 		}
 	}
 }

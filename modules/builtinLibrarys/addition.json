@@ -6,7 +6,7 @@
 	"version": [0, 0, 1],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.11.0.1",
+	"targetSupportVer": "1.11.0.5",
 	"commands": {},
 	"enums": {
 		"structure": {
@@ -16,7 +16,6 @@
 			"mansion": "林地府邸",
 			"mineshaft": "废弃矿井",
 			"monument": "海底遗迹",
-			"newvillage": "村庄（新版）",
 			"pillageroutpost": "掠夺者前哨站",
 			"ruins": "水下遗迹",
 			"shipwreck": "沉船",
@@ -46,12 +45,12 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#deop"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/deop"
 				},
 				"list": {
 					"description": "列出在服务器上的玩家",
 					"noparams": true,
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#list"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/list"
 				},
 				"op": {
 					"description": "给予一位玩家管理员身份",
@@ -66,7 +65,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#op"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/op"
 				},
 				"wsserver": {
 					"description": "尝试连接到指定的WebSocket服务器上",
@@ -80,7 +79,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#wsserver"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/wsserver"
 				}
 			},
 			"minSupportVer": "0.15.90.0"
@@ -98,7 +97,7 @@
 							}]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#locate"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/locate"
 				}
 			},
 			"minSupportVer": "0.17"
@@ -121,7 +120,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#transferserver"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/transferserver"
 				}
 			},
 			"minSupportVer": "1.0.3.0",
@@ -141,7 +140,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#setmaxplayers"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/setmaxplayers"
 				}
 			},
 			"minSupportVer": "1.1.0.55"
@@ -218,7 +217,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#videostream"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/videostream"
 				},
 				"videostreamaction": {
 					"description": "执行一个视频流操作",
@@ -236,7 +235,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#videostream"
+					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/videostreamaction"
 				}
 			},
 			"minSupportVer": "1.10.0.3"
