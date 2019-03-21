@@ -271,7 +271,11 @@ MapScript.loadModule("MCAdapter", {
 	existPackage : function(pkg) {
 		try {
 			if (ctx.getPackageManager().getPackageInfo(pkg, 0)) return true;
-		} catch(e) {Log.e(e)}
+		} catch(e) {
+			if (!(e.javaException instanceof android.content.pm.PackageManager.NameNotFoundException)) {
+				Log.e(e);
+			}
+		}
 		return false;
 	},
 	askShortcut : function(name, pkg) {

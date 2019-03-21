@@ -3,6 +3,7 @@ MapScript.loadModule("JSONEdit", {
 	pathbar : null,
 	list : null,
 	path : [],
+	clipboard : undefined,
 	showAll : false,
 	listItems : Object.keys,
 	isObject : function(o) {
@@ -298,6 +299,7 @@ MapScript.loadModule("JSONEdit", {
 				return true;
 			} catch(e) {return erp(e), true}}}));
 			if (G.style == "Material") {
+				JSONEdit.list.setVerticalScrollbarPosition(G.View.SCROLLBAR_POSITION_LEFT);
 				JSONEdit.list.setFastScrollEnabled(true);
 				JSONEdit.list.setFastScrollAlwaysVisible(false);
 			}
@@ -478,17 +480,13 @@ MapScript.loadModule("JSONEdit", {
 				gap : G.dp * 10
 			},{
 				text : "从剪贴板粘贴",
-				description : "从剪贴板中导入JSON",
+				description : "从内置剪贴板中导入JSON",
 				onclick : function(v, tag) {
-					if (!Common.hasClipboardText()) {
+					if (!JSONEdit.clipboard) {
 						Common.toast("剪贴板为空");
 						return true;
 					}
-					try {
-						tag.callback(JSON.parse(Common.getClipboardText()));
-					} catch(e) {
-						Common.toast("解析JSON出错\n" + e);
-					}
+					tag.callback(Object.copy(JSONEdit.clipboard.item));
 				}
 			},{
 				text : "手动输入",
@@ -514,13 +512,19 @@ MapScript.loadModule("JSONEdit", {
 			self.menu = [{
 				text : "复制",
 				onclick : function(v, tag) {
-					Common.setClipboardText(MapScript.toSource(tag.data));
+					JSONEdit.clipboard = {
+						name : tag.name,
+						item : tag.data
+					};
 					JSONEdit.refresh();
 				}
 			},{
 				text : "剪切",
 				onclick : function(v, tag) {
-					Common.setClipboardText(MapScript.toSource(tag.data));
+					JSONEdit.clipboard = {
+						name : tag.name,
+						item : tag.data
+					};
 					if (Array.isArray(tag.src)) {
 						cd.splice(parseInt(tag.name), 1);
 					} else {
