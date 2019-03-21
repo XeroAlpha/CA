@@ -484,7 +484,6 @@ MapScript.loadModule("CA", {
 	
 	quickBarDefaultActions : [
 		{ action : "ca.exit" },
-		{ action : "ca.editClipboard" },
 		{ action : "ca.quickPaste" }
 	],
 
@@ -1959,14 +1958,48 @@ MapScript.loadModule("CA", {
 				}
 			}, {
 				type : 0,
-				text : "粘贴",
+				text : "导入",
 				action : function() {
-					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
-					var i, z = String(Common.getClipboardText()).split("\n");
-					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
-					for (i in z) CA.addHistory(z[i]);
-					Common.toast(z.length + "条命令已粘贴");
-					self.refresh();
+					Common.showFileDialog({
+						type : 0,
+						callback : function(f) {
+							try {
+								var r = JSON.parse(Common.readFile(f.result, "[]"));
+								if (!Array.isArray(r)) throw "不正确的收藏夹格式";
+								r.forEach(function(e) {
+									e = String(e);
+									if (e.length) CA.addHistory(e);
+								});
+								self.refresh();
+								Common.toast("历史已成功导入");
+							} catch(e) {
+								erp(e, true);
+								Common.toast("历史导入失败\n" + e);
+							}
+						}
+					});
+				}
+			}, {
+				type : 2,
+				text : "导出",
+				action : function() {
+					var z = [], i;
+					for (i = 0; i < self.selection.length; i++) {
+						if (!self.selection[i]) continue;
+						z.push(CA.his[i]);
+					}
+					Common.showFileDialog({
+						type : 1,
+						callback : function(f) {
+							try {
+								Common.saveFile(f.result, JSON.stringify(z, null, 4));
+								Common.toast("历史已保存至" + f.result);
+							} catch(e) {
+								erp(e, true);
+								Common.toast("文件保存失败，无法导出\n" + e);
+							}
+						}
+					});
 				}
 			}, {
 				type : 2,
@@ -2206,36 +2239,6 @@ MapScript.loadModule("CA", {
 							self.refresh();
 						}
 					});
-				}
-			}, {
-				type : 2,
-				text : "复制",
-				action : function() {
-					var z = [], i, c = 0, e;
-					for (i = 0; i < self.selection.length; i++) {
-						if (!self.selection[i]) continue;
-						e = self.array[i];
-						if (e.children) continue;
-						z.push(e.key, e.value);
-						c++;
-					}
-					Common.setClipboardText(z.join("\n"));
-					Common.toast(c + "条命令已复制");
-				}
-			}, {
-				type : 0,
-				text : "粘贴",
-				action : function() {
-					if (!Common.hasClipboardText()) return Common.toast("剪贴板为空");
-					var fd = self.path[self.path.length - 1];
-					var i, z = String(Common.getClipboardText()).split("\n");
-					for (i = z.length - 1; i >= 0; i--) if (z[i].length == 0) z.splice(i, 1);
-					for (i = 1; i < z.length; i += 2) CA.addFavorite({
-						key : z[i - 1],
-						value : z[i]
-					}, fd.children);
-					Common.toast(Math.floor(z.length / 2) + "条命令已粘贴");
-					self.refresh();
 				}
 			}, {
 				type : 0,
@@ -2606,6 +2609,15 @@ MapScript.loadModule("CA", {
 			}, {
 				name : "开发者工具",
 				type : "tag"
+			}, {
+				id : "enableDebugAction",
+				name : "启用自定义动作",
+				type : "boolean",
+				refresh : function() {
+					DebugUtils.updateDebugAction();
+				},
+				get : self.getsettingbool,
+				set : self.setsettingbool
 			}, {
 				name : "JSON编辑器",
 				type : "custom",
@@ -6156,8 +6168,42 @@ MapScript.loadModule("CA", {
 	},
 	PluginMenu : [],
 	PluginExpression : [],
-	showActions : function(actions, onDismiss) {
-		var list = actions.map(function(e) {
+	showActions : function self(actions, onDismiss) {G.ui(function() {try {
+		var frame, list, popup, l;
+		if (!self.vmaker) {
+			self.vmaker = function(holder) {
+				var view = new G.LinearLayout(ctx);
+				view.setOrientation(G.LinearLayout.VERTICAL);
+				view.setPadding(15 * G.dp, 10 * G.dp, 15 * G.dp, 10 * G.dp);
+				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				var title = holder.title = new G.TextView(ctx);
+				title.setGravity(G.Gravity.CENTER | G.Gravity.LEFT);
+				title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(title, "textview_default", 2);
+				view.addView(title);
+				var desp = holder.desp = new G.TextView(ctx);
+				desp.setPadding(0, 3 * G.dp, 0, 0);
+				desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(desp, "textview_prompt", 1);
+				view.addView(desp);
+				return view;
+			}
+			self.vbinder = function(holder, e) {
+				if (e instanceof Object) {
+					holder.title.setText(Common.toString(e.text));
+					if (e.description) {
+						holder.desp.setText(Common.toString(e.description));
+						holder.desp.setVisibility(G.View.VISIBLE);
+					} else {
+						holder.desp.setVisibility(G.View.GONE);
+					}
+				} else {
+					holder.title.setText(Common.toString(e));
+					holder.desp.setVisibility(G.View.GONE);
+				}
+			}
+		}
+		l = actions.map(function(e) {
 			var action = CA.Actions[e.action];
 			if (!action) return {};
 			return {
@@ -6169,13 +6215,22 @@ MapScript.loadModule("CA", {
 		}).filter(function(e) {
 			return e.action != null;
 		});
-		if (list.length == 0) return false;
-		Common.showListChooser(list, function(i, a) {
-			var e = a[i];
-			return e.action.execute(e.param);
-		}, false, onDismiss);
-		return true;
-	},
+		if (l.length == 0) return Common.toast("没有可选的动作");
+		frame = new G.FrameLayout(ctx);
+		Common.applyStyle(frame, "message_bg");
+		list = new G.ListView(ctx);
+		list.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -2));
+		list.setAdapter(new SimpleListAdapter(l, self.vmaker, self.vbinder));
+		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
+			var e = l[pos];
+			if (!e.action.execute(e.param)) popup.hide();
+			return true;
+		} catch(e) {erp(e)}}}));
+		frame.addView(list);
+		popup = PopupWindow.showDialog("ca.selectAction", frame, -1, -2);
+		PWM.addPopup(popup);
+		if (onDismiss) popup.on("hide", onDismiss);
+	} catch(e) {erp(e)}})},
 	showActionEdit : function self(actions, callback, defaultActions) {G.ui(function() {try {
 		var adpt, linear, header, title, menu, list, exit, popup;
 		if (!self.linear) {
@@ -6247,10 +6302,18 @@ MapScript.loadModule("CA", {
 				text : "移除",
 				description : "从列表中移除该动作",
 				onclick : function(v, tag) {
-					tag.actions.splice(tag.pos);
+					tag.actions.splice(tag.pos, 1);
 					tag.callback();
 				}
 			}];
+			self.removeInvaildAction = function(actions) {
+				var i;
+				for (i = actions.length - 1; i >= 0; i--) {
+					if (!(actions[i].action in CA.Actions)) {
+						actions.splice(i, 1);
+					}
+				}
+			}
 			self.vmaker = function(holder) {
 				var layout = new G.LinearLayout(ctx),
 					text1 = holder.text1 = new G.TextView(ctx),
@@ -6302,6 +6365,7 @@ MapScript.loadModule("CA", {
 				});
 			}
 		}
+		self.removeInvaildAction(actions);
 		adpt = SimpleListAdapter.getController(new SimpleListAdapter(actions, self.vmaker, self.vbinder));
 		linear = new G.LinearLayout(ctx);
 		linear.setOrientation(G.LinearLayout.VERTICAL);
@@ -6367,30 +6431,10 @@ MapScript.loadModule("CA", {
 				CA.performExit();
 			}
 		},
-		"ca.editClipboard" : {
-			name : "编辑剪贴板",
-			execute : function() {
-				if (!Common.hasClipboardText()) {
-					Common.toast("剪切板为空");
-					return;
-				}
-				CA.showGen(CA.settings.noAnimation);
-				CA.cmd.setText(String(Common.getClipboardText()));
-				CA.showGen.activate(false);
-			}
-		},
 		"ca.quickPaste" : {
 			name : "快速粘贴",
 			execute : function() {
 				var a = [], t;
-				if (Common.hasClipboardText()) {
-					t = Common.getClipboardText();
-					a.push({
-						text : t,
-						description : "剪贴板",
-						cmd : t
-					});
-				}
 				CA.his.forEach(function(e) {
 					if (e == t) return;
 					a.push({

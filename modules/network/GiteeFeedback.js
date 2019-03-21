@@ -880,9 +880,9 @@ MapScript.loadModule("GiteeFeedback", {
 					L.LinearLayout({
 						orientation : L.LinearLayout("horizontal"),
 						padding : [15 * G.dp, 0, 15 * G.dp, 10 * G.dp],
-						onClick : function() {
+						onClick : function() {try {
 							Common.showOperateDialog(self.contextMenu);
-						},
+						} catch(e) {erp(e)}},
 						children : [
 							self.title = L.TextView({
 								gravity : L.Gravity("left|center"),
@@ -906,14 +906,14 @@ MapScript.loadModule("GiteeFeedback", {
 						dividerHeight : 0,
 						stackFromBottom : true,
 						layout : { width : -1, height : 0, weight : 1.0 },
-						onItemClick : function(parent, view, pos, id) {
+						onItemClick : function(parent, view, pos, id) {try {
 							if (view == self.more) {
 								self.appendPage();
 								return;
 							}
 							var data = self.adpt.array[pos];
 							self.clickData(data);
-						},
+						} catch(e) {erp(e)}},
 						_talkView : self.talk = L.LinearLayout({
 							layout : { width : -1, height : -2 },
 							orientation : L.LinearLayout("horizontal"),
@@ -935,12 +935,12 @@ MapScript.loadModule("GiteeFeedback", {
 									padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 									style : "button_reactive_auto",
 									fontSize : 3,
-									onClick : function() {
+									onClick : function() {try {
 										var s = String(self.talkbox.text);
 										if (!s) return Common.toast("内容不可为空！");
 										self.addComment(s);
 										self.talkbox.text = "";
-									}
+									} catch(e) {erp(e)}}
 								})
 							]
 						}),
@@ -960,9 +960,9 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
 						fontSize : 3,
-						onClick : function() {
+						onClick : function() {try {
 							self.popup.exit();
-						}
+						} catch(e) {erp(e)}}
 					})
 				]
 			}), "feedback.IssueDetail");
@@ -1016,13 +1016,13 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
 						fontSize : 3,
-						onClick : function() {
+						onClick : function() {try {
 							o.title = String(title.text);
 							o.body = String(body.text);
 							if (!o.title) return Common.toast("标题不能为空！");
 							if (callback) callback(o);
 							popup.exit();
-						}
+						} catch(e) {erp(e)}}
 					})
 				]
 			})
@@ -1109,7 +1109,7 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
 						fontSize : 3,
-						onClick : function() {
+						onClick : function() {try {
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在登录...");
 								try {
@@ -1124,7 +1124,7 @@ MapScript.loadModule("GiteeFeedback", {
 									if (callback) callback();
 								} catch(e) {erp(e)}});
 							});
-						}
+						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
 						text : "登录",
@@ -1133,7 +1133,7 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
 						fontSize : 3,
-						onClick : function() {
+						onClick : function() {try {
 							if (!username.length()) return Common.toast("用户名不能为空");
 							if (!password.length()) return Common.toast("密码不能为空");
 							Common.showProgressDialog(function(dia) {
@@ -1150,7 +1150,7 @@ MapScript.loadModule("GiteeFeedback", {
 									if (callback) callback();
 								} catch(e) {erp(e)}});
 							});
-						}
+						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
 						text : "使用浏览器登录",
@@ -1159,10 +1159,10 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 },
 						style : "button_critical",
 						fontSize : 3,
-						onClick : function() {
+						onClick : function() {try {
 							GiteeFeedback.startOAuth(callback);
 							popup.exit();
-						}
+						} catch(e) {erp(e)}}
 					})
 				]
 			})

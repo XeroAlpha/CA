@@ -306,5 +306,116 @@ MapScript.loadModule("DebugUtils", {
 	},
 	stopInteractiveDebug : function() {
 		if (this.wsclient && this.wsclient.getReadyState() == org.java_websocket.WebSocket.READYSTATE.OPEN) this.wsclient.close();
-	}
+	},
+	debugAction : {
+		name : "自定义动作",
+		description : "点击后会执行指定的代码，可自定义名称与代码",
+		create : function() {
+			return {
+				name : "",
+				desp: "",
+				expr : "",
+				enabled : true
+			};
+		},
+		edit : function(data, newCreated, callback) {
+			DebugUtils.showEditDebugAction(data, newCreated, callback);
+		},
+		getName : function(data) {
+			return String(data.name);
+		},
+		getDescription : function(data) {
+			return String(data.desp);
+		},
+		available : function(data) {
+			return data.enabled;
+		},
+		execute : function(data) {
+			try {
+				eval.call(null, data.expr);
+			} catch(e) {
+				erp(e, true);
+				Common.toast("无法执行自定义动作:" + data.name + "，报错已保存至错误日志\n" + e);
+			}
+		}
+	},
+	showEditDebugAction : function(data, newCreated, callback) {G.ui(function() {try {
+		var popup, layout, name, desp, expr, enabled;
+		layout = L.ScrollView({
+			style : "message_bg",
+			child : L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
+				children : [
+					L.TextView({
+						text : newCreated ? "新建自定义动作" : "编辑自定义动作",
+						padding : [0, 0, 0, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						style : "textview_default",
+						fontSize : 4
+					}),
+					name = L.EditText({
+						text : data.name,
+						hint : "标题",
+						singleLine : true,
+						padding : [0, 0, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 3,
+						layout : { width : -1, height : -2 }
+					}),
+					desp = L.EditText({
+						text : data.desp,
+						hint : "描述（可选）",
+						singleLine : true,
+						padding : [0, 10 * G.dp, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 2,
+						layout : { width : -1, height : -2 }
+					}),
+					expr = L.EditText({
+						text : data.expr,
+						hint : "在此输入代码",
+						padding : [0, 20 * G.dp, 0, 10 * G.dp],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 2,
+						layout : { width : -1, height : -2 }
+					}),
+					enabled = L.CheckBox({
+						text : "启用",
+						checked : Boolean(data.enabled)
+					}),
+					L.TextView({
+						text : "确定",
+						padding : [10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {try {
+							data.name = String(name.text) || "自定义动作";
+							data.desp = String(desp.text);
+							data.enabled = Boolean(enabled.checked);
+							data.expr = String(expr.text);
+							if (callback) callback(data);
+							popup.exit();
+						} catch(e) {erp(e)}}
+					})
+				]
+			})
+		});
+		popup = PopupPage.showDialog("debug.actionEdit", layout, -1, -2);
+	} catch(e) {erp(e)}})},
+	updateDebugAction : function() {
+		if (CA.settings.enableDebugAction) {
+			CA.Actions["debug.action"] = this.debugAction;
+		} else {
+			delete CA.Actions["debug.action"];
+		}
+	},
+	initialize : function() {try {
+		this.updateDebugAction();
+	} catch(e) {erp(e)}},
 });

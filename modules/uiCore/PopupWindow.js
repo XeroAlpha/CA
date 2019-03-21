@@ -214,5 +214,30 @@ MapScript.loadModule("PopupWindow", (function() {
 		return "[PopupWindow " + this.name + "/" + this.id + "]";
 	}
 	EventSender.init(r.prototype);
+	r.showDialog = function(name, layout, width, height, modal) {
+		var frame, popup;
+		frame = new G.FrameLayout(ctx);
+		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
+		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			if (e.getAction() == e.ACTION_DOWN && !modal) {
+				if (e.getX() < layout.getLeft() || e.getX() >= layout.getRight() ||
+					e.getY() < layout.getTop() || e.getY() >= layout.getBottom()) {
+					popup.hide();
+				}
+			}
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		layout.setLayoutParams(new G.FrameLayout.LayoutParams(width, height, G.Gravity.CENTER));
+		layout.getLayoutParams().setMargins(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
+		frame.addView(layout);
+		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		popup = new r(frame, name);
+		PopupPage.dialogEnterAnimation(frame, null);
+		popup.show({
+			height : -1, width : -1,
+			modal : modal
+		});
+		return popup;
+	};
 	return r;
 })());

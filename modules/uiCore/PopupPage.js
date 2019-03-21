@@ -783,23 +783,7 @@ MapScript.loadModule("PopupPage", (function() {
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
 		topPage = r.getTopPage();
-		popup.enterAnimation(function(v, callback) {
-			var alphaAni, scaleAni;
-			alphaAni = new G.AlphaAnimation(topPage && topPage.dialog ? 1 : 0, 1);
-			alphaAni.setDuration(200);
-			scaleAni = new G.ScaleAnimation(0.95, 1, 0.95, 1, G.Animation.RELATIVE_TO_SELF, 0.5, G.Animation.RELATIVE_TO_SELF, 0.5);
-			scaleAni.setDuration(200);
-			scaleAni.setAnimationListener(new G.Animation.AnimationListener({
-				onAnimationEnd : function(a) {try {
-					if (callback) callback();
-				} catch(e) {erp(e)}},
-			}));
-			if (G.style == "Material") {
-				alphaAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
-				scaleAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
-			}
-			return new r.ViewAnimationController(frame, alphaAni).addAnimation(layout, scaleAni).start();
-		});
+		popup.enterAnimation(r.dialogEnterAnimation);
 		popup.on("resume", function() {
 			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		});
@@ -921,6 +905,23 @@ MapScript.loadModule("PopupPage", (function() {
 		}));
 		aniSet.addAnimation(new G.AlphaAnimation(1, 0));
 		return new r.ViewAnimationController(v, aniSet).start();
+	}
+	r.dialogEnterAnimation = function(v, callback) {
+		var alphaAni, scaleAni, layout = v.getChildAt(0);
+		alphaAni = new G.AlphaAnimation(0, 1);
+		alphaAni.setDuration(200);
+		scaleAni = new G.ScaleAnimation(0.95, 1, 0.95, 1, G.Animation.RELATIVE_TO_SELF, 0.5, G.Animation.RELATIVE_TO_SELF, 0.5);
+		scaleAni.setDuration(200);
+		scaleAni.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		if (G.style == "Material") {
+			alphaAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+			scaleAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+		}
+		return new r.ViewAnimationController(v, alphaAni).addAnimation(layout, scaleAni).start();
 	}
 	r.ViewAnimationController = function(v, ani) {
 		this.views = [];
