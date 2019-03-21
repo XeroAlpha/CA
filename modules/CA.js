@@ -495,34 +495,23 @@ MapScript.loadModule("CA", {
 	showGen : function self(noani) {G.ui(function() {try {
 		if (!self.main) {
 			self.cmdEdit = [{
-				text : "粘贴",
-				onclick : function(v) {
-					if (!Common.hasClipboardText()) return;
-					Common.replaceSelection(CA.cmd.getText(), Common.getClipboardText());
-				}
-			},{
-				text : "显示样式代码栏",
-				onclick : function(v) {
-					CA.showFCS(CA.cmd.getText());
-				}
-			},{
 				text : "插入……",
 				onclick : function(v) {
 					Common.showOperateDialog(self.insertDialog);
 				}
-			},{
+			}, {
+				text : "显示样式代码栏",
+				onclick : function(v) {
+					CA.showFCS(CA.cmd.getText());
+				}
+			}, {
 				text : "创建批量生成模板",
 				onclick : function(v, tag) {
 					CA.showBatchBuilder(tag.cmd);
 				}
-			},{
-				text : "清空",
-				onclick : function(v) {
-					CA.cmd.setText("");
-				}
-			},{
+			}, {
 				gap : 10 * G.dp
-			},{
+			}, {
 				text : "切换全屏/悬浮窗",
 				hidden : function() {
 					return !PopupPage.supportResize;
@@ -530,7 +519,7 @@ MapScript.loadModule("CA", {
 				onclick : function(v) {
 					PopupPage.setFullScreen(!PopupPage.isFullScreen());
 				}
-			},{
+			}, {
 				text : "插件",
 				hidden : function() {
 					return CA.PluginMenu.length == 0;
@@ -538,12 +527,12 @@ MapScript.loadModule("CA", {
 				onclick : function(v) {
 					Common.showOperateDialog(CA.PluginMenu);
 				}
-			},{
+			}, {
 				text : "教程",
 				onclick : function(v) {
 					Tutorial.showList();
 				}
-			},{
+			}, {
 				text : "设置",
 				onclick : function(v) {
 					CA.showSettings();
@@ -588,14 +577,14 @@ MapScript.loadModule("CA", {
 						showMenu();
 					});
 				}
-			},{
+			}, {
 				text : "英文ID",
 				onclick : function(v) {
 					CA.chooseIDList(function(text) {
 						Common.replaceSelection(CA.cmd.getText(), text);
 					});
 				}
-			},{
+			}, {
 				text : "短语",
 				onclick : function(v) {
 					CA.showCustomExpression();
@@ -610,6 +599,11 @@ MapScript.loadModule("CA", {
 					}
 					return drawable;
 				}
+			}
+			self.showMenu = function() {
+				Common.showOperateDialog(self.cmdEdit, {
+					cmd : String(CA.cmd.getText())
+				});
 			}
 			self.performClose = function(callback) {
 				if (CA.settings.noAnimation) {
@@ -765,12 +759,26 @@ MapScript.loadModule("CA", {
 			self.bar.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			self.bar.setOrientation(G.LinearLayout.HORIZONTAL);
 			Common.applyStyle(self.bar, "bar_float");
+			
+			if (!CA.settings.openMenuByLongClick) {
+				self.menu = new G.TextView(ctx);
+				self.menu.setText("CA");
+				self.menu.setTypeface(G.Typeface.MONOSPACE);
+				self.menu.setGravity(G.Gravity.CENTER);
+				self.menu.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				Common.applyStyle(self.menu, "button_reactive_auto", 3);
+				self.menu.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+				self.menu.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					self.showMenu();
+				} catch(e) {erp(e)}}}));
+				self.bar.addView(self.menu);
+			}
 
 			self.add = new G.TextView(ctx);
 			self.add.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
 			self.add.setText("╋");
 			self.add.setGravity(G.Gravity.CENTER);
-			self.add.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			self.add.setPadding(10 * G.dp, 10 * G.dp, 5 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.add, "textview_default", 3);
 			self.add.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (CA.Library.loadingStatus) {
@@ -790,11 +798,7 @@ MapScript.loadModule("CA", {
 
 			CA.cmd = new G.EditText(ctx);
 			CA.cmd.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1, 1.0));
-			if (CA.settings.genOpenedMenu) {
-				CA.cmd.setHint("命令");
-			} else {
-				CA.cmd.setHint("在此输入命令|长按打开菜单");
-			}
+			CA.cmd.setHint("命令");
 			Common.applyStyle(CA.cmd, "edittext_default", 3);
 			CA.cmd.setInputType(G.InputType.TYPE_CLASS_TEXT | G.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
 			CA.cmd.setFocusableInTouchMode(true);
@@ -823,7 +827,7 @@ MapScript.loadModule("CA", {
 				switch (e.getAction()) {
 					case e.ACTION_MOVE:
 					t = e.getRawY() - touch.sy;
-					if (Math.abs(t) + Math.abs(e.getRawX() - touch.sx) > 20 * G.dp && touch.cbk) {
+					if (touch.cbk && Math.abs(t) + Math.abs(e.getRawX() - touch.sx) > 20 * G.dp) {
 						self.main.removeCallbacks(touch.cbk);
 						touch.cbk = null;
 					}
@@ -837,11 +841,8 @@ MapScript.loadModule("CA", {
 					touch.sy = e.getRawY();
 					touch.stead = true;
 					touch.ignore = false;
-					if (!CA.Assist.active) self.main.postDelayed(touch.cbk = new java.lang.Runnable({run : function() {try {
-						Common.showOperateDialog(self.cmdEdit, {
-							cmd : String(CA.cmd.getText())
-						});
-						CA.settings.genOpenedMenu = true;
+					if (CA.settings.openMenuByLongClick && !CA.Assist.active) self.main.postDelayed(touch.cbk = new java.lang.Runnable({run : function() {try {
+						self.showMenu();
 						touch.cbk = null;
 						CA.cmd.dispatchTouchEvent(G.MotionEvent.obtain(0, 0, G.MotionEvent.ACTION_CANCEL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 					} catch(e) {erp(e)}}}), 300);
@@ -2757,6 +2758,13 @@ MapScript.loadModule("CA", {
 				id : "splitScreenMode",
 				name : "双栏模式",
 				description : "推荐大屏手机/Pad使用",
+				type : "boolean",
+				refresh : self.refresh,
+				get : self.getsettingbool,
+				set : self.setsettingbool
+			}, {
+				id : "openMenuByLongClick",
+				name : "长按输入栏打开菜单",
 				type : "boolean",
 				refresh : self.refresh,
 				get : self.getsettingbool,

@@ -267,6 +267,7 @@ MapScript.loadModule("Updater", {
 		thread.start();
 	},
 	showBetaUpdateDialog : function(info, callback) {
+		var selected = false;
 		var buttons = [{
 			text : "快速更新",
 			id : "hotfix",

@@ -423,12 +423,20 @@ MapScript.loadModule("AndroidBridge", {
 		}
 		Common.showSettings(title, self.root);
 	},
+	getAppIcon : function() {
+		var appi = ctx.getPackageManager().getApplicationInfo("com.xero.ca", 128);
+		return ctx.getPackageManager().getResourcesForApplication(appi).getDrawable(appi.icon, null);
+	},
+	getAppIconBadged : function() {
+		return ctx.getPackageManager().getApplicationIcon("com.xero.ca");
+	},
 	initIcon : function() {
 		var logo, icon;
 		try {
-			var appi = ctx.getPackageManager().getApplicationInfo("com.xero.ca", 128);
-			icon = ctx.getPackageManager().getResourcesForApplication(appi).getDrawable(appi.icon, null);
-		} catch(e) {/*CA not found*/}
+			icon = AndroidBridge.getAppIcon();
+		} catch(e) {
+			Log.e(e);
+		}
 		if (icon) {
 			CA.Icon.default0 = CA.Icon.default;
 			CA.Icon.default = function(size) {
@@ -456,8 +464,10 @@ MapScript.loadModule("AndroidBridge", {
 			return;
 		}
 		try {
-			logo = ctx.getPackageManager().getApplicationIcon("com.xero.ca");
-		} catch(e) {/*CA not found*/}
+			logo = AndroidBridge.getAppIconBadged();
+		} catch(e) {
+			Log.e(e);
+		}
 		if (logo) {
 			CA.Icon.default0 = CA.Icon.default;
 			CA.Icon.default = function(size) {
