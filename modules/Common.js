@@ -1632,10 +1632,10 @@ MapScript.loadModule("Common", {
 		}
 	},
 
-	hasClipboardText : function() {
+	hasClipboardText : function() { //Deprecated since Q
 		return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).hasPrimaryClip();
 	},
-	getClipboardText : function() {
+	getClipboardText : function() { //Deprecated since Q
 		var clip = ctx.getSystemService(ctx.CLIPBOARD_SERVICE).getPrimaryClip();
 		if (!clip) return null;
 		return clip.getItemAt(0).coerceToText(ctx);

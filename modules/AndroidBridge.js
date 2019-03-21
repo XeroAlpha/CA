@@ -91,7 +91,6 @@ MapScript.loadModule("AndroidBridge", {
 		});
 		this.onNewIntent(ScriptInterface.getIntent(), true);
 		if (CA.settings.autoStartAccSvcRoot) this.startAccessibilitySvcByRootAsync(null, true);
-		if (CA.settings.watchClipboard) this.startWatchClipboard();
 		if (CA.settings.startWSSOnStart) WSServer.start(true);
 		if (G.shouldFloat) this.showActivityContent(G.supportFloat);
 		this.checkNecessaryPermissions(function(success) {
@@ -378,18 +377,6 @@ MapScript.loadModule("AndroidBridge", {
 					CA.settings.autoStartAccSvcRoot = Boolean(v);
 					if (v) {
 						AndroidBridge.startAccessibilitySvcByRootAsync();
-					}
-				}
-			}, {
-				name : "监听剪切板",
-				type : "boolean",
-				get : function() {
-					return Boolean(CA.settings.watchClipboard);
-				},
-				set : function(v) {
-					CA.settings.watchClipboard = Boolean(v);
-					if (v) {
-						if (!AndroidBridge.clipListener) AndroidBridge.startWatchClipboard();
 					}
 				}
 			}, {
@@ -766,22 +753,6 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		}).start();
 	},
-	startWatchClipboard : function() {G.ui(function() {try {
-		var svc = ctx.getSystemService(ctx.CLIPBOARD_SERVICE);
-		if (android.os.Build.VERSION.SDK_INT >= 11) {
-			svc.addPrimaryClipChangedListener(AndroidBridge.clipListener = new android.content.ClipboardManager.OnPrimaryClipChangedListener({onPrimaryClipChanged : function() {try {
-				if (!CA.settings.watchClipboard || !CA.IntelliSense.library || !Common.hasClipboardText()) return;
-				var s = String(Common.getClipboardText()), t, o;
-				s = s.replace(/^\s*\/?/, "");
-				o = s.search(/\n/);
-				if (o >= 0) s = s.slice(0, o);
-				o = s.search(/\s/);
-				t = o >= 0 ? s.slice(0, o) : s;
-				if (!(t.toLowerCase() in CA.IntelliSense.library.commands)) return;
-				CA.addHistory(s);
-			} catch(e) {erp(e)}}}));
-		}
-	} catch(e) {erp(e)}})},
 	exitLoading : function(keepActivity) {
 		var activity = ScriptInterface.getBindActivity();
 		if (!activity) return;
