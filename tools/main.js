@@ -10,7 +10,7 @@ var Build = {
 				return result;
 			}, reason => {
 				console.log("Failed  " + task + " : " + reason);
-				process.exit(1);
+				throw reason;
 			});
 	},
 	task : function(task, args) {
@@ -46,7 +46,8 @@ function procArgs() {
 				console.log("Success " + task + " in " + ((Date.now() - time) / 1000).toFixed(2) + "s");
 				return result;
 			}, reason => {
-				console.log("Failed  " + task + " : " + reason);
+				console.log("Failed  " + task);
+				console.log(reason);
 				process.exit(1);
 			});
 	} catch(e) {

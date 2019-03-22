@@ -1,3 +1,5 @@
 dist/
 build/
 snapshot/
+tools/node_modules/
+tools/config/ssh.txt

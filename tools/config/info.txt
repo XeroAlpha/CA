@@ -1,0 +1,18 @@
+@url https://projectxero.top/ca
+更新源URL
+
+@autopublish sftp
+自动发布的方式，可以为以下值之一:
+sftp - 通过sftp发布
+(其他值或不提供) - 不使用自动发布
+
+@remotepath /home/www/htdocs/ca
+更新源远程文件夹的路径
+
+@sshconfig ssh.txt
+指定sshconfig，设置参见ssh2.Client.connect的参数格式
+例如:
+ @host 192.168.0.100
+ @port 22
+ @username admin
+ @password 123456
