@@ -216,11 +216,11 @@ MapScript.loadModule("AndroidBridge", {
 		if (cls == java.lang.Object || cls == parent) return null;
 		return self(cls.getSuperclass(), params, parent);
 	},
-	callHide : function() {
+	callHide : function() {G.ui(function() {try {
 		if (PopupPage.getCount() > 0) {
 			PopupPage.hide();
 		}
-	},
+	} catch(e) {erp(e)}})},
 	scriptAction : function() {
 		CA.showActions(CA.settings.notificationActions);
 	},

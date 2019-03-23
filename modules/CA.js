@@ -15,7 +15,7 @@ MapScript.loadModule("CA", {
 	settings : {},
 	fine : false,
 
-	profilePath : MapScript.baseDir + "xero_commandassist.dat",
+	profilePath : MapScript.baseDir + (BuildConfig.variants == "release" ? "xero_commandassist.dat" : "xero_commandassist_snapshot.dat"),
 	name : "CA",
 	author : "ProjectXero",
 	uuid : "d4235eed-520c-4e23-9b67-d024a30ed54c",
@@ -65,7 +65,7 @@ MapScript.loadModule("CA", {
 	load : function() {
 		var f = MapScript.readJSON(this.profilePath, null, true), t;
 		if (!f) {
-			t = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang/minecraftWorlds/xero_commandassist.dat");
+			t = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang/minecraftWorlds/" + (BuildConfig.variants == "release" ? "xero_commandassist.dat" : "xero_commandassist_snapshot.dat"));
 			if (t.isFile()) f = MapScript.readJSON(t, null, true);
 			t.delete();
 		}
@@ -2507,7 +2507,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(fset) {
 					if (BuildConfig.variants == "release") {
-						if (Updater.updateFlag >= 0) {
+						if (Updater.updateFlag <= 0) {
 							Common.toast("目前没有已公开的更新版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
 						} else {
 							Updater.checkUpdate(function(statusMsg) {
@@ -2515,7 +2515,7 @@ MapScript.loadModule("CA", {
 							});
 						}
 					} else {
-						if (Updater.updateFlagBeta >= 0) {
+						if (Updater.updateFlagBeta <= 0) {
 							Common.toast("目前没有已公开的更新Beta版本哦\n点击下面的“加入交流群”，加入官方交流群然后@作者催更吧");
 						} else {
 							Updater.checkUpdateBeta(function(statusMsg) {

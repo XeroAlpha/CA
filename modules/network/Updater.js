@@ -346,7 +346,7 @@ MapScript.loadModule("Updater", {
 	},
 	downloadBeta : function(info) {
 		if (!NetworkUtils.downloadGz(info.snapshot.url, MapScript.baseDir + "snapshot.js", info.snapshot.sha1)) {
-			Updater.cleanBeta();
+			Updater.cleanBetaFiles();
 			throw "文件校验失败";
 		}
 		ctx.getSharedPreferences("user_settings", ctx.MODE_PRIVATE).edit().putString("debugSource", MapScript.baseDir + "snapshot.js").apply();
