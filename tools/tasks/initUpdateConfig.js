@@ -4,7 +4,7 @@ const readConfig = require("../readconfig");
 module.exports = function(context, args) {
 	var info = readConfig(fs.readFileSync("./config/info.txt", "utf-8"));
 	context.updateConfig = {
-		pageUrl : info.url,
+		pageUrl : info.url + "/",
 		downloadSource : {
 			"酷安网（最推荐）": "https://www.coolapk.com/game/com.xero.ca",
 			"Gitee": "https://gitee.com/projectxero/ca/releases",

@@ -13,8 +13,8 @@ module.exports = function(context, args) {
 		"info": context.buildConfig.description,
 		"downloads": context.updateConfig.downloadSource,
 		"hotfix": {
-			"url": context.updateConfig.pageUrl + context.buildConfig.variants + ".js",
-			"sign": context.updateConfig.pageUrl + context.buildConfig.variants + ".sign",
+			"url": context.updateConfig.pageUrl + "hotfix/" + context.buildConfig.variants + ".js",
+			"sign": context.updateConfig.pageUrl + "hotfix/" + context.buildConfig.variants + ".sign",
 			"shell": context.gradleConfig.shellVersion,
 			"sha1": digestSHA1(fs.readFileSync(context.cwd + "/dist/hotfixApk/" + context.buildConfig.variants + ".js"))
 		},
