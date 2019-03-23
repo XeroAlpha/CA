@@ -96,7 +96,6 @@ MapScript.loadModule("AndroidBridge", {
 		this.checkNecessaryPermissions(function(success) {
 			if (G.supportFloat) AndroidBridge.exitLoading(!CA.settings.hideRecent);
 		});
-		if (!CA.settings.notificationActions) CA.settings.notificationActions = Object.copy(this.defaultKeeperMenu);
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -222,7 +221,7 @@ MapScript.loadModule("AndroidBridge", {
 		}
 	} catch(e) {erp(e)}})},
 	scriptAction : function() {
-		CA.showActions(CA.settings.notificationActions);
+		CA.showActions(this.getKeeperMenu());
 	},
 	openUriAction : function(uri, extras) {
 		if (!uri) return;
@@ -401,10 +400,10 @@ MapScript.loadModule("AndroidBridge", {
 				name : "通知动作菜单",
 				type : "custom",
 				get : function() {
-					return CA.settings.notificationActions.length + "个动作";
+					return AndroidBridge.getKeeperMenu().length + "个动作";
 				},
 				onclick : function(fset) {
-					CA.showActionEdit(CA.settings.notificationActions, fset, AndroidBridge.defaultKeeperMenu);
+					CA.showActionEdit(AndroidBridge.getKeeperMenu(), fset, AndroidBridge.defaultKeeperMenu);
 				}
 			}];
 		}
@@ -572,7 +571,7 @@ MapScript.loadModule("AndroidBridge", {
 				lastData = AndroidBridge.permissionRequestData[AndroidBridge.permissionRequestData.start];
 				if (AndroidBridge.permissionRequestData.start < AndroidBridge.permissionRequestData.end) {
 					AndroidBridge.doPermissonRequest(activity, lastData, ++code);
-				} else {Log.s(AndroidBridge.permissionRequestData);
+				} else {
 					activity.finish();
 				}
 			} catch(e) {erp(e)}},
@@ -834,6 +833,10 @@ MapScript.loadModule("AndroidBridge", {
 		}], function(flag, success, denied, sync) {
 			if (callback) callback();
 		});
+	},
+	getKeeperMenu : function() {
+		if (!CA.settings.notificationActions) CA.settings.notificationActions = Object.copy(this.defaultKeeperMenu);
+		return CA.settings.notificationActions;
 	},
 	defaultKeeperMenu : [
 		{ action : "ca.switchIconVisibility" },
