@@ -312,7 +312,15 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 			}
 		};
 	}
-	var tech = [error, "\n版本: {DATE}\n堆栈: ", error.stack, "\n来源: ", error.fileName, "\n包名: ", ctx.getPackageName(), "\nSDK版本: ", android.os.Build.VERSION.SDK_INT].join("");
+	var tech = [
+		error,
+		"\n版本: {DATE}",
+		"\n来源:", error.fileName,
+		"\n包名:", ctx.getPackageName(),
+		"\nSDK版本:", android.os.Build.VERSION.SDK_INT,
+		"\n制造商:", android.os.Build.MANUFACTURER,
+		"\n堆栈:", error.stack
+	].join("");
 	if (MapScript.host == "BlockLauncher") tech += "\nMinecraft版本: " + ModPE.getMinecraftVersion();
 	if (error.javaException) {
 		var strw = new java.io.StringWriter(), strp = new java.io.PrintWriter(strw);

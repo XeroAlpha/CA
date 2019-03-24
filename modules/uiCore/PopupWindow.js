@@ -123,13 +123,31 @@ MapScript.loadModule("PopupWindow", (function() {
 			return f;
 		}
 		r.showView = function(view, attributes) {
-			PWM.wm.addView(view, r.buildLayoutParams(view, attributes));
+			try {
+				PWM.wm.addView(view, r.buildLayoutParams(view, attributes));
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 		r.hideView = function(view) {
-			PWM.wm.removeViewImmediate(view);
+			try {
+				PWM.wm.removeViewImmediate(view);
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 		r.updateView = function(view, attributes) {
-			PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, attributes));
+			try {
+				PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, attributes));
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 	} else { //TODO: 这段代码有很大问题
 		r.prototype = {

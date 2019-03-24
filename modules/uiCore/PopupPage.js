@@ -348,13 +348,31 @@ MapScript.loadModule("PopupPage", (function() {
 			PWM.wm.updateViewLayout(view, p);
 		}
 		r.showView = function(view, x, y, width, height) {
-			PWM.wm.addView(view, r.buildLayoutParams(view, x, y, width, height));
+			try {
+				PWM.wm.addView(view, r.buildLayoutParams(view, x, y, width, height));
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 		r.hideView = function(view) {
-			PWM.wm.removeViewImmediate(view);
+			try {
+				PWM.wm.removeViewImmediate(view);
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 		r.updateView = function(view, x, y, width, height) {
-			PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, x, y, width, height));
+			try {
+				PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, x, y, width, height));
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
 		};
 		r.back = function(source) {
 			var stack = source == r.floatContainer ? r.floatStack : r.defaultStack, cancelEvent = false;
