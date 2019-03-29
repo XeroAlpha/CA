@@ -87,7 +87,7 @@ MapScript.loadModule("PopupPage", (function() {
 						}
 						touch.stead = false;
 					}
-					r.updateView(r.defaultWindow, r.x = e.getRawX() + touch.offx, r.y = e.getRawY() + touch.offy, r.width, r.height);
+					r.setRect(e.getRawX() + touch.offx, e.getRawY() + touch.offy, -1, -1, true);
 					break;
 					case e.ACTION_DOWN:
 					touch.offx = r.x - (touch.lx = e.getRawX());
@@ -139,11 +139,7 @@ MapScript.loadModule("PopupPage", (function() {
 					if (!touch.stead) {
 						r.defaultStub.setVisibility(G.View.GONE);
 						r.defaultContainer.setVisibility(G.View.VISIBLE);
-						r.updateView(r.defaultWindow, r.x,
-							r.y = e.getRawY() + touch.offy,
-							r.width = Math.max(e.getRawX() + touch.offwidth, r.minWidth),
-							r.height = Math.max(touch.offheight - e.getRawY(), r.minHeight));
-						r.trigger("resize");
+						r.setRect(-1, e.getRawY() + touch.offy, e.getRawX() + touch.offwidth, touch.offheight - e.getRawY(), true);
 					}
 				}
 				return true;
@@ -209,8 +205,14 @@ MapScript.loadModule("PopupPage", (function() {
 		r.analytics = ScriptInterface.getAnalyticsPlatform();
 		r.checkThread = function() {
 			var th = java.lang.Thread.currentThread();
-			if (r.thread != th) {
-				Log.throwError(new Error("You can only touch page on " + r.thread + " instead of " + th + "."));
+			if (r.thread) {
+				if (r.thread != th) {
+					Log.throwError(new Error("You can only touch page on " + r.thread + " instead of " + th + "."));
+				}
+			} else {
+				if (ctx.getMainLooper() != android.os.Looper.myLooper()) {
+					Log.throwError(new Error("You can only touch page on mainLooper thread of Context " + ctx + " instead of " + th + "."));
+				}
 			}
 		}
 		r.updateDefault = function() {
@@ -218,26 +220,29 @@ MapScript.loadModule("PopupPage", (function() {
 				this.headerView.setVisibility(G.View.GONE);
 			} else {
 				Common.applyStyle(this.headerView, "bar_float_second");
-				Common.applyStyle(r.titleView, "button_reactive", 2);
-				Common.applyStyle(r.resizeView, "button_reactive", 2);
-				Common.applyStyle(r.defaultStub, "container_default");
-				Common.applyStyle(r.defaultStub, "textview_prompt", 3);
+				Common.applyStyle(this.titleView, "button_reactive", 2);
+				Common.applyStyle(this.resizeView, "button_reactive", 2);
+				Common.applyStyle(this.defaultStub, "container_default");
+				Common.applyStyle(this.defaultStub, "textview_prompt", 3);
 				this.headerView.setVisibility(G.View.VISIBLE);
 			}
 		}
 		r.setFullScreen = function(isFullScreen, isLocked) {
-			this.locked = isLocked == true;
-			if (isFullScreen) {
-				this.fullscreen = true;
-				this.updateView(this.defaultWindow, 0, 0, -1, -1);
-				r.updateDefault();
+			this.locked = Boolean(isLocked);
+			if (this.defaultVisible) {
+				if (isFullScreen) {
+					this.fullscreen = true;
+					this.updateView(this.defaultWindow, 0, 0, -1, -1);
+				} else {
+					if (isNaN(this.x)) this.initRect();
+					this.fullscreen = false;
+					this.updateView(this.defaultWindow, this.x, this.y, this.width, this.height);
+				}
+				this.updateDefault();
 			} else {
-				if (isNaN(r.x)) this.initPosition();
-				this.fullscreen = false;
-				this.updateView(this.defaultWindow, r.x, r.y, r.width, r.height);
-				r.updateDefault();
+				this.fullscreen = Boolean(isFullScreen);
 			}
-			r.trigger("fullscreenChanged", isFullScreen, isLocked);
+			this.trigger("fullscreenChanged", isFullScreen, isLocked);
 		}
 		r.isFullScreen = function() {
 			return this.fullscreen;
@@ -245,12 +250,26 @@ MapScript.loadModule("PopupPage", (function() {
 		r.isLocked = function() {
 			return this.locked;
 		}
-		r.initPosition = function() {
+		r.initRect = function() {
 			var metrics = Common.getMetrics();
 			this.x = metrics[0] * 0.25;
 			this.y = metrics[1] * 0.25;
 			this.width = metrics[0] * 0.5;
 			this.height = metrics[1] * 0.5;
+		}
+		r.getRect = function() {
+			return [this.x, this.y, this.width, this.height];
+		}
+		r.setRect = function(x, y, width, height, fromUser) {
+			var oldX = this.x, oldY = this.y, oldWidth = this.width, oldHeight = this.height;
+			if (x >= 0) this.x = x;
+			if (y >= 0) this.y = y;
+			if (width >= 0) this.width = Math.max(width, this.minWidth);
+			if (height >= 0) this.height = Math.max(height, this.minHeight);
+			if (this.defaultVisible && !this.fullscreen) {
+				this.updateView(this.defaultWindow, this.x, this.y, this.width, this.height);
+				this.trigger("rectUpdate", this.x, this.y, this.width, this.height, oldX, oldY, oldWidth, oldHeight, fromUser);
+			}
 		}
 		r.defaultVisible = false;
 		r.floatVisible = false;
@@ -349,7 +368,7 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.showView = function(view, x, y, width, height) {
 			try {
-				PWM.wm.addView(view, r.buildLayoutParams(view, x, y, width, height));
+				PWM.wm.addView(view, this.buildLayoutParams(view, x, y, width, height));
 				return true;
 			} catch(e) {
 				erp(e, true);
@@ -367,7 +386,7 @@ MapScript.loadModule("PopupPage", (function() {
 		};
 		r.updateView = function(view, x, y, width, height) {
 			try {
-				PWM.wm.updateViewLayout(view, r.buildLayoutParams(view, x, y, width, height));
+				PWM.wm.updateViewLayout(view, this.buildLayoutParams(view, x, y, width, height));
 				return true;
 			} catch(e) {
 				erp(e, true);
@@ -375,7 +394,7 @@ MapScript.loadModule("PopupPage", (function() {
 			return false;
 		};
 		r.back = function(source) {
-			var stack = source == r.floatContainer ? r.floatStack : r.defaultStack, cancelEvent = false;
+			var stack = source == this.floatContainer ? this.floatStack : this.defaultStack, cancelEvent = false;
 			if (stack.length) {
 				stack[stack.length - 1].page.trigger("back", function() {
 					cancelEvent = true;
@@ -387,16 +406,15 @@ MapScript.loadModule("PopupPage", (function() {
 			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
 			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
 			page.currentContainer.addView(page.mainView);
-			if (r.debugPrint) Log.d("Attach " + page + " to " + page.currentContainer);
+			if (this.debugPrint) Log.d("Attach " + page + " to " + page.currentContainer);
 			if (this.visible && !this.defaultVisible) {
 				if (this.fullscreen) {
 					this.showView(this.defaultWindow, 0, 0, -1, -1);
-					r.updateDefault();
 				} else {
-					if (isNaN(r.x)) this.initPosition();
-					this.showView(this.defaultWindow, r.x, r.y, r.width, r.height);
-					r.updateDefault();
+					if (isNaN(this.x)) this.initRect();
+					this.showView(this.defaultWindow, this.x, this.y, this.width, this.height);
 				}
+				this.updateDefault();
 				this.defaultVisible = true;
 				this.updateOverlays();
 				this.trigger("addPopup");
@@ -413,7 +431,7 @@ MapScript.loadModule("PopupPage", (function() {
 			if (page.mainView.getParent() != page.currentContainer) Log.throwError(new Error("This view has been moved unexpectedly: " + page));
 			if (page.currentAnimation) page.currentAnimation.cancel();
 			page.currentContainer.removeView(page.mainView);
-			if (r.debugPrint) Log.d("Detach " + page + " from " + page.currentContainer);
+			if (this.debugPrint) Log.d("Detach " + page + " from " + page.currentContainer);
 			if (stack.length == 0 && !notRemoveWindow) {
 				if (page.currentContainer == this.defaultContainer && this.defaultVisible) {
 					this.hideView(this.defaultWindow);
@@ -436,16 +454,16 @@ MapScript.loadModule("PopupPage", (function() {
 			if (stack.length) {
 				t = stack[stack.length - 1];
 				t.page.trigger("pause");
-				r.analytics.onPageEnd(ctx, t.name);
-				if (r.debugPrint) Log.d(t.page + " paused");
+				this.analytics.onPageEnd(ctx, t.name);
+				if (this.debugPrint) Log.d(t.page + " paused");
 			}
 			stack.push(t = {
 				name : name,
 				page : page
 			});
 			page.trigger("enter");
-			r.analytics.onPageStart(ctx, name);
-			if (r.debugPrint) Log.d(t.page + " entered");
+			this.analytics.onPageStart(ctx, name);
+			if (this.debugPrint) Log.d(t.page + " entered");
 			this.trigger("pushPage", name, page);
 		}
 		r.popPage = function(page) {
@@ -456,13 +474,13 @@ MapScript.loadModule("PopupPage", (function() {
 				t = stack[i];
 				stack.splice(i, 1);
 				t.page.trigger("exit");
-				r.analytics.onPageEnd(ctx, t.name);
-				if (r.debugPrint) Log.d(t.page + " exited");
+				this.analytics.onPageEnd(ctx, t.name);
+				if (this.debugPrint) Log.d(t.page + " exited");
 				if (i > 0 && i == stack.length && this.visible) {
 					t = stack[i - 1];
 					t.page.trigger("resume");
-					r.analytics.onPageStart(ctx, t.name);
-					if (r.debugPrint) Log.d(t.page + " resumed");
+					this.analytics.onPageStart(ctx, t.name);
+					if (this.debugPrint) Log.d(t.page + " resumed");
 					while (--i >= 0) {
 						stack[i].page.requestShow();
 						if (!stack[i].page.dialog) break;
@@ -485,8 +503,8 @@ MapScript.loadModule("PopupPage", (function() {
 		r.onPageMissing = function(v) {
 			var count = v.getChildCount();
 			if (count > 0 && v.getChildAt(count - 1).getVisibility() == G.View.VISIBLE) return;
-			erp(new Error("Page touch event leaked! Debug:\n" + r.debug()), true);
-			r.dismiss();
+			erp(new Error("Page touch event leaked! Debug:\n" + this.debug()), true);
+			this.dismiss();
 		}
 		r.getTopPage = function() {
 			if (this.floatVisible && this.floatStack.length > 0) {
@@ -500,7 +518,7 @@ MapScript.loadModule("PopupPage", (function() {
 			var i, e;
 			if (this.visible) return;
 			this.visible = true;
-			r.checkThread();
+			this.checkThread();
 			if (this.floatStack.length) {
 				this.hideView(this.floatWindow);
 				this.floatVisible = false;
@@ -519,7 +537,7 @@ MapScript.loadModule("PopupPage", (function() {
 		r.hide = function() {
 			var i, e;
 			if (!this.visible) return;
-			r.checkThread();
+			this.checkThread();
 			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
 			this.defaultWindow.setVisibility(G.View.GONE);
 			this.visible = false;
@@ -536,20 +554,20 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.dismiss = function() {
 			var i, e;
-			r.checkThread();
+			this.checkThread();
 			this.busy = true;
 			try {
 				for (i = this.floatStack.length - 1; i >= 0; i--) {
 					e = this.floatStack[i];
 					e.page.trigger("exit");
-					r.analytics.onPageEnd(ctx, e.name);
+					this.analytics.onPageEnd(ctx, e.name);
 					this.hidePage(e.page, true);
 					e.page.showing = false;
 				}
 				for (i = this.defaultStack.length - 1; i >= 0; i--) {
 					e = this.defaultStack[i];
 					e.page.trigger("exit");
-					r.analytics.onPageEnd(ctx, e.name);
+					this.analytics.onPageEnd(ctx, e.name);
 					this.hidePage(e.page, true);
 					e.page.showing = false;
 				}
@@ -575,6 +593,9 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.reset = function() {
 			this.dismiss();
+			this.fullscreen = true;
+			this.focusable = true;
+			this.x = this.y = this.width = this.height = undefined;
 			this.trigger("reset");
 			this.clearListeners();
 		}

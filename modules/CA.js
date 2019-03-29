@@ -450,11 +450,30 @@ MapScript.loadModule("CA", {
 			}
 			PWM.registerResetFlag(CA, "icon");
 			PWM.registerResetFlag(self, "view");
-			PopupPage.on("addPopup", self.iconUpdate)
+			PopupPage.on("addPopup", function() {
+					var rect = CA.settings.pageRect;
+					if (rect) {
+						PopupPage.setRect(rect[0], rect[1], rect[2], rect[3]);
+					}
+					if (CA.settings.pageWindowed) PopupPage.setFullScreen(false, PopupPage.isLocked());
+					self.iconUpdate();
+				})
 				.on("removePopup", self.iconUpdate)
-				.on("fullscreenChanged", self.iconUpdate)
 				.on("show", self.iconUpdate)
-				.on("hide", self.iconUpdate);
+				.on("hide", self.iconUpdate)
+				.on("rectUpdate", function(eventName, x, y, w, h) {
+					var rect = CA.settings.pageRect;
+					if (rect) {
+						rect[0] = x; rect[1] = y;
+						rect[2] = w; rect[3] = h;
+					} else {
+						CA.settings.pageRect = [x, y, w, h];
+					}
+				})
+				.on("fullscreenChanged", function(eventName, isFullScreen, isLocked) {
+					CA.settings.pageWindowed = !isFullScreen;
+					self.iconUpdate();
+				});
 		}
 		if (CA.icon) return;
 		self.updateScreenInfo();
@@ -516,7 +535,7 @@ MapScript.loadModule("CA", {
 					return !PopupPage.supportResize;
 				},
 				onclick : function(v) {
-					PopupPage.setFullScreen(!PopupPage.isFullScreen());
+					PopupPage.setFullScreen(!PopupPage.isFullScreen(), PopupPage.isLocked());
 				}
 			}, {
 				text : "插件",
