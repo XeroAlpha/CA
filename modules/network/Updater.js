@@ -57,6 +57,7 @@ MapScript.loadModule("Updater", {
 			Updater.getUpdateInfo(Updater.sources, function(err, info) {
 				Updater.checking = false;
 				if (err) {
+					if (statusListener) statusListener("errorGetInfo", err);
 					return Common.toast("检测更新失败，请检查网络连接\n(" + err + ")");
 				}
 				var flag = Date.parse(info.version) - Date.parse(BuildConfig.date);
@@ -244,6 +245,7 @@ MapScript.loadModule("Updater", {
 			Updater.getUpdateInfo(Updater.betaSources, function(err, info) {
 				Updater.checkingBeta = false;
 				if (err) {
+					if (statusListener) statusListener("errorGetInfo", err);
 					return Common.toast("检测更新失败，请检查网络连接\n(" + err + ")");
 				}
 				var flag = Date.parse(info.version) - Date.parse(snapshotVer);
