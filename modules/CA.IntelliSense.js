@@ -14,7 +14,7 @@
 	mode : 0,
 	last : {},
 	callDelay : function self(s) {
-		if (CA.settings.iiMode != 2) return;
+		if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3) return;
 		if (!self.thread) {
 			self.thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
 				android.os.Looper.prepare();
@@ -37,7 +37,7 @@
 		if (this.ui) this.show.apply(this);
 	},
 	proc : function(s) {try {
-		if (CA.settings.iiMode != 2 || CA.Library.loadingStatus) return;
+		if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3 || CA.Library.loadingStatus) return;
 		var r = this.procCmd(s);
 		this.source = r.source;
 		this.cmdname = r.cmdname;

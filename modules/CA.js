@@ -253,13 +253,7 @@ MapScript.loadModule("CA", {
 			self.view = new G.FrameLayout(ctx);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
-					CA.showModeChooser(function() {
-						v.postDelayed(function() {
-							self.open();
-						}, 150);
-					});
-					Common.toast("请选择智能模式");
-					return;
+					CA.settings.iiMode = 3;
 				}
 				self.open();
 			} catch(e) {erp(e)}}}));
@@ -651,6 +645,7 @@ MapScript.loadModule("CA", {
 				s = String(s);
 				Common.setClipboardText(s);
 				CA.addHistory(s);
+				if (CA.history) CA.showHistory();
 				if (CA.settings.pasteMode == 1) {
 					if (CA.his.length) CA.showPaste(0);
 				} else if (CA.settings.pasteMode == 2) {
@@ -674,16 +669,16 @@ MapScript.loadModule("CA", {
 					FCString.clearSpans(s);
 					FCString.colorFC(s, Common.theme.textcolor);
 				}
-				var gostate0 = function() {
+				var gostate0 = function() { //输入内容为空
 					state = 0;
 					CA.hideAssist(); CA.showHistory();
 					self.copy.setText("关闭");
 					self.add.setVisibility(G.View.VISIBLE);
 					self.clear.setVisibility(G.View.GONE);
 				}
-				var gostate1 = function() {
+				var gostate1 = function() { //输入了命令
 					state = 1;
-					if (CA.settings.iiMode == 2) {
+					if (CA.settings.iiMode == 2 || CA.settings.iiMode == 3) {
 						CA.hideHistory(); CA.showAssist();
 						CA.Assist.hide(); CA.IntelliSense.show();
 					} else {
@@ -693,7 +688,7 @@ MapScript.loadModule("CA", {
 					self.add.setVisibility(G.View.GONE);
 					self.clear.setVisibility(CA.settings.showClearButton ? G.View.VISIBLE : G.View.GONE);
 				}
-				var gostate2 = function() {
+				var gostate2 = function() { //输入了/help
 					state = 2;
 					CA.hideHistory(); CA.showAssist();
 					CA.Assist.hide(); CA.IntelliSense.show();
@@ -702,7 +697,7 @@ MapScript.loadModule("CA", {
 					self.add.setVisibility(G.View.GONE);
 					self.clear.setVisibility(G.View.VISIBLE);
 				}
-				var gostate3 = function() {
+				var gostate3 = function() { //辅助输入模式
 					state = 3;
 					CA.hideHistory(); CA.showAssist();
 					CA.IntelliSense.hide(); CA.Assist.show(); CA.hideFCS();
@@ -713,19 +708,18 @@ MapScript.loadModule("CA", {
 				return function(s) {
 					s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 					CA.cmdstr = String(s);
-					if (CA.settings.iiMode == 1 && CA.Assist.active) {
+					if ((CA.settings.iiMode == 1 || CA.settings.iiMode == 3) && CA.Assist.active) {
 						if (state != 3) gostate3();
 					} else if (s == "/help") {
 						if (state != 2) gostate2();
-					} else if (s.length() && s != "/help" && !CA.Library.loadingStatus) {
+					} else if (s.length() && !CA.Library.loadingStatus) {
 						if (state != 1) gostate1();
 					} else {
 						if (state != 0) gostate0();
 					}
 					if (CA.fcs) CA.showFCS(s);
-					if (CA.history) CA.showHistory();
 					if (CA.settings.autoFormatCmd) rep(s);
-					if (CA.settings.iiMode != 2 || state !== 1) return;
+					if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3 || state != 1) return;
 					if (CA.settings.senseDelay) {
 						CA.IntelliSense.callDelay(String(s));
 					} else {
@@ -803,7 +797,7 @@ MapScript.loadModule("CA", {
 					Common.toast("拓展包正在加载中，请稍候");
 					return;
 				}
-				if (CA.settings.iiMode == 1) {
+				if (CA.settings.iiMode == 1 || CA.settings.iiMode == 3) {
 					CA.Assist.active = true;
 					CA.cmd.setFocusable(false);
 					CA.cmd.setText(CA.cmdstr);
@@ -2820,7 +2814,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				get : function() {
 					var t = CA.settings.iiMode;
-					return t == 1 ? "初学者模式" : t == 2 ? "专家模式" : "关闭";
+					return t == 1 ? "初学者模式" : t == 2 ? "专家模式" : t == 3 ? "自动选择" : "关闭";
 				},
 				onclick : function() {
 					CA.showModeChooser(function() {
@@ -4639,10 +4633,10 @@ MapScript.loadModule("CA", {
 	
 	showModeChooser : function(callback) {
 		Common.showOperateDialog([{
-			text : "关闭",
-			description : "禁用IntelliSense的所有功能",
+			text : "自动选择",
+			description : "智能选择初学者模式或专家模式",
 			onclick : function() {
-				CA.settings.iiMode = 0;
+				CA.settings.iiMode = 3;
 				callback();
 			}
 		}, {
@@ -4657,6 +4651,13 @@ MapScript.loadModule("CA", {
 			description : "启用提示助手与智能补全",
 			onclick : function() {
 				CA.settings.iiMode = 2;
+				callback();
+			}
+		}, {
+			text : "关闭",
+			description : "禁用IntelliSense的所有功能",
+			onclick : function() {
+				CA.settings.iiMode = 0;
 				callback();
 			}
 		}]);
