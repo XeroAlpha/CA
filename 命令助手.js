@@ -296,6 +296,11 @@ var proto = {
 			}
 		}
 		return r;
+	},
+	captureStack : function self(srcFunc) {
+		var k = {};
+		Error.captureStackTrace(k, srcFunc || self);
+		return k.stack;
 	}
 };
 return Object.create(proto).stop();

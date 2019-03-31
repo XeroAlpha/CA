@@ -19,7 +19,7 @@ MapScript.loadModule("PopupPage", (function() {
 			var longPressTimeout = vcfg.getLongPressTimeout();
 			var touchSlop = vcfg.getScaledTouchSlop();
 			r.baseTouchListener = new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				r.onPageMissing(v);
+				if (e.getAction() == e.ACTION_DOWN) r.onPageMissing(v);
 				return false;
 			} catch(e) {return erp(e), false}}});
 			r.defaultWindow = ScriptInterface.createFrameLayout({
@@ -296,7 +296,7 @@ MapScript.loadModule("PopupPage", (function() {
 			},
 			exit : function(noAnimation) {
 				var self = this;
-				if (!this.currentContainer) return this;
+				if (!this.showing) return this;
 				r.popPage(this);
 				this.showing = false;
 				if (!noAnimation && this._exitAnimation) {
