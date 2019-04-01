@@ -63,10 +63,11 @@ MapScript.loadModule("CA", {
 		}
 	} catch(e) {erp(e)}},
 	load : function() {
-		var f = MapScript.readJSON(this.profilePath, null, true), t;
+		var pf = new java.io.File(this.profilePath);
+		var f = SafeFileUtils.readJSON(pf, null), t;
 		if (!f) {
 			t = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang/minecraftWorlds/" + (BuildConfig.variants == "release" ? "xero_commandassist.dat" : "xero_commandassist_snapshot.dat"));
-			if (t.isFile()) f = MapScript.readJSON(t, null, true);
+			if (t.isFile()) f = SafeFileUtils.readJSON(t, null);
 			t.delete();
 		}
 		if (f && Array.isArray(f.history) && (f.favorite instanceof Object) && (f.settings instanceof Object)) {
@@ -133,8 +134,8 @@ MapScript.loadModule("CA", {
 				Updater.showNewVersionInfo(f.publishDate);
 			}
 		} else {
-			if (new java.io.File(this.profilePath).exists()) {
-				erp("Profile cannot resolved:\n" + Common.readFile(this.profilePath, "Content cannot read", true), true);
+			if (pf.exists()) {
+				erp("Profile cannot resolved:\n" + SafeFileUtils.readText(pf, "Content cannot read"), true);
 			}
 			this.his = [
 				"/say 你好，我是命令助手！左边是历史，右边是收藏，可以拖来拖去，也可以长按编辑哦"
@@ -187,13 +188,13 @@ MapScript.loadModule("CA", {
 	},
 	save : function() {
 		if (Common.theme) this.settings.theme = Common.theme.id;
-		MapScript.saveJSON(this.profilePath, {
+		SafeFileUtils.writeJSON(new java.io.File(this.profilePath), {
 			history : this.his,
 			favorite : this.fav,
 			cmd : this.cmdstr,
 			settings : this.settings,
 			publishDate : this.publishDate
-		}, true);
+		});
 	},
 	addHistory : function(t) {
 		var i = this.his.indexOf(String(t));
@@ -291,8 +292,8 @@ MapScript.loadModule("CA", {
 					case e.ACTION_CANCEL:
 					self.layoutChanged();
 					self.refreshPos();
-					CA.settings.iconX = self.cx;
-					CA.settings.iconY = self.cy;
+					CA.settings.iconX = Math.floor(self.cx);
+					CA.settings.iconY = Math.floor(self.cy);
 					self.longClicked = false;
 				}
 				self.icon.dispatchTouchEvent(e);
@@ -458,8 +459,8 @@ MapScript.loadModule("CA", {
 				.on("rectUpdate", function(eventName, x, y, w, h) {
 					var rect = CA.settings.pageRect;
 					if (rect) {
-						rect[0] = x; rect[1] = y;
-						rect[2] = w; rect[3] = h;
+						rect[0] = Math.floor(x); rect[1] = Math.floor(y);
+						rect[2] = Math.ceil(w); rect[3] = Math.ceil(h);
 					} else {
 						CA.settings.pageRect = [x, y, w, h];
 					}
@@ -475,7 +476,7 @@ MapScript.loadModule("CA", {
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
 			CA.settings.iconX = 0;
-			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
+			CA.settings.iconY = Math.ceil(0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight());
 		}
 		CA.icon = new PopupWindow(self.view, "CA.Icon");
 		CA.icon.show({
@@ -3067,6 +3068,24 @@ MapScript.loadModule("CA", {
 					CA.exportSettings();
 				}
 			}, {
+				name : "导入正式版数据",
+				type : "custom",
+				hidden : function() {
+					return BuildConfig.variants == "release";
+				},
+				onclick : function() {
+					Common.showConfirmDialog({
+						title : "确定导入正式版数据？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							G.ui(function() {try {
+								CA.importSettings(new java.io.File(MapScript.baseDir + "xero_commandassist.dat"));
+							} catch(e) {erp(e)}});
+						}
+					});
+				}
+			}, {
 				name : "恢复默认数据",
 				type : "custom",
 				onclick : function() {
@@ -3077,7 +3096,7 @@ MapScript.loadModule("CA", {
 							if (id != 0) return;
 							G.ui(function() {try {
 								CA.resetGUI();
-								Common.deleteFile(CA.profilePath);
+								SafeFileUtils.delete(new java.io.File(CA.profilePath));
 								CA.initialize();
 								Common.toast("命令助手已重新启动");
 							} catch(e) {erp(e)}});
@@ -3093,8 +3112,15 @@ MapScript.loadModule("CA", {
 	} catch(e) {erp(e)}})},
 
 	importSettings : function(f) {
+		var bytes;
+		try {
+			bytes = SafeFileUtils.readUnsafe(f);
+		} catch(e) {
+			Common.toast("配置导入失败\n" + e);
+			return;
+		}
 		CA.resetGUI();
-		Common.fileCopy(f, new java.io.File(CA.profilePath));
+		SafeFileUtils.write(new java.io.File(CA.profilePath), bytes);
 		CA.initialize();
 		Common.toast("配置已导入");
 	},
@@ -3107,9 +3133,8 @@ MapScript.loadModule("CA", {
 					type : 1,
 					defaultFileName : "ca_settings.dat",
 					callback : function(f) {
-						var fp = String(f.result.getAbsolutePath());
 						try {
-							Common.fileCopy(CA.profilePath, f.result);
+							Common.fileCopy(new java.io.File(CA.profilePath), f.result);
 							Common.toast("配置已导出至" + f.result);
 						} catch(e) {
 							erp(e, true);
@@ -3122,7 +3147,7 @@ MapScript.loadModule("CA", {
 			text : "发送",
 			path : new java.io.File(ctx.getExternalCacheDir(), "ca_settings.dat"),
 			onclick : function() {
-				Common.fileCopy(CA.profilePath, this.path);
+				Common.fileCopy(new java.io.File(CA.profilePath), this.path);
 				ctx.startActivity(this.intent);
 			},
 			hidden : function() {
