@@ -736,6 +736,26 @@ MapScript.loadModule("GiteeFeedback", {
 				onclick : function(v, tag) {
 					self.reload();
 				}
+			}, {
+				text : "编辑主题",
+				onclick : function(v, tag) {
+					var topic = self.commentData.topic;
+					GiteeFeedback.showEditIssue(topic, function(o) {
+						var progress = Common.showProgressDialog();
+						progress.setText("正在保存……");
+						progress.async(function() {
+							var d;
+							try {
+								d = GiteeFeedback.updateIssue(topic.number, topic);
+							} catch(e) {Log.e(e)}
+							if (!d) return Common.toast("话题修改失败");
+							java.lang.Thread.sleep(5000); //等待数据库更新
+							G.ui(function() {try {
+								self.reload();
+							} catch(e) {erp(e)}});
+						});
+					});
+				}
 			}];
 			self.vmaker = function(holder) {
 				var layout = holder.linear = new G.LinearLayout(ctx),
