@@ -727,6 +727,39 @@ MapScript.loadModule("AndroidBridge", {
 			ctx.sendBroadcast(i);
 		}
 	},
+	scanMedia : function(files, statusListener) {
+		var scanConn, i = 0;
+		if (!Array.isArray(files)) files = [files];
+		var scanNext = function() {
+			var e;
+			if (i >= files.length) {
+				scanConn.disconnect();
+				if (statusListener) statusListener("disconnected");
+				return;
+			}
+			e = files[i];
+			if (statusListener) statusListener("scanStart", e, i, files.length);
+			if (typeof e == "string") {
+				scanConn.scanFile(e, null);
+			} else if (e instanceof java.io.File) {
+				scanConn.scanFile(e.getPath(), null);
+			} else {
+				scanConn.scanFile(e.path, e.mimeTypes || null);
+			}
+		};
+		scanConn = new android.media.MediaScannerConnection(ctx, {
+			onMediaScannerConnected : function() {try {
+				if (statusListener) statusListener("connected");
+				scanNext();
+			} catch(e) {erp(e)}},
+			onScanCompleted : function(path, uri) {try {
+				if (statusListener) statusListener("scanCompleted", uri, files[i], i, files.length);
+				i++;
+				scanNext();
+			} catch(e) {erp(e)}}
+		});
+		scanConn.connect();
+	},
 	startAccessibilitySvcByRoot : function() {
 		var s = String(android.provider.Settings.Secure.getString(ctx.getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)).split(":");
 		var t = "com.xero.ca/com.xero.ca.AccessibilitySvc";

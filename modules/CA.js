@@ -5006,7 +5006,8 @@ MapScript.loadModule("CA", {
 				var out = new java.io.FileOutputStream(f);
 				bmp.compress(G.Bitmap.CompressFormat.PNG, 0, out);
 				out.close();
-				Common.toast("图片已保存至" + f.getAbsolutePath());
+				Common.toast("图片已保存至" + f.getPath());
+				AndroidBridge.scanMedia(f);
 				imgSaved = true;
 			} catch(e) {
 				Common.toast("图片保存失败\n" + e);
