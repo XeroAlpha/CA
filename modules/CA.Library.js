@@ -87,10 +87,7 @@
 				cur = this.cache[path].data;
 				m = this.cache[path].mode;
 			} else {
-				if ((v = this.shouldVerifySigned(path)) == 0) {
-					throw "未被验证的拓展包";
-				}
-				cur = this.readLibrary(path, v);
+				cur = this.readLibrary(path);
 				if (!cur) throw "无法读取或解析拓展包";
 				if (cur.error) throw cur.error;
 				if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
@@ -129,8 +126,8 @@
 			}
 		}
 	},
-	readLibrary : function(path, version) {
-		var t, er, securityLevel = CA.settings.securityLevel, requiredSecLevel;
+	readLibrary : function(path) {
+		var t, er, f, securityLevel = CA.settings.securityLevel, requiredSecLevel;
 		//-1 禁止所有非内置拓展包
 		//0 允许所有拓展包
 		//1 仅允许锁定拓展包与官方拓展包
@@ -142,38 +139,39 @@
 			};
 		} else {
 			er = {
-				error : "您正在使用的安全等级不允许加载外部的拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别"
+				error : "未知错误"
 			};
 		}
 		if (securityLevel >= 0) {
-			if (!(new java.io.File(path)).isFile()) {
+			f = new java.io.File(path);
+			if (!f.isFile()) {
 				return {
 					error : "拓展包文件不存在"
 				};
 			}
-			requiredSecLevel = this.testSecurityLevel(path);
+			requiredSecLevel = this.testSecurityLevel(f);
 			if (requiredSecLevel < securityLevel) {
 				return {
 					error : "您正在使用的安全等级不允许加载此拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别"
 				};
 			}
 			if (requiredSecLevel >= 2) {
-				if (t = CA.Library.loadSignedV1(path, null, er)) {
+				if (t = CA.Library.loadSignedV1(f, null, er)) {
 					return {
 						data : t,
 						mode : 3
 					};
 				}
 			} else if (requiredSecLevel == 1) {
-				if (t = CA.Library.loadPrefixed(path, null, er)) {
+				if (t = CA.Library.loadPrefixed(f, null, er)) {
 					return {
 						data : t,
 						mode : 2
 					};
 				}
 			} else if (requiredSecLevel == 0) {
-				if (t = Common.readFile(path, null, false, er)) {
-					t = this._safeRun(path, t, er);
+				if (t = Common.readFile(f.getPath(), null, false, er)) {
+					t = this.safeEval(f, t, er);
 					if (t) {
 						return {
 							data : t,
@@ -189,17 +187,24 @@
 		}
 		return er;
 	},
-	_safeRun : function(path, code, error) {
+	evalLib : function(file, code) {
+		return Loader.evalSpecial("(" + code + ")", file.getName(), 0, {
+			path : String(file.getPath()),
+			code : code
+		}, this);
+	},
+	safeEval :function(file, code, defaultValue, error) {
 		try {
-			return eval("(" + code + ")");
+			return this.evalLib(file, code);
 		} catch(e) {
 			error.error = e;
+			return defaultValue;
 		}
 	},
-	testSecurityLevel : function(path) {
-		if (this.shouldVerifySigned(path) >= 0) {
+	testSecurityLevel : function(file) {
+		if (this.shouldVerifySigned(file) >= 0) {
 			return 2;
-		} else if (this.isPrefixed(path)) {
+		} else if (this.isPrefixed(file)) {
 			return 1;
 		} else return 0;
 	},
@@ -253,10 +258,10 @@
 		}
 		return null;
 	},
-	isPrefixed : function(path) {
+	isPrefixed : function(file) {
 		try {
-			var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
-			rd = new java.io.FileInputStream(path);
+			var rd, q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
+			rd = new java.io.FileInputStream(file);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();
@@ -265,17 +270,17 @@
 			}
 			rd.skip(8);
 			rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
-			while (q = rd.readLine()) s.push(q);
+			while (q = rd.readLine());
 			rd.close();
 			return true;
 		} catch(e) {
 			return false;
 		}
 	},
-	loadPrefixed : function(path, defaultValue, error) {
+	loadPrefixed : function(file, defaultValue, error) {
 		try{
 			var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
-			rd = new java.io.FileInputStream(path);
+			rd = new java.io.FileInputStream(file);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();
@@ -286,7 +291,7 @@
 			rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
 			while (q = rd.readLine()) s.push(q);
 			rd.close();
-			return eval("(" + s.join("\n") + ")");
+			return this.evalLib(file, s.join("\n"));
 		} catch(e) {
 			if (error) error.error = e;
 			return defaultValue;
@@ -784,20 +789,20 @@
 		}
 		return MapScript.baseDir + "libs/" + libinfo.uuid + ".lib";
 	},
-	shouldVerifySigned : function(path) {
-		if (!(new java.io.File(path)).isFile()) return -1;
-		var i, arr = this.readAsArray(new java.io.FileInputStream(path)), digest, bytes, buf;
+	shouldVerifySigned : function(file) {
+		if (!file.isFile()) return -1;
+		var i, arr = this.readAsArray(new java.io.FileInputStream(file)), digest, bytes, buf;
 		if (this.arrayStartsWith(arr, [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31])) { //LIBSIGN01
 			buf = java.nio.ByteBuffer.wrap(arr);
-			var sourceSize = buf.getInt(9);
-			if (!(new java.io.File(path + ".hash")).isFile()) return 0;
+			var sourceSize = buf.getInt(9), hashFile = new java.io.File(file.getPath() + ".hash");
+			if (!hashFile.isFile()) return 0;
 			digest = java.security.MessageDigest.getInstance("SHA-1");
 			digest.update(arr, 13 + sourceSize, arr.length - 13 - sourceSize);
 			bytes = digest.digest();
 			digest.update(ScriptInterface.getVerifyKey());
 			digest.update(bytes);
 			bytes = digest.digest();
-			arr = this.readAsArray(new java.io.FileInputStream(path + ".hash"));
+			arr = this.readAsArray(new java.io.FileInputStream(hashFile));
 			if (arr.length != bytes.length) return 0;
 			for (i = 0; i < arr.length; i++) {
 				if (arr[i] != bytes[i]) return 0;
@@ -805,10 +810,10 @@
 			return 1;
 		} else return -1;
 	},
-	loadSignedV1 : function(path, defaultValue, error) {
+	loadSignedV1 : function(file, defaultValue, error) {
 		try{
 			var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31]; //LIBSIGN01
-			rd = new java.io.FileInputStream(path);
+			rd = new java.io.FileInputStream(file);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();

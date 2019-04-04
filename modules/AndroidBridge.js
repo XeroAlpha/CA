@@ -159,7 +159,12 @@ MapScript.loadModule("AndroidBridge", {
 			if (startByIntent && CA.settings.chainLaunch) {
 				t = ctx.getPackageManager().getLaunchIntentForPackage(CA.settings.chainLaunch);
 				if (t) {
-					ctx.startActivity(t);
+					try {
+						ctx.startActivity(t);
+					} catch(e) {
+						Log.e(e);
+						CA.settings.chainLaunch = null;
+					}
 				}
 			}
 			if (!startByIntent) {
@@ -313,14 +318,15 @@ MapScript.loadModule("AndroidBridge", {
 					return ctx.getPackageManager().getApplicationLabel(ai);
 				},
 				onclick : function(fset) {
-					AndroidBridge.listApp((function(pkg) {
+					var self = this;
+					AndroidBridge.listApp(function(pkg) {
 						if (pkg == ctx.getPackageName()) {
 							Common.toast("不能连锁启动自身！");
 							return;
 						}
 						CA.settings.chainLaunch = pkg;
-						fset(this.get());
-					}).bind(this));
+						fset(self.get());
+					});
 				}
 			}, {
 				name : "WebSocket服务器",
@@ -473,7 +479,8 @@ MapScript.loadModule("AndroidBridge", {
 			o.setText("正在加载列表……");
 			var lp = pm.getInstalledPackages(0).toArray();
 			var i, r = [{
-				text : "不使用"
+				text : "不使用",
+				result : null
 			}];
 			for (i in lp) {
 				if (!lp[i].applicationInfo) continue;
@@ -481,13 +488,13 @@ MapScript.loadModule("AndroidBridge", {
 				r.push({
 					text : pm.getApplicationLabel(lp[i].applicationInfo),
 					description : lp[i].versionName,
-					result : lp[i].packageName
+					result : String(lp[i].packageName)
 				});
 			}
 			o.close();
 			if (o.cancelled) return;
 			Common.showListChooser(r, function(id) {
-				callback(String(r[id].result));
+				callback(r[id].result);
 			});
 		}, true);
 	},
@@ -719,6 +726,39 @@ MapScript.loadModule("AndroidBridge", {
 			}
 			ctx.sendBroadcast(i);
 		}
+	},
+	scanMedia : function(files, statusListener) {
+		var scanConn, i = 0;
+		if (!Array.isArray(files)) files = [files];
+		var scanNext = function() {
+			var e;
+			if (i >= files.length) {
+				scanConn.disconnect();
+				if (statusListener) statusListener("disconnected");
+				return;
+			}
+			e = files[i];
+			if (statusListener) statusListener("scanStart", e, i, files.length);
+			if (typeof e == "string") {
+				scanConn.scanFile(e, null);
+			} else if (e instanceof java.io.File) {
+				scanConn.scanFile(e.getPath(), null);
+			} else {
+				scanConn.scanFile(e.path, e.mimeTypes || null);
+			}
+		};
+		scanConn = new android.media.MediaScannerConnection(ctx, {
+			onMediaScannerConnected : function() {try {
+				if (statusListener) statusListener("connected");
+				scanNext();
+			} catch(e) {erp(e)}},
+			onScanCompleted : function(path, uri) {try {
+				if (statusListener) statusListener("scanCompleted", uri, files[i], i, files.length);
+				i++;
+				scanNext();
+			} catch(e) {erp(e)}}
+		});
+		scanConn.connect();
 	},
 	startAccessibilitySvcByRoot : function() {
 		var s = String(android.provider.Settings.Secure.getString(ctx.getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)).split(":");

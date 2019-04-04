@@ -6,6 +6,7 @@ MapScript.loadModule("GiteeFeedback", {
 	targetOwner : "projectxero",
 	targetRepo : "ca",
 	perPage : 20,
+	databaseDelay : 2000,
 	initialize : function() {
 		if (MapScript.host == "Android") {
 			this.clientId = String(ScriptInterface.getGiteeClientId());
@@ -651,7 +652,7 @@ MapScript.loadModule("GiteeFeedback", {
 							d = GiteeFeedback.createIssue(o.title, o.body);
 						} catch(e) {Log.e(e)}
 						if (!d) return Common.toast("话题创建失败");
-						java.lang.Thread.sleep(5000); //等待数据库更新
+						java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
 						l = GiteeFeedback.addRecentFeedback(d.number);
 						l.lastModified = new Date(d.updated_at).getTime();
 						G.ui(function() {try {
@@ -736,6 +737,26 @@ MapScript.loadModule("GiteeFeedback", {
 				onclick : function(v, tag) {
 					self.reload();
 				}
+			}, {
+				text : "编辑主题",
+				onclick : function(v, tag) {
+					var topic = self.commentData.topic;
+					GiteeFeedback.showEditIssue(topic, function(o) {
+						var progress = Common.showProgressDialog();
+						progress.setText("正在保存……");
+						progress.async(function() {
+							var d;
+							try {
+								d = GiteeFeedback.updateIssue(topic.number, topic);
+							} catch(e) {Log.e(e)}
+							if (!d) return Common.toast("话题修改失败");
+							java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
+							G.ui(function() {try {
+								self.reload();
+							} catch(e) {erp(e)}});
+						});
+					});
+				}
 			}];
 			self.vmaker = function(holder) {
 				var layout = holder.linear = new G.LinearLayout(ctx),
@@ -757,7 +778,7 @@ MapScript.loadModule("GiteeFeedback", {
 			}
 			self.vbinder = function(holder, e, i, a) {
 				holder.linear.setGravity(e.fromThis ? G.Gravity.RIGHT : G.Gravity.LEFT);
-				holder.text1.setText(e.fromThis ? "匿名用户" : e.user.name);
+				holder.text1.setText(e.fromThis && !GiteeFeedback.userInfo ? "匿名用户" : e.user.name);
 				holder.text2.setText(e.body);
 			}
 			self.reload = function() {
@@ -856,7 +877,7 @@ MapScript.loadModule("GiteeFeedback", {
 						d = GiteeFeedback.createIssueComment(self.currentNumber, text);
 					} catch(e) {Log.e(e)}
 					if (!d) Common.toast("话题创建失败");
-					java.lang.Thread.sleep(1500); //等待数据库更新
+					java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
 					G.ui(function() {try {
 						self.reload();
 					} catch(e) {erp(e)}});

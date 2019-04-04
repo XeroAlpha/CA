@@ -22,7 +22,7 @@ MapScript.loadModule("CA", {
 	version : BuildConfig.versionCode,
 	versionName : BuildConfig.version,
 	publishDate : BuildConfig.date,
-	help : Loader.fromFile("raw/about.js"),
+	aboutInfo : Loader.fromFile("raw/about.js"),
 	tips : [],
 
 	initialize : function() {try {
@@ -63,10 +63,11 @@ MapScript.loadModule("CA", {
 		}
 	} catch(e) {erp(e)}},
 	load : function() {
-		var f = MapScript.readJSON(this.profilePath, null, true), t;
+		var pf = new java.io.File(this.profilePath);
+		var f = SafeFileUtils.readJSON(pf, null), t;
 		if (!f) {
 			t = new java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/com.mojang/minecraftWorlds/" + (BuildConfig.variants == "release" ? "xero_commandassist.dat" : "xero_commandassist_snapshot.dat"));
-			if (t.isFile()) f = MapScript.readJSON(t, null, true);
+			if (t.isFile()) f = SafeFileUtils.readJSON(t, null);
 			t.delete();
 		}
 		if (f && Array.isArray(f.history) && (f.favorite instanceof Object) && (f.settings instanceof Object)) {
@@ -133,8 +134,8 @@ MapScript.loadModule("CA", {
 				Updater.showNewVersionInfo(f.publishDate);
 			}
 		} else {
-			if (new java.io.File(this.profilePath).exists()) {
-				erp("Profile cannot resolved:\n" + Common.readFile(this.profilePath, "Content cannot read", true), true);
+			if (pf.exists()) {
+				erp("Profile cannot resolved:\n" + SafeFileUtils.readText(pf, "Content cannot read"), true);
 			}
 			this.his = [
 				"/say 你好，我是命令助手！左边是历史，右边是收藏，可以拖来拖去，也可以长按编辑哦"
@@ -187,13 +188,13 @@ MapScript.loadModule("CA", {
 	},
 	save : function() {
 		if (Common.theme) this.settings.theme = Common.theme.id;
-		MapScript.saveJSON(this.profilePath, {
+		SafeFileUtils.writeJSON(new java.io.File(this.profilePath), {
 			history : this.his,
 			favorite : this.fav,
 			cmd : this.cmdstr,
 			settings : this.settings,
 			publishDate : this.publishDate
-		}, true);
+		});
 	},
 	addHistory : function(t) {
 		var i = this.his.indexOf(String(t));
@@ -253,13 +254,7 @@ MapScript.loadModule("CA", {
 			self.view = new G.FrameLayout(ctx);
 			self.view.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (isNaN(CA.settings.iiMode) || CA.settings.iiMode < 0) {
-					CA.showModeChooser(function() {
-						v.postDelayed(function() {
-							self.open();
-						}, 150);
-					});
-					Common.toast("请选择智能模式");
-					return;
+					CA.settings.iiMode = 3;
 				}
 				self.open();
 			} catch(e) {erp(e)}}}));
@@ -297,8 +292,8 @@ MapScript.loadModule("CA", {
 					case e.ACTION_CANCEL:
 					self.layoutChanged();
 					self.refreshPos();
-					CA.settings.iconX = self.cx;
-					CA.settings.iconY = self.cy;
+					CA.settings.iconX = Math.floor(self.cx);
+					CA.settings.iconY = Math.floor(self.cy);
 					self.longClicked = false;
 				}
 				self.icon.dispatchTouchEvent(e);
@@ -450,11 +445,30 @@ MapScript.loadModule("CA", {
 			}
 			PWM.registerResetFlag(CA, "icon");
 			PWM.registerResetFlag(self, "view");
-			PopupPage.on("addPopup", self.iconUpdate)
+			PopupPage.on("addPopup", function() {
+					var rect = CA.settings.pageRect;
+					if (rect) {
+						PopupPage.setRect(rect[0], rect[1], rect[2], rect[3]);
+					}
+					if (CA.settings.pageWindowed) PopupPage.setFullScreen(false, PopupPage.isLocked());
+					self.iconUpdate();
+				})
 				.on("removePopup", self.iconUpdate)
-				.on("fullscreenChanged", self.iconUpdate)
 				.on("show", self.iconUpdate)
-				.on("hide", self.iconUpdate);
+				.on("hide", self.iconUpdate)
+				.on("rectUpdate", function(eventName, x, y, w, h) {
+					var rect = CA.settings.pageRect;
+					if (rect) {
+						rect[0] = Math.floor(x); rect[1] = Math.floor(y);
+						rect[2] = Math.ceil(w); rect[3] = Math.ceil(h);
+					} else {
+						CA.settings.pageRect = [x, y, w, h];
+					}
+				})
+				.on("fullscreenChanged", function(eventName, isFullScreen, isLocked) {
+					CA.settings.pageWindowed = !isFullScreen;
+					self.iconUpdate();
+				});
 		}
 		if (CA.icon) return;
 		self.updateScreenInfo();
@@ -462,7 +476,7 @@ MapScript.loadModule("CA", {
 		if (isNaN(CA.settings.iconX)) {
 			self.view.measure(0, 0);
 			CA.settings.iconX = 0;
-			CA.settings.iconY = 0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight();
+			CA.settings.iconY = Math.ceil(0.25 * G.screenHeight - 0.5 * self.view.getMeasuredHeight());
 		}
 		CA.icon = new PopupWindow(self.view, "CA.Icon");
 		CA.icon.show({
@@ -516,7 +530,7 @@ MapScript.loadModule("CA", {
 					return !PopupPage.supportResize;
 				},
 				onclick : function(v) {
-					PopupPage.setFullScreen(!PopupPage.isFullScreen());
+					PopupPage.setFullScreen(!PopupPage.isFullScreen(), PopupPage.isLocked());
 				}
 			}, {
 				text : "插件",
@@ -632,6 +646,7 @@ MapScript.loadModule("CA", {
 				s = String(s);
 				Common.setClipboardText(s);
 				CA.addHistory(s);
+				if (CA.history) CA.showHistory();
 				if (CA.settings.pasteMode == 1) {
 					if (CA.his.length) CA.showPaste(0);
 				} else if (CA.settings.pasteMode == 2) {
@@ -655,16 +670,16 @@ MapScript.loadModule("CA", {
 					FCString.clearSpans(s);
 					FCString.colorFC(s, Common.theme.textcolor);
 				}
-				var gostate0 = function() {
+				var gostate0 = function() { //输入内容为空
 					state = 0;
 					CA.hideAssist(); CA.showHistory();
 					self.copy.setText("关闭");
 					self.add.setVisibility(G.View.VISIBLE);
 					self.clear.setVisibility(G.View.GONE);
 				}
-				var gostate1 = function() {
+				var gostate1 = function() { //输入了命令
 					state = 1;
-					if (CA.settings.iiMode == 2) {
+					if (CA.settings.iiMode == 2 || CA.settings.iiMode == 3) {
 						CA.hideHistory(); CA.showAssist();
 						CA.Assist.hide(); CA.IntelliSense.show();
 					} else {
@@ -674,7 +689,7 @@ MapScript.loadModule("CA", {
 					self.add.setVisibility(G.View.GONE);
 					self.clear.setVisibility(CA.settings.showClearButton ? G.View.VISIBLE : G.View.GONE);
 				}
-				var gostate2 = function() {
+				var gostate2 = function() { //输入了/help
 					state = 2;
 					CA.hideHistory(); CA.showAssist();
 					CA.Assist.hide(); CA.IntelliSense.show();
@@ -683,7 +698,7 @@ MapScript.loadModule("CA", {
 					self.add.setVisibility(G.View.GONE);
 					self.clear.setVisibility(G.View.VISIBLE);
 				}
-				var gostate3 = function() {
+				var gostate3 = function() { //辅助输入模式
 					state = 3;
 					CA.hideHistory(); CA.showAssist();
 					CA.IntelliSense.hide(); CA.Assist.show(); CA.hideFCS();
@@ -694,19 +709,18 @@ MapScript.loadModule("CA", {
 				return function(s) {
 					s.setSpan(self.spanWatcher, 0, s.length(), G.Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 					CA.cmdstr = String(s);
-					if (CA.settings.iiMode == 1 && CA.Assist.active) {
+					if ((CA.settings.iiMode == 1 || CA.settings.iiMode == 3) && CA.Assist.active) {
 						if (state != 3) gostate3();
 					} else if (s == "/help") {
 						if (state != 2) gostate2();
-					} else if (s.length() && s != "/help" && !CA.Library.loadingStatus) {
+					} else if (s.length() && !CA.Library.loadingStatus) {
 						if (state != 1) gostate1();
 					} else {
 						if (state != 0) gostate0();
 					}
 					if (CA.fcs) CA.showFCS(s);
-					if (CA.history) CA.showHistory();
 					if (CA.settings.autoFormatCmd) rep(s);
-					if (CA.settings.iiMode != 2 || state !== 1) return;
+					if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3 || state != 1) return;
 					if (CA.settings.senseDelay) {
 						CA.IntelliSense.callDelay(String(s));
 					} else {
@@ -784,7 +798,7 @@ MapScript.loadModule("CA", {
 					Common.toast("拓展包正在加载中，请稍候");
 					return;
 				}
-				if (CA.settings.iiMode == 1) {
+				if (CA.settings.iiMode == 1 || CA.settings.iiMode == 3) {
 					CA.Assist.active = true;
 					CA.cmd.setFocusable(false);
 					CA.cmd.setText(CA.cmdstr);
@@ -2499,8 +2513,16 @@ MapScript.loadModule("CA", {
 				}
 			}];
 			self.about = [{
+				name : "版本信息",
+				type : "custom",
+				get : function() {
+					return CA.versionName;
+				},
+				onclick : function() {
+					Updater.showCurrentVersionInfo();
+				}
+			}, {
 				name : "检查更新",
-				description : "点击检查更新",
 				type : "custom",
 				get : function() {
 					return Updater.getVersionInfo();
@@ -2525,16 +2547,7 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
-				name : "相关信息",
-				type : "custom",
-				onclick : function() {
-					Common.showWebViewDialog({
-						mimeType : "text/html; charset=UTF-8",
-						code : CA.help
-					});
-				}
-			}, {
-				name : "分享链接",
+				name : "分享软件",
 				type : "custom",
 				onclick : function() {
 					var t = "https://www.coolapk.com/game/190152";
@@ -2568,17 +2581,30 @@ MapScript.loadModule("CA", {
 					GiteeFeedback.showFeedbacks();
 				}
 			}, {
-				name : "向作者捐助",
+				name : "支持开发",
 				type : "custom",
 				onclick : function() {
 					CA.showDonate();
 				}
 			}, {
+				name : "关于命令助手",
+				type : "custom",
+				onclick : function() {
+					Common.showWebViewDialog({
+						mimeType : "text/html; charset=UTF-8",
+						code : CA.aboutInfo
+					});
+				}
+			}, {
 				id : "skipCheckUpdate",
-				name : "停用自动检查更新",
+				name : "自动检查更新",
 				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
+				get : function() {
+					return !CA.settings.skipCheckUpdate;
+				},
+				set : function(v) {
+					CA.settings.skipCheckUpdate = !v;
+				}
 			}, {
 				name : "Beta计划",
 				description : "检测Beta版更新，体验新版功能",
@@ -2801,7 +2827,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				get : function() {
 					var t = CA.settings.iiMode;
-					return t == 1 ? "初学者模式" : t == 2 ? "专家模式" : "关闭";
+					return t == 1 ? "初学者模式" : t == 2 ? "专家模式" : t == 3 ? "自动选择" : "关闭";
 				},
 				onclick : function() {
 					CA.showModeChooser(function() {
@@ -3054,6 +3080,24 @@ MapScript.loadModule("CA", {
 					CA.exportSettings();
 				}
 			}, {
+				name : "导入正式版数据",
+				type : "custom",
+				hidden : function() {
+					return BuildConfig.variants == "release";
+				},
+				onclick : function() {
+					Common.showConfirmDialog({
+						title : "确定导入正式版数据？",
+						description : "*此操作无法撤销",
+						callback : function(id) {
+							if (id != 0) return;
+							G.ui(function() {try {
+								CA.importSettings(new java.io.File(MapScript.baseDir + "xero_commandassist.dat"));
+							} catch(e) {erp(e)}});
+						}
+					});
+				}
+			}, {
 				name : "恢复默认数据",
 				type : "custom",
 				onclick : function() {
@@ -3064,7 +3108,7 @@ MapScript.loadModule("CA", {
 							if (id != 0) return;
 							G.ui(function() {try {
 								CA.resetGUI();
-								Common.deleteFile(CA.profilePath);
+								SafeFileUtils.delete(new java.io.File(CA.profilePath));
 								CA.initialize();
 								Common.toast("命令助手已重新启动");
 							} catch(e) {erp(e)}});
@@ -3080,8 +3124,15 @@ MapScript.loadModule("CA", {
 	} catch(e) {erp(e)}})},
 
 	importSettings : function(f) {
+		var bytes;
+		try {
+			bytes = SafeFileUtils.readUnsafe(f);
+		} catch(e) {
+			Common.toast("配置导入失败\n" + e);
+			return;
+		}
 		CA.resetGUI();
-		Common.fileCopy(f, new java.io.File(CA.profilePath));
+		SafeFileUtils.write(new java.io.File(CA.profilePath), bytes);
 		CA.initialize();
 		Common.toast("配置已导入");
 	},
@@ -3094,9 +3145,8 @@ MapScript.loadModule("CA", {
 					type : 1,
 					defaultFileName : "ca_settings.dat",
 					callback : function(f) {
-						var fp = String(f.result.getAbsolutePath());
 						try {
-							Common.fileCopy(CA.profilePath, f.result);
+							Common.fileCopy(new java.io.File(CA.profilePath), f.result);
 							Common.toast("配置已导出至" + f.result);
 						} catch(e) {
 							erp(e, true);
@@ -3109,7 +3159,7 @@ MapScript.loadModule("CA", {
 			text : "发送",
 			path : new java.io.File(ctx.getExternalCacheDir(), "ca_settings.dat"),
 			onclick : function() {
-				Common.fileCopy(CA.profilePath, this.path);
+				Common.fileCopy(new java.io.File(CA.profilePath), this.path);
 				ctx.startActivity(this.intent);
 			},
 			hidden : function() {
@@ -4620,10 +4670,10 @@ MapScript.loadModule("CA", {
 	
 	showModeChooser : function(callback) {
 		Common.showOperateDialog([{
-			text : "关闭",
-			description : "禁用IntelliSense的所有功能",
+			text : "自动选择",
+			description : "智能选择初学者模式或专家模式",
 			onclick : function() {
-				CA.settings.iiMode = 0;
+				CA.settings.iiMode = 3;
 				callback();
 			}
 		}, {
@@ -4638,6 +4688,13 @@ MapScript.loadModule("CA", {
 			description : "启用提示助手与智能补全",
 			onclick : function() {
 				CA.settings.iiMode = 2;
+				callback();
+			}
+		}, {
+			text : "关闭",
+			description : "禁用IntelliSense的所有功能",
+			onclick : function() {
+				CA.settings.iiMode = 0;
 				callback();
 			}
 		}]);
@@ -4961,7 +5018,8 @@ MapScript.loadModule("CA", {
 				var out = new java.io.FileOutputStream(f);
 				bmp.compress(G.Bitmap.CompressFormat.PNG, 0, out);
 				out.close();
-				Common.toast("图片已保存至" + f.getAbsolutePath());
+				Common.toast("图片已保存至" + f.getPath());
+				AndroidBridge.scanMedia(f);
 				imgSaved = true;
 			} catch(e) {
 				Common.toast("图片保存失败\n" + e);

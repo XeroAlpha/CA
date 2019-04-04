@@ -296,6 +296,11 @@ var proto = {
 			}
 		}
 		return r;
+	},
+	captureStack : function self(srcFunc) {
+		var k = {};
+		Error.captureStackTrace(k, srcFunc || self);
+		return k.stack;
 	}
 };
 return Object.create(proto).stop();
@@ -460,13 +465,13 @@ MapScript.loadModule("Loader", {
 			return match.replace(mpath, new java.io.File(parentDir, mpath));
 		});
 		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-		t = this.evalSpecial(s, pathFile.getName(), 0);
+		t = this.evalSpecial(s, pathFile.getName(), 0, MapScript.global, Loader);
 		if (this.cache) this.cache[path] = t;
 		return t;
 	},
-	evalSpecial : function(source, sourceName, lineNumber) {
+	evalSpecial : function(source, sourceName, lineNumber, scope, thisArg) {
 		var cx = org.mozilla.javascript.Context.getCurrentContext();
-		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, MapScript.global, null, [new java.lang.String(source)], sourceName, lineNumber);
+		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, scope, thisArg, [new java.lang.String(source)], sourceName, lineNumber);
 	},
 	lockProperty : function(obj, propertyName) {
 		Object.defineProperty(obj, propertyName, {
@@ -575,6 +580,8 @@ Loader.fromFile("modules/network/WSServer.js")
 Loader.fromFile("modules/network/GiteeFeedback.js")
 
 Loader.fromFile("modules/uiCore/LPlugins.js")
+
+Loader.fromFile("modules/utils/SafeFileUtils.js")
 
 Loader.fromFile("modules/DebugUtils.js")
 
