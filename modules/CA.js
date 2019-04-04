@@ -22,7 +22,7 @@ MapScript.loadModule("CA", {
 	version : BuildConfig.versionCode,
 	versionName : BuildConfig.version,
 	publishDate : BuildConfig.date,
-	help : Loader.fromFile("raw/about.js"),
+	aboutInfo : Loader.fromFile("raw/about.js"),
 	tips : [],
 
 	initialize : function() {try {
@@ -2513,8 +2513,16 @@ MapScript.loadModule("CA", {
 				}
 			}];
 			self.about = [{
+				name : "版本信息",
+				type : "custom",
+				get : function() {
+					return CA.versionName;
+				},
+				onclick : function() {
+					Updater.showCurrentVersionInfo();
+				}
+			}, {
 				name : "检查更新",
-				description : "点击检查更新",
 				type : "custom",
 				get : function() {
 					return Updater.getVersionInfo();
@@ -2539,16 +2547,7 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
-				name : "相关信息",
-				type : "custom",
-				onclick : function() {
-					Common.showWebViewDialog({
-						mimeType : "text/html; charset=UTF-8",
-						code : CA.help
-					});
-				}
-			}, {
-				name : "分享链接",
+				name : "分享软件",
 				type : "custom",
 				onclick : function() {
 					var t = "https://www.coolapk.com/game/190152";
@@ -2582,17 +2581,30 @@ MapScript.loadModule("CA", {
 					GiteeFeedback.showFeedbacks();
 				}
 			}, {
-				name : "向作者捐助",
+				name : "支持开发",
 				type : "custom",
 				onclick : function() {
 					CA.showDonate();
 				}
 			}, {
+				name : "关于命令助手",
+				type : "custom",
+				onclick : function() {
+					Common.showWebViewDialog({
+						mimeType : "text/html; charset=UTF-8",
+						code : CA.aboutInfo
+					});
+				}
+			}, {
 				id : "skipCheckUpdate",
-				name : "停用自动检查更新",
+				name : "自动检查更新",
 				type : "boolean",
-				get : self.getsettingbool,
-				set : self.setsettingbool
+				get : function() {
+					return !CA.settings.skipCheckUpdate;
+				},
+				set : function(v) {
+					CA.settings.skipCheckUpdate = !v;
+				}
 			}, {
 				name : "Beta计划",
 				description : "检测Beta版更新，体验新版功能",

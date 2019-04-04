@@ -373,13 +373,27 @@ MapScript.loadModule("Updater", {
 		Common.deleteFile(MapScript.baseDir + "snapshot.js");
 	},
 	showNewVersionInfo : function(oldVer) {
-		Common.showTextDialog(G.Html.fromHtml([
-			"<b>命令助手已更新！</b>",
-			"<b>" + oldVer + " -> " + BuildConfig.date + "</b>\t(" + BuildConfig.version + ")",
-			"发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
-			"<br />更新内容：",
-			BuildConfig.description.replace(/\n/g, "<br />")
-		].join("<br />")));
+		Common.showTextDialog(ISegment.rawJson([
+			{
+				text : "命令助手已更新！\n" + oldVer + " -> " + BuildConfig.date,
+				bold : true
+			},
+			"\t(" + BuildConfig.version + ")",
+			"\n发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
+			"\n\n更新内容：\n",
+			BuildConfig.description
+		]));
+	},
+	showCurrentVersionInfo : function() {
+		Common.showTextDialog(ISegment.rawJson([
+			{
+				text : "命令助手 " + BuildConfig.version + " (" + BuildConfig.date + ")",
+				bold : true
+			},
+			"\n发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
+			"\n\n更新内容：\n",
+			BuildConfig.description
+		]));
 	},
 	askHurryDevelop : function(callback) {
 		Common.showConfirmDialog({
