@@ -1618,7 +1618,12 @@ MapScript.loadModule("Common", {
 
 	postIME : function(v, delay) {
 		v.postDelayed(function() {try {
-			v.requestFocus();
+			try {
+				v.requestFocus();
+			} catch(e) {
+				//WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+				Log.e(e);
+			}
 			ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(v, G.InputMethodManager.SHOW_IMPLICIT);
 		} catch(e) {erp(e)}}, isNaN(delay) ? 0 : delay);
 	},

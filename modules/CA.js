@@ -660,9 +660,15 @@ MapScript.loadModule("CA", {
 				self.performClose();
 			}
 			self.activate = function(fl) {
-				CA.cmd.requestFocus();
-				CA.cmd.setSelection(CA.cmd.getText().length());
-				if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
+				try {
+					CA.cmd.requestFocus();
+					CA.cmd.setSelection(CA.cmd.getText().length());
+					if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
+				} catch(e) {
+					//WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+					//com.meizu.widget.OptionPopupWindow不支持悬浮窗界面
+					Log.e(e);
+				}
 			}
 			self.textUpdate = (function() {
 				var state = -1;
