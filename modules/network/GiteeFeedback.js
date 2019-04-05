@@ -642,7 +642,8 @@ MapScript.loadModule("GiteeFeedback", {
 				if (self.nextAdd > Date.now()) return Common.toast("服务器忙，请1分钟后重试");
 				GiteeFeedback.showEditIssue({
 					title : "",
-					body : ""
+					body : "",
+					newIssue : true
 				}, function(o) {
 					var progress = Common.showProgressDialog();
 					progress.setText("正在创建……");
@@ -1005,7 +1006,7 @@ MapScript.loadModule("GiteeFeedback", {
 				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
 				children : [
 					L.TextView({
-						text : "新建反馈话题",
+						text : o.newIssue ? "新建反馈话题" : "编辑反馈话题",
 						padding : [0, 0, 0, 10 * G.dp],
 						layout : { width : -1, height : -2 },
 						style : "textview_default",
@@ -1013,7 +1014,7 @@ MapScript.loadModule("GiteeFeedback", {
 					}),
 					title = L.EditText({
 						text : o.title,
-						hint : "标题",
+						hint : "在此处用一句话描述反馈的问题或建议",
 						singleLine : true,
 						padding : [0, 0, 0, 0],
 						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
@@ -1023,7 +1024,7 @@ MapScript.loadModule("GiteeFeedback", {
 					}),
 					body = L.EditText({
 						text : o.body,
-						hint : "请详细具体地描述你的反馈",
+						hint : "在这里补充说明发生问题时的现象、复现步骤与报错信息。如果是建议，请在这里说明提出建议的原因",
 						padding : [0, 20 * G.dp, 0, 0],
 						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
 						style : "edittext_default",
