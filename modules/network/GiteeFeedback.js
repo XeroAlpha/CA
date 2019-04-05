@@ -27,7 +27,7 @@ MapScript.loadModule("GiteeFeedback", {
 	},
 	acquireAccessTokenAnonymous : function() {
 		this.accessType = "anonymous";
-		this.accessToken = String(ScriptInterface.getGiteeFeedbackToken());
+		this.accessToken = undefined;
 		this.accessData = null;
 	},
 	acquireAccessTokenOAuth : function(authorizationCode) {
@@ -696,6 +696,7 @@ MapScript.loadModule("GiteeFeedback", {
 				});
 			}
 			self.addIssue = function() {
+				if (!GiteeFeedback.accessToken) return Common.toast("您尚未登录，因此不能创建反馈");
 				if (self.rejectTime > Date.now()) return Common.toast("因为您发布了无效的反馈，为防止服务器资源继续被浪费，您已被暂时禁止发布反馈！");
 				if (self.nextAdd > Date.now()) return Common.toast("服务器忙，请1分钟后重试");
 				GiteeFeedback.showEditIssue({
@@ -862,6 +863,7 @@ MapScript.loadModule("GiteeFeedback", {
 					G.ui(function() {try {
 						self.title.setText(data.topic.title);
 						var canTalk = self.readOnly > 0 ? true : self.readOnly < 0 ? false : data.topic.state == "open";
+						if (!GiteeFeedback.accessToken) canTalk = false;
 						if (canTalk && !self.talkVisible) {
 							self.talkVisible = true;
 							self.list.addFooterView(self.talk);
@@ -1176,35 +1178,11 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 }
 					}),
 					L.TextView({
-						text : "登录码云用户可以方便地收到反馈的回复，还可以回复别人的反馈",
-						padding : [0, 20	 * G.dp, 0, 10 * G.dp],
+						text : "您需要一个账户才能创建和回复反馈，您也可以选择使用匿名用户来查看反馈",
+						padding : [0, 20 * G.dp, 0, 10 * G.dp],
 						layout : { width : -1, height : -2 },
 						style : "textview_highlight",
 						fontSize : 2
-					}),
-					L.TextView({
-						text : "匿名使用",
-						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
-						gravity : L.Gravity("center"),
-						layout : { width : -1, height : -2 },
-						style : "button_critical",
-						fontSize : 3,
-						onClick : function() {try {
-							Common.showProgressDialog(function(dia) {
-								dia.setText("正在登录...");
-								try {
-									GiteeFeedback.acquireAccessTokenAnonymous();
-									GiteeFeedback.save(null);
-								} catch(e) {
-									erp(e, true);
-									return Common.toast("登录失败\n" + e);
-								}
-								G.ui(function() {try {
-									popup.exit();
-									if (callback) callback();
-								} catch(e) {erp(e)}});
-							});
-						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
 						text : "登录",
@@ -1233,7 +1211,31 @@ MapScript.loadModule("GiteeFeedback", {
 						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
-						text : "使用浏览器登录",
+						text : "匿名使用",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {try {
+							Common.showProgressDialog(function(dia) {
+								dia.setText("正在登录...");
+								try {
+									GiteeFeedback.acquireAccessTokenAnonymous();
+									GiteeFeedback.save(null);
+								} catch(e) {
+									erp(e, true);
+									return Common.toast("登录失败\n" + e);
+								}
+								G.ui(function() {try {
+									popup.exit();
+									if (callback) callback();
+								} catch(e) {erp(e)}});
+							});
+						} catch(e) {erp(e)}}
+					}),
+					L.TextView({
+						text : "使用浏览器登录或注册",
 						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp],
 						gravity : L.Gravity("center"),
 						layout : { width : -1, height : -2 },
