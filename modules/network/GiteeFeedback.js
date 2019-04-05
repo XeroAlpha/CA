@@ -6,12 +6,16 @@ MapScript.loadModule("GiteeFeedback", {
 	targetOwner : "projectxero",
 	targetRepo : "ca",
 	perPage : 20,
+	maxFeedbackCount : 50,
 	databaseDelay : 2000,
 	initialize : function() {
 		if (MapScript.host == "Android") {
 			this.clientId = String(ScriptInterface.getGiteeClientId());
 			this.clientSecret = String(ScriptInterface.getGiteeClientSecret());
 			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback.html";
+		}
+		if (CA.settingsVersion < Date.parse("2019-04-05")) {
+			this.upgradeRecentFeedback();
 		}
 	},
 	getAuthorizeUrl : function() {
@@ -69,18 +73,71 @@ MapScript.loadModule("GiteeFeedback", {
 		}
 		return -1;
 	},
-	getRecentFeedback : function() {
-		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
-		return CA.settings.recentFeedback;
+	getRecentFeedback : function(state) {
+		var i, e, data, a = CA.settings.recentFeedback, r;
+		if (this.userInfo) {
+			try {
+				r = this.getUserIssues(this.userInfo.name, state, 1);
+			} catch(e) {Log.e(e)}
+			if (!r) r = [];
+			if (!a) a = {};
+			for (i = 0; i < r.length; i++) {
+				e = r[i];
+				e.updated_utc = Date.parse(e.updated_at);
+				if (e.number in a) {
+					e.lastModified = a[e.number].lastModified;
+				} else {
+					e.lastModified = e.updated_utc;
+				}
+				e.isNew = e.lastModified < e.updated_utc;
+			}
+			return r;
+		} else if (a) {
+			r = [];
+			for (i in a) {
+				try {
+					data = this.getIssue(i);
+					if (state != "all" && data.state != state) continue;
+					data.updated_utc = Date.parse(data.updated_at);
+					data.lastModified = a[i].lastModified;
+					data.isNew = data.lastModified < data.updated_utc;
+					r.push(data);
+				} catch(e) {Log.e(e)}
+			}
+			r.sort(function(a, b) {
+				return b.updated_utc - a.updated_utc;
+			});
+			if (r.length > this.maxFeedbackCount) {
+				for (i = this.maxFeedbackCount; i < r.length; i++) {
+					delete a[r[i].number];
+				}
+				r.length = this.maxFeedbackCount;
+			}
+			return r;
+		}
+		return [];
 	},
-	addRecentFeedback : function(number) {
-		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
-		var t;
-		CA.settings.recentFeedback.push(t = {
-			number : number,
-			lastModified : Date.now()
-		});
-		return t;
+	updateRecentFeedback : function(data) {
+		var i, a;
+		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = {};
+		a = CA.settings.recentFeedback;
+		if (data.number in a) {
+			a[data.number].lastModified = Date.parse(data.updated_at);
+		} else {
+			a[data.number] = {
+				lastModified : Date.parse(data.updated_at)
+			};
+		}
+	},
+	upgradeRecentFeedback : function() {
+		var old = CA.settings.recentFeedback, r, i;
+		if (!old) return;
+		r = {};
+		for (i = 0; i < old.length; i++) {
+			r[old[i].number] = {
+				lastModified : old[i].lastModified
+			}
+		}
 	},
 	getUserInfo : function() {
 		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/user?" + NetworkUtils.toQueryString({access_token : this.accessToken})));
@@ -92,6 +149,16 @@ MapScript.loadModule("GiteeFeedback", {
 			direction : "desc",
 			page : page,
 			per_page : this.perPage
+		})));
+	},
+	getUserIssues : function(userName, state, page) {
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues?" + NetworkUtils.toQueryString({
+			state : state,
+			sort : "updated",
+			direction : "desc",
+			page : page,
+			per_page : this.maxFeedbackCount,
+			creator : userName
 		})));
 	},
 	createIssue : function(title, body) {
@@ -601,39 +668,30 @@ MapScript.loadModule("GiteeFeedback", {
 			self.reload = function() {
 				if (self.loading) return Common.toast("正在加载中……");
 				self.loading = true;
-				self.issues.length = 0;
-				self.adpt.notifyChange();
+				self.adpt.setArray([]);
 				var progress = Common.showProgressDialog();
 				progress.setText("正在加载……");
 				progress.async(function() {
-					var i, t, a = GiteeFeedback.getRecentFeedback(), idata, rejectCount = 0, rejectLatest = -Infinity, latest = -Infinity;
+					var i, e, a = GiteeFeedback.getRecentFeedback(self.issueState), rejectCount = 0, rejectLatest = -Infinity, latest = -Infinity;
 					for (i = 0; i < a.length; i++) {
-						try {
-							idata = GiteeFeedback.getIssue(a[i].number);
-							if (self.issueState == "open" && idata.state != "open") continue;
-							idata.updated_utc = new Date(idata.updated_at).getTime();
-							t = new Date(idata.created_at).getTime();
-							if (idata.state == "rejected") {
-								rejectCount++;
-								rejectLatest = Math.max(rejectLatest, t);
-							}
-							latest = Math.max(latest, t);
-							self.issues.push(idata);
-						} catch(e) {Log.e(e)}
+						e = a[i];
+						e.created_utc = Date.parse(e.created_at);
+						latest = Math.max(latest, e.created_utc);
+						if (e.state == "rejected") {
+							rejectCount++;
+							rejectLatest = Math.max(rejectLatest, e.created_utc);
+						}
 					}
 					self.rejectTime = rejectCount > 2 ? rejectLatest + 24 * 3600 * 1000 * Math.pow(3, rejectCount - 3) : -Infinity;
 					self.nextAdd = latest + 60 * 1000;
 					self.nextReload = Date.now() + 20 * 1000;
-					self.issues.sort(function(a, b) {
-						return b.updated_utc - a.updated_utc;
-					});
 					try {
 						GiteeFeedback.myUserId = GiteeFeedback.userInfo ? GiteeFeedback.userInfo.id : GiteeFeedback.getUserInfo().id;
 					} catch(e) {Log.e(e)}
 					self.loading = false;
 					G.ui(function() {try {
 						self.title.setText("最近反馈 - " + (GiteeFeedback.userInfo ? GiteeFeedback.userInfo.name : "匿名"));
-						self.adpt.notifyChange();
+						self.adpt.setArray(a);
 					} catch(e) {erp(e)}});
 				});
 			}
@@ -654,15 +712,14 @@ MapScript.loadModule("GiteeFeedback", {
 						} catch(e) {Log.e(e)}
 						if (!d) return Common.toast("话题创建失败");
 						java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
-						l = GiteeFeedback.addRecentFeedback(d.number);
-						l.lastModified = new Date(d.updated_at).getTime();
+						GiteeFeedback.updateRecentFeedback(d);
 						G.ui(function() {try {
 							self.reload();
 						} catch(e) {erp(e)}});
 					});
 				});
 			}
-			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.issues = [], self.vmaker, self.vbinder));
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
 			self.issueState = "all";
 
 			self.linear = new G.LinearLayout(ctx);
@@ -801,6 +858,7 @@ MapScript.loadModule("GiteeFeedback", {
 					self.loading = false;
 					if (!data) return Common.toast("评论列表加载失败");
 					self.commentData = data;
+					GiteeFeedback.updateRecentFeedback(data.topic);
 					G.ui(function() {try {
 						self.title.setText(data.topic.title);
 						var canTalk = self.readOnly > 0 ? true : self.readOnly < 0 ? false : data.topic.state == "open";
@@ -877,7 +935,7 @@ MapScript.loadModule("GiteeFeedback", {
 					try {
 						d = GiteeFeedback.createIssueComment(self.currentNumber, text);
 					} catch(e) {Log.e(e)}
-					if (!d) Common.toast("话题创建失败");
+					if (!d) Common.toast("评论创建失败");
 					java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
 					G.ui(function() {try {
 						self.reload();

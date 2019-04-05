@@ -113,13 +113,14 @@ MapScript.loadModule("CA", {
 			if (isNaN(f.settings.libraryAutoUpdate)) f.settings.libraryAutoUpdate = 1;
 			if (!f.settings.quickBarActions) f.settings.quickBarActions = Object.copy(CA.quickBarDefaultActions);
 			
-			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
+			this.settingsVersion = Date.parse(f.publishDate);
+			if (this.settingsVersion < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 			}
-			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
+			if (this.settingsVersion < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
-			if (Date.parse(f.publishDate) < Date.parse("2018-12-03")) {
+			if (this.settingsVersion < Date.parse("2018-12-03")) {
 				if (f.settings.historyCount == 0) f.settings.historyCount = 200;
 				this.his.splice(f.settings.historyCount);
 			}
