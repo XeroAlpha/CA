@@ -767,7 +767,9 @@ MapScript.loadModule("GiteeFeedback", {
 					return;
 				}
 				var data = parent.getAdapter().getItem(pos);
-				GiteeFeedback.showFeedbackDetail(data.number, 0);
+				GiteeFeedback.showFeedbackDetail(data.number, 0, function() {
+					self.reload();
+				});
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
@@ -791,6 +793,36 @@ MapScript.loadModule("GiteeFeedback", {
 	} catch(e) {erp(e)}})},
 	showFeedbackDetail : function self(number, readOnly, callback) {G.ui(function() {try {
 		if (!self.popup) {
+			self.getWritable = function() {
+				var t;
+				if (!GiteeFeedback.userInfo) return false;
+				if (self.readOnly > 0) {
+					return true;
+				} else if (self.readOnly < 0) {
+					return false;
+				} else {
+					t = self.commentData;
+					return t && t.topic.state == "open";
+				}
+			}
+			self.setState = function(state) {
+				var topic = self.commentData.topic;
+				var progress = Common.showProgressDialog();
+				progress.setText("正在标记……");
+				progress.async(function() {
+					var d;
+					try {
+						d = GiteeFeedback.updateIssue(topic.number, {
+							state : state
+						});
+					} catch(e) {Log.e(e)}
+					if (!d) return Common.toast("话题修改失败");
+					java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
+					G.ui(function() {try {
+						self.reload();
+					} catch(e) {erp(e)}});
+				});
+			}
 			self.contextMenu = [{
 				text : "刷新",
 				onclick : function(v, tag) {
@@ -798,6 +830,9 @@ MapScript.loadModule("GiteeFeedback", {
 				}
 			}, {
 				text : "编辑主题",
+				hidden : function() {
+					return !self.writable;
+				},
 				onclick : function(v, tag) {
 					var topic = self.commentData.topic;
 					GiteeFeedback.showEditIssue(topic, function(o) {
@@ -814,6 +849,21 @@ MapScript.loadModule("GiteeFeedback", {
 								self.reload();
 							} catch(e) {erp(e)}});
 						});
+					});
+				}
+			}, {
+				text : "标记为已处理",
+				hidden : function() {
+					return !self.writable;
+				},
+				onclick : function(v, tag) {
+					Common.showConfirmDialog({
+						title : "确定将该反馈标记为已处理？",
+						description : "*此操作无法撤销，且标记之后您将无法编辑反馈",
+						callback : function(id) {
+							if (id != 0) return;
+							self.setState("closed");
+						}
 					});
 				}
 			}];
@@ -858,21 +908,20 @@ MapScript.loadModule("GiteeFeedback", {
 					} catch(e) {Log.e(e)}
 					self.loading = false;
 					if (!data) return Common.toast("评论列表加载失败");
-					self.commentData = data;
 					GiteeFeedback.updateRecentFeedback(data.topic);
+					self.commentData = data;
+					self.writable = self.getWritable();
+					self.appendPage(true);
 					G.ui(function() {try {
 						self.title.setText(data.topic.title);
-						var canTalk = self.readOnly > 0 ? true : self.readOnly < 0 ? false : data.topic.state == "open";
-						if (!GiteeFeedback.accessToken) canTalk = false;
-						if (canTalk && !self.talkVisible) {
+						if (self.writable && !self.talkVisible) {
 							self.talkVisible = true;
 							self.list.addFooterView(self.talk);
-						} else if (!canTalk && self.talkVisible) {
+						} else if (!self.writable && self.talkVisible) {
 							self.talkVisible = false;
 							self.list.removeFooterView(self.talk);
 						}
 					} catch(e) {erp(e)}});
-					self.appendPage(true);
 				});
 			}
 			self.appendPage = function(sync) {
