@@ -83,13 +83,14 @@ MapScript.loadModule("Tutorial", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "tutorial.List");
+			self.popup.on("exit", function() {
+				CA.trySave();
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.on("exit", function() {
-			CA.trySave();
-			if (callback) callback();
-		});
+		self.callback = callback;
 		self.refresh();
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
@@ -281,13 +282,14 @@ MapScript.loadModule("Tutorial", {
 			} catch(e) {erp(e)}}}));
 
 			self.popup = new PopupPage(self.list, "tutorial.Tutorial");
+			self.popup.on("exit", function() {
+				CA.trySave();
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		self.popup.on("exit", function() {
-			CA.trySave();
-			if (callback) callback();
-		});
+		self.callback = callback;
 		self.init(o);
 		self.popup.enter();
 	} catch(e) {erp(e)}})},

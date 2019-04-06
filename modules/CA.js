@@ -2123,11 +2123,14 @@ MapScript.loadModule("CA", {
 			}
 
 			self.popup = new PopupPage(self.linear, "ca.HistoryEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh(pos);
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -2444,11 +2447,14 @@ MapScript.loadModule("CA", {
 			}
 
 			self.popup = new PopupPage(self.linear, "ca.FavoriteEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.init(data);
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -3509,11 +3515,14 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.list);
 
 			self.popup = new PopupPage(self.linear, "ca.CustomExpEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -4456,11 +4465,14 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "ca.LibraryManage");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
@@ -4667,10 +4679,13 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "ca.OnlineLibSource");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},

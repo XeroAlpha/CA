@@ -384,10 +384,13 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.Issues");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -581,11 +584,14 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.IssueDetail");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.currentNumber = number;
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -784,10 +790,13 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.Recent");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -1097,12 +1106,15 @@ MapScript.loadModule("GiteeFeedback", {
 					})
 				]
 			}), "feedback.IssueDetail");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "popup");
 		}
 		self.currentNumber = number;
 		self.readOnly = readOnly;
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
