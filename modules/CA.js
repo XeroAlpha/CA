@@ -1058,6 +1058,15 @@ MapScript.loadModule("CA", {
 				}
 			}];
 			self.favoriteItemEdit = [{
+				text : "快速输入",
+				hidden : function(tag) {
+					return tag.data.source != "batch";
+				},
+				onclick : function(v, tag) {
+					CA.cmd.setText(tag.data.value);
+					CA.showGen.activate(false);
+				}
+			},{
 				text : "复制",
 				onclick : function(v, tag) {
 					Common.setClipboardText(tag.data.value);
@@ -1065,6 +1074,9 @@ MapScript.loadModule("CA", {
 				}
 			},{
 				text : "从模板创建",
+				hidden : function(tag) {
+					return tag.data.source == "batch";
+				},
 				onclick : function(v, tag) {
 					CA.showBatchBuilder(tag.data.value, true);
 				}
@@ -1454,8 +1466,12 @@ MapScript.loadModule("CA", {
 					if (!self.favEmpty) self.favAdapter.expandAll();
 				},
 				onItemClick : function(e) {
-					CA.cmd.setText(e.value);
-					CA.showGen.activate(false);
+					if (e.source == "batch") {
+						CA.showBatchBuilder(e.value, true);
+					} else {
+						CA.cmd.setText(e.value);
+						CA.showGen.activate(false);
+					}
 				},
 				onItemLongClick : function(e, pos, parent, view, adpt) {
 					var p = adpt.getParent(pos);
