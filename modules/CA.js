@@ -6034,7 +6034,7 @@ MapScript.loadModule("CA", {
 			}
 		},
 		range : {
-			name : "数列",
+			name : "等差数列",
 			description : "一个等差数列的列表",
 			options : {
 				endChars : ")",
@@ -6081,8 +6081,8 @@ MapScript.loadModule("CA", {
 				if (!isFinite(step) || t < 0) {
 					return ["{参数不合法}"];
 				}
-				for (i = 0, c = from; i <= t; i++) {
-					r.push(String(Common.toFixedNumber(from + step * i, 7)));
+				for (i = 0; i <= t; i++) {
+					r.push(String(from + step * i));
 				}
 				syncLabel = controller.getBundleIndexByLabel(syncLabel);
 				if (syncLabel >= 0) {
@@ -6139,6 +6139,112 @@ MapScript.loadModule("CA", {
 				o.from = parseFloat(o._from.getText());
 				o.to = parseFloat(o._to.getText());
 				o.step = parseFloat(o._step.getText());
+			}
+		},
+		geometric : {
+			name : "等比数列",
+			description : "一个等比数列的列表",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					start : 1024,
+					count : 10,
+					scale : 0.5,
+					syncLabel : ""
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						start : parseFloat(r[0]),
+						count : parseFloat(r[1]),
+						scale : r[2] ? parseFloat(r[2]) : 1,
+						syncLabel : r[3] || ""
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([String(o.start), String(o.count), String(o.scale), o.syncLabel], this.options) + ")";
+			},
+			export : function(o, controller) {
+				this.update(o);
+				var i, start = o.start, count = o.count, scale = o.scale, syncLabel = o.syncLabel, t, r = [];
+				if (scale == 0 || isNaN(scale)) scale = 1;
+				if (count < 0) {
+					count = -count;
+					scale = 1 / scale;
+				}
+				for (i = 0, t = start; i < count; i++) {
+					r.push(String(t));
+					t *= scale;
+				}
+				syncLabel = controller.getBundleIndexByLabel(syncLabel);
+				if (syncLabel >= 0) {
+					return {
+						type : "syncmap",
+						arr : r,
+						target : syncLabel,
+						map : this.mapFunc
+					}
+				} else {
+					return r;
+				}
+			},
+			mapFunc : function(e, i, n) {
+				return i < this.arr.length ? this.arr[i] : "{下标超出}"
+			},
+			buildLayout : function(o) {
+				var inputType = G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL;
+				o.layout = CA.createParamTable([
+					CA.createParamRow("首项", o._start = CA.createParamTextbox({
+						text : o.start,
+						inputType : inputType
+					})),
+					CA.createParamRow("项数", o._count = CA.createParamTextbox({
+						text : o.count,
+						inputType : inputType
+					})),
+					CA.createParamRow("公比", o._scale = CA.createParamTextbox({
+						text : o.scale,
+						inputType : inputType
+					})),
+					CA.createParamRow("启用同步", o._sync = L.CheckBox({
+						checked : o.syncLabel.length > 0,
+						onCheckedChange : function(view, checked) {
+							if (checked) {
+								o._labelrow.visibility = G.View.VISIBLE;
+							} else {
+								o._labelrow.visibility = G.View.GONE;
+								o._label.text = o.syncLabel = "";
+							}
+						}
+					})),
+					o._labelrow = CA.createParamRow("同步标签", o._label = CA.createVariableSelector(function(label) {
+						o.syncLabel = label;
+					}, CA.createParamTextbox({
+						text : o.syncLabel,
+						hint : "点击选择标签"
+					})))
+				]);
+				o._labelrow.visibility = o.syncLabel.length > 0 ? G.View.VISIBLE : G.View.GONE;
+				return o;
+			},
+			update : function(o) {
+				o.start = parseFloat(o._start.getText());
+				o.count = parseFloat(o._count.getText());
+				o.scale = parseFloat(o._scale.getText());
 			}
 		},
 		link : {
