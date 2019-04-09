@@ -5581,13 +5581,13 @@ MapScript.loadModule("CA", {
 				var vars = self.getVariables();
 				var i, r = [], pos = 0;
 				for (i in vars) {
-					r.push(template.slice(pos, vars[i].start));
+					r.push(template.slice(pos, vars[i].start).replace(/\$/g, "$ "));
 					r.push("${", vars[i].label, ":", vars[i].type);
 					r.push(CA.BatchPattern[vars[i].type].stringify(vars[i].data));
 					r.push("}");
 					pos = vars[i].end;
 				}
-				r.push(template.slice(pos, template.length));
+				r.push(template.slice(pos, template.length).replace(/\$/g, "$ "));
 				return r.join("");
 			}
 			self.concatStrBundle = function(target, string) {
@@ -5838,7 +5838,7 @@ MapScript.loadModule("CA", {
 			Common.applyStyle(self.edit, "edittext_default", 3);
 			self.edit.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				var action = e.getAction();
-				if (action == e.ACTION_DOWN || action == e.ACTION_UP) self.touchEvent(e);
+				if (action == e.ACTION_DOWN || action == e.ACTION_UP) return self.touchEvent(e);
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			self.header.addView(self.edit);
@@ -5907,9 +5907,8 @@ MapScript.loadModule("CA", {
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
 					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			},
@@ -5975,9 +5974,8 @@ MapScript.loadModule("CA", {
 							imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
 							layoutWidth : -1,
 							layoutHeight : -2,
-							inflate : function(view) {
-								Common.applyStyle(view, "edittext_default", 3);
-							}
+							style : "edittext_default",
+							fontSize : 3
 						}),
 						o.edittext = L.EditText({
 							text : o.list.join("\n"),
@@ -5986,9 +5984,8 @@ MapScript.loadModule("CA", {
 							gravity : L.Gravity("left|top"),
 							layoutWidth : -1,
 							layoutHeight : -1,
-							inflate : function(view) {
-								Common.applyStyle(view, "edittext_default", 3);
-							}
+							style : "edittext_default",
+							fontSize : 3
 						})
 					]
 				});
@@ -6039,9 +6036,8 @@ MapScript.loadModule("CA", {
 					singleLine : true,
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			},
@@ -6307,9 +6303,8 @@ MapScript.loadModule("CA", {
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
 					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			}
