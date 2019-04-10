@@ -108,9 +108,9 @@ MapScript.loadModule("SettingsCompat", {
 				return true;
 			}
 			if (this.SYSVER < 21) {
-				var intent1 = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-				intent1.setData(android.net.Uri.fromParts("package", ctx.getPackageName(), null));
-				return this.startSafely(context, intent1);
+				intent = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+				intent.setData(android.net.Uri.fromParts("package", ctx.getPackageName(), null));
+				return this.startSafely(intent);
 			}
 			return false;
 		},
