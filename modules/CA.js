@@ -5615,44 +5615,50 @@ MapScript.loadModule("CA", {
 				var i, msp = [], msi, msn, r = [], cur, t;
 				for (i = 0; i < array.length; i++) {
 					if (array[i] instanceof Function) {
-						array[i] = array[i]();
+						array[i] = array[i](); //懒计算
 					}
 					if (Array.isArray(array[i])) {
-						msp.push(i);
+						msp.push(i); //记录所有的片段位置
 					}
 				}
-				if (msp.length == 0) {
+				if (msp.length == 0) { //处理片段数量为零的情况
 					if (array.length == 0) array = [""];
-					array[0] = [array[0]];
+					array[0] = [array[0]]; //将array[0]转换为片段，便于处理
 					msp.push(0);
 				}
-				msi = new Array(msp.length);
-				msn = new Array(msp.length);
+				msi = new Array(msp.length); //每个片段的当前子片段索引
+				msn = new Array(msp.length); //每个片段的总子片段数
 				for (i = 0; i < msp.length; i++) {
 					msi[i] = 0;
 					msn[i] = array[msp[i]].length;
 				}
 				while (msi[0] < msn[0]) {
-					cur = array.slice();
+					cur = array.slice(); //当前静态片段列表
 					for (i = 0; i < msp.length; i++) {
 						cur[msp[i]] = cur[msp[i]][msi[i]];
-					}
+					} //将每个片段替换为当前子片段
 					for (i = 0; i < cur.length; i++) {
-						if (typeof cur[i] == "object") {
+						if (typeof cur[i] == "object") { //处理特殊子片段
 							switch (cur[i].type) {
-								case "map":
+								case "map": //映射子片段
+								//当前子片段的内容取决于当前静态子片段内容
 								cur[i] = cur[i].map(cur);
 								break;
-								case "syncmap":
+								case "syncmap": //同步映射子片段
+								//当前子片段的内容取决于当前target指定的子片段内容、索引及子片段总数
 								t = cur[i].target;
 								t2 = msp.indexOf(t);
-								cur[i] = cur[i].map(cur[i], msi[t2], msn[t2]);
+								cur[i] = cur[i].map(cur[t], msi[t2], msn[t2]);
+								break;
+								case "expr": //表达式子片段
+								//当前子片段的内容为表达式计算的结果
+								cur[i] = cur[i].expr(i, cur, array, r.length, msp, msi, msn);
 								break;
 							}
 						}
 					}
-					r.push(cur.join(""));
-					msi[msi.length - 1]++;
+					r.push(cur.join("")); //生成当前静态片段文本并保存
+					msi[msi.length - 1]++; //递增索引
 					for (i = msi.length - 1; i > 0; i--) {
 						if (msi[i] >= msn[i]) {
 							msi[i] = 0;
@@ -5660,7 +5666,7 @@ MapScript.loadModule("CA", {
 						} else {
 							break;
 						}
-					}
+					} //处理索引进位
 				}
 				return r;
 			}
@@ -5691,6 +5697,15 @@ MapScript.loadModule("CA", {
 						}
 					}
 					return -1;
+				},
+				getLabelByData : function(data) {
+					var i;
+					for (i = 0; i < this.vars.length; i++) {
+						if (this.vars[i].data === data) {
+							return this.vars[i].label;
+						}
+					}
+					return null;
 				}
 			}
 			self.touchEvent = function(event) {
@@ -5853,9 +5868,13 @@ MapScript.loadModule("CA", {
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.exit);
 			self.linear.addView(self.header);
+			self.cscr = new G.ScrollView(ctx);
+			self.cscr.setFillViewport(true);
+			self.cscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.container = new G.FrameLayout(ctx);
 			self.container.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			self.linear.addView(self.container);
+			self.cscr.addView(self.container);
+			self.linear.addView(self.cscr);
 
 			self.popup = new PopupPage(self.linear, "ca.BatchBuilder");
 
@@ -6180,7 +6199,7 @@ MapScript.loadModule("CA", {
 					length : o.cur + 1,
 					data : this.buildLayout({
 						start : parseFloat(r[0]),
-						count : parseFloat(r[1]),
+						count : parseInt(r[1]),
 						scale : r[2] ? parseFloat(r[2]) : 1,
 						syncLabel : r[3] || ""
 					})
@@ -6226,7 +6245,7 @@ MapScript.loadModule("CA", {
 					})),
 					CA.createParamRow("项数", o._count = CA.createParamTextbox({
 						text : o.count,
-						inputType : inputType
+						inputType : G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED
 					})),
 					CA.createParamRow("公比", o._scale = CA.createParamTextbox({
 						text : o.scale,
@@ -6307,6 +6326,95 @@ MapScript.loadModule("CA", {
 					fontSize : 3
 				});
 				return o;
+			}
+		},
+		expr : {
+			name : "表达式",
+			description : "计算表达式的值",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					count : 10,
+					expr : "i * 10"
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						code : r[0],
+						count : r[1] ? parseInt(r[1]) : 1
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([o.code, String(o.count), o.type, o.syncLabel], this.options) + ")";
+			},
+			export : function(o, controller) {
+				var r, i;
+				this.update(o);
+				r = new Array(o.count);
+				r[0] = {
+					type : "expr",
+					expr : this.execExpr.bind(this, this.compileExpr(o.expr), o, controller, null)
+				};
+				for (i = 1; i < o.count; i++) {
+					r[i] = r[0];
+				}
+				return r;
+			},
+			compileExpr : function(expr) {
+				return eval("function(i){return (" + expr + ")}");
+			}, //此处使用new Function(args..., body)效果一样，但速度更慢，且同样不安全
+			execExpr : function(f, o, controller, prop, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
+				var si = seq_pos.indexOf(src_index);
+				try {
+					return f(
+						si >= 0 ? seq_index[si] : 0
+					);
+				} catch(e) {
+					return "{" + e + "}";
+				}
+			},
+			buildLayout : function(o) {
+				o.layout = CA.createParamTable([
+					CA.createParamRow("项数", o._count = CA.createParamTextbox({
+						text : o.count,
+						inputType : G.InputType.TYPE_CLASS_NUMBER
+					})),
+					CA.createParamRow("表达式", o._expr = L.EditText({
+						text : o.expr,
+						hint : "在这里填入表达式",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						gravity : L.Gravity("left|top"),
+						style : "edittext_default",
+						fontSize : 2
+					})),
+					L.TextView({
+						text : [
+							"i - 当前子片段索引"
+						].join("\n"),
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						style : "textview_prompt",
+						fontSize : 2
+					})
+				]);
+				return o;
+			},
+			update : function(o) {
+				o.expr = String(o._expr.getText());
+				o.count = parseInt(o._count.getText());
 			}
 		}
 	},
