@@ -5377,8 +5377,63 @@ MapScript.loadModule("CA", {
 
 	showBatchBuilder : function self(text, reset) {G.ui(function() {try {
 		if (!self.linear) {
+			var vcfg = G.ViewConfiguration.get(ctx);
+			var longPressTimeout = vcfg.getLongPressTimeout();
+			var touchSlop = vcfg.getScaledTouchSlop();
 			self.variables = [];
 			self.bmpcache = [];
+			self.labelOption = {
+				endChars : ":",
+				skipChars : ":"
+			};
+			self.typeOption = {
+				endChars : "(}",
+				skipChars : "(}"
+			};
+			self.spanEdit = [{
+				text : "编辑",
+				onclick : function(v, tag) {
+					self.clickSpan(tag.span);
+				}
+			}, {
+				text : "重命名",
+				onclick : function(v, tag) {
+					Common.showInputDialog({
+						title : "重命名",
+						callback : function(s) {
+							if (!s) {
+								Common.toast("名称不能为空");
+								return;
+							}
+							if (self.findVariableByLabel(s, true)) {
+								Common.toast("名称已存在");
+								return;
+							}
+							tag.variable.label = s;
+							self.replaceVariable(tag.variable, tag.variable, true);
+						},
+						singleLine : true,
+						defaultValue : tag.variable.label
+					});
+				}
+			}, {
+				text : "替换",
+				onclick : function(v, tag) {
+					self.makeVariable(function(variable) {
+						self.replaceVariable(tag.variable, variable, true);
+					});
+				}
+			}, {
+				text : "重置",
+				onclick : function(v, tag) {
+					self.replaceVariable(tag.variable, self.createVariable(tag.variable.label, tag.variable.type), true);
+				}
+			}, {
+				text : "删除",
+				onclick : function(v, tag) {
+					self.deleteVariable(tag.variable, true);
+				}
+			}];
 			self.init = function(s) {
 				self.variables.length = 0;
 				self.edit.setText(self.unflatten(s));
@@ -5392,51 +5447,51 @@ MapScript.loadModule("CA", {
 				}
 			}
 			self.unflatten = function(str) {
-				var start = 0, r = new G.SpannableStringBuilder();
-				var pos_start, pos_type, pos_param, pos_end;
+				var stream, pos_start, end_char, r = new G.SpannableStringBuilder();
 				var cur, match, has_param, error = [];
-				while ((pos_start = str.indexOf("${", start)) >= 0) {
-					r.append(str.slice(start, pos_start).replace(/\$ /g, "$"));
+				stream = {
+					cur : 0,
+					str : str
+				};
+				while ((pos_start = str.indexOf("${", stream.cur)) >= 0) {
+					r.append(str.slice(stream.cur, pos_start).replace(/\$ /g, "$"));
 					try {
-						pos_type = str.indexOf(":", pos_start + 2);
-						if (pos_type < 0) throw "找不到变量类型";
-						pos_param = str.indexOf("(", pos_type + 1);
-						pos_end = str.indexOf("}", pos_type + 1);
-						if (pos_end < 0) throw "找不到变量结束符";
-						has_param = pos_param >= 0 && pos_end > pos_param;
-						cur = {
-							label : str.slice(pos_start + 2, pos_type),
-							type : str.slice(pos_type + 1, has_param ? pos_param : pos_end)
-						};
+						cur = {};
+						stream.cur = pos_start + 2;
+						cur.label = ISegment.readLenientString(stream, self.labelOption);
+						if (ISegment.isStringEOS(stream)) throw "找不到变量类型";
+						cur.type = ISegment.readLenientString(stream, self.typeOption);
+						if (ISegment.isStringEOS(stream)) throw "找不到变量结束符";
 						if (cur.label.length == 0) throw "变量名称不能为空";
 						if (self.findVariableByLabel(cur.label, false)) cur.label = self.generateName(cur.label + " (", ")", true);
 						if (!(cur.type in CA.BatchPattern)) throw "不存在的变量类型：" + cur.type;
-						if (has_param) {
-							match = CA.BatchPattern[cur.type].parse(str.slice(pos_param));
+						stream.cur--;
+						end_char = ISegment.peekStreamStr(stream);
+						if (end_char == "(") {
+							match = CA.BatchPattern[cur.type].parse(ISegment.peekStreamAll(stream));
 							if (!match) throw "变量参数格式错误";
-							start = pos_param + match.length;
+							stream.cur += match.length;
 							cur.data = match.data;
-						} else {
+						} else if (end_char == "}") {
 							cur = self.createVariable(cur.label, cur.type);
-							start = pos_end;
 						}
-						if (str.slice(start, ++start) != "}") throw "找不到变量结束符";
+						if (ISegment.readStreamStr(stream) != "}") throw "找不到变量结束符";
 						r.append(self.buildSpan(cur));
 						self.variables.push(cur);
 					} catch(e) {
 						error.push(e + "(位置：" + pos_start + ")");
 						r.append("${");
-						start = pos_start + 2;
+						stream.cur = pos_start + 2;
 						continue;
 					}
 				}
-				r.append(str.slice(start).replace(/\$ /g, "$"));
+				r.append(ISegment.readStreamAll(stream).replace(/\$ /g, "$"));
 				if (error.length) {
 					Common.showTextDialog(error.join("\n"));
 				}
 				return r;
 			}
-			self.addVariable = function() {
+			self.makeVariable = function(callback) {
 				var i, r = [{
 					text : "副本",
 					description : "创建已有标签的副本",
@@ -5455,15 +5510,15 @@ MapScript.loadModule("CA", {
 					if (e.copy) {
 						self.chooseVariable(function(o) {
 							var type = CA.BatchPattern[o.type];
-							self.insertVariable({
+							callback({
 								label : self.generateName(type.name, ""),
 								type : o.type,
 								data : type.clone ? type.clone(o.data) : type.parse(type.stringify(o.data)).data
-							}, true);
+							});
 						});
 						return;
 					}
-					self.insertVariable(self.createVariable(self.generateName(e.text, ""), e.id), true);
+					callback(self.createVariable(self.generateName(e.text, ""), e.id));
 				}, true);
 			}
 			self.chooseVariable = function(callback) {
@@ -5516,6 +5571,34 @@ MapScript.loadModule("CA", {
 				self.variables.push(o);
 				Common.replaceSelection(self.edit.getText(), self.buildSpan(o));
 				if (notify) self.clickSpan(o.span);
+			}
+			self.replaceVariable = function(old, replacement, notify) {
+				var p = self.variables.indexOf(old), buffer = self.edit.getText(), oldSpan = old.span;
+				if (p >= 0) {
+					self.variables[p] = replacement;
+				} else {
+					self.variables.push(replacement);
+				}
+				p = buffer.getSpanStart(oldSpan);
+				if (p >= 0) {
+					buffer.replace(p, buffer.getSpanEnd(oldSpan), self.buildSpan(replacement));
+					buffer.removeSpan(oldSpan); //与被替换区域重合的span会被保留，在被替换区域内的span会被移除
+				} else {
+					Common.replaceSelection(buffer, self.buildSpan(replacement));
+				}
+				if (notify) self.clickSpan(replacement.span);
+			}
+			self.deleteVariable = function(o, notify) {
+				var p = self.variables.indexOf(o), buffer = self.edit.getText();
+				if (p >= 0) {
+					self.variables.splice(p, 1);
+				}
+				p = buffer.getSpanStart(o.span);
+				if (p >= 0) {
+					buffer.delete(p, buffer.getSpanEnd(o.span));
+					buffer.removeSpan(o.span); //与被删除区域重合的span会被保留，在被删除区域内的span会被移除，因为delete就是replace一个空字符串
+				}
+				if (notify) self.endSpanEdit();
 			}
 			self.buildSpan = function(o) {
 				var ss = new G.SpannableString("${" + o.label + ":" + o.type + "}");
@@ -5582,7 +5665,8 @@ MapScript.loadModule("CA", {
 				var i, r = [], pos = 0;
 				for (i in vars) {
 					r.push(template.slice(pos, vars[i].start).replace(/\$/g, "$ "));
-					r.push("${", vars[i].label, ":", vars[i].type);
+					r.push("${", ISegment.writeLenientString(vars[i].label, self.labelOption));
+					r.push(":", ISegment.writeLenientString(vars[i].type, self.typeOption));
 					r.push(CA.BatchPattern[vars[i].type].stringify(vars[i].data));
 					r.push("}");
 					pos = vars[i].end;
@@ -5708,10 +5792,23 @@ MapScript.loadModule("CA", {
 					return null;
 				}
 			}
-			self.touchEvent = function(event) {
+			self.longClick = new java.lang.Runnable(function() {try {
+				var variable;
+				if (self.lcReady && !self.lcFinish) {
+					if (self.lcTarget) {
+						variable = self.findVariableBySpan(self.lcTarget);
+						if (variable) {
+							Common.showOperateDialog(self.spanEdit, {
+								variable : variable
+							});
+						}
+					}
+					self.lcFinish = true;
+				}
+			} catch(e) {erp(e)}});
+			self.getLink = function(x, y) {
 				var widget = self.edit, buffer = self.edit.getText();
-				var action = event.getAction(), x = event.getX(), y = event.getY();
-				var layout, linear, line, off, links;
+				var layout, line, off, links;
 				x -= widget.getTotalPaddingLeft();
 				y -= widget.getTotalPaddingTop();
 				x += widget.getScrollX();
@@ -5721,18 +5818,16 @@ MapScript.loadModule("CA", {
 				off = layout.getOffsetForHorizontal(line, x);
 				links = buffer.getSpans(off, off, G.ImageSpan);
 				if (x < layout.getLineMax(line) && links.length != 0) {
-					if (action == event.ACTION_UP) {
-						self.clickSpan(links[0]);
-					} else if (action == event.ACTION_DOWN) {
-						G.Selection.setSelection(buffer,
-							buffer.getSpanStart(links[0]),
-							buffer.getSpanEnd(links[0]));
-					}
-					return true;
+					return links[0];
 				} else {
-					self.endSpanEdit();
+					return null;
 				}
-				return false;
+			}
+			self.selectLink = function(link) {
+				var buffer = self.edit.getText();
+				G.Selection.setSelection(buffer,
+					buffer.getSpanStart(link),
+					buffer.getSpanEnd(link));
 			}
 			self.menuVMaker = function(holder) {
 				var view = new G.TextView(ctx);
@@ -5757,7 +5852,9 @@ MapScript.loadModule("CA", {
 				var view = self.buildMenuView([{
 					text : "添加变量……",
 					onclick : function() {
-						self.addVariable();
+						self.makeVariable(function(variable) {
+							self.insertVariable(variable, true);
+						});
 					}
 				}, {
 					text : "预览",
@@ -5852,8 +5949,41 @@ MapScript.loadModule("CA", {
 			self.edit.setTypeface(G.Typeface.MONOSPACE);
 			Common.applyStyle(self.edit, "edittext_default", 3);
 			self.edit.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				var action = e.getAction();
-				if (action == e.ACTION_DOWN || action == e.ACTION_UP) return self.touchEvent(e);
+				var link, x = e.getX(), y = e.getY();
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (self.lcStead) {
+						if (Math.abs(x - self.lcLX) + Math.abs(y - self.lcLY) < touchSlop) {
+							break;
+						}
+						self.lcStead = false;
+						self.lcReady = false;
+					}
+					break;
+					case e.ACTION_DOWN:
+					self.lcLX = x; self.lcLY = y;
+					self.lcStead = true;
+					self.lcFinish = false;
+					self.lcTarget = link = self.getLink(x, y);
+					if (link) {
+						self.selectLink(link);
+						self.lcReady = true;
+						v.postDelayed(self.longClick, longPressTimeout);
+						return true;
+					}
+					break;
+					case e.ACTION_UP:
+					if (self.lcStead && !self.lcFinish) {
+						if (self.lcTarget) {
+							self.clickSpan(self.lcTarget);
+						} else {
+							self.endSpanEdit();
+						}
+					}
+					case e.ACTION_CANCEL:
+					self.lcReady = false;
+					v.removeCallbacks(self.longClick);
+				}
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			self.header.addView(self.edit);

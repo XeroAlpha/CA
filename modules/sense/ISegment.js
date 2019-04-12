@@ -6,8 +6,25 @@ MapScript.loadModule("ISegment", {
 		}
 		return t + s;
 	},
+	isStringEOS : function(strStream) {
+		return strStream.cur >= strStream.str.length;
+	},
+	readStreamStr : function(strStream) {
+		return strStream.str.charAt(strStream.cur++);
+	},
+	peekStreamStr : function(strStream) {
+		return strStream.str.charAt(strStream.cur);
+	},
+	readStreamAll : function(strStream) {
+		var oldcur = strStream.cur;
+		strStream.cur = strStream.str.length;
+		return strStream.str.slice(oldcur);
+	},
+	peekStreamAll : function(strStream) {
+		return strStream.str.slice(strStream.cur);
+	},
 	readLenientString : function(strStream, options) {
-		var c, state = 0, startChar = "", r = [], hex, hexn, endchars = options.endChars || "";
+		var c, state = 0, r = [], hex, hexn, endchars = options.endChars || "";
 		while (strStream.cur < strStream.str.length) {
 			c = strStream.str.charAt(strStream.cur++);
 			switch (state) {
