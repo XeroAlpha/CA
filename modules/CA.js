@@ -6505,13 +6505,14 @@ MapScript.loadModule("CA", {
 				return r;
 			},
 			compileExpr : function(expr) {
-				return eval("function(i){return (" + expr + ")}");
+				return eval("function(i,n){return (" + expr + ")}");
 			}, //此处使用new Function(args..., body)效果一样，但速度更慢，且同样不安全
 			execExpr : function(f, o, controller, prop, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
 				var si = seq_pos.indexOf(src_index);
 				try {
 					return f(
-						si >= 0 ? seq_index[si] : 0
+						/* i = */ si >= 0 ? seq_index[si] : 0,
+						/* n = */ o.count
 					);
 				} catch(e) {
 					return "{" + e + "}";
@@ -6533,7 +6534,8 @@ MapScript.loadModule("CA", {
 					})),
 					L.TextView({
 						text : [
-							"i - 当前子片段索引"
+							"i - 当前子片段索引",
+							"n - 子片段总数"
 						].join("\n"),
 						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 						style : "textview_prompt",
