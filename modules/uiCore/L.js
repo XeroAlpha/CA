@@ -99,7 +99,7 @@ MapScript.loadModule("L", (function self(defaultContext) {
 				} else {
 					target[t](e);
 				}
-			} else if (i in target) {
+			} else if (i in target && typeof target[i] != "function") {
 				target[i] = e;
 			}
 		}
