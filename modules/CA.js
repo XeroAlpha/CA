@@ -1282,7 +1282,7 @@ MapScript.loadModule("CA", {
 				holder.self.setPadding(depth * 16 * G.dp, 0, 0, 0);
 			}
 			self.getFavChildren = function(e) {
-				var d = [], g = [], a = e.children;
+				var i, d = [], g = [], a = e.children;
 				if (!a) return;
 				for (i in a) {
 					if (a[i].children) {

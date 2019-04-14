@@ -451,7 +451,7 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 
 	showConfirmDialog : function(s) {G.ui(function() {try {
-		var scr, layout, title, text, skip, onClick, popup;
+		var scr, layout, title, text, but, skip, onClick, popup;
 		scr = new G.ScrollView(ctx);
 		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);

@@ -153,7 +153,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			r.defaultContainer.setOnTouchListener(r.baseTouchListener);
 			r.defaultContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
-				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop, e;
 				if (w == ow && h == oh) return;
 				for (i = r.defaultStack.length - 1; i >= 0; i--) {
 					e = r.defaultStack[i];
@@ -193,7 +193,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.floatWindow.setContentDescription("FloatWindow");
 			r.floatContainer.setOnTouchListener(r.baseTouchListener);
 			r.floatContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
-				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop, e;
 				if (w == ow && h == oh) return;
 				for (i = r.floatStack.length - 1; i >= 0; i--) {
 					e = r.floatStack[i];
@@ -288,7 +288,7 @@ MapScript.loadModule("PopupPage", (function() {
 				r.pushPage(this.name, this);
 				if (!noAnimation && this._enterAnimation) {
 					this.currentAnimation = this._enterAnimation(this.mainView, function() {
-						this.currentAnimation = null;
+						self.currentAnimation = null;
 						r.pageShown(self);
 					});
 				}

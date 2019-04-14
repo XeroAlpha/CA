@@ -106,6 +106,7 @@ MapScript.loadModule("MultipleListAdapter", (function() {
 			});
 		},
 		setArray : function(a) {
+			var i;
 			if (this.array != a) {
 				this.array.length = 0;
 				for (i in a) this.array.push(a[i]);

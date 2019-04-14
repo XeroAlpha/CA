@@ -171,6 +171,7 @@ MapScript.loadModule("RhinoListAdapter", (function() {
 			return this.src.slice();
 		},
 		setArray : function(a) {
+			var i;
 			this.views.length = this.src.length = 0;
 			for (i in a) this.src.push(a[i]);
 			this.views.length = this.src.length;
