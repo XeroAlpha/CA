@@ -5695,7 +5695,7 @@ MapScript.loadModule("CA", {
 				}
 				return target;
 			}
-			self.bundleStrings = function(array) {
+			self.bundleStrings = function(array, lineData) {
 				var i, msp = [], msi, msn, r = [], cur, t;
 				for (i = 0; i < array.length; i++) {
 					if (array[i] instanceof Function) {
@@ -5718,6 +5718,7 @@ MapScript.loadModule("CA", {
 				}
 				while (msi[0] < msn[0]) {
 					cur = array.slice(); //当前静态片段列表
+					lineData[r.length] = {}; //当前行数据
 					for (i = 0; i < msp.length; i++) {
 						cur[msp[i]] = cur[msp[i]][msi[i]];
 					} //将每个片段替换为当前子片段
@@ -5756,8 +5757,8 @@ MapScript.loadModule("CA", {
 			}
 			self.export = function() {
 				var template = String(self.edit.getText());
-				var vars = self.getVariables();
-				var varsController = self.varsController.create(vars);
+				var vars = self.getVariables(), lineData = [], globalData = {};
+				var varsController = self.varsController.create(vars, lineData, globalData);
 				var i, r = [], pos = 0;
 				for (i = 0; i < vars.length; i++) {
 					r.push(template.slice(pos, vars[i].start));
@@ -5765,12 +5766,14 @@ MapScript.loadModule("CA", {
 					pos = vars[i].end;
 				}
 				r.push(template.slice(pos, template.length));
-				return self.bundleStrings(r);
+				return self.bundleStrings(r, lineData);
 			}
 			self.varsController = {
-				create : function(vars) {
+				create : function(vars, lineData, globalData) {
 					var o = Object.create(this);
 					o.vars = vars;
+					o.lineData = lineData;
+					o.globalData = globalData;
 					return o;
 				},
 				getBundleIndexByLabel : function(label) {
@@ -5790,6 +5793,17 @@ MapScript.loadModule("CA", {
 						}
 					}
 					return null;
+				},
+				getLineData : function(spec, index) {
+					var t = this.lineData[index];
+					if (t) {
+						return t[spec];
+					} else {
+						return undefined;
+					}
+				},
+				getGlobalData : function(spec) {
+					return this.globalData[spec];
 				}
 			}
 			self.longClick = new java.lang.Runnable(function() {try {
@@ -6497,7 +6511,7 @@ MapScript.loadModule("CA", {
 				r = new Array(o.count);
 				r[0] = {
 					type : "expr",
-					expr : this.execExpr.bind(this, this.compileExpr(o.expr), o, controller, null)
+					expr : this.execExpr.bind(this, this.compileExpr(o.expr), o, controller, null, {})
 				};
 				for (i = 1; i < o.count; i++) {
 					r[i] = r[0];
@@ -6505,15 +6519,24 @@ MapScript.loadModule("CA", {
 				return r;
 			},
 			compileExpr : function(expr) {
-				return eval("function(i,n){return (" + expr + ")}");
+				return eval("function(" + this.vars.k.join(",") + "){return (" + expr + ")}");
 			}, //此处使用new Function(args..., body)效果一样，但速度更慢，且同样不安全
-			execExpr : function(f, o, controller, prop, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
-				var si = seq_pos.indexOf(src_index);
+			execExpr : function(f, o, controller, prop, temp, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
+				temp.data = o;
+				temp.controller = controller;
+				temp.prop = prop;
+				temp.srcIndex = src_index;
+				temp.dstArray = dst_array;
+				temp.srcArray = src_array;
+				temp.resultIndex = result_index;
+				temp.seqPos = seq_pos;
+				temp.seqIndex = seq_index;
+				temp.seqLen = seq_len;
+				temp.curSeqIndex = seq_pos.indexOf(src_index);
 				try {
-					return f(
-						/* i = */ si >= 0 ? seq_index[si] : 0,
-						/* n = */ o.count
-					);
+					return f.apply(temp, this.vars.v.map(function(e) {
+						return e.call(null, temp);
+					}));
 				} catch(e) {
 					return "{" + e + "}";
 				}
@@ -6533,10 +6556,7 @@ MapScript.loadModule("CA", {
 						fontSize : 2
 					})),
 					L.TextView({
-						text : [
-							"i - 当前子片段索引",
-							"n - 子片段总数"
-						].join("\n"),
+						text : this.vars.desc,
 						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 						style : "textview_prompt",
 						fontSize : 2
@@ -6547,7 +6567,34 @@ MapScript.loadModule("CA", {
 			update : function(o) {
 				o.expr = String(o._expr.getText());
 				o.count = parseInt(o._count.getText());
-			}
+			},
+			vars : (function(o) {
+				var k = Object.keys(o), v, d, i, e;
+				v = new Array(k.length);
+				d = new Array(k.length);
+				for (i = 0; i < k.length; i++) {
+					e = o[k[i]];
+					v[i] = e.get;
+					d[i] = k[i] + " - " + e.desc;
+				}
+				return {
+					k : k, v : v, d : d,
+					desc : d.join("\n")
+				};
+			})({
+				i : {
+					desc : "当前子片段索引",
+					get : function(o) {
+						return o.curSeqIndex >= 0 ? o.seqIndex[o.curSeqIndex] : 0;
+					}
+				},
+				n : {
+					desc : "子片段总数",
+					get : function(o) {
+						return o.data.count;
+					}
+				}
+			})
 		}
 	},
 	createParamTable : function(table) {
