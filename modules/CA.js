@@ -6506,12 +6506,17 @@ MapScript.loadModule("CA", {
 				return "(" + ISegment.writeLenientStringArray([o.code, String(o.count), o.type, o.syncLabel], this.options) + ")";
 			},
 			export : function(o, controller) {
-				var r, i;
+				var r, i, f;
 				this.update(o);
+				try {
+					f = this.compileExpr(o.expr);
+				} catch(e) {
+					return "{" + e + "}";
+				}
 				r = new Array(o.count);
 				r[0] = {
 					type : "expr",
-					expr : this.execExpr.bind(this, this.compileExpr(o.expr), o, controller, null, {})
+					expr : this.execExpr.bind(this, f, o, controller, null, {})
 				};
 				for (i = 1; i < o.count; i++) {
 					r[i] = r[0];
