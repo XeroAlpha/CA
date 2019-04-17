@@ -5797,12 +5797,14 @@ MapScript.loadModule("CA", {
 				getLineData : function(spec, index) {
 					var t = this.lineData[index];
 					if (t) {
+						if (!t[spec]) t[spec] = {};
 						return t[spec];
 					} else {
 						return undefined;
 					}
 				},
 				getGlobalData : function(spec) {
+					if (!this.globalData[spec]) this.globalData[spec] = {};
 					return this.globalData[spec];
 				}
 			}
@@ -6483,7 +6485,7 @@ MapScript.loadModule("CA", {
 			},
 			create : function() {
 				return this.buildLayout({
-					count : 10,
+					count : "10",
 					expr : "i * 10"
 				});
 			},
@@ -6496,29 +6498,33 @@ MapScript.loadModule("CA", {
 				return {
 					length : o.cur + 1,
 					data : this.buildLayout({
-						code : r[0],
-						count : r[1] ? parseInt(r[1]) : 1
+						expr : r[0],
+						count : r[1]
 					})
 				};
 			},
 			stringify : function(o) {
 				this.update(o);
-				return "(" + ISegment.writeLenientStringArray([o.code, String(o.count), o.type, o.syncLabel], this.options) + ")";
+				return "(" + ISegment.writeLenientStringArray([o.expr, o.count], this.options) + ")";
 			},
 			export : function(o, controller) {
-				var r, i, f;
+				var r, i, f, n;
 				this.update(o);
 				try {
+					n = parseInt(eval("function(global) {return (" + o.count + ")}")(controller.getGlobalData("expr:global")));
 					f = this.compileExpr(o.expr);
 				} catch(e) {
 					return "{" + e + "}";
 				}
-				r = new Array(o.count);
+				if (!(n > 0)) return "{Error: Count cannot be " + n + "}";
+				r = new Array(n);
 				r[0] = {
 					type : "expr",
-					expr : this.execExpr.bind(this, f, o, controller, null, {})
+					expr : this.execExpr.bind(this, f, o, controller, {
+						count : n
+					})
 				};
-				for (i = 1; i < o.count; i++) {
+				for (i = 1; i < n; i++) {
 					r[i] = r[0];
 				}
 				return r;
@@ -6526,21 +6532,20 @@ MapScript.loadModule("CA", {
 			compileExpr : function(expr) {
 				return eval("function(" + this.vars.k.join(",") + "){return (" + expr + ")}");
 			}, //此处使用new Function(args..., body)效果一样，但速度更慢，且同样不安全
-			execExpr : function(f, o, controller, prop, temp, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
-				temp.data = o;
-				temp.controller = controller;
-				temp.prop = prop;
-				temp.srcIndex = src_index;
-				temp.dstArray = dst_array;
-				temp.srcArray = src_array;
-				temp.resultIndex = result_index;
-				temp.seqPos = seq_pos;
-				temp.seqIndex = seq_index;
-				temp.seqLen = seq_len;
-				temp.curSeqIndex = seq_pos.indexOf(src_index);
+			execExpr : function(f, o, controller, prop, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
+				prop.data = o;
+				prop.controller = controller;
+				prop.srcIndex = src_index;
+				prop.dstArray = dst_array;
+				prop.srcArray = src_array;
+				prop.resultIndex = result_index;
+				prop.seqPos = seq_pos;
+				prop.seqIndex = seq_index;
+				prop.seqLen = seq_len;
+				prop.curSeqIndex = seq_pos.indexOf(src_index);
 				try {
-					return f.apply(temp, this.vars.v.map(function(e) {
-						return e.call(null, temp);
+					return f.apply(prop, this.vars.v.map(function(e) {
+						return e.call(null, prop);
 					}));
 				} catch(e) {
 					return "{" + e + "}";
@@ -6549,14 +6554,11 @@ MapScript.loadModule("CA", {
 			buildLayout : function(o) {
 				o.layout = CA.createParamTable([
 					CA.createParamRow("项数", o._count = CA.createParamTextbox({
-						text : o.count,
-						inputType : G.InputType.TYPE_CLASS_NUMBER
+						text : o.count
 					})),
 					CA.createParamRow("表达式", o._expr = L.EditText({
 						text : o.expr,
 						hint : "在这里填入表达式",
-						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
-						gravity : L.Gravity("left|top"),
 						style : "edittext_default",
 						fontSize : 2
 					})),
@@ -6571,7 +6573,7 @@ MapScript.loadModule("CA", {
 			},
 			update : function(o) {
 				o.expr = String(o._expr.getText());
-				o.count = parseInt(o._count.getText());
+				o.count = String(o._count.getText());
 			},
 			vars : (function(o) {
 				var k = Object.keys(o), v, d, i, e;
@@ -6596,7 +6598,19 @@ MapScript.loadModule("CA", {
 				n : {
 					desc : "子片段总数",
 					get : function(o) {
-						return o.data.count;
+						return o.count;
+					}
+				},
+				global : {
+					desc : "全局变量",
+					get : function(o) {
+						return o.controller.getGlobalData("expr:global");
+					}
+				},
+				line : {
+					desc : "当前行变量",
+					get : function(o) {
+						return o.controller.getLineData("expr:line", o.resultIndex);
 					}
 				}
 			})
