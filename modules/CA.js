@@ -5381,6 +5381,7 @@ MapScript.loadModule("CA", {
 			var longPressTimeout = vcfg.getLongPressTimeout();
 			var touchSlop = vcfg.getScaledTouchSlop();
 			self.variables = [];
+			self.clipboard = null;
 			self.bmpcache = [];
 			self.labelOption = {
 				endChars : ":",
@@ -5393,7 +5394,18 @@ MapScript.loadModule("CA", {
 			self.spanEdit = [{
 				text : "编辑",
 				onclick : function(v, tag) {
-					self.clickSpan(tag.span);
+					self.clickVariable(tag.variable);
+				}
+			}, {
+				text : "复制",
+				onclick : function(v, tag) {
+					self.copyVariable(tag.variable);
+				}
+			}, {
+				text : "剪切",
+				onclick : function(v, tag) {
+					self.copyVariable(tag.variable);
+					self.deleteVariable(tag.variable, true);
 				}
 			}, {
 				text : "重命名",
@@ -5436,6 +5448,8 @@ MapScript.loadModule("CA", {
 			}];
 			self.init = function(s) {
 				self.variables.length = 0;
+				self.edit.setText("");
+				self.clearBmpCache();
 				self.edit.setText(self.unflatten(s));
 				self.edit.setSelection(self.edit.length());
 				self.setContent(self.getDefaultContent());
@@ -5445,6 +5459,14 @@ MapScript.loadModule("CA", {
 					self.container.removeAllViews();
 					self.container.addView(v, new G.FrameLayout.LayoutParams(-1, -1));
 				}
+			}
+			self.clearBmpCache = function() {
+				var i, e;
+				for (i = this.bmpcache.length - 1; i >= 0; i--) {
+					e = this.bmpcache[i];
+					if (e) e.recycle();
+				}
+				this.bmpcache.length = 0;
 			}
 			self.unflatten = function(str) {
 				var stream, pos_start, end_char, r = new G.SpannableStringBuilder();
@@ -5497,6 +5519,13 @@ MapScript.loadModule("CA", {
 					description : "创建已有标签的副本",
 					copy : true
 				}], a = CA.BatchPattern;
+				if (self.clipboard) {
+					r.push({
+						text : "剪切板",
+						description : self.clipboard.label + " : " + a[self.clipboard.type].name,
+						paste : true
+					});
+				}
 				for (i in a) {
 					r.push({
 						text : a[i].name,
@@ -5518,6 +5547,14 @@ MapScript.loadModule("CA", {
 						});
 						return;
 					}
+					if (e.paste) {
+						e = self.pasteVariable();
+						if (self.findVariableByLabel(e.label, true)) {
+							e.label = self.generateName(e.label + "(", ")");
+						}
+						callback(e);
+						return;
+					}
 					callback(self.createVariable(self.generateName(e.text, ""), e.id));
 				}, true);
 			}
@@ -5532,6 +5569,19 @@ MapScript.loadModule("CA", {
 				Common.showListChooser(a, function(pos) {
 					callback(a[pos].data);
 				}, true);
+			}
+			self.clickVariable = function(variable) {
+				if (variable.data.onClick) variable.data.onClick();
+				if (variable.data.layout) {
+					self.setContent(variable.data.layout);
+				} else {
+					self.setContent(self.getDefaultContent());
+				}
+			}
+			self.showVariableMenu = function(variable) {
+				Common.showOperateDialog(self.spanEdit, {
+					variable : variable
+				});
 			}
 			self.createImageSpan = function(bgcolor, frcolor, fontsize, text) {
 				var margin = 2 * G.dp, padding = 4 * G.dp;
@@ -5600,6 +5650,24 @@ MapScript.loadModule("CA", {
 				}
 				if (notify) self.endSpanEdit();
 			}
+			self.copyVariable = function(variable) {
+				var type = CA.BatchPattern[variable.type];
+				self.clipboard = {
+					label : variable.label,
+					type : variable.type,
+					dataStr : type.stringify(variable.data)
+				}
+			}
+			self.pasteVariable = function() {
+				var e = self.clipboard;
+				if (!e) return;
+				var type = CA.BatchPattern[e.type];
+				return {
+					label : e.label,
+					type : e.type,
+					data : type.parse(e.dataStr).data
+				}
+			}
 			self.buildSpan = function(o) {
 				var ss = new G.SpannableString("${" + o.label + ":" + o.type + "}");
 				var span = self.createImageSpan(Common.theme.highlightcolor, Common.theme.bgcolor, Common.theme.textsize[3], o.label);
@@ -5614,16 +5682,6 @@ MapScript.loadModule("CA", {
 					if (e.span == span) return e;
 				}
 				return null;
-			}
-			self.clickSpan = function(span) {
-				var e = self.findVariableBySpan(span);
-				if (!e) return;
-				if (e.data.onClick) e.data.onClick();
-				if (e.data.layout) {
-					self.setContent(e.data.layout);
-				} else {
-					self.setContent(self.getDefaultContent());
-				}
 			}
 			self.findVariableByLabel = function(label, inline) {
 				var i, e, text = self.edit.getText();
@@ -5695,7 +5753,7 @@ MapScript.loadModule("CA", {
 				}
 				return target;
 			}
-			self.bundleStrings = function(array, lineData) {
+			self.bundleStrings = function(array) {
 				var i, msp = [], msi, msn, r = [], cur, t;
 				for (i = 0; i < array.length; i++) {
 					if (array[i] instanceof Function) {
@@ -5718,7 +5776,6 @@ MapScript.loadModule("CA", {
 				}
 				while (msi[0] < msn[0]) {
 					cur = array.slice(); //当前静态片段列表
-					lineData[r.length] = {}; //当前行数据
 					for (i = 0; i < msp.length; i++) {
 						cur[msp[i]] = cur[msp[i]][msi[i]];
 					} //将每个片段替换为当前子片段
@@ -5766,7 +5823,7 @@ MapScript.loadModule("CA", {
 					pos = vars[i].end;
 				}
 				r.push(template.slice(pos, template.length));
-				return self.bundleStrings(r, lineData);
+				return self.bundleStrings(r);
 			}
 			self.varsController = {
 				create : function(vars, lineData, globalData) {
@@ -5800,7 +5857,8 @@ MapScript.loadModule("CA", {
 						if (!t[spec]) t[spec] = {};
 						return t[spec];
 					} else {
-						return undefined;
+						t = this.lineData[index] = {};
+						return t[spec] = {};
 					}
 				},
 				getGlobalData : function(spec) {
@@ -5808,15 +5866,18 @@ MapScript.loadModule("CA", {
 					return this.globalData[spec];
 				}
 			}
+			self.clickSpan = function(span) {
+				var e = self.findVariableBySpan(span);
+				if (!e) return;
+				self.clickVariable(e);
+			}
 			self.longClick = new java.lang.Runnable(function() {try {
 				var variable;
 				if (self.lcReady && !self.lcFinish) {
 					if (self.lcTarget) {
 						variable = self.findVariableBySpan(self.lcTarget);
 						if (variable) {
-							Common.showOperateDialog(self.spanEdit, {
-								variable : variable
-							});
+							self.showVariableMenu(variable);
 						}
 					}
 					self.lcFinish = true;
@@ -5866,10 +5927,18 @@ MapScript.loadModule("CA", {
 			self.getDefaultContent = function() {
 				if (self.content_default) return self.content_default;
 				var view = self.buildMenuView([{
-					text : "添加变量……",
+					text : "添加/粘贴变量……",
 					onclick : function() {
 						self.makeVariable(function(variable) {
 							self.insertVariable(variable, true);
+						});
+					}
+				}, {
+					text : "选择变量……",
+					onclick : function() {
+						self.chooseVariable(function(o) {
+							self.selectLink(o.span);
+							self.showVariableMenu(o);
 						});
 					}
 				}, {
@@ -6190,8 +6259,14 @@ MapScript.loadModule("CA", {
 				this.update(o);
 				return "(" + ISegment.writeLenientString(o.text, this.options) + ")";
 			},
-			export : function(o) {
+			export : function(o, controller) {
+				var param = controller.getGlobalData("param:global"), value;
 				this.update(o);
+				value = o.text;
+				try {
+					value = JSON.parse(value);
+				} catch(e) {/* non-JSON value */}
+				param[controller.getLabelByData(o)] = value;
 				return [o.text];
 			},
 			buildLayout : function(o) {
@@ -6611,6 +6686,12 @@ MapScript.loadModule("CA", {
 					desc : "当前行变量",
 					get : function(o) {
 						return o.controller.getLineData("expr:line", o.resultIndex);
+					}
+				},
+				param : {
+					desc : "参数变量",
+					get : function(o) {
+						return o.controller.getGlobalData("param:global");
 					}
 				}
 			})
