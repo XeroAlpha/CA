@@ -533,6 +533,8 @@ Loader.fromFile("modules/CA.js")
 
 Loader.fromFile("modules/uiCore/PopupWindow.js")
 
+Loader.fromFile("modules/utils/Threads.js")
+
 Loader.fromFile("modules/Common.js")
 
 Loader.fromFile("modules/core/Plugins.js")

@@ -781,7 +781,7 @@ MapScript.loadModule("AndroidBridge", {
 		return false;
 	},
 	startAccessibilitySvcByRootAsync : function(callback, silently) {
-		new java.lang.Thread(function() {
+		Threads.run(function() {
 			var success = AndroidBridge.startAccessibilitySvcByRoot();
 			if (callback) callback(success);
 			if (silently) return;
@@ -790,7 +790,7 @@ MapScript.loadModule("AndroidBridge", {
 			} else {
 				Common.toast("无障碍服务启动失败");
 			}
-		}).start();
+		});
 	},
 	exitLoading : function(keepActivity) {
 		var activity = ScriptInterface.getBindActivity();

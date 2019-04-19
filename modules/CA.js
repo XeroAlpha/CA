@@ -3883,7 +3883,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						new java.lang.Thread(function() {try {
+						Threads.run(function() {try {
 							var count = CA.Library.updateLibraries(1);
 							if (count > 0) {
 								Common.toast("检测到" + count + "个拓展包有更新");
@@ -3891,7 +3891,7 @@ MapScript.loadModule("CA", {
 								Common.toast("所有拓展包都是最新的");
 							}
 							cb(false);
-						} catch(e) {erp(e)}}).start();
+						} catch(e) {erp(e)}});
 					});
 				}
 			},{
@@ -3902,7 +3902,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						new java.lang.Thread(function() {try {
+						Threads.run(function() {try {
 							var count = CA.Library.updateLibraries(2);
 							if (count > 0) {
 								Common.toast("检测到" + count + "个拓展包有更新");
@@ -3910,7 +3910,7 @@ MapScript.loadModule("CA", {
 								Common.toast("所有拓展包都是最新的");
 							}
 							cb(false);
-						} catch(e) {erp(e)}}).start();
+						} catch(e) {erp(e)}});
 					});
 				}
 			},{
@@ -4071,7 +4071,7 @@ MapScript.loadModule("CA", {
 					return tag.data.mode == 0;
 				},
 				onclick : function(v, tag) {
-					self.postTask(function(cb) {new java.lang.Thread(function() {try {
+					self.postTask(function(cb) {Threads.run(function() {try {
 						CA.Library.requestUpdateInfo(tag.data, function(statusCode, arg1, arg2) {
 							if (statusCode == 1) {
 								Common.toast("检测到更新：\n" + arg2.version.join(".") + " -> " + arg1.version.join("."));
@@ -4112,7 +4112,7 @@ MapScript.loadModule("CA", {
 								cb(false);
 							}
 						});
-					} catch(e) {erp(e)}}).start()});
+					} catch(e) {erp(e)}})});
 				}
 			},{
 				text : "编辑",

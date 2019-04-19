@@ -221,18 +221,21 @@ MapScript.loadModule("SettingsCompat", {
 		var self = this;
 		this.rom = android.os.Build.MANUFACTURER.toUpperCase();
 		this.version = "unknown";
-		var th = new java.lang.Thread(function() {try {
+		var result = Threads.awaitDefault(function() {try {
 			var i, t;
 			for (i in self.RomCheck) {
 				if (t = self.RomCheck[i].call(self)) {
-					self.rom = i;
-					self.version = t;
-					return;
+					return {
+						rom : i,
+						version : t
+					};
 				}
 			}
-		} catch(e) {Log.e(e)}});
-		th.start();
-		th.join(150);
+		} catch(e) {Log.e(e)}}, 150, null);
+		if (result) {
+			this.rom = result.rom;
+			this.version = result.version;
+		}
 	},
 	getProp : function(key) {
 		var ln = null, is = null;

@@ -616,13 +616,12 @@ MapScript.loadModule("Common", {
 				},
 				async : function(f) {
 					var o = this;
-					var th = new java.lang.Thread(function() {
+					Threads.run(function() {
 						try {
 							f(o);
 						} catch(e) {erp(e)}
 						o.close();
 					});
-					th.start();
 				}
 			};
 		}

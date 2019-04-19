@@ -27,7 +27,7 @@
 			info.push(data);
 		});
 		this.loadingStatus = "normal";
-		new java.lang.Thread(function() {try {
+		Threads.run(function() {try {
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
 				CA.Library.currentLoadingLibrary = e;
 				var data = CA.Library.loadLibrary(String(e), lib);
@@ -39,7 +39,7 @@
 			CA.Library.onLibraryLoadFinished(lib);
 			CA.Library.loadingStatus = null;
 			if (callback) callback(flag);
-		} catch(e) {erp(e)}}).start();
+		} catch(e) {erp(e)}});
 		return true;
 	},
 	clearCache : function(src) {
