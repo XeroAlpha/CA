@@ -354,22 +354,24 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 		self.count = 1;
 	}
 	if (self.count > 3) return;
-	new java.lang.Thread(function() {try {
-		var url = new java.net.URL("https://projectxero.top/ca/bugreport.php");
-		var conn = url.openConnection();
-		conn.setConnectTimeout(5000);
-		conn.setUseCaches(false);
-		conn.setRequestMethod("POST");
-		conn.setDoInput(true);
-		conn.setDoOutput(true);
-		var rd, s, ln;
-		var wr = conn.getOutputStream();
-		wr.write(new java.lang.String(tech).getBytes());
-		wr.flush();
-		conn.getInputStream().close();
-	} catch(e) {
-		android.util.Log.e("CA", e);
-	}}).start();
+	if (!self.notReport) {
+		new java.lang.Thread(function() {try {
+			var url = new java.net.URL("https://projectxero.top/ca/bugreport.php");
+			var conn = url.openConnection();
+			conn.setConnectTimeout(5000);
+			conn.setUseCaches(false);
+			conn.setRequestMethod("POST");
+			conn.setDoInput(true);
+			conn.setDoOutput(true);
+			var rd, s, ln;
+			var wr = conn.getOutputStream();
+			wr.write(new java.lang.String(tech).getBytes());
+			wr.flush();
+			conn.getInputStream().close();
+		} catch(e) {
+			android.util.Log.e("CA", e);
+		}}).start();
+	}
 	if (MapScript.host == "Android") {
 		ScriptInterface.reportError(tech);
 		return;

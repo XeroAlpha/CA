@@ -112,6 +112,13 @@ MapScript.loadModule("CA", {
 			if (f.settings.customTips) this.tips = f.settings.customTips;
 			if (isNaN(f.settings.libraryAutoUpdate)) f.settings.libraryAutoUpdate = 1;
 			if (!f.settings.quickBarActions) f.settings.quickBarActions = Object.copy(CA.quickBarDefaultActions);
+			if (BuildConfig.variants == "release") {
+				erp.notReport = CA.settings.notReportError;
+			} else if (BuildConfig.variants == "snapshot") {
+				erp.notReport = false;
+			} else {
+				erp.notReport = true;
+			}
 			
 			this.settingsVersion = Date.parse(f.publishDate);
 			if (this.settingsVersion < Date.parse("2017-10-22")) {
@@ -2625,7 +2632,6 @@ MapScript.loadModule("CA", {
 					});
 				}
 			}, {
-				id : "skipCheckUpdate",
 				name : "自动检查更新",
 				type : "boolean",
 				get : function() {
@@ -2633,6 +2639,24 @@ MapScript.loadModule("CA", {
 				},
 				set : function(v) {
 					CA.settings.skipCheckUpdate = !v;
+				}
+			}, {
+				name : "自动发送诊断信息",
+				description : "信息将用来定位、分析命令助手中的问题，可能包含用户数据",
+				type : "boolean",
+				get : function() {
+					return !erp.notReport;
+				},
+				set : function(v) {
+					if (BuildConfig.variants == "snapshot" && !v) {
+						v = true;
+						Common.toast("快照版必须启用此选项");
+					} else if (BuildConfig.variants == "debug" && v) {
+						v = false;
+						Common.toast("调试版必须禁用此选项");
+					}
+					CA.settings.notReportError = !v;
+					erp.notReport = CA.settings.notReportError;
 				}
 			}, {
 				name : "Beta计划",
