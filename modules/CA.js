@@ -393,6 +393,7 @@ MapScript.loadModule("CA", {
 				} else {
 					CA.showMain(CA.settings.noAnimation);
 				}
+				PushService.notify();
 			}
 			self.refreshAlpha = function() {
 				if (CA.settings.iconAlpha) {
@@ -2538,14 +2539,24 @@ MapScript.loadModule("CA", {
 					Common.showSettings("用户数据", self.userdata);
 				}
 			}, {
-				name : "辅助设置",
+				name : "推送信息",
+				description : "推送信息管理与历史信息查看",
+				type : "custom",
+				hidden : function() {
+					return MapScript.host != "Android";
+				},
+				onclick : function(fset) {
+					PushService.showSettings("推送设置");
+				}
+			}, {
+				name : "辅助功能",
 				description : "无障碍服务、WebSocket服务器",
 				type : "custom",
 				hidden : function() {
 					return MapScript.host != "Android";
 				},
 				onclick : function(fset) {
-					AndroidBridge.showSettings("辅助设置");
+					AndroidBridge.showSettings("辅助功能设置");
 				}
 			}];
 			self.about = [{

@@ -583,6 +583,8 @@ Loader.fromFile("modules/network/WSServer.js")
 
 Loader.fromFile("modules/network/GiteeFeedback.js")
 
+Loader.fromFile("modules/network/PushService.js")
+
 Loader.fromFile("modules/uiCore/LPlugins.js")
 
 Loader.fromFile("modules/utils/SafeFileUtils.js")
