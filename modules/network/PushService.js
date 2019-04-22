@@ -17,6 +17,7 @@ MapScript.loadModule("PushService", {
 	},
 	load : function() {
 		this.enabled = !CA.settings.disablePush && MapScript.host == "Android";
+		this.disabledTags = CA.settings.disabledPushTags ? CA.settings.disabledPushTags : CA.settings.disabledPushTags = [];
 		this.lastPushId = isNaN(CA.settings.lastPushId) ? -1 : CA.settings.lastPushId;
 	},
 	save : function() {
@@ -67,6 +68,9 @@ MapScript.loadModule("PushService", {
 			sort : sort
 		})));
 	},
+	getTags : function() {
+		return JSON.parse(NetworkUtils.queryPage("https://projectxero.top/ca/pushtags.json"));
+	},
 	readPushs : function() {
 		var pushs = this.getPosts(this.lastPushId + 1, 10, "forward", "desc"), firstTime = this.lastPushId < 0;
 		if (pushs.length) {
@@ -82,6 +86,13 @@ MapScript.loadModule("PushService", {
 		return this.getPosts(0, 1, "forward", "desc");
 	},
 	shouldShowPush : function(push) {
+		var i, tags = push.tags.split("|");
+		for (i = 0; i < tags.length; i++) {
+			if (tags[i] == "hiddenForPush") return false;
+			if (this.disabledTags.indexOf(tags[i]) >= 0) return false;
+		}
+		if (push.minver > this.version) return false;
+		if (push.maxver < this.version) return false;
 		return true;
 	},
 	showPushs : function(pushs) {
@@ -113,8 +124,8 @@ MapScript.loadModule("PushService", {
 		this.doCheckPush();
 	},
 	showSettings : function self(title) {
-		if (!self.root) {
-			self.root = [{
+		if (!self.base) {
+			self.base = [{
 				name : "启用推送",
 				type : "boolean",
 				get : function() {
@@ -124,6 +135,18 @@ MapScript.loadModule("PushService", {
 					CA.settings.disablePush = !v;
 					PushService.load();
 				}
+			}];
+			self.offline = [{
+				text : "部分选项因目前处于离线状态而不可用",
+				type : "text"
+			}];
+			self.tagsHeader = [{
+				name : "标签管理",
+				type : "tag"
+			}];
+			self.historyPost = [{
+				name : "历史推送",
+				type : "tag"
 			}, {
 				name : "查看历史推送信息",
 				type : "custom",
@@ -131,8 +154,49 @@ MapScript.loadModule("PushService", {
 					PushService.showHistoryPost();
 				}
 			}];
+			self.getTagEnabled = function() {
+				return PushService.disabledTags.indexOf(this.id) < 0;
+			}
+			self.setTagEnabled = function(v) {
+				if (v) {
+					Common.removeSet(PushService.disabledTags, this.id);
+				} else {
+					Common.addSet(PushService.disabledTags, this.id);
+				}
+			}
+			self.getArray = function(callback) {
+				var progress = Common.showProgressDialog();
+				progress.setText("正在加载……");
+				progress.async(function() {
+					var tags = PushService.tags;
+					if (!tags) {
+						try {
+							tags = PushService.tags = PushService.getTags();
+						} catch(e) {
+							Log.e(e);
+						}
+					}
+					if (tags) {
+						tags = tags.map(function(e) {
+							return {
+								id : e.id,
+								name : e.name,
+								description : e.desc,
+								type : "boolean",
+								get : self.getTagEnabled,
+								set : self.setTagEnabled
+							};
+						});
+						callback(self.base.concat(self.tagsHeader, tags, self.historyPost));
+					} else {
+						callback(self.base.concat(self.offline));
+					}
+				});
+			}
 		}
-		Common.showSettings(title, self.root);
+		self.getArray(function(arr) {
+			Common.showSettings(title, arr);
+		});
 	},
 	showHistoryPost : function self(callback) {G.ui(function() {try {
 		if (!self.linear) {

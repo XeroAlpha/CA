@@ -901,6 +901,11 @@ MapScript.loadModule("AndroidBridge", {
 			authorize : function(fragment, query, extras) {
 				GiteeFeedback.callbackOAuth(String(query.code));
 			}
+		},
+		push : {
+			settings : function() {
+				PushService.showSettings("推送设置");
+			}
 		}
 	}
 });
