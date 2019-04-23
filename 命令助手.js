@@ -406,6 +406,7 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 
 MapScript.loadModule("Loader", {
 	loading : false,
+	modules : {},
 	load : function(f) {
 		var lto, lm, lmb;
 		if (MapScript.host == "Android") {
@@ -452,24 +453,60 @@ MapScript.loadModule("Loader", {
 			return new java.io.FileInputStream(new java.io.File(MapScript.global.modulePath, path));
 		} else Log.throwError(new Error("不支持的平台"));
 	},
-	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
+	getCanonicalFile : function(path) {
 		var pathFile, rd, s, parentDir, t;
 		pathFile = new java.io.File(path.replace(/\\/g, "/")).getCanonicalFile();
-		path = pathFile.getPath();
-		if (this.cache && path in this.cache) return this.cache[path];
+		return {
+			path : String(pathFile.getPath()),
+			name : String(pathFile.getName()),
+			parent : String(pathFile.getParent())
+		};
+	},
+	readFile : function(path) {
+		var rd, s, t;
 		rd = new java.io.BufferedReader(new java.io.InputStreamReader(this.open(path)));
 		s = [];
 		while (t = rd.readLine()) s.push(t);
 		rd.close();
-		s = s.join("\n");
-		parentDir = pathFile.getParent();
-		s = s.replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
-			return match.replace(mpath, new java.io.File(parentDir, mpath));
+		return s.join("\n");
+	},
+	fromFile : function(path) { //这是一个占位符函数，它只会在调试过程中起作用
+		var file = this.getCanonicalFile(path), s, t;
+		path = file.path;
+		if (this.cache && path in this.cache) return this.cache[path];
+		s = this.readFile(path).replace(/Loader.fromFile\("(.+)"\)/g, function(match, mpath) {
+			return match.replace(mpath, file.parent + "/" + mpath);
 		});
 		if (s.search(/;\s*$/) < 0) s = "(" + s + ")";
-		t = this.evalSpecial(s, pathFile.getName(), 0, MapScript.global, Loader);
+		t = this.evalSpecial(s, file.name, 0, MapScript.global, Loader);
 		if (this.cache) this.cache[path] = t;
 		return t;
+	},
+	require : function(path, module) { //这是一个调试用函数
+		var file = this.getCanonicalFile(path), s, t;
+		path = file.path;
+		if (path in this.modules) return this.modules[path].exports;
+		if (arguments.length == 2) {
+			t = {
+				exports : module,
+				file : file,
+				require : function(path) {
+					return Loader.require(file.parent + "/" + path);
+				}
+			};
+		} else {
+			s = this.readFile(path);
+			t = {
+				exports : {},
+				file : file,
+				require : function(path) {
+					return Loader.require(file.parent + "/" + path);
+				}
+			};
+			this.modules[path] = t;
+			this.evalSpecial("(function(exports, require, module, __filename, __dirname) {" + s + "})(this.exports, this.require, this, this.path, this.parent)", file.name, 0, MapScript.global, t);
+		}
+		return t.exports;
 	},
 	evalSpecial : function(source, sourceName, lineNumber, scope, thisArg) {
 		var cx = org.mozilla.javascript.Context.getCurrentContext();
