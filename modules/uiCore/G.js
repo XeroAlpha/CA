@@ -7,6 +7,7 @@ MapScript.loadModule("G", {
 		this.screenWidth = t.widthPixels;
 		this.dp = t.density;
 		this.sp = t.scaledDensity;
+		this.scaleFactor = this.sp / this.dp;
 		if (ctx.runOnUiThread) {
 			this.ui = ctx.runOnUiThread.bind(ctx);
 		} else if (MapScript.host == "Android") {

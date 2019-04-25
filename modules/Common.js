@@ -74,7 +74,6 @@ MapScript.loadModule("Common", {
 		r.textsize = [Math.ceil(10 * i), Math.ceil(12 * i), Math.ceil(14 * i), Math.ceil(16 * i), Math.ceil(18 * i)];
 		t = ctx.getResources().getDisplayMetrics();
 		G.dp = t.density * i;
-		G.sp = t.scaledDensity * i;
 		this.theme = r;
 	},
 	applyStyle : function(v, style, size) {
