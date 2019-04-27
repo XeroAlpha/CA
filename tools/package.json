@@ -9,6 +9,7 @@
   "author": "ProjectXero",
   "license": "GPL-3.0",
   "dependencies": {
+    "jszip": "^3.2.1",
     "ssh2": "^0.8.2"
   }
 }
