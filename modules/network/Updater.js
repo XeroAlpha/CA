@@ -385,10 +385,27 @@ MapScript.loadModule("Updater", {
 	showCurrentVersionInfo : function() {
 		Common.showTextDialog(ISegment.rawJson([
 			{
-				text : "命令助手 " + BuildConfig.version + " (" + BuildConfig.date + ")",
-				bold : true
+				extra : [
+					{
+						text : "命令助手 " + BuildConfig.version,
+						bold : true
+					}, "\n", function() {
+						switch (BuildConfig.variants) {
+							case "release":
+							return "正式版本";
+							case "snapshot":
+							return "快照版本";
+							case "debug":
+							return "调试版本";
+							default:
+							return BuildConfig.variants;
+						}
+					}, " ",
+					BuildConfig.date,
+					"\n发布于 " + Updater.toChineseDate(BuildConfig.publishTime)
+				],
+				align : "center"
 			},
-			"\n发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
 			"\n\n更新内容：\n",
 			BuildConfig.description
 		]));
