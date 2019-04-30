@@ -854,6 +854,20 @@ MapScript.loadModule("Common", {
 						holder.seekbar.setMax(e.max);
 						holder.seekbar.setProgress(e.get());
 					}
+				},
+				"layout" : {
+					maker : function(holder) {
+						var frame;
+						frame = new G.FrameLayout(ctx);
+						frame.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						return frame;
+					},
+					binder : function(holder, e) {
+						if (e.maker && !e.view) e.view = e.maker();
+						if (e.binder) e.binder();
+						holder.self.removeAllViews();
+						if (e.view) holder.self.addView(e.view, new G.FrameLayout.LayoutParams(-1, -2));
+					}
 				}
 			};
 			self.setData = function(data) {
@@ -871,6 +885,7 @@ MapScript.loadModule("Common", {
 						case "space":
 						case "tag":
 						case "text":
+						case "layout":
 						return;
 					}
 				});
@@ -914,7 +929,7 @@ MapScript.loadModule("Common", {
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var e = self.adpt.array[pos];
 				if (!e) return;
-				if (e.type == "custom") {
+				if (e.type == "custom" || e.type == "layout") {
 					if (e.onclick) e.onclick(function() {
 						self.refreshText();
 					});
