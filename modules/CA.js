@@ -2511,9 +2511,6 @@ MapScript.loadModule("CA", {
 			self.root = [{
 				name : "关于命令助手",
 				type : "custom",
-				get : function() {
-					return CA.versionName;
-				},
 				onclick : function(fset) {
 					Common.showSettings("关于", self.about);
 				}
@@ -2559,7 +2556,38 @@ MapScript.loadModule("CA", {
 					AndroidBridge.showSettings("辅助功能设置");
 				}
 			}];
-			self.about = [{
+			self.about = [MapScript.host == "Android" ? {
+				type : "layout",
+				maker : function(holder) {
+					var linear, icon, title, desp;
+					linear = new G.LinearLayout(ctx);
+					linear.setOrientation(G.LinearLayout.VERTICAL);
+					linear.setPadding(0, 20 * G.dp, 0, 20 * G.dp);
+					linear.setGravity(G.Gravity.CENTER);
+					icon = new G.ImageView(ctx);
+					icon.setImageResource(com.xero.ca.R.drawable.icon);
+					icon.setLayoutParams(new G.LinearLayout.LayoutParams(80 * G.dp, 80 * G.dp));
+					linear.addView(icon);
+					title = new G.TextView(ctx);
+					title.setPadding(0, 15 * G.dp, 0, 0);
+					title.setGravity(G.Gravity.CENTER);
+					title.setText("命令助手  " + BuildConfig.version);
+					title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(title, "textview_default", 4);
+					linear.addView(title);
+					desp = new G.TextView(ctx);
+					desp.setGravity(G.Gravity.CENTER);
+					desp.setText("Developed by ProjectXero");
+					desp.setTypeface(G.Typeface.SERIF);
+					desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(desp, "textview_prompt", 2);
+					linear.addView(desp);
+					return linear;
+				},
+				onclick : function() {
+					Updater.showCurrentVersionInfo();
+				}
+			} : {
 				name : "版本信息",
 				type : "custom",
 				get : function() {
@@ -2609,6 +2637,24 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
+				name : "提出意见/反馈bug",
+				type : "custom",
+				onclick : function() {
+					GiteeFeedback.showFeedbacks();
+				}
+			}, {
+				name : "项目官网",
+				type : "custom",
+				onclick : function() {
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://projectxero.top/ca"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.toast("项目官网打开失败");
+						Log.e(e);
+					}
+				}
+			}, {
 				name : "加入交流群",
 				type : "custom",
 				onclick : function() {
@@ -2620,12 +2666,6 @@ MapScript.loadModule("CA", {
 					} catch(e) {
 						Log.e(e);
 					}
-				}
-			}, {
-				name : "提出意见/反馈bug",
-				type : "custom",
-				onclick : function() {
-					GiteeFeedback.showFeedbacks();
 				}
 			}, {
 				name : "支持开发",
