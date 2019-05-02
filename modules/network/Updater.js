@@ -443,7 +443,9 @@ MapScript.loadModule("Updater", {
 					}, true);
 				}
 			} else {
-				this.checkUpdateBeta(null, true);
+				if (!CA.settings.skipCheckUpdate) {
+					this.checkUpdateBeta(null, true);
+				}
 			}
 		}
 		
