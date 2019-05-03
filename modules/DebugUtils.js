@@ -119,7 +119,7 @@ MapScript.loadModule("DebugUtils", {
 						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				} else if (_ls.startsWith("#")) {
-					new java.lang.Thread(function() {
+					Threads.run(function() {
 						try {
 							var _t = eval(_s.slice(1));
 							self.print(Log.debug("D", _t, 0).join("\n"));
@@ -129,7 +129,7 @@ MapScript.loadModule("DebugUtils", {
 						G.ui(function() {try {
 							self.ready(_s);
 						} catch(e) {erp(e)}});
-					}).start();
+					});
 					return;
 				} else {
 					try {

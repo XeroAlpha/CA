@@ -53,7 +53,7 @@ MapScript.loadModule("Updater", {
 		}
 		this.checking = true;
 		if (statusListener) statusListener("checking");
-		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
+		Threads.run(function() {try {
 			Updater.getUpdateInfo(Updater.sources, function(err, info) {
 				Updater.checking = false;
 				if (err) {
@@ -77,8 +77,7 @@ MapScript.loadModule("Updater", {
 					if (statusListener) statusListener("completed", flag);
 				}
 			});
-		} catch(e) {erp(e)}}}));
-		thread.start();
+		} catch(e) {erp(e)}});
 	},
 	testSupport : function(requirements) {
 		if (!Array.isArray(requirements)) return null;
@@ -240,7 +239,7 @@ MapScript.loadModule("Updater", {
 		}
 		this.checkingBeta = true;
 		if (statusListener) statusListener("checking");
-		var thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
+		Threads.run(function() {try {
 			var snapshotVer = Updater.getSnapshotVersion();
 			Updater.getUpdateInfo(Updater.betaSources, function(err, info) {
 				Updater.checkingBeta = false;
@@ -265,8 +264,7 @@ MapScript.loadModule("Updater", {
 					if (statusListener) statusListener("completed", flag);
 				}
 			});
-		} catch(e) {erp(e)}}}));
-		thread.start();
+		} catch(e) {erp(e)}});
 	},
 	showBetaUpdateDialog : function(info, callback) {
 		var selected = false;
@@ -387,10 +385,27 @@ MapScript.loadModule("Updater", {
 	showCurrentVersionInfo : function() {
 		Common.showTextDialog(ISegment.rawJson([
 			{
-				text : "命令助手 " + BuildConfig.version + " (" + BuildConfig.date + ")",
-				bold : true
+				extra : [
+					{
+						text : "命令助手 " + BuildConfig.version,
+						bold : true
+					}, "\n", function() {
+						switch (BuildConfig.variants) {
+							case "release":
+							return "正式版本";
+							case "snapshot":
+							return "快照版本";
+							case "debug":
+							return "调试版本";
+							default:
+							return BuildConfig.variants;
+						}
+					}, " ",
+					BuildConfig.date,
+					"\n发布于 " + Updater.toChineseDate(BuildConfig.publishTime)
+				],
+				align : "center"
 			},
-			"\n发布时间：" + Updater.toChineseDate(BuildConfig.publishTime),
 			"\n\n更新内容：\n",
 			BuildConfig.description
 		]));
@@ -428,7 +443,9 @@ MapScript.loadModule("Updater", {
 					}, true);
 				}
 			} else {
-				this.checkUpdateBeta(null, true);
+				if (!CA.settings.skipCheckUpdate) {
+					this.checkUpdateBeta(null, true);
+				}
 			}
 		}
 		

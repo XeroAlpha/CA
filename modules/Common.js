@@ -74,7 +74,6 @@ MapScript.loadModule("Common", {
 		r.textsize = [Math.ceil(10 * i), Math.ceil(12 * i), Math.ceil(14 * i), Math.ceil(16 * i), Math.ceil(18 * i)];
 		t = ctx.getResources().getDisplayMetrics();
 		G.dp = t.density * i;
-		G.sp = t.scaledDensity * i;
 		this.theme = r;
 	},
 	applyStyle : function(v, style, size) {
@@ -451,7 +450,7 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 
 	showConfirmDialog : function(s) {G.ui(function() {try {
-		var scr, layout, title, text, skip, onClick, popup;
+		var scr, layout, title, text, but, skip, onClick, popup;
 		scr = new G.ScrollView(ctx);
 		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
@@ -616,13 +615,12 @@ MapScript.loadModule("Common", {
 				},
 				async : function(f) {
 					var o = this;
-					var th = new java.lang.Thread(function() {
+					Threads.run(function() {
 						try {
 							f(o);
 						} catch(e) {erp(e)}
 						o.close();
 					});
-					th.start();
 				}
 			};
 		}
@@ -856,6 +854,25 @@ MapScript.loadModule("Common", {
 						holder.seekbar.setMax(e.max);
 						holder.seekbar.setProgress(e.get());
 					}
+				},
+				"layout" : {
+					maker : function(holder) {
+						var frame;
+						frame = new G.FrameLayout(ctx);
+						frame.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+						return frame;
+					},
+					binder : function(holder, e) {
+						var parent;
+						if (e.maker && !e.view) e.view = e.maker();
+						if (e.binder) e.binder();
+						holder.self.removeAllViews();
+						if (e.view) {
+							parent = e.view.getParent();
+							if (parent) parent.removeView(e.view);
+							holder.self.addView(e.view, new G.FrameLayout.LayoutParams(-1, -2));
+						}
+					}
 				}
 			};
 			self.setData = function(data) {
@@ -868,6 +885,9 @@ MapScript.loadModule("Common", {
 						case "boolean":
 						case "seekbar":
 						if (e.get() != self.current.last[i] && e.refresh) e.refresh();
+						return;
+						case "layout":
+						if (e.onExit) e.onExit();
 						return;
 						case "custom":
 						case "space":
@@ -916,7 +936,7 @@ MapScript.loadModule("Common", {
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var e = self.adpt.array[pos];
 				if (!e) return;
-				if (e.type == "custom") {
+				if (e.type == "custom" || e.type == "layout") {
 					if (e.onclick) e.onclick(function() {
 						self.refreshText();
 					});
@@ -1618,7 +1638,12 @@ MapScript.loadModule("Common", {
 
 	postIME : function(v, delay) {
 		v.postDelayed(function() {try {
-			v.requestFocus();
+			try {
+				v.requestFocus();
+			} catch(e) {
+				//WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+				Log.e(e);
+			}
 			ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(v, G.InputMethodManager.SHOW_IMPLICIT);
 		} catch(e) {erp(e)}}, isNaN(delay) ? 0 : delay);
 	},

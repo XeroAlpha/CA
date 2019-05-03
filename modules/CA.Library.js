@@ -27,7 +27,7 @@
 			info.push(data);
 		});
 		this.loadingStatus = "normal";
-		new java.lang.Thread(function() {try {
+		Threads.run(function() {try {
 			CA.settings.enabledLibrarys.forEach(function(e, i, a) {
 				CA.Library.currentLoadingLibrary = e;
 				var data = CA.Library.loadLibrary(String(e), lib);
@@ -39,7 +39,7 @@
 			CA.Library.onLibraryLoadFinished(lib);
 			CA.Library.loadingStatus = null;
 			if (callback) callback(flag);
-		} catch(e) {erp(e)}}).start();
+		} catch(e) {erp(e)}});
 		return true;
 	},
 	clearCache : function(src) {
@@ -190,7 +190,12 @@
 	evalLib : function(file, code) {
 		return Loader.evalSpecial("(" + code + ")", file.getName(), 0, {
 			path : String(file.getPath()),
-			code : code
+			code : code,
+			LibInfo : {
+				file : file,
+				uri : android.net.Uri.fromFile(file),
+				code : code
+			}
 		}, this);
 	},
 	safeEval :function(file, code, defaultValue, error) {
@@ -827,7 +832,7 @@
 			rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
 			while (q = rd.readLine()) s.push(q);
 			rd.close();
-			return eval("(" + s.join("\n") + ")");
+			return this.evalLib(file, s.join("\n"));
 		} catch(e) {
 			if (error) error.error = e;
 			return defaultValue;

@@ -7,6 +7,7 @@ MapScript.loadModule("G", {
 		this.screenWidth = t.widthPixels;
 		this.dp = t.density;
 		this.sp = t.scaledDensity;
+		this.scaleFactor = this.sp / this.dp;
 		if (ctx.runOnUiThread) {
 			this.ui = ctx.runOnUiThread.bind(ctx);
 		} else if (MapScript.host == "Android") {
@@ -51,9 +52,10 @@ MapScript.loadModule("G", {
 	},
 //IMPORTS_BEGIN
 	AbsListView: android.widget.AbsListView,
+	AbsoluteSizeSpan: android.text.style.AbsoluteSizeSpan,
 	AccelerateInterpolator: android.view.animation.AccelerateInterpolator,
 	AdapterView: android.widget.AdapterView,
-	AlertDialog: android.app.AlertDialog,
+	AlignmentSpan: android.text.style.AlignmentSpan,
 	AlphaAnimation: android.view.animation.AlphaAnimation,
 	AnimatedImageDrawable: android.graphics.drawable.AnimatedImageDrawable,
 	Animation: android.view.animation.Animation,
@@ -86,6 +88,7 @@ MapScript.loadModule("G", {
 	ImageView: android.widget.ImageView,
 	InputMethodManager: android.view.inputmethod.InputMethodManager,
 	InputType: android.text.InputType,
+	Layout: android.text.Layout,
 	LinearLayout: android.widget.LinearLayout,
 	LinkMovementMethod: android.text.method.LinkMovementMethod,
 	ListAdapter: android.widget.ListAdapter,
@@ -97,10 +100,9 @@ MapScript.loadModule("G", {
 	PopupWindow: android.widget.PopupWindow,
 	PorterDuff: android.graphics.PorterDuff,
 	PorterDuffXfermode: android.graphics.PorterDuffXfermode,
-	ProgressBar: android.widget.ProgressBar,
 	R: android.R,
-	RadioButton: android.widget.RadioButton,
 	Rect: android.graphics.Rect,
+	RelativeSizeSpan: android.text.style.RelativeSizeSpan,
 	ScaleAnimation: android.view.animation.ScaleAnimation,
 	ScrollView: android.widget.ScrollView,
 	SeekBar: android.widget.SeekBar,
@@ -116,6 +118,7 @@ MapScript.loadModule("G", {
 	SubscriptSpan: android.text.style.SubscriptSpan,
 	SuperscriptSpan: android.text.style.SuperscriptSpan,
 	Surface: android.view.Surface,
+	TabStopSpan: android.text.style.TabStopSpan,
 	TableLayout: android.widget.TableLayout,
 	TableRow: android.widget.TableRow,
 	TextUtils: android.text.TextUtils,

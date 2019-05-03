@@ -112,14 +112,22 @@ MapScript.loadModule("CA", {
 			if (f.settings.customTips) this.tips = f.settings.customTips;
 			if (isNaN(f.settings.libraryAutoUpdate)) f.settings.libraryAutoUpdate = 1;
 			if (!f.settings.quickBarActions) f.settings.quickBarActions = Object.copy(CA.quickBarDefaultActions);
+			if (BuildConfig.variants == "release") {
+				erp.notReport = CA.settings.notReportError;
+			} else if (BuildConfig.variants == "snapshot") {
+				erp.notReport = false;
+			} else {
+				erp.notReport = true;
+			}
 			
-			if (Date.parse(f.publishDate) < Date.parse("2017-10-22")) {
+			this.settingsVersion = Date.parse(f.publishDate);
+			if (this.settingsVersion < Date.parse("2017-10-22")) {
 				f.settings.senseDelay = true;
 			}
-			if (Date.parse(f.publishDate) < Date.parse("2018-03-10")) {
+			if (this.settingsVersion < Date.parse("2018-03-10")) {
 				f.settings.pasteMode = f.settings.disablePaste ? 0 : 1;
 			}
-			if (Date.parse(f.publishDate) < Date.parse("2018-12-03")) {
+			if (this.settingsVersion < Date.parse("2018-12-03")) {
 				if (f.settings.historyCount == 0) f.settings.historyCount = 200;
 				this.his.splice(f.settings.historyCount);
 			}
@@ -385,6 +393,7 @@ MapScript.loadModule("CA", {
 				} else {
 					CA.showMain(CA.settings.noAnimation);
 				}
+				PushService.notify();
 			}
 			self.refreshAlpha = function() {
 				if (CA.settings.iconAlpha) {
@@ -660,9 +669,15 @@ MapScript.loadModule("CA", {
 				self.performClose();
 			}
 			self.activate = function(fl) {
-				CA.cmd.requestFocus();
-				CA.cmd.setSelection(CA.cmd.getText().length());
-				if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
+				try {
+					CA.cmd.requestFocus();
+					CA.cmd.setSelection(CA.cmd.getText().length());
+					if (fl) ctx.getSystemService(ctx.INPUT_METHOD_SERVICE).showSoftInput(CA.cmd, G.InputMethodManager.SHOW_IMPLICIT);
+				} catch(e) {
+					//WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+					//com.meizu.widget.OptionPopupWindow不支持悬浮窗界面
+					Log.e(e);
+				}
 			}
 			self.textUpdate = (function() {
 				var state = -1;
@@ -1051,6 +1066,15 @@ MapScript.loadModule("CA", {
 				}
 			}];
 			self.favoriteItemEdit = [{
+				text : "快速输入",
+				hidden : function(tag) {
+					return tag.data.source != "batch";
+				},
+				onclick : function(v, tag) {
+					CA.cmd.setText(tag.data.value);
+					CA.showGen.activate(false);
+				}
+			},{
 				text : "复制",
 				onclick : function(v, tag) {
 					Common.setClipboardText(tag.data.value);
@@ -1058,6 +1082,9 @@ MapScript.loadModule("CA", {
 				}
 			},{
 				text : "从模板创建",
+				hidden : function(tag) {
+					return tag.data.source == "batch";
+				},
 				onclick : function(v, tag) {
 					CA.showBatchBuilder(tag.data.value, true);
 				}
@@ -1263,7 +1290,7 @@ MapScript.loadModule("CA", {
 				holder.self.setPadding(depth * 16 * G.dp, 0, 0, 0);
 			}
 			self.getFavChildren = function(e) {
-				var d = [], g = [], a = e.children;
+				var i, d = [], g = [], a = e.children;
 				if (!a) return;
 				for (i in a) {
 					if (a[i].children) {
@@ -1447,8 +1474,12 @@ MapScript.loadModule("CA", {
 					if (!self.favEmpty) self.favAdapter.expandAll();
 				},
 				onItemClick : function(e) {
-					CA.cmd.setText(e.value);
-					CA.showGen.activate(false);
+					if (e.source == "batch") {
+						CA.showBatchBuilder(e.value, true);
+					} else {
+						CA.cmd.setText(e.value);
+						CA.showGen.activate(false);
+					}
 				},
 				onItemLongClick : function(e, pos, parent, view, adpt) {
 					var p = adpt.getParent(pos);
@@ -2116,11 +2147,14 @@ MapScript.loadModule("CA", {
 			}
 
 			self.popup = new PopupPage(self.linear, "ca.HistoryEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh(pos);
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -2437,11 +2471,14 @@ MapScript.loadModule("CA", {
 			}
 
 			self.popup = new PopupPage(self.linear, "ca.FavoriteEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.init(data);
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -2474,9 +2511,6 @@ MapScript.loadModule("CA", {
 			self.root = [{
 				name : "关于命令助手",
 				type : "custom",
-				get : function() {
-					return CA.versionName;
-				},
 				onclick : function(fset) {
 					Common.showSettings("关于", self.about);
 				}
@@ -2502,17 +2536,61 @@ MapScript.loadModule("CA", {
 					Common.showSettings("用户数据", self.userdata);
 				}
 			}, {
-				name : "辅助设置",
+				name : "推送信息",
+				description : "推送信息管理与历史信息查看",
+				type : "custom",
+				hidden : function() {
+					return MapScript.host != "Android";
+				},
+				onclick : function(fset) {
+					PushService.showSettings("推送设置");
+				}
+			}, {
+				name : "辅助功能",
 				description : "无障碍服务、WebSocket服务器",
 				type : "custom",
 				hidden : function() {
 					return MapScript.host != "Android";
 				},
 				onclick : function(fset) {
-					AndroidBridge.showSettings("辅助设置");
+					AndroidBridge.showSettings("辅助功能设置");
 				}
 			}];
-			self.about = [{
+			self.about = [MapScript.host == "Android" ? {
+				type : "layout",
+				maker : function(holder) {
+					var linear, icon, title, desp;
+					linear = new G.LinearLayout(ctx);
+					linear.setOrientation(G.LinearLayout.VERTICAL);
+					linear.setPadding(0, 20 * G.dp, 0, 20 * G.dp);
+					linear.setGravity(G.Gravity.CENTER);
+					icon = new G.ImageView(ctx);
+					icon.setImageResource(com.xero.ca.R.drawable.icon);
+					icon.setLayoutParams(new G.LinearLayout.LayoutParams(80 * G.dp, 80 * G.dp));
+					linear.addView(icon);
+					title = new G.TextView(ctx);
+					title.setPadding(0, 15 * G.dp, 0, 0);
+					title.setGravity(G.Gravity.CENTER);
+					title.setText("命令助手  " + BuildConfig.version);
+					title.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(title, "textview_default", 4);
+					linear.addView(title);
+					desp = new G.TextView(ctx);
+					desp.setGravity(G.Gravity.CENTER);
+					desp.setText("Developed by ProjectXero");
+					desp.setTypeface(G.Typeface.SERIF);
+					desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+					Common.applyStyle(desp, "textview_prompt", 2);
+					linear.addView(desp);
+					return linear;
+				},
+				onclick : function() {
+					Updater.showCurrentVersionInfo();
+				},
+				onExit : function() {
+					this.view = null;
+				}
+			} : {
 				name : "版本信息",
 				type : "custom",
 				get : function() {
@@ -2562,6 +2640,24 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
+				name : "提出意见/反馈bug",
+				type : "custom",
+				onclick : function() {
+					GiteeFeedback.showFeedbacks();
+				}
+			}, {
+				name : "项目官网",
+				type : "custom",
+				onclick : function() {
+					try {
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://projectxero.top/ca"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.toast("项目官网打开失败");
+						Log.e(e);
+					}
+				}
+			}, {
 				name : "加入交流群",
 				type : "custom",
 				onclick : function() {
@@ -2573,12 +2669,6 @@ MapScript.loadModule("CA", {
 					} catch(e) {
 						Log.e(e);
 					}
-				}
-			}, {
-				name : "提出意见/反馈bug",
-				type : "custom",
-				onclick : function() {
-					GiteeFeedback.showFeedbacks();
 				}
 			}, {
 				name : "支持开发",
@@ -2596,7 +2686,6 @@ MapScript.loadModule("CA", {
 					});
 				}
 			}, {
-				id : "skipCheckUpdate",
 				name : "自动检查更新",
 				type : "boolean",
 				get : function() {
@@ -2604,6 +2693,24 @@ MapScript.loadModule("CA", {
 				},
 				set : function(v) {
 					CA.settings.skipCheckUpdate = !v;
+				}
+			}, {
+				name : "自动发送诊断信息",
+				description : "信息将用来定位、分析命令助手中的问题，可能包含用户数据",
+				type : "boolean",
+				get : function() {
+					return !erp.notReport;
+				},
+				set : function(v) {
+					if (BuildConfig.variants == "snapshot" && !v) {
+						v = true;
+						Common.toast("快照版必须启用此选项");
+					} else if (BuildConfig.variants == "debug" && v) {
+						v = false;
+						Common.toast("调试版必须禁用此选项");
+					}
+					CA.settings.notReportError = !v;
+					erp.notReport = CA.settings.notReportError;
 				}
 			}, {
 				name : "Beta计划",
@@ -3502,11 +3609,14 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.list);
 
 			self.popup = new PopupPage(self.linear, "ca.CustomExpEdit");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 
@@ -3851,7 +3961,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						new java.lang.Thread(function() {try {
+						Threads.run(function() {try {
 							var count = CA.Library.updateLibraries(1);
 							if (count > 0) {
 								Common.toast("检测到" + count + "个拓展包有更新");
@@ -3859,7 +3969,7 @@ MapScript.loadModule("CA", {
 								Common.toast("所有拓展包都是最新的");
 							}
 							cb(false);
-						} catch(e) {erp(e)}}).start();
+						} catch(e) {erp(e)}});
 					});
 				}
 			},{
@@ -3870,7 +3980,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						new java.lang.Thread(function() {try {
+						Threads.run(function() {try {
 							var count = CA.Library.updateLibraries(2);
 							if (count > 0) {
 								Common.toast("检测到" + count + "个拓展包有更新");
@@ -3878,7 +3988,7 @@ MapScript.loadModule("CA", {
 								Common.toast("所有拓展包都是最新的");
 							}
 							cb(false);
-						} catch(e) {erp(e)}}).start();
+						} catch(e) {erp(e)}});
 					});
 				}
 			},{
@@ -4039,7 +4149,7 @@ MapScript.loadModule("CA", {
 					return tag.data.mode == 0;
 				},
 				onclick : function(v, tag) {
-					self.postTask(function(cb) {new java.lang.Thread(function() {try {
+					self.postTask(function(cb) {Threads.run(function() {try {
 						CA.Library.requestUpdateInfo(tag.data, function(statusCode, arg1, arg2) {
 							if (statusCode == 1) {
 								Common.toast("检测到更新：\n" + arg2.version.join(".") + " -> " + arg1.version.join("."));
@@ -4080,7 +4190,7 @@ MapScript.loadModule("CA", {
 								cb(false);
 							}
 						});
-					} catch(e) {erp(e)}}).start()});
+					} catch(e) {erp(e)}})});
 				}
 			},{
 				text : "编辑",
@@ -4449,11 +4559,14 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "ca.LibraryManage");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.refresh();
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	
@@ -4660,10 +4773,13 @@ MapScript.loadModule("CA", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "ca.OnlineLibSource");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -5339,10 +5455,79 @@ MapScript.loadModule("CA", {
 
 	showBatchBuilder : function self(text, reset) {G.ui(function() {try {
 		if (!self.linear) {
+			var vcfg = G.ViewConfiguration.get(ctx);
+			var longPressTimeout = vcfg.getLongPressTimeout();
+			var touchSlop = vcfg.getScaledTouchSlop();
 			self.variables = [];
+			self.clipboard = null;
 			self.bmpcache = [];
+			self.labelOption = {
+				endChars : ":",
+				skipChars : ":"
+			};
+			self.typeOption = {
+				endChars : "(}",
+				skipChars : "(}"
+			};
+			self.spanEdit = [{
+				text : "编辑",
+				onclick : function(v, tag) {
+					self.clickVariable(tag.variable);
+				}
+			}, {
+				text : "复制",
+				onclick : function(v, tag) {
+					self.copyVariable(tag.variable);
+				}
+			}, {
+				text : "剪切",
+				onclick : function(v, tag) {
+					self.copyVariable(tag.variable);
+					self.deleteVariable(tag.variable, true);
+				}
+			}, {
+				text : "重命名",
+				onclick : function(v, tag) {
+					Common.showInputDialog({
+						title : "重命名",
+						callback : function(s) {
+							if (!s) {
+								Common.toast("名称不能为空");
+								return;
+							}
+							if (self.findVariableByLabel(s, true)) {
+								Common.toast("名称已存在");
+								return;
+							}
+							tag.variable.label = s;
+							self.replaceVariable(tag.variable, tag.variable, true);
+						},
+						singleLine : true,
+						defaultValue : tag.variable.label
+					});
+				}
+			}, {
+				text : "替换",
+				onclick : function(v, tag) {
+					self.makeVariable(function(variable) {
+						self.replaceVariable(tag.variable, variable, true);
+					});
+				}
+			}, {
+				text : "重置",
+				onclick : function(v, tag) {
+					self.replaceVariable(tag.variable, self.createVariable(tag.variable.label, tag.variable.type), true);
+				}
+			}, {
+				text : "删除",
+				onclick : function(v, tag) {
+					self.deleteVariable(tag.variable, true);
+				}
+			}];
 			self.init = function(s) {
 				self.variables.length = 0;
+				self.edit.setText("");
+				self.clearBmpCache();
 				self.edit.setText(self.unflatten(s));
 				self.edit.setSelection(self.edit.length());
 				self.setContent(self.getDefaultContent());
@@ -5353,57 +5538,72 @@ MapScript.loadModule("CA", {
 					self.container.addView(v, new G.FrameLayout.LayoutParams(-1, -1));
 				}
 			}
+			self.clearBmpCache = function() {
+				var i, e;
+				for (i = this.bmpcache.length - 1; i >= 0; i--) {
+					e = this.bmpcache[i];
+					if (e) e.recycle();
+				}
+				this.bmpcache.length = 0;
+			}
 			self.unflatten = function(str) {
-				var start = 0, r = new G.SpannableStringBuilder();
-				var pos_start, pos_type, pos_param, pos_end;
+				var stream, pos_start, end_char, r = new G.SpannableStringBuilder();
 				var cur, match, has_param, error = [];
-				while ((pos_start = str.indexOf("${", start)) >= 0) {
-					r.append(str.slice(start, pos_start).replace(/\$ /g, "$"));
+				stream = {
+					cur : 0,
+					str : str
+				};
+				while ((pos_start = str.indexOf("${", stream.cur)) >= 0) {
+					r.append(str.slice(stream.cur, pos_start).replace(/\$ /g, "$"));
 					try {
-						pos_type = str.indexOf(":", pos_start + 2);
-						if (pos_type < 0) throw "找不到变量类型";
-						pos_param = str.indexOf("(", pos_type + 1);
-						pos_end = str.indexOf("}", pos_type + 1);
-						if (pos_end < 0) throw "找不到变量结束符";
-						has_param = pos_param >= 0 && pos_end > pos_param;
-						cur = {
-							label : str.slice(pos_start + 2, pos_type),
-							type : str.slice(pos_type + 1, has_param ? pos_param : pos_end)
-						};
+						cur = {};
+						stream.cur = pos_start + 2;
+						cur.label = ISegment.readLenientString(stream, self.labelOption);
+						if (ISegment.isStringEOS(stream)) throw "找不到变量类型";
+						cur.type = ISegment.readLenientString(stream, self.typeOption);
+						if (ISegment.isStringEOS(stream)) throw "找不到变量结束符";
 						if (cur.label.length == 0) throw "变量名称不能为空";
 						if (self.findVariableByLabel(cur.label, false)) cur.label = self.generateName(cur.label + " (", ")", true);
 						if (!(cur.type in CA.BatchPattern)) throw "不存在的变量类型：" + cur.type;
-						if (has_param) {
-							match = CA.BatchPattern[cur.type].parse(str.slice(pos_param));
+						stream.cur--;
+						end_char = ISegment.peekStreamStr(stream);
+						if (end_char == "(") {
+							match = CA.BatchPattern[cur.type].parse(ISegment.peekStreamAll(stream));
 							if (!match) throw "变量参数格式错误";
-							start = pos_param + match.length;
+							stream.cur += match.length;
 							cur.data = match.data;
-						} else {
+						} else if (end_char == "}") {
 							cur = self.createVariable(cur.label, cur.type);
-							start = pos_end;
 						}
-						if (str.slice(start, ++start) != "}") throw "找不到变量结束符";
+						if (ISegment.readStreamStr(stream) != "}") throw "找不到变量结束符";
 						r.append(self.buildSpan(cur));
 						self.variables.push(cur);
 					} catch(e) {
 						error.push(e + "(位置：" + pos_start + ")");
 						r.append("${");
-						start = pos_start + 2;
+						stream.cur = pos_start + 2;
 						continue;
 					}
 				}
-				r.append(str.slice(start).replace(/\$ /g, "$"));
+				r.append(ISegment.readStreamAll(stream).replace(/\$ /g, "$"));
 				if (error.length) {
 					Common.showTextDialog(error.join("\n"));
 				}
 				return r;
 			}
-			self.addVariable = function() {
+			self.makeVariable = function(callback) {
 				var i, r = [{
 					text : "副本",
 					description : "创建已有标签的副本",
 					copy : true
 				}], a = CA.BatchPattern;
+				if (self.clipboard) {
+					r.push({
+						text : "剪切板",
+						description : self.clipboard.label + " : " + a[self.clipboard.type].name,
+						paste : true
+					});
+				}
 				for (i in a) {
 					r.push({
 						text : a[i].name,
@@ -5417,15 +5617,23 @@ MapScript.loadModule("CA", {
 					if (e.copy) {
 						self.chooseVariable(function(o) {
 							var type = CA.BatchPattern[o.type];
-							self.insertVariable({
+							callback({
 								label : self.generateName(type.name, ""),
 								type : o.type,
 								data : type.clone ? type.clone(o.data) : type.parse(type.stringify(o.data)).data
-							}, true);
+							});
 						});
 						return;
 					}
-					self.insertVariable(self.createVariable(self.generateName(e.text, ""), e.id), true);
+					if (e.paste) {
+						e = self.pasteVariable();
+						if (self.findVariableByLabel(e.label, true)) {
+							e.label = self.generateName(e.label + "(", ")");
+						}
+						callback(e);
+						return;
+					}
+					callback(self.createVariable(self.generateName(e.text, ""), e.id));
 				}, true);
 			}
 			self.chooseVariable = function(callback) {
@@ -5439,6 +5647,19 @@ MapScript.loadModule("CA", {
 				Common.showListChooser(a, function(pos) {
 					callback(a[pos].data);
 				}, true);
+			}
+			self.clickVariable = function(variable) {
+				if (variable.data.onClick) variable.data.onClick();
+				if (variable.data.layout) {
+					self.setContent(variable.data.layout);
+				} else {
+					self.setContent(self.getDefaultContent());
+				}
+			}
+			self.showVariableMenu = function(variable) {
+				Common.showOperateDialog(self.spanEdit, {
+					variable : variable
+				});
 			}
 			self.createImageSpan = function(bgcolor, frcolor, fontsize, text) {
 				var margin = 2 * G.dp, padding = 4 * G.dp;
@@ -5479,6 +5700,52 @@ MapScript.loadModule("CA", {
 				Common.replaceSelection(self.edit.getText(), self.buildSpan(o));
 				if (notify) self.clickSpan(o.span);
 			}
+			self.replaceVariable = function(old, replacement, notify) {
+				var p = self.variables.indexOf(old), buffer = self.edit.getText(), oldSpan = old.span;
+				if (p >= 0) {
+					self.variables[p] = replacement;
+				} else {
+					self.variables.push(replacement);
+				}
+				p = buffer.getSpanStart(oldSpan);
+				if (p >= 0) {
+					buffer.replace(p, buffer.getSpanEnd(oldSpan), self.buildSpan(replacement));
+					buffer.removeSpan(oldSpan); //与被替换区域重合的span会被保留，在被替换区域内的span会被移除
+				} else {
+					Common.replaceSelection(buffer, self.buildSpan(replacement));
+				}
+				if (notify) self.clickSpan(replacement.span);
+			}
+			self.deleteVariable = function(o, notify) {
+				var p = self.variables.indexOf(o), buffer = self.edit.getText();
+				if (p >= 0) {
+					self.variables.splice(p, 1);
+				}
+				p = buffer.getSpanStart(o.span);
+				if (p >= 0) {
+					buffer.delete(p, buffer.getSpanEnd(o.span));
+					buffer.removeSpan(o.span); //与被删除区域重合的span会被保留，在被删除区域内的span会被移除，因为delete就是replace一个空字符串
+				}
+				if (notify) self.endSpanEdit();
+			}
+			self.copyVariable = function(variable) {
+				var type = CA.BatchPattern[variable.type];
+				self.clipboard = {
+					label : variable.label,
+					type : variable.type,
+					dataStr : type.stringify(variable.data)
+				}
+			}
+			self.pasteVariable = function() {
+				var e = self.clipboard;
+				if (!e) return;
+				var type = CA.BatchPattern[e.type];
+				return {
+					label : e.label,
+					type : e.type,
+					data : type.parse(e.dataStr).data
+				}
+			}
 			self.buildSpan = function(o) {
 				var ss = new G.SpannableString("${" + o.label + ":" + o.type + "}");
 				var span = self.createImageSpan(Common.theme.highlightcolor, Common.theme.bgcolor, Common.theme.textsize[3], o.label);
@@ -5493,16 +5760,6 @@ MapScript.loadModule("CA", {
 					if (e.span == span) return e;
 				}
 				return null;
-			}
-			self.clickSpan = function(span) {
-				var e = self.findVariableBySpan(span);
-				if (!e) return;
-				if (e.data.onClick) e.data.onClick();
-				if (e.data.layout) {
-					self.setContent(e.data.layout);
-				} else {
-					self.setContent(self.getDefaultContent());
-				}
 			}
 			self.findVariableByLabel = function(label, inline) {
 				var i, e, text = self.edit.getText();
@@ -5543,13 +5800,14 @@ MapScript.loadModule("CA", {
 				var vars = self.getVariables();
 				var i, r = [], pos = 0;
 				for (i in vars) {
-					r.push(template.slice(pos, vars[i].start));
-					r.push("${", vars[i].label, ":", vars[i].type);
+					r.push(template.slice(pos, vars[i].start).replace(/\$/g, "$ "));
+					r.push("${", ISegment.writeLenientString(vars[i].label, self.labelOption));
+					r.push(":", ISegment.writeLenientString(vars[i].type, self.typeOption));
 					r.push(CA.BatchPattern[vars[i].type].stringify(vars[i].data));
 					r.push("}");
 					pos = vars[i].end;
 				}
-				r.push(template.slice(pos, template.length));
+				r.push(template.slice(pos, template.length).replace(/\$/g, "$ "));
 				return r.join("");
 			}
 			self.concatStrBundle = function(target, string) {
@@ -5577,44 +5835,50 @@ MapScript.loadModule("CA", {
 				var i, msp = [], msi, msn, r = [], cur, t;
 				for (i = 0; i < array.length; i++) {
 					if (array[i] instanceof Function) {
-						array[i] = array[i]();
+						array[i] = array[i](); //懒计算
 					}
 					if (Array.isArray(array[i])) {
-						msp.push(i);
+						msp.push(i); //记录所有的片段位置
 					}
 				}
-				if (msp.length == 0) {
+				if (msp.length == 0) { //处理片段数量为零的情况
 					if (array.length == 0) array = [""];
-					array[0] = [array[0]];
+					array[0] = [array[0]]; //将array[0]转换为片段，便于处理
 					msp.push(0);
 				}
-				msi = new Array(msp.length);
-				msn = new Array(msp.length);
+				msi = new Array(msp.length); //每个片段的当前子片段索引
+				msn = new Array(msp.length); //每个片段的总子片段数
 				for (i = 0; i < msp.length; i++) {
 					msi[i] = 0;
 					msn[i] = array[msp[i]].length;
 				}
 				while (msi[0] < msn[0]) {
-					cur = array.slice();
+					cur = array.slice(); //当前静态片段列表
 					for (i = 0; i < msp.length; i++) {
 						cur[msp[i]] = cur[msp[i]][msi[i]];
-					}
+					} //将每个片段替换为当前子片段
 					for (i = 0; i < cur.length; i++) {
-						if (typeof cur[i] == "object") {
+						if (typeof cur[i] == "object") { //处理特殊子片段
 							switch (cur[i].type) {
-								case "map":
+								case "map": //映射子片段
+								//当前子片段的内容取决于当前静态子片段内容
 								cur[i] = cur[i].map(cur);
 								break;
-								case "syncmap":
+								case "syncmap": //同步映射子片段
+								//当前子片段的内容取决于当前target指定的子片段内容、索引及子片段总数
 								t = cur[i].target;
 								t2 = msp.indexOf(t);
-								cur[i] = cur[i].map(cur[i], msi[t2], msn[t2]);
+								cur[i] = cur[i].map(cur[t], msi[t2], msn[t2]);
+								break;
+								case "expr": //表达式子片段
+								//当前子片段的内容为表达式计算的结果
+								cur[i] = cur[i].expr(i, cur, array, r.length, msp, msi, msn);
 								break;
 							}
 						}
 					}
-					r.push(cur.join(""));
-					msi[msi.length - 1]++;
+					r.push(cur.join("")); //生成当前静态片段文本并保存
+					msi[msi.length - 1]++; //递增索引
 					for (i = msi.length - 1; i > 0; i--) {
 						if (msi[i] >= msn[i]) {
 							msi[i] = 0;
@@ -5622,14 +5886,14 @@ MapScript.loadModule("CA", {
 						} else {
 							break;
 						}
-					}
+					} //处理索引进位
 				}
 				return r;
 			}
 			self.export = function() {
 				var template = String(self.edit.getText());
-				var vars = self.getVariables();
-				var varsController = self.varsController.create(vars);
+				var vars = self.getVariables(), lineData = [], globalData = {};
+				var varsController = self.varsController.create(vars, lineData, globalData);
 				var i, r = [], pos = 0;
 				for (i = 0; i < vars.length; i++) {
 					r.push(template.slice(pos, vars[i].start));
@@ -5640,9 +5904,11 @@ MapScript.loadModule("CA", {
 				return self.bundleStrings(r);
 			}
 			self.varsController = {
-				create : function(vars) {
+				create : function(vars, lineData, globalData) {
 					var o = Object.create(this);
 					o.vars = vars;
+					o.lineData = lineData;
+					o.globalData = globalData;
 					return o;
 				},
 				getBundleIndexByLabel : function(label) {
@@ -5653,12 +5919,51 @@ MapScript.loadModule("CA", {
 						}
 					}
 					return -1;
+				},
+				getLabelByData : function(data) {
+					var i;
+					for (i = 0; i < this.vars.length; i++) {
+						if (this.vars[i].data === data) {
+							return this.vars[i].label;
+						}
+					}
+					return null;
+				},
+				getLineData : function(spec, index) {
+					var t = this.lineData[index];
+					if (t) {
+						if (!t[spec]) t[spec] = {};
+						return t[spec];
+					} else {
+						t = this.lineData[index] = {};
+						return t[spec] = {};
+					}
+				},
+				getGlobalData : function(spec) {
+					if (!this.globalData[spec]) this.globalData[spec] = {};
+					return this.globalData[spec];
 				}
 			}
-			self.touchEvent = function(event) {
+			self.clickSpan = function(span) {
+				var e = self.findVariableBySpan(span);
+				if (!e) return;
+				self.clickVariable(e);
+			}
+			self.longClick = new java.lang.Runnable(function() {try {
+				var variable;
+				if (self.lcReady && !self.lcFinish) {
+					if (self.lcTarget) {
+						variable = self.findVariableBySpan(self.lcTarget);
+						if (variable) {
+							self.showVariableMenu(variable);
+						}
+					}
+					self.lcFinish = true;
+				}
+			} catch(e) {erp(e)}});
+			self.getLink = function(x, y) {
 				var widget = self.edit, buffer = self.edit.getText();
-				var action = event.getAction(), x = event.getX(), y = event.getY();
-				var layout, linear, line, off, links;
+				var layout, line, off, links;
 				x -= widget.getTotalPaddingLeft();
 				y -= widget.getTotalPaddingTop();
 				x += widget.getScrollX();
@@ -5668,18 +5973,16 @@ MapScript.loadModule("CA", {
 				off = layout.getOffsetForHorizontal(line, x);
 				links = buffer.getSpans(off, off, G.ImageSpan);
 				if (x < layout.getLineMax(line) && links.length != 0) {
-					if (action == event.ACTION_UP) {
-						self.clickSpan(links[0]);
-					} else if (action == event.ACTION_DOWN) {
-						G.Selection.setSelection(buffer,
-							buffer.getSpanStart(links[0]),
-							buffer.getSpanEnd(links[0]));
-					}
-					return true;
+					return links[0];
 				} else {
-					self.endSpanEdit();
+					return null;
 				}
-				return false;
+			}
+			self.selectLink = function(link) {
+				var buffer = self.edit.getText();
+				G.Selection.setSelection(buffer,
+					buffer.getSpanStart(link),
+					buffer.getSpanEnd(link));
 			}
 			self.menuVMaker = function(holder) {
 				var view = new G.TextView(ctx);
@@ -5702,9 +6005,19 @@ MapScript.loadModule("CA", {
 			self.getDefaultContent = function() {
 				if (self.content_default) return self.content_default;
 				var view = self.buildMenuView([{
-					text : "添加变量……",
+					text : "添加/粘贴变量……",
 					onclick : function() {
-						self.addVariable();
+						self.makeVariable(function(variable) {
+							self.insertVariable(variable, true);
+						});
+					}
+				}, {
+					text : "选择变量……",
+					onclick : function() {
+						self.chooseVariable(function(o) {
+							self.selectLink(o.span);
+							self.showVariableMenu(o);
+						});
 					}
 				}, {
 					text : "预览",
@@ -5799,8 +6112,41 @@ MapScript.loadModule("CA", {
 			self.edit.setTypeface(G.Typeface.MONOSPACE);
 			Common.applyStyle(self.edit, "edittext_default", 3);
 			self.edit.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
-				var action = e.getAction();
-				if (action == e.ACTION_DOWN || action == e.ACTION_UP) self.touchEvent(e);
+				var link, x = e.getX(), y = e.getY();
+				switch (e.getAction()) {
+					case e.ACTION_MOVE:
+					if (self.lcStead) {
+						if (Math.abs(x - self.lcLX) + Math.abs(y - self.lcLY) < touchSlop) {
+							break;
+						}
+						self.lcStead = false;
+						self.lcReady = false;
+					}
+					break;
+					case e.ACTION_DOWN:
+					self.lcLX = x; self.lcLY = y;
+					self.lcStead = true;
+					self.lcFinish = false;
+					self.lcTarget = link = self.getLink(x, y);
+					if (link) {
+						self.selectLink(link);
+						self.lcReady = true;
+						v.postDelayed(self.longClick, longPressTimeout);
+						return true;
+					}
+					break;
+					case e.ACTION_UP:
+					if (self.lcStead && !self.lcFinish) {
+						if (self.lcTarget) {
+							self.clickSpan(self.lcTarget);
+						} else {
+							self.endSpanEdit();
+						}
+					}
+					case e.ACTION_CANCEL:
+					self.lcReady = false;
+					v.removeCallbacks(self.longClick);
+				}
 				return false;
 			} catch(e) {return erp(e), true}}}));
 			self.header.addView(self.edit);
@@ -5815,9 +6161,13 @@ MapScript.loadModule("CA", {
 			} catch(e) {erp(e)}}}));
 			self.header.addView(self.exit);
 			self.linear.addView(self.header);
+			self.cscr = new G.ScrollView(ctx);
+			self.cscr.setFillViewport(true);
+			self.cscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			self.container = new G.FrameLayout(ctx);
 			self.container.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			self.linear.addView(self.container);
+			self.cscr.addView(self.container);
+			self.linear.addView(self.cscr);
 
 			self.popup = new PopupPage(self.linear, "ca.BatchBuilder");
 
@@ -5869,9 +6219,8 @@ MapScript.loadModule("CA", {
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
 					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			},
@@ -5937,9 +6286,8 @@ MapScript.loadModule("CA", {
 							imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
 							layoutWidth : -1,
 							layoutHeight : -2,
-							inflate : function(view) {
-								Common.applyStyle(view, "edittext_default", 3);
-							}
+							style : "edittext_default",
+							fontSize : 3
 						}),
 						o.edittext = L.EditText({
 							text : o.list.join("\n"),
@@ -5948,9 +6296,8 @@ MapScript.loadModule("CA", {
 							gravity : L.Gravity("left|top"),
 							layoutWidth : -1,
 							layoutHeight : -1,
-							inflate : function(view) {
-								Common.applyStyle(view, "edittext_default", 3);
-							}
+							style : "edittext_default",
+							fontSize : 3
 						})
 					]
 				});
@@ -5990,8 +6337,14 @@ MapScript.loadModule("CA", {
 				this.update(o);
 				return "(" + ISegment.writeLenientString(o.text, this.options) + ")";
 			},
-			export : function(o) {
+			export : function(o, controller) {
+				var param = controller.getGlobalData("param:global"), value;
 				this.update(o);
+				value = o.text;
+				try {
+					value = JSON.parse(value);
+				} catch(e) {/* non-JSON value */}
+				param[controller.getLabelByData(o)] = value;
 				return [o.text];
 			},
 			buildLayout : function(o) {
@@ -6001,9 +6354,8 @@ MapScript.loadModule("CA", {
 					singleLine : true,
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			},
@@ -6012,7 +6364,7 @@ MapScript.loadModule("CA", {
 			}
 		},
 		range : {
-			name : "数列",
+			name : "等差数列",
 			description : "一个等差数列的列表",
 			options : {
 				endChars : ")",
@@ -6059,8 +6411,8 @@ MapScript.loadModule("CA", {
 				if (!isFinite(step) || t < 0) {
 					return ["{参数不合法}"];
 				}
-				for (i = 0, c = from; i <= t; i++) {
-					r.push(String(Common.toFixedNumber(from + step * i, 7)));
+				for (i = 0; i <= t; i++) {
+					r.push(String(from + step * i));
 				}
 				syncLabel = controller.getBundleIndexByLabel(syncLabel);
 				if (syncLabel >= 0) {
@@ -6119,6 +6471,112 @@ MapScript.loadModule("CA", {
 				o.step = parseFloat(o._step.getText());
 			}
 		},
+		geometric : {
+			name : "等比数列",
+			description : "一个等比数列的列表",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					start : 1024,
+					count : 10,
+					scale : 0.5,
+					syncLabel : ""
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						start : parseFloat(r[0]),
+						count : parseInt(r[1]),
+						scale : r[2] ? parseFloat(r[2]) : 1,
+						syncLabel : r[3] || ""
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([String(o.start), String(o.count), String(o.scale), o.syncLabel], this.options) + ")";
+			},
+			export : function(o, controller) {
+				this.update(o);
+				var i, start = o.start, count = o.count, scale = o.scale, syncLabel = o.syncLabel, t, r = [];
+				if (scale == 0 || isNaN(scale)) scale = 1;
+				if (count < 0) {
+					count = -count;
+					scale = 1 / scale;
+				}
+				for (i = 0, t = start; i < count; i++) {
+					r.push(String(t));
+					t *= scale;
+				}
+				syncLabel = controller.getBundleIndexByLabel(syncLabel);
+				if (syncLabel >= 0) {
+					return {
+						type : "syncmap",
+						arr : r,
+						target : syncLabel,
+						map : this.mapFunc
+					}
+				} else {
+					return r;
+				}
+			},
+			mapFunc : function(e, i, n) {
+				return i < this.arr.length ? this.arr[i] : "{下标超出}"
+			},
+			buildLayout : function(o) {
+				var inputType = G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL;
+				o.layout = CA.createParamTable([
+					CA.createParamRow("首项", o._start = CA.createParamTextbox({
+						text : o.start,
+						inputType : inputType
+					})),
+					CA.createParamRow("项数", o._count = CA.createParamTextbox({
+						text : o.count,
+						inputType : G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED
+					})),
+					CA.createParamRow("公比", o._scale = CA.createParamTextbox({
+						text : o.scale,
+						inputType : inputType
+					})),
+					CA.createParamRow("启用同步", o._sync = L.CheckBox({
+						checked : o.syncLabel.length > 0,
+						onCheckedChange : function(view, checked) {
+							if (checked) {
+								o._labelrow.visibility = G.View.VISIBLE;
+							} else {
+								o._labelrow.visibility = G.View.GONE;
+								o._label.text = o.syncLabel = "";
+							}
+						}
+					})),
+					o._labelrow = CA.createParamRow("同步标签", o._label = CA.createVariableSelector(function(label) {
+						o.syncLabel = label;
+					}, CA.createParamTextbox({
+						text : o.syncLabel,
+						hint : "点击选择标签"
+					})))
+				]);
+				o._labelrow.visibility = o.syncLabel.length > 0 ? G.View.VISIBLE : G.View.GONE;
+				return o;
+			},
+			update : function(o) {
+				o.start = parseFloat(o._start.getText());
+				o.count = parseFloat(o._count.getText());
+				o.scale = parseFloat(o._scale.getText());
+			}
+		},
 		link : {
 			name : "链接",
 			description : "显示与指定标签相同的内容",
@@ -6163,12 +6621,158 @@ MapScript.loadModule("CA", {
 					padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
 					gravity : L.Gravity("left|top"),
 					imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
-					inflate : function(view) {
-						Common.applyStyle(view, "edittext_default", 3);
-					}
+					style : "edittext_default",
+					fontSize : 3
 				});
 				return o;
 			}
+		},
+		expr : {
+			name : "表达式",
+			description : "计算表达式的值",
+			options : {
+				endChars : ")",
+				skipChars : "|)",
+				splitChar : "|",
+				splitChars : "|"
+			},
+			create : function() {
+				return this.buildLayout({
+					count : "10",
+					expr : "i * 10"
+				});
+			},
+			parse : function(s) {
+				var o = {
+					str : s.slice(1),
+					cur : 0
+				};
+				var r = ISegment.readLenientStringArray(o, this.options);
+				return {
+					length : o.cur + 1,
+					data : this.buildLayout({
+						expr : r[0],
+						count : r[1]
+					})
+				};
+			},
+			stringify : function(o) {
+				this.update(o);
+				return "(" + ISegment.writeLenientStringArray([o.expr, o.count], this.options) + ")";
+			},
+			export : function(o, controller) {
+				var r, i, f, n;
+				this.update(o);
+				try {
+					n = parseInt(eval("function(global) {return (" + o.count + ")}")(controller.getGlobalData("expr:global")));
+					f = this.compileExpr(o.expr);
+				} catch(e) {
+					return "{" + e + "}";
+				}
+				if (!(n > 0)) return "{Error: Count cannot be " + n + "}";
+				r = new Array(n);
+				r[0] = {
+					type : "expr",
+					expr : this.execExpr.bind(this, f, o, controller, {
+						count : n
+					})
+				};
+				for (i = 1; i < n; i++) {
+					r[i] = r[0];
+				}
+				return r;
+			},
+			compileExpr : function(expr) {
+				return eval("function(" + this.vars.k.join(",") + "){return (" + expr + ")}");
+			}, //此处使用new Function(args..., body)效果一样，但速度更慢，且同样不安全
+			execExpr : function(f, o, controller, prop, src_index, dst_array, src_array, result_index, seq_pos, seq_index, seq_len) {
+				prop.data = o;
+				prop.controller = controller;
+				prop.srcIndex = src_index;
+				prop.dstArray = dst_array;
+				prop.srcArray = src_array;
+				prop.resultIndex = result_index;
+				prop.seqPos = seq_pos;
+				prop.seqIndex = seq_index;
+				prop.seqLen = seq_len;
+				prop.curSeqIndex = seq_pos.indexOf(src_index);
+				try {
+					return f.apply(prop, this.vars.v.map(function(e) {
+						return e.call(null, prop);
+					}));
+				} catch(e) {
+					return "{" + e + "}";
+				}
+			},
+			buildLayout : function(o) {
+				o.layout = CA.createParamTable([
+					CA.createParamRow("项数", o._count = CA.createParamTextbox({
+						text : o.count
+					})),
+					CA.createParamRow("表达式", o._expr = L.EditText({
+						text : o.expr,
+						hint : "在这里填入表达式",
+						style : "edittext_default",
+						fontSize : 2
+					})),
+					L.TextView({
+						text : this.vars.desc,
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						style : "textview_prompt",
+						fontSize : 2
+					})
+				]);
+				return o;
+			},
+			update : function(o) {
+				o.expr = String(o._expr.getText());
+				o.count = String(o._count.getText());
+			},
+			vars : (function(o) {
+				var k = Object.keys(o), v, d, i, e;
+				v = new Array(k.length);
+				d = new Array(k.length);
+				for (i = 0; i < k.length; i++) {
+					e = o[k[i]];
+					v[i] = e.get;
+					d[i] = k[i] + " - " + e.desc;
+				}
+				return {
+					k : k, v : v, d : d,
+					desc : d.join("\n")
+				};
+			})({
+				i : {
+					desc : "当前子片段索引",
+					get : function(o) {
+						return o.curSeqIndex >= 0 ? o.seqIndex[o.curSeqIndex] : 0;
+					}
+				},
+				n : {
+					desc : "子片段总数",
+					get : function(o) {
+						return o.count;
+					}
+				},
+				global : {
+					desc : "全局变量",
+					get : function(o) {
+						return o.controller.getGlobalData("expr:global");
+					}
+				},
+				line : {
+					desc : "当前行变量",
+					get : function(o) {
+						return o.controller.getLineData("expr:line", o.resultIndex);
+					}
+				},
+				param : {
+					desc : "参数变量",
+					get : function(o) {
+						return o.controller.getGlobalData("param:global");
+					}
+				}
+			})
 		}
 	},
 	createParamTable : function(table) {

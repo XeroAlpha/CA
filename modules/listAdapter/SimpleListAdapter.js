@@ -106,6 +106,7 @@ MapScript.loadModule("SimpleListAdapter", (function() {
 			}
 		},
 		setArray : function(a) {
+			var i;
 			if (this.array != a) {
 				this.array.length = a.length;
 				for (i in a) this.array[i] = a[i];

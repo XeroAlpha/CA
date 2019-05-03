@@ -6,12 +6,16 @@ MapScript.loadModule("GiteeFeedback", {
 	targetOwner : "projectxero",
 	targetRepo : "ca",
 	perPage : 20,
+	maxFeedbackCount : 50,
 	databaseDelay : 2000,
 	initialize : function() {
 		if (MapScript.host == "Android") {
 			this.clientId = String(ScriptInterface.getGiteeClientId());
 			this.clientSecret = String(ScriptInterface.getGiteeClientSecret());
 			this.redirectUrl = "https://projectxero.gitee.io/ca/feedback.html";
+		}
+		if (CA.settingsVersion < Date.parse("2019-04-05")) {
+			this.upgradeRecentFeedback();
 		}
 	},
 	getAuthorizeUrl : function() {
@@ -23,7 +27,7 @@ MapScript.loadModule("GiteeFeedback", {
 	},
 	acquireAccessTokenAnonymous : function() {
 		this.accessType = "anonymous";
-		this.accessToken = String(ScriptInterface.getGiteeFeedbackToken());
+		this.accessToken = undefined;
 		this.accessData = null;
 	},
 	acquireAccessTokenOAuth : function(authorizationCode) {
@@ -69,18 +73,71 @@ MapScript.loadModule("GiteeFeedback", {
 		}
 		return -1;
 	},
-	getRecentFeedback : function() {
-		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
-		return CA.settings.recentFeedback;
+	getRecentFeedback : function(state) {
+		var i, e, data, a = CA.settings.recentFeedback, r;
+		if (this.userInfo) {
+			try {
+				r = this.getUserIssues(this.userInfo.name, state, 1);
+			} catch(e) {Log.e(e)}
+			if (!r) r = [];
+			if (!a) a = {};
+			for (i = 0; i < r.length; i++) {
+				e = r[i];
+				e.updated_utc = Date.parse(e.updated_at);
+				if (e.number in a) {
+					e.lastModified = a[e.number].lastModified;
+				} else {
+					e.lastModified = e.updated_utc;
+				}
+				e.isNew = e.lastModified < e.updated_utc;
+			}
+			return r;
+		} else if (a) {
+			r = [];
+			for (i in a) {
+				try {
+					data = this.getIssue(i);
+					if (state != "all" && data.state != state) continue;
+					data.updated_utc = Date.parse(data.updated_at);
+					data.lastModified = a[i].lastModified;
+					data.isNew = data.lastModified < data.updated_utc;
+					r.push(data);
+				} catch(e) {Log.e(e)}
+			}
+			r.sort(function(a, b) {
+				return b.updated_utc - a.updated_utc;
+			});
+			if (r.length > this.maxFeedbackCount) {
+				for (i = this.maxFeedbackCount; i < r.length; i++) {
+					delete a[r[i].number];
+				}
+				r.length = this.maxFeedbackCount;
+			}
+			return r;
+		}
+		return [];
 	},
-	addRecentFeedback : function(number) {
-		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = [];
-		var t;
-		CA.settings.recentFeedback.push(t = {
-			number : number,
-			lastModified : Date.now()
-		});
-		return t;
+	updateRecentFeedback : function(data) {
+		var i, a;
+		if (!CA.settings.recentFeedback) CA.settings.recentFeedback = {};
+		a = CA.settings.recentFeedback;
+		if (data.number in a) {
+			a[data.number].lastModified = Date.parse(data.updated_at);
+		} else {
+			a[data.number] = {
+				lastModified : Date.parse(data.updated_at)
+			};
+		}
+	},
+	upgradeRecentFeedback : function() {
+		var old = CA.settings.recentFeedback, r, i;
+		if (!old) return;
+		r = {};
+		for (i = 0; i < old.length; i++) {
+			r[old[i].number] = {
+				lastModified : old[i].lastModified
+			}
+		}
 	},
 	getUserInfo : function() {
 		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/user?" + NetworkUtils.toQueryString({access_token : this.accessToken})));
@@ -92,6 +149,16 @@ MapScript.loadModule("GiteeFeedback", {
 			direction : "desc",
 			page : page,
 			per_page : this.perPage
+		})));
+	},
+	getUserIssues : function(userName, state, page) {
+		return JSON.parse(NetworkUtils.queryPage("https://gitee.com/api/v5/repos/" + this.targetOwner + "/" + this.targetRepo + "/issues?" + NetworkUtils.toQueryString({
+			state : state,
+			sort : "updated",
+			direction : "desc",
+			page : page,
+			per_page : this.maxFeedbackCount,
+			creator : userName
 		})));
 	},
 	createIssue : function(title, body) {
@@ -317,10 +384,13 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.Issues");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -514,11 +584,14 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.IssueDetail");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
 		self.currentNumber = number;
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -601,48 +674,41 @@ MapScript.loadModule("GiteeFeedback", {
 			self.reload = function() {
 				if (self.loading) return Common.toast("正在加载中……");
 				self.loading = true;
-				self.issues.length = 0;
-				self.adpt.notifyChange();
+				self.adpt.setArray([]);
 				var progress = Common.showProgressDialog();
 				progress.setText("正在加载……");
 				progress.async(function() {
-					var i, t, a = GiteeFeedback.getRecentFeedback(), idata, rejectCount = 0, rejectLatest = -Infinity, latest = -Infinity;
+					var i, e, a = GiteeFeedback.getRecentFeedback(self.issueState), rejectCount = 0, rejectLatest = -Infinity, latest = -Infinity;
 					for (i = 0; i < a.length; i++) {
-						try {
-							idata = GiteeFeedback.getIssue(a[i].number);
-							if (self.issueState == "open" && idata.state != "open") continue;
-							idata.updated_utc = new Date(idata.updated_at).getTime();
-							t = new Date(idata.created_at).getTime();
-							if (idata.state == "rejected") {
-								rejectCount++;
-								rejectLatest = Math.max(rejectLatest, t);
-							}
-							latest = Math.max(latest, t);
-							self.issues.push(idata);
-						} catch(e) {Log.e(e)}
+						e = a[i];
+						e.created_utc = Date.parse(e.created_at);
+						latest = Math.max(latest, e.created_utc);
+						if (e.state == "rejected") {
+							rejectCount++;
+							rejectLatest = Math.max(rejectLatest, e.created_utc);
+						}
 					}
 					self.rejectTime = rejectCount > 2 ? rejectLatest + 24 * 3600 * 1000 * Math.pow(3, rejectCount - 3) : -Infinity;
 					self.nextAdd = latest + 60 * 1000;
 					self.nextReload = Date.now() + 20 * 1000;
-					self.issues.sort(function(a, b) {
-						return b.updated_utc - a.updated_utc;
-					});
 					try {
 						GiteeFeedback.myUserId = GiteeFeedback.userInfo ? GiteeFeedback.userInfo.id : GiteeFeedback.getUserInfo().id;
 					} catch(e) {Log.e(e)}
 					self.loading = false;
 					G.ui(function() {try {
 						self.title.setText("最近反馈 - " + (GiteeFeedback.userInfo ? GiteeFeedback.userInfo.name : "匿名"));
-						self.adpt.notifyChange();
+						self.adpt.setArray(a);
 					} catch(e) {erp(e)}});
 				});
 			}
 			self.addIssue = function() {
+				if (!GiteeFeedback.accessToken) return Common.toast("您尚未登录，因此不能创建反馈");
 				if (self.rejectTime > Date.now()) return Common.toast("因为您发布了无效的反馈，为防止服务器资源继续被浪费，您已被暂时禁止发布反馈！");
 				if (self.nextAdd > Date.now()) return Common.toast("服务器忙，请1分钟后重试");
 				GiteeFeedback.showEditIssue({
 					title : "",
-					body : ""
+					body : "",
+					newIssue : true
 				}, function(o) {
 					var progress = Common.showProgressDialog();
 					progress.setText("正在创建……");
@@ -653,15 +719,14 @@ MapScript.loadModule("GiteeFeedback", {
 						} catch(e) {Log.e(e)}
 						if (!d) return Common.toast("话题创建失败");
 						java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
-						l = GiteeFeedback.addRecentFeedback(d.number);
-						l.lastModified = new Date(d.updated_at).getTime();
+						GiteeFeedback.updateRecentFeedback(d);
 						G.ui(function() {try {
 							self.reload();
 						} catch(e) {erp(e)}});
 					});
 				});
 			}
-			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter(self.issues = [], self.vmaker, self.vbinder));
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
 			self.issueState = "all";
 
 			self.linear = new G.LinearLayout(ctx);
@@ -708,7 +773,9 @@ MapScript.loadModule("GiteeFeedback", {
 					return;
 				}
 				var data = parent.getAdapter().getItem(pos);
-				GiteeFeedback.showFeedbackDetail(data.number, 0);
+				GiteeFeedback.showFeedbackDetail(data.number, 0, function() {
+					self.reload();
+				});
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 
@@ -723,15 +790,48 @@ MapScript.loadModule("GiteeFeedback", {
 			self.linear.addView(self.exit, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "feedback.Recent");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "linear");
 		}
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
 	showFeedbackDetail : function self(number, readOnly, callback) {G.ui(function() {try {
 		if (!self.popup) {
+			self.getWritable = function() {
+				var t;
+				if (!GiteeFeedback.userInfo) return false;
+				if (self.readOnly > 0) {
+					return true;
+				} else if (self.readOnly < 0) {
+					return false;
+				} else {
+					t = self.commentData;
+					return t && t.topic.state == "open";
+				}
+			}
+			self.setState = function(state) {
+				var topic = self.commentData.topic;
+				var progress = Common.showProgressDialog();
+				progress.setText("正在标记……");
+				progress.async(function() {
+					var d;
+					try {
+						d = GiteeFeedback.updateIssue(topic.number, {
+							state : state
+						});
+					} catch(e) {Log.e(e)}
+					if (!d) return Common.toast("话题修改失败");
+					java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
+					G.ui(function() {try {
+						self.reload();
+					} catch(e) {erp(e)}});
+				});
+			}
 			self.contextMenu = [{
 				text : "刷新",
 				onclick : function(v, tag) {
@@ -739,6 +839,9 @@ MapScript.loadModule("GiteeFeedback", {
 				}
 			}, {
 				text : "编辑主题",
+				hidden : function() {
+					return !self.writable;
+				},
 				onclick : function(v, tag) {
 					var topic = self.commentData.topic;
 					GiteeFeedback.showEditIssue(topic, function(o) {
@@ -755,6 +858,21 @@ MapScript.loadModule("GiteeFeedback", {
 								self.reload();
 							} catch(e) {erp(e)}});
 						});
+					});
+				}
+			}, {
+				text : "标记为已处理",
+				hidden : function() {
+					return !self.writable;
+				},
+				onclick : function(v, tag) {
+					Common.showConfirmDialog({
+						title : "确定将该反馈标记为已处理？",
+						description : "*此操作无法撤销，且标记之后您将无法编辑反馈",
+						callback : function(id) {
+							if (id != 0) return;
+							self.setState("closed");
+						}
 					});
 				}
 			}];
@@ -799,19 +917,20 @@ MapScript.loadModule("GiteeFeedback", {
 					} catch(e) {Log.e(e)}
 					self.loading = false;
 					if (!data) return Common.toast("评论列表加载失败");
+					GiteeFeedback.updateRecentFeedback(data.topic);
 					self.commentData = data;
+					self.writable = self.getWritable();
+					self.appendPage(true);
 					G.ui(function() {try {
 						self.title.setText(data.topic.title);
-						var canTalk = self.readOnly > 0 ? true : self.readOnly < 0 ? false : data.topic.state == "open";
-						if (canTalk && !self.talkVisible) {
+						if (self.writable && !self.talkVisible) {
 							self.talkVisible = true;
 							self.list.addFooterView(self.talk);
-						} else if (!canTalk && self.talkVisible) {
+						} else if (!self.writable && self.talkVisible) {
 							self.talkVisible = false;
 							self.list.removeFooterView(self.talk);
 						}
 					} catch(e) {erp(e)}});
-					self.appendPage(true);
 				});
 			}
 			self.appendPage = function(sync) {
@@ -876,7 +995,7 @@ MapScript.loadModule("GiteeFeedback", {
 					try {
 						d = GiteeFeedback.createIssueComment(self.currentNumber, text);
 					} catch(e) {Log.e(e)}
-					if (!d) Common.toast("话题创建失败");
+					if (!d) Common.toast("评论创建失败");
 					java.lang.Thread.sleep(GiteeFeedback.databaseDelay); //等待数据库更新
 					G.ui(function() {try {
 						self.reload();
@@ -987,12 +1106,15 @@ MapScript.loadModule("GiteeFeedback", {
 					})
 				]
 			}), "feedback.IssueDetail");
+			self.popup.on("exit", function() {
+				if (self.callback) self.callback();
+			});
 
 			PWM.registerResetFlag(self, "popup");
 		}
 		self.currentNumber = number;
 		self.readOnly = readOnly;
-		if (callback) self.popup.on("exit", callback);
+		self.callback = callback;
 		self.popup.enter();
 		self.reload();
 	} catch(e) {erp(e)}})},
@@ -1005,7 +1127,7 @@ MapScript.loadModule("GiteeFeedback", {
 				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
 				children : [
 					L.TextView({
-						text : "新建反馈话题",
+						text : o.newIssue ? "新建反馈话题" : "编辑反馈话题",
 						padding : [0, 0, 0, 10 * G.dp],
 						layout : { width : -1, height : -2 },
 						style : "textview_default",
@@ -1013,7 +1135,7 @@ MapScript.loadModule("GiteeFeedback", {
 					}),
 					title = L.EditText({
 						text : o.title,
-						hint : "标题",
+						hint : "在此处用一句话描述反馈的问题或建议",
 						singleLine : true,
 						padding : [0, 0, 0, 0],
 						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
@@ -1023,7 +1145,7 @@ MapScript.loadModule("GiteeFeedback", {
 					}),
 					body = L.EditText({
 						text : o.body,
-						hint : "请详细具体地描述你的反馈",
+						hint : "在这里补充说明发生问题时的现象、复现步骤与报错信息。如果是建议，请在这里说明提出建议的原因",
 						padding : [0, 20 * G.dp, 0, 0],
 						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
 						style : "edittext_default",
@@ -1117,35 +1239,11 @@ MapScript.loadModule("GiteeFeedback", {
 						layout : { width : -1, height : -2 }
 					}),
 					L.TextView({
-						text : "登录码云用户可以方便地收到反馈的回复，还可以回复别人的反馈",
-						padding : [0, 20	 * G.dp, 0, 10 * G.dp],
+						text : "您需要一个账户才能创建和回复反馈，您也可以选择使用匿名用户来查看反馈",
+						padding : [0, 20 * G.dp, 0, 10 * G.dp],
 						layout : { width : -1, height : -2 },
 						style : "textview_highlight",
 						fontSize : 2
-					}),
-					L.TextView({
-						text : "匿名使用",
-						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
-						gravity : L.Gravity("center"),
-						layout : { width : -1, height : -2 },
-						style : "button_critical",
-						fontSize : 3,
-						onClick : function() {try {
-							Common.showProgressDialog(function(dia) {
-								dia.setText("正在登录...");
-								try {
-									GiteeFeedback.acquireAccessTokenAnonymous();
-									GiteeFeedback.save(null);
-								} catch(e) {
-									erp(e, true);
-									return Common.toast("登录失败\n" + e);
-								}
-								G.ui(function() {try {
-									popup.exit();
-									if (callback) callback();
-								} catch(e) {erp(e)}});
-							});
-						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
 						text : "登录",
@@ -1174,7 +1272,31 @@ MapScript.loadModule("GiteeFeedback", {
 						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
-						text : "使用浏览器登录",
+						text : "匿名使用",
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {try {
+							Common.showProgressDialog(function(dia) {
+								dia.setText("正在登录...");
+								try {
+									GiteeFeedback.acquireAccessTokenAnonymous();
+									GiteeFeedback.save(null);
+								} catch(e) {
+									erp(e, true);
+									return Common.toast("登录失败\n" + e);
+								}
+								G.ui(function() {try {
+									popup.exit();
+									if (callback) callback();
+								} catch(e) {erp(e)}});
+							});
+						} catch(e) {erp(e)}}
+					}),
+					L.TextView({
+						text : "使用浏览器登录或注册",
 						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 20 * G.dp],
 						gravity : L.Gravity("center"),
 						layout : { width : -1, height : -2 },

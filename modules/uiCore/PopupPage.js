@@ -153,7 +153,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.defaultContainer.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
 			r.defaultContainer.setOnTouchListener(r.baseTouchListener);
 			r.defaultContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
-				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop, e;
 				if (w == ow && h == oh) return;
 				for (i = r.defaultStack.length - 1; i >= 0; i--) {
 					e = r.defaultStack[i];
@@ -193,7 +193,7 @@ MapScript.loadModule("PopupPage", (function() {
 			r.floatWindow.setContentDescription("FloatWindow");
 			r.floatContainer.setOnTouchListener(r.baseTouchListener);
 			r.floatContainer.addOnLayoutChangeListener(new G.View.OnLayoutChangeListener({onLayoutChange : function(view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) {try {
-				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop;
+				var i, w = right - left, h = bottom - top, ow = oldRight - oldLeft, oh = oldBottom - oldTop, e;
 				if (w == ow && h == oh) return;
 				for (i = r.floatStack.length - 1; i >= 0; i--) {
 					e = r.floatStack[i];
@@ -288,7 +288,7 @@ MapScript.loadModule("PopupPage", (function() {
 				r.pushPage(this.name, this);
 				if (!noAnimation && this._enterAnimation) {
 					this.currentAnimation = this._enterAnimation(this.mainView, function() {
-						this.currentAnimation = null;
+						self.currentAnimation = null;
 						r.pageShown(self);
 					});
 				}
@@ -299,22 +299,33 @@ MapScript.loadModule("PopupPage", (function() {
 				if (!this.showing) return this;
 				r.popPage(this);
 				this.showing = false;
-				if (!noAnimation && this._exitAnimation) {
+				if (!noAnimation && this._exitAnimation && this.visible()) {
 					r.addDisappearing(this);
 					this.currentAnimation = this._exitAnimation(this.mainView, function() {
 						self.currentAnimation = null;
-						self.dismiss();
+						self.processHide();
 						r.removeDisappearing(self);
 					});
 				} else {
-					this.dismiss();
+					this.processHide();
 				}
 				return this;
+			},
+			dismiss : function() {
+				this.exit(true);
 			},
 			resizable : function() {
 				return this.currentContainer == r.defaultContainer;
 			},
-			dismiss : function() {
+			visible : function() {
+				if (this.mainView.getVisibility() != G.View.VISIBLE) return false;
+				if (this.currentContainer == r.floatContainer) {
+					return r.floatVisible;
+				} else {
+					return r.defaultVisible && r.visible;
+				}
+			},
+			processHide : function() {
 				if (!this.currentContainer) return this;
 				r.hidePage(this);
 				r.trigger("pageHide", this);
@@ -403,6 +414,7 @@ MapScript.loadModule("PopupPage", (function() {
 			}
 		}
 		r.showPage = function(page) {
+			this.checkThread();
 			if (page.currentContainer) page.currentContainer.removeView(page.mainView);
 			page.currentContainer = this.visible ? this.defaultContainer : this.floatContainer;
 			page.currentContainer.addView(page.mainView);
@@ -418,15 +430,18 @@ MapScript.loadModule("PopupPage", (function() {
 				this.defaultVisible = true;
 				this.updateOverlays();
 				this.trigger("addPopup");
+				if (this.debugPrint) Log.d("Show DefaultWindow");
 			} else if (!this.visible && !this.floatVisible) {
 				this.showView(this.floatWindow, 0, 0, -1, -1);
 				this.floatVisible = true;
 				this.updateOverlays();
 				this.trigger("addPopup");
+				if (this.debugPrint) Log.d("Show FloatWindow");
 			}
 		}
 		r.hidePage = function(page, notRemoveWindow) {
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			this.checkThread();
 			if (!page.currentContainer) Log.throwError(new Error(page + " was removed."));
 			if (page.mainView.getParent() != page.currentContainer) Log.throwError(new Error("This view has been moved unexpectedly: " + page));
 			if (page.currentAnimation) page.currentAnimation.cancel();
@@ -439,23 +454,28 @@ MapScript.loadModule("PopupPage", (function() {
 					this.defaultVisible = false;
 					this.updateOverlays();
 					if (!this.visible) this.show();
+					if (this.debugPrint) Log.d("Hide DefaultWindow");
 				} else if (page.currentContainer == this.floatContainer && this.floatVisible) {
 					this.hideView(this.floatWindow);
 					this.trigger("removePopup");
 					this.floatVisible = false;
 					this.updateOverlays();
+					if (this.debugPrint) Log.d("Hide FloatWindow");
 				}
 			}
 			page.currentContainer = null;
 		}
 		r.pushPage = function(name, page) {
 			var t, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			this.checkThread();
 			if (this.busy) return void Log.d("pushPage(" + name + "," + page + ") cancelled");
 			if (stack.length) {
 				t = stack[stack.length - 1];
-				t.page.trigger("pause");
 				this.analytics.onPageEnd(ctx, t.name);
-				if (this.debugPrint) Log.d(t.page + " paused");
+				if (page.currentContainer != this.defaultContainer || this.visible) {
+					t.page.trigger("pause");
+					if (this.debugPrint) Log.d(t.page + " paused");
+				}
 			}
 			stack.push(t = {
 				name : name,
@@ -468,6 +488,7 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.popPage = function(page) {
 			var t, i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			this.checkThread();
 			if (this.busy) return void Log.d("popPage(" + page + ") cancelled");
 			for (i = stack.length - 1; i >= 0; i--) {
 				if (stack[i].page != page) continue;
@@ -476,11 +497,13 @@ MapScript.loadModule("PopupPage", (function() {
 				t.page.trigger("exit");
 				this.analytics.onPageEnd(ctx, t.name);
 				if (this.debugPrint) Log.d(t.page + " exited");
-				if (i > 0 && i == stack.length && this.visible) {
+				if (i > 0 && i == stack.length) {
 					t = stack[i - 1];
-					t.page.trigger("resume");
 					this.analytics.onPageStart(ctx, t.name);
-					if (this.debugPrint) Log.d(t.page + " resumed");
+					if (page.currentContainer != this.defaultContainer || this.visible) {
+						t.page.trigger("resume");
+						if (this.debugPrint) Log.d(t.page + " resumed");
+					}
 					while (--i >= 0) {
 						stack[i].page.requestShow();
 						if (!stack[i].page.dialog) break;
@@ -492,6 +515,7 @@ MapScript.loadModule("PopupPage", (function() {
 		}
 		r.pageShown = function(page) {
 			var i, stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
+			this.checkThread();
 			if (stack.length > 1) {
 				if (!page.dialog) {
 					i = stack.length - 1;
@@ -515,10 +539,11 @@ MapScript.loadModule("PopupPage", (function() {
 			return null;
 		}
 		r.show = function() {
-			var i, e;
+			var i, page;
+			this.checkThread();
 			if (this.visible) return;
 			this.visible = true;
-			this.checkThread();
+			if (this.debugPrint) Log.d("DefaultWindow visible = true");
 			if (this.floatStack.length) {
 				this.hideView(this.floatWindow);
 				this.floatVisible = false;
@@ -528,17 +553,26 @@ MapScript.loadModule("PopupPage", (function() {
 				}
 				this.floatStack.length = 0;
 			} else {
-				if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("resume");
+				if (this.defaultStack.length) {
+					page = this.defaultStack[this.defaultStack.length - 1].page;
+					page.trigger("resume");
+					if (this.debugPrint) Log.d(page + " resumed");
+				}
 			}
 			this.defaultWindow.setVisibility(G.View.VISIBLE);
 			this.updateOverlays();
 			this.trigger("show");
 		}
 		r.hide = function() {
-			var i, e;
-			if (!this.visible) return;
+			var page;
 			this.checkThread();
-			if (this.defaultStack.length) this.defaultStack[this.defaultStack.length - 1].page.trigger("pause");
+			if (!this.visible) return;
+			if (this.debugPrint) Log.d("DefaultWindow visible = false");
+			if (this.defaultStack.length) {
+				page = this.defaultStack[this.defaultStack.length - 1].page;
+				page.trigger("pause");
+				if (this.debugPrint) Log.d(page + " paused");
+			}
 			this.defaultWindow.setVisibility(G.View.GONE);
 			this.visible = false;
 			this.updateOverlays();
