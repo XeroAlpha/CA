@@ -863,10 +863,15 @@ MapScript.loadModule("Common", {
 						return frame;
 					},
 					binder : function(holder, e) {
+						var parent;
 						if (e.maker && !e.view) e.view = e.maker();
 						if (e.binder) e.binder();
 						holder.self.removeAllViews();
-						if (e.view) holder.self.addView(e.view, new G.FrameLayout.LayoutParams(-1, -2));
+						if (e.view) {
+							parent = e.view.getParent();
+							if (parent) parent.removeView(e.view);
+							holder.self.addView(e.view, new G.FrameLayout.LayoutParams(-1, -2));
+						}
 					}
 				}
 			};
@@ -881,11 +886,13 @@ MapScript.loadModule("Common", {
 						case "seekbar":
 						if (e.get() != self.current.last[i] && e.refresh) e.refresh();
 						return;
+						case "layout":
+						if (e.onExit) e.onExit();
+						return;
 						case "custom":
 						case "space":
 						case "tag":
 						case "text":
-						case "layout":
 						return;
 					}
 				});

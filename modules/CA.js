@@ -2586,6 +2586,9 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function() {
 					Updater.showCurrentVersionInfo();
+				},
+				onExit : function() {
+					this.view = null;
 				}
 			} : {
 				name : "版本信息",
