@@ -917,25 +917,32 @@
 		var fUpdate = level == 2, updateCount = 0;
 		if (level <= 0) return 0;
 		CA.IntelliSense.library.info.forEach(function(e) {
-			CA.Library.requestUpdateInfo(e, function(statusCode, arg1, arg2) {
-				if (statusCode == 1) {
-					e.updateInfo = arg1;
-					e.updateState = "ready";
-					updateCount++;
-					if (fUpdate) {
-						CA.Library.clearCache(e.src);
-						CA.Library.doUpdate(arg1, arg2, function(statusMessage) {
-							if (statusMessage == "downloadFromUri") {
-								e.updateState = "waitForUser";
-							} else if (statusMessage == "downloadError") {
-								e.updateState = "error";
-							} else if (statusMessage == "completeDownload") {
-								e.updateState = "finished";
-							}
-						});
+			e.updateState = "checking";
+			Threads.awaitDefault(function() {try {
+				CA.Library.requestUpdateInfo(e, function(statusCode, arg1, arg2) {
+					if (statusCode == 1) {
+						e.updateInfo = arg1;
+						e.updateState = "ready";
+						updateCount++;
+						if (fUpdate) {
+							CA.Library.clearCache(e.src);
+							CA.Library.doUpdate(arg1, arg2, function(statusMessage) {
+								if (statusMessage == "downloadFromUri") {
+									e.updateState = "waitForUser";
+								} else if (statusMessage == "downloadError") {
+									e.updateState = "error";
+								} else if (statusMessage == "completeDownload") {
+									e.updateState = "finished";
+								}
+							});
+						}
+					} else if (statusCode == 1) {
+						e.updateState = "latest";
+					} else if (statusCode < 0) {
+						e.updateState = "unavailable";
 					}
-				}
-			});
+				});
+			} catch(e) {erp(e)}}, 5000);
 		});
 		return updateCount;
 	},

@@ -4138,6 +4138,34 @@ MapScript.loadModule("CA", {
 					var f = new java.io.File(tag.data.src), s;
 					s = "名称 : " + tag.data.name;
 					if (f.isFile()) s += "\n位置 : " + tag.data.src + "\n大小 : " + Common.getFileSize(f, true) + "\n时间 : " + new Date(f.lastModified()).toLocaleString();
+					if (tag.data.updateState) {
+						s += "\n更新状态 : ";
+						switch (tag.data.updateState) {
+							case "checking":
+							s += "正在检测";
+							break;
+							case "latest":
+							s += "已是最新版";
+							break;
+							case "unavailable":
+							s += "更新源不可用";
+							break;
+							case "ready":
+							s += "已准备更新";
+							break;
+							case "waitForUser":
+							s += "等待用户手动更新";
+							break;
+							case "error":
+							s += "下载更新出错";
+							break;
+							case "finished":
+							s += "已下载更新";
+							break;
+							default:
+							s += "未知";
+						}
+					}
 					if (!tag.data.disabled && !tag.data.hasError && tag.data.stat) s += "\n\n" + tag.data.stat.toString();
 					Common.showTextDialog(s);
 				}
