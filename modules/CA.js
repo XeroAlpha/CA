@@ -134,9 +134,6 @@ MapScript.loadModule("CA", {
 
 			this.Library.initLibrary(function(flag) {
 				if (!flag) Common.toast("有至少1个拓展包无法加载，请在设置中查看详情");
-				if (NeteaseAdapter.multiVersions) {
-					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→拓展包→▼→切换版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
-				}
 			});
 			if (Date.parse(f.publishDate) < Date.parse(this.publishDate)) {
 				Updater.showNewVersionInfo(f.publishDate);
@@ -187,11 +184,7 @@ MapScript.loadModule("CA", {
 			this.tips = this.defalutTips;
 			Common.loadTheme();
 			CA.checkFeatures();
-			this.Library.initLibrary(function() {
-				if (NeteaseAdapter.multiVersions) {
-					Common.toast("您的命令助手包含了多个Minecraft版本\n您可以在设置→智能补全→游戏版本中选择您想要的版本\n\n目前正在使用的版本：" + getMinecraftVersion());
-				}
-			});
+			this.Library.initLibrary();
 		}
 	},
 	save : function() {
