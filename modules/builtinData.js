@@ -5,10 +5,10 @@ CA.Library.inner["basicedu"] = Loader.fromFile("builtinLibrarys/basicedu.json");
 
 Common.themelist = {
 	"light" : {
-		"name" : "默认风格"
+		"name" : Intl.get("common.theme.default")
 	},
 	"dark" : {
-		"name" : "夜间风格",
+		"name" : Intl.get("common.theme.dark"),
 		"bgcolor" : "#202020",
 		"float_bgcolor" : "#404040",
 		"message_bgcolor" : "#202020",

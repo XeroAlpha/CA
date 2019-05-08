@@ -548,7 +548,7 @@ MapScript.loadModule("Loader", {
 		for (i = 0; i < a.length; i++) {
 			if (typeof obj[a[i]] != "function") this.freezeProperty(obj, a[i]);
 		}
-	},
+	}
 });
 
 Loader.load(function() {
@@ -567,6 +567,8 @@ Loader.fromFile("modules/uiCore/PWM.js")
 Loader.fromFile("modules/uiCore/PopupPage.js")
 
 Loader.fromFile("modules/core/MemSaver.js")
+
+Loader.fromFile("modules/Intl.js")
 
 Loader.fromFile("modules/CA.js")
 
@@ -627,6 +629,8 @@ Loader.fromFile("modules/uiCore/LPlugins.js")
 Loader.fromFile("modules/utils/SafeFileUtils.js")
 
 Loader.fromFile("modules/DebugUtils.js")
+
+Loader.fromFile("intl/index.js")
 
 Loader.fromFile("modules/builtinData.js")
 

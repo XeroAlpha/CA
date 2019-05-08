@@ -1,7 +1,7 @@
 MapScript.loadModule("Common", {
 	themelist : {
 		"light" : {
-			"name" : "默认风格"
+			"name" : Intl.get("common.theme.default")
 		}
 	},
 	theme : null,
@@ -13,6 +13,7 @@ MapScript.loadModule("Common", {
 				Common.applyStyle(view, style, holder.get("fontSize"));
 			}
 		});
+		Intl.mapNamespace(this, "intl", "common");
 	},
 
 	/* BUG 修复
@@ -58,7 +59,7 @@ MapScript.loadModule("Common", {
 		for (i in light) {
 			r[i] = convert(k[i], light[i]);
 		}
-		r.name = k === light ? "默认主题" : String(k.name);
+		r.name = String(k === light ? this.themelist.light.name : k.name);
 		i = Math.floor(CA.settings.alpha * 255);
 		if (i >= 0 && i < 255) {
 			r.bgcolor = this.setAlpha(r.bgcolor, i);
@@ -160,13 +161,14 @@ MapScript.loadModule("Common", {
 
 	showChangeTheme : function self(update, dismiss) {G.ui(function() {try {
 		if (!self.linear) {
+			self.intl = Intl.getNamespace("common.ChangeTheme");
 			self.adapter = function(e, i, a) {
 				var view = new G.TextView(ctx);
 				Common.loadTheme(e);
 				view.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 				view.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 				view.setBackgroundColor(Common.theme.bgcolor);
-				view.setText(Common.theme.name + (self.current == e ? " (当前)" : ""));
+				view.setText(self.current == e ? self.intl.resolve("currentTheme", Common.theme.name) : Common.theme.name);
 				view.setTextSize(Common.theme.textsize[3]);
 				view.setTextColor(Common.theme.textcolor);
 				Common.loadTheme(self.current);
@@ -182,11 +184,11 @@ MapScript.loadModule("Common", {
 				self.title.setTextSize(Common.theme.textsize[4]);
 				self.title.setTextColor(Common.theme.textcolor);
 				self.alpha.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				self.alpha.setText("不透明度：" + (isFinite(CA.settings.alpha) ? parseInt(CA.settings.alpha * 100) : 100) + "%");
+				self.alpha.setText(self.intl.resolve("alphaField", isFinite(CA.settings.alpha) ? parseInt(CA.settings.alpha * 100) : 100));
 				self.alpha.setTextSize(Common.theme.textsize[2]);
 				self.alpha.setTextColor(Common.theme.highlightcolor);
 				self.tsz.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-				self.tsz.setText("字体大小：" + (isFinite(CA.settings.textSize) ? parseInt(CA.settings.textSize * 100) : 100) + "%");
+				self.tsz.setText(self.intl.resolve("textsizeField", isFinite(CA.settings.textSize) ? parseInt(CA.settings.textSize * 100) : 100));
 				self.tsz.setTextSize(Common.theme.textsize[2]);
 				self.tsz.setTextColor(Common.theme.highlightcolor);
 				self.exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
@@ -198,7 +200,7 @@ MapScript.loadModule("Common", {
 					max : 100,
 					progress : Math.floor(CA.settings.alpha * 100),
 					prompt : function(progress) {
-						return "不透明度：" + progress + "%";
+						return self.intl.resolve("alphaField", progress);
 					},
 					callback : function(progress) {
 						CA.settings.alpha = progress / 100;
@@ -221,7 +223,7 @@ MapScript.loadModule("Common", {
 			self.linear.setOrientation(G.LinearLayout.VERTICAL);
 
 			self.title = new G.TextView(ctx);
-			self.title.setText("主题选择");
+			self.title.setText(self.intl.title);
 			self.title.setGravity(G.Gravity.CENTER);
 			self.linear.addView(self.title, new G.LinearLayout.LayoutParams(-1, -2));
 
@@ -252,7 +254,7 @@ MapScript.loadModule("Common", {
 			self.linear.addView(self.exbar, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.exit = new G.TextView(ctx);
-			self.exit.setText("确定");
+			self.exit.setText(Common.intl.ok);
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				if (Common.theme.id != self.last || CA.settings.alpha != self.lastalpha || CA.settings.textSize != self.lasttsz) {
@@ -325,7 +327,7 @@ MapScript.loadModule("Common", {
 		layout.addView(scr);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("关闭");
+		exit.setText(Common.intl.close);
 		exit.setGravity(G.Gravity.CENTER);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
@@ -430,7 +432,7 @@ MapScript.loadModule("Common", {
 		Common.postIME(ret);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("确定");
+		exit.setText(Common.intl.ok);
 		exit.setGravity(G.Gravity.CENTER);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
@@ -451,6 +453,7 @@ MapScript.loadModule("Common", {
 
 	showConfirmDialog : function(s) {G.ui(function() {try {
 		var scr, layout, title, text, but, skip, onClick, popup;
+		var intl = Intl.getNamespace("common");
 		scr = new G.ScrollView(ctx);
 		Common.applyStyle(scr, "message_bg");
 		layout = new G.LinearLayout(ctx);
@@ -478,7 +481,7 @@ MapScript.loadModule("Common", {
 			skip.setChecked(Boolean(s.canSkip));
 			skip.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
 			skip.getLayoutParams().setMargins(0, 0, 0, 10 * G.dp)
-			skip.setText("不再提示");
+			skip.setText(intl.dontAskAgain);
 			layout.addView(skip);
 		}
 		onClick = function(i) {
@@ -486,7 +489,7 @@ MapScript.loadModule("Common", {
 			if (s.callback && s.callback(i)) return;
 			popup.exit();
 		}
-		but = (s.buttons || ["确定", "取消"]).map(function(e, i) {
+		but = (s.buttons || [intl.ok, intl.cancel]).map(function(e, i) {
 			var b = new G.TextView(ctx);
 			b.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			b.setText(String(e));
@@ -540,7 +543,7 @@ MapScript.loadModule("Common", {
 			}
 		}
 		if (l.length == 0) {
-			Common.toast("没有可选的选项");
+			Common.toast(Common.intl.noneOption);
 			return;
 		}
 		if (optional && l.length == 1 && !callback(0, l)) return;
@@ -655,7 +658,7 @@ MapScript.loadModule("Common", {
 		layout.addView(text);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("关闭");
+		exit.setText(Common.intl.ok);
 		exit.setGravity(G.Gravity.CENTER);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
@@ -877,7 +880,7 @@ MapScript.loadModule("Common", {
 			};
 			self.setData = function(data) {
 				self.adpt.setArray(data.data);
-				self.title.setText(data.title || "设置");
+				self.title.setText(data.title || Common.intl.settings);
 			}
 			self.onBack = function() {
 				self.current.data.forEach(function(e, i) {
@@ -919,7 +922,7 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.title, "textview_default", 4);
 			self.titlebar.addView(self.title, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 			self.exit = new G.TextView(ctx);
-			self.exit.setText("返回");
+			self.exit.setText(Common.intl.back);
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
@@ -991,6 +994,7 @@ MapScript.loadModule("Common", {
 
 	showFileDialog : function self(o) {G.ui(function() {try {
 		if (!self.linear) {
+			self.intl = Intl.getNamespace("common.FileChooser");
 			self.vmaker = function() {
 				var name = new G.TextView(ctx);
 				name.setPadding(15 * G.dp, 15 * G.dp, 15 * G.dp, 15 * G.dp);
@@ -1004,7 +1008,7 @@ MapScript.loadModule("Common", {
 					holder.self.setText((e.isDirectory() ? "\ud83d\udcc1 " : "\ud83d\udcc4 ") + String(e.getName())); //Emoji:Collapsed Folder; Document
 					Common.applyStyle(holder.self, e.isHidden() ? "item_disabled" : "item_default", 3);
 				} else {
-					holder.self.setText("\ud83d\udcc2 .. (上一级目录)"); //Emoji:Expanded Folder
+					holder.self.setText("\ud83d\udcc2 " + self.intl.parentDir); //Emoji:Expanded Folder
 					Common.applyStyle(holder.self, "item_default", 3);
 				}
 			}
@@ -1055,7 +1059,7 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.header, "bar_float");
 
 			self.back = new G.TextView(ctx);
-			self.back.setText("< 返回");
+			self.back.setText("< " + Common.intl.back);
 			self.back.setGravity(G.Gravity.CENTER);
 			self.back.setPadding(20 * G.dp, 0, 20 * G.dp, 0);
 			Common.applyStyle(self.back, "button_highlight", 2);
@@ -1079,11 +1083,11 @@ MapScript.loadModule("Common", {
 			self.path.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var o = self.sets;
 				Common.showInputDialog({
-					title : "路径",
+					title : self.intl.path,
 					callback : function(s) {
 						var f = new java.io.File(s);
 						if (!f.exists()) {
-							return Common.toast("路径不存在");
+							return Common.toast(self.intl.fileNotExist);
 						}
 						if (o.type == 0) {
 							if (f.isDirectory()) {
@@ -1110,17 +1114,19 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.newDir, "button_default", 2);
 			self.newDir.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				var a = {
-					title : "新建文件夹",
+					title : self.intl.createDir,
 					callback : function(s) {
-						if (!s) {
-							Common.toast("目录名不能为空哦～");
+						if (!s.length) {
+							Common.toast(self.intl.emptyDirName);
 							return;
 						} else {
 							try {
-								(new java.io.File(self.sets.curdir, s)).mkdirs();
+								if (!new java.io.File(self.sets.curdir, s).mkdirs()) {
+									Common.toast(self.intl.failedCreateDir);
+								}
 								self.refresh();
 							} catch (e) {
-								Common.toast("创建目录出错\n" + e + ")");
+								Common.toast(self.intl.resolve("errCreateDir", e));
 							}
 						}
 					}
@@ -1161,7 +1167,7 @@ MapScript.loadModule("Common", {
 			Common.applyStyle(self.inputbar, "bar_float");
 
 			self.fname = new G.EditText(ctx);
-			self.fname.setHint("文件名");
+			self.fname.setHint(self.intl.fileName);
 			self.fname.setSingleLine(true);
 			self.fname.setGravity(G.Gravity.LEFT | G.Gravity.CENTER);
 			self.fname.setInputType(G.InputType.TYPE_CLASS_TEXT);
@@ -1170,27 +1176,28 @@ MapScript.loadModule("Common", {
 			self.inputbar.addView(self.fname, new G.LinearLayout.LayoutParams(0, -1, 1.0));
 
 			self.exit = new G.TextView(ctx);
-			self.exit.setText("确定");
+			self.exit.setText(Common.intl.ok);
 			self.exit.setGravity(G.Gravity.CENTER);
 			self.exit.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.exit, "button_critical", 3);
 			self.exit.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				var o = self.sets, e;
+				var o = self.sets, e, fname;
 				if (o.type == 1) {
-					if (!self.fname.getText().length()) {
-						Common.toast("文件名不能为空哦～");
+					fname = String(self.fname.getText());
+					if (!fname.length) {
+						Common.toast(self.intl.emptyFileName);
 						return true;
 					}
-					var e = new java.io.File(o.curdir, self.fname.getText());
+					var e = new java.io.File(o.curdir, fname);
 					if (!e.getParentFile().exists()) {
-						e = new java.io.File(self.fname.getText());
+						e = new java.io.File(fname);
 						if (!e.getParentFile().exists()) {
-							Common.toast("无效的文件名");
+							Common.toast(self.intl.invaildFileName);
 							return true;
 						}
 					}
 					if (e.exists() && !e.isFile()) {
-						Common.toast("同名目录已存在，无法保存");
+						Common.toast(self.intl.dirAlreadyExist);
 						return true;
 					}
 					self.choose(e);
@@ -1213,10 +1220,10 @@ MapScript.loadModule("Common", {
 			if (!o.curdir.isDirectory()) o.curdir = android.os.Environment.getExternalStorageDirectory();
 			self.refresh();
 		} catch (e) {
-			Common.toast("拒绝访问\n" + e + ")");
+			Common.toast(self.intl.resolve("errAccessDir", e));
 			return;
 		}
-		self.title.setText(Common.toString(o.title || "浏览"));
+		self.title.setText(Common.toString(o.title || self.intl.defaultTitle));
 		switch (o.type) {
 			case 1: //新建文件（保存）
 			self.exit.setVisibility(G.View.VISIBLE);
@@ -1245,7 +1252,7 @@ MapScript.loadModule("Common", {
 		try {
 			wv = new G.WebView(ctx);
 		} catch(e) {
-			Common.toast("您的设备无法加载Android System WebView\n" + e);
+			Common.toast(Common.intl.resolve("webviewUnavailable", e));
 			return;
 		}
 		wv.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
@@ -1274,7 +1281,7 @@ MapScript.loadModule("Common", {
 		layout.addView(wv);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		exit.setText("关闭");
+		exit.setText(Common.intl.close);
 		exit.setGravity(G.Gravity.CENTER);
 		exit.setPadding(10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp);
 		Common.applyStyle(exit, "button_critical", 3);
@@ -1561,7 +1568,7 @@ MapScript.loadModule("Common", {
 		result.setTextColor(G.Color.BLACK);
 		result.setGravity(G.Gravity.CENTER);
 		result.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-		result.setText("您的设备无法加载Android System WebView\n\n" + error);
+		result.setText(Common.intl.resolve("webviewUnavailable", error));
 		return result;
 	},
 
@@ -1608,19 +1615,13 @@ MapScript.loadModule("Common", {
 		wr.close();
 	},
 
-	getFileSize : function(f, showBytes) {
-		var l = Number(f.length()), r;
-		if (l < 1000) {
-			r = l + " 字节";
-		} else if (l >= 1000 && l < 1024000) {
-			r = (l / 1024).toFixed(2) + " KB";
-		} else if (l >= 1024000 && l < 1048576000) {
-			r = (l / 1048576).toFixed(2) + " MB";
+	getFileSize : function(f, longer) {
+		var l = f.length();
+		if (longer) {
+			return String(android.text.format.Formatter.formatFileSize(ctx, f.length()));
 		} else {
-			r = (l / 1073741824).toFixed(2) + " GB";
+			return String(android.text.format.Formatter.formatShortFileSize(ctx, f.length()));
 		}
-		if (showBytes) r += " (" + l.toLocaleString() + " 字节)";
-		return r;
 	},
 	
 	deleteFile : function(path) {
