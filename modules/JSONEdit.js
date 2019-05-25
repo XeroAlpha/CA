@@ -27,6 +27,7 @@ MapScript.loadModule("JSONEdit", {
 		} : Object.keys;
 		this.isObject = o.showAll ? function(o) {
 			if (o == null) return false;
+			if (o instanceof java.lang.CharSequence) return false;
 			return typeof o == "object" || typeof o == "function";
 		} : function(o) {
 			return o instanceof Object;
@@ -259,7 +260,11 @@ MapScript.loadModule("JSONEdit", {
 									} else if (s in data) {
 										Common.toast("键名已存在");
 									} else {
-										data[s] = newItem;
+										try {
+											data[s] = newItem;
+										} catch(e) {
+											Common.toast(e);
+										}
 										JSONEdit.refresh();
 									}
 								}
@@ -271,8 +276,12 @@ MapScript.loadModule("JSONEdit", {
 					return true;
 				}
 
-				var name = parent.getAdapter().getItem(pos);
-				var data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
+				var name = parent.getAdapter().getItem(pos), data;
+				try {
+					data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
+				} catch(e) {
+					Common.toast(e);
+				}
 				JSONEdit.path[JSONEdit.path.length - 1].pos = JSONEdit.list.getFirstVisiblePosition();
 				if (JSONEdit.isObject(data)) {
 					JSONEdit.path.push({
@@ -353,7 +362,7 @@ MapScript.loadModule("JSONEdit", {
 			ret.setText("True / False");
 		} else {
 			ret = new G.EditText(ctx);
-			ret.setText(String(data));
+			ret.setText(Common.toString(data));
 			ret.setSingleLine(false);
 			ret.setMinWidth(0.5 * Common.getScreenWidth());
 			ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
@@ -536,7 +545,11 @@ MapScript.loadModule("JSONEdit", {
 				text : "替换",
 				onclick : function(v, tag) {
 					JSONEdit.showNewItem(function(newItem) {
-						tag.src[tag.name] = newItem;
+						try {
+							tag.src[tag.name] = newItem;
+						} catch(e) {
+							Common.toast(e);
+						}
 						JSONEdit.refresh();
 					});
 				}
@@ -554,7 +567,11 @@ MapScript.loadModule("JSONEdit", {
 				text : "批量编辑",
 				onclick : function(v, tag) {
 					JSONEdit.showBatchEdit(tag.data, function(v) {
-						tag.src[tag.name] = v;
+						try {
+							tag.src[tag.name] = v;
+						} catch(e) {
+							Common.toast(e);
+						}
 						JSONEdit.refresh();
 					});
 				}
@@ -565,8 +582,12 @@ MapScript.loadModule("JSONEdit", {
 					Common.showInputDialog({
 						title : "重命名",
 						callback : function(s) {
-							tag.src[s] = tag.src[tag.name];
-							delete tag.src[tag.name];
+							try {
+								tag.src[s] = tag.src[tag.name];
+								delete tag.src[tag.name];
+							} catch(e) {
+								Common.toast(e);
+							}
 							JSONEdit.refresh();
 						},
 						defaultValue : tag.name
@@ -583,11 +604,16 @@ MapScript.loadModule("JSONEdit", {
 				}
 			}].concat(self.menu);
 		}
-		var cd = JSONEdit.path[JSONEdit.path.length - 1].data;
+		var cd = JSONEdit.path[JSONEdit.path.length - 1].data, data;
+		try {
+			data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
+		} catch(e) {
+			Common.toast(e);
+		}
 		Common.showOperateDialog(Array.isArray(cd) ? self.arrMenu : JSONEdit.isObject(cd) ? self.objMenu : obj.menu, {
 			name : name,
 			src : cd,
-			data : cd[name]
+			data : data
 		});
 	},
 	pathClick : new G.View.OnClickListener({onClick : function(v) {try {
@@ -631,20 +657,23 @@ MapScript.loadModule("JSONEdit", {
 	},
 	viewBinder : function(holder, e, i, a, par) {
 		holder.name.setText(Array.isArray(par) && !JSONEdit.showAll ? "#" + (parseInt(e) + 1) : String(e));
-		holder.data.setText(JSONEdit.getDesp(par[e]));
+		holder.data.setText(JSONEdit.getDesp(par, e));
 		holder.e = e;
 	},
-	getDesp : function(o) {
+	getDesp : function(obj, propertyName) {
+		var e;
 		try {
-			if (Array.isArray(o)) {
-				return o.length ? o[0] + "等" + o.length + "个项目" : "0个项目";
-			} else if (o instanceof Object && typeof o !== "function" && !(o instanceof java.lang.String)) {
-				return this.listItems(o).length + "个键值对";
-			} else if (o === null) {
+			e = obj[propertyName];
+			if (Array.isArray(e)) {
+				return e.length ? e[0] + "等" + e.length + "个项目" : "0个项目";
+			} else if (e instanceof Object && typeof e !== "function" && !(e instanceof java.lang.CharSequence)) {
+				return this.listItems(e).length + "个键值对";
+			} else if (e === null) {
 				return "空引用(null)";
-			} else return String(o);
-		} catch(e) {
-			return "<未知的项目>";
+			} else return String(e);
+		} catch(er) {
+			Log.e(er);
+			return String(er);
 		}
 	},
 	refresh : function() {G.ui(function() {try {
