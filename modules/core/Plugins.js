@@ -73,10 +73,11 @@ MapScript.loadModule("Plugins", {
 		if (o.uuid in this.modules) {
 			return this.modules[o.uuid].info;
 		} else {
+			this.modules[o.uuid] = o;
+			this.emit("Plugin", "inject", o.uuid);
 			if (o.init) o.init(o);
 			if (o.core.init) o.core.init(o);
-			this.emit("Plugin", "inject", o.uuid);
-			return (this.modules[o.uuid] = o).info;
+			return o.info;
 		}
 	},
 	fillInfo : function(o) {
@@ -155,6 +156,7 @@ MapScript.loadModule("Plugins", {
 		var i, o = this.getObservers(type, target), t;
 		for (i in o) {
 			t = this.modules[o[i].module];
+			if (!t) coutinue;
 			try {
 				o[i].apply(t, arguments);
 			} catch(e) {
@@ -186,7 +188,7 @@ MapScript.loadModule("Plugins", {
 	},
 	/**
 	 * Hook一个某个对象的一个方法。
-	 * @types Plugins.hookMethod(obj: object, propName: string, replacement: (this: object, propName: string, oldFunc: function, arguments: Arguments, tag: any) => any, tag?: any): function;
+	 * @types Plugins.hookMethod(obj: object, propName: string, replacement: (this: object, propName: string, oldFunc: function, arguments: Arguments, tag?: any) => any, tag?: any): function;
 	 * @param obj {object} 对象
 	 * @param propName {string} 对象属性名称
 	 * @param replacement {function} 用于替换原函数的函数
