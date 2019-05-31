@@ -3823,11 +3823,15 @@ MapScript.loadModule("CA", {
 			PWM.registerResetFlag(self, "bar");
 			PWM.registerResetFlag(CA, "paste");
 		}
+		self.widthMin = 0.1 * Common.getScreenWidth();
+		self.widthMax = 9 * self.widthMin;
 		if (self.inDrawer) {
-			self.updateWidth(0.4 * Common.getScreenWidth());
-			CA.paste.update({width : self.lparam.width + 16 * G.dp});
+			self.updateWidth(4 * self.widthMin);
 			self.list.setVisibility(G.View.VISIBLE);
-			if (!CA.settings.noAnimation) self.animateShow();
+			if (CA.paste) {
+				CA.paste.update({width : self.lparam.width + 16 * G.dp});
+				if (!CA.settings.noAnimation) self.animateShow();
+			}
 		}
 		self.refresh();
 		if (CA.paste) return;
