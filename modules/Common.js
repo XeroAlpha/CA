@@ -1173,7 +1173,7 @@ MapScript.loadModule("Common", {
 			self.fname.setInputType(G.InputType.TYPE_CLASS_TEXT);
 			self.fname.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			Common.applyStyle(self.fname, "edittext_default", 3);
-			self.inputbar.addView(self.fname, new G.LinearLayout.LayoutParams(0, -1, 1.0));
+			self.inputbar.addView(self.fname, new G.LinearLayout.LayoutParams(0, -1, 4.0));
 
 			self.exit = new G.TextView(ctx);
 			self.exit.setText(Common.intl.ok);
@@ -1206,7 +1206,7 @@ MapScript.loadModule("Common", {
 				}
 				return true;
 			} catch(e) {erp(e)}}}));
-			self.inputbar.addView(self.exit, new G.LinearLayout.LayoutParams(-2, -2));
+			self.inputbar.addView(self.exit, new G.LinearLayout.LayoutParams(0, -2, 1.0));
 			self.linear.addView(self.inputbar, new G.LinearLayout.LayoutParams(-1, -2));
 
 			self.popup = new PopupPage(self.linear, "common.FileChooser");
