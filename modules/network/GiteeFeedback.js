@@ -1328,7 +1328,6 @@ MapScript.loadModule("GiteeFeedback", {
 			.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 	},
 	callbackOAuth : function(code) {
-		PWM.onResume();
 		Common.showProgressDialog(function(dia) {
 			dia.setText("正在登录...");
 			try {
@@ -1339,6 +1338,7 @@ MapScript.loadModule("GiteeFeedback", {
 				return Common.toast("登录失败\n" + e);
 			}
 			G.ui(function() {try {
+				PopupPage.show();
 				if (GiteeFeedback.oauthCallback) GiteeFeedback.oauthCallback();
 			} catch(e) {erp(e)}});
 		});

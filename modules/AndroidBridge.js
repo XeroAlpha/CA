@@ -22,7 +22,7 @@ MapScript.loadModule("AndroidBridge", {
 			onActivityResult : function(requestCode, resultCode, data) {try {
 				var cb = AndroidBridge.intentCallback[requestCode];
 				if (!cb) return;
-				PWM.onResume();
+				PopupPage.show();
 				delete AndroidBridge.intentCallback[requestCode];
 				cb(resultCode, data);
 			} catch(e) {erp(e)}},
