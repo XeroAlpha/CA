@@ -5,7 +5,7 @@ MapScript.loadModule("Intl", {
 	rescache : {},
 	getLocales : function() {
 		var r, i, a;
-		if (android.os.Build.VERSION.SDK_INT >= 23) {
+		if (android.os.Build.VERSION.SDK_INT >= 24) {
 			a = ctx.getResources().getConfiguration().getLocales();
 			r = new Array(a.size());
 			for (i = 0; i < r.length; i++) {

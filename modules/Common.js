@@ -388,7 +388,6 @@ MapScript.loadModule("Common", {
 		list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 			var e = s[pos];
 			if (e.onclick) if (!e.onclick(e, tag)) popup.exit();
-			return true;
 		} catch(e) {erp(e)}}}));
 		frame.addView(list);
 		popup = PopupPage.showDialog("common.OperateDialog", frame, -1, -2);
