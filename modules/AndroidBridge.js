@@ -359,9 +359,16 @@ MapScript.loadModule("AndroidBridge", {
 				name : "隐藏后台任务",
 				type : "boolean",
 				get : function() {
+					if (AndroidBridge.shouldForceRemoveTask()) {
+						return true;
+					}
 					return Boolean(CA.settings.hideRecent);
 				},
 				set : function(v) {
+					if (AndroidBridge.shouldForceRemoveTask()) {
+						Common.toast("您的设备不支持显示命令助手的后台任务");
+						return;
+					}
 					CA.settings.hideRecent = Boolean(v);
 					Common.toast("本项设置将在重启命令助手后应用");
 				}
@@ -792,9 +799,16 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		});
 	},
+	shouldForceRemoveTask : function() {
+		return SettingsCompat.rom == "FLYME" || SettingsCompat.rom == "MEIZU";
+		//JavaException: android.view.WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
+		//魅族Flyme com.meizu.widget.OptionPopupWindow 不支持在有后台任务但context是服务的情况下显示
+		//且客服说是本App的问题，因此我只能勉为其难地剥夺了魅族用户取消选择隐藏后台任务的能力
+	},
 	exitLoading : function(keepActivity) {
 		var activity = ScriptInterface.getBindActivity();
 		if (!activity) return;
+		if (this.shouldForceRemoveTask()) keepActivity = false;
 		activity.runOnUiThread(function() {try {
 			if (keepActivity) {
 				activity.moveTaskToBack(false);
