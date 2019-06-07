@@ -6688,7 +6688,7 @@ MapScript.loadModule("CA", {
 				} catch(e) {
 					return "{" + e + "}";
 				}
-				if (!(n > 0)) return "{Error: Count cannot be " + n + "}";
+				if (!(n > 0 && n <= 10000)) return "{Error: Count cannot be " + n + "}";
 				r = new Array(n);
 				r[0] = {
 					type : "expr",
