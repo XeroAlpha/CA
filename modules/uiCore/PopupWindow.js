@@ -75,8 +75,7 @@ MapScript.loadModule("PopupWindow", (function() {
 			},
 			bringToFront : function() {
 				if (this.showing) {
-					PWM.wm.removeViewImmediate(this.decorView);
-					PWM.wm.addView(this.decorView, this.decorView.getLayoutParams());
+					r.bringToFront(this.decorView);
 				}
 			},
 			isVisible : function() {
@@ -134,6 +133,16 @@ MapScript.loadModule("PopupWindow", (function() {
 		r.hideView = function(view) {
 			try {
 				PWM.wm.removeViewImmediate(view);
+				return true;
+			} catch(e) {
+				erp(e, true);
+			}
+			return false;
+		};
+		r.bringToFront = function(view) {
+			try {
+				PWM.wm.removeViewImmediate(view);
+				PWM.wm.addView(view, view.getLayoutParams());
 				return true;
 			} catch(e) {
 				erp(e, true);
