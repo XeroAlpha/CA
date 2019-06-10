@@ -19,7 +19,7 @@ MapScript.loadModule("DebugUtils", {
 				self.history.length = 0;
 				self.lines.push(new G.SpannableStringBuilder());
 				self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-				self.ready(null);
+				self.ready("exit");
 			}
 			self.print = function(str, span) {G.ui(function() {try {
 				var t = self.lines[self.lines.length - 1];

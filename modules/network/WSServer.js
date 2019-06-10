@@ -155,7 +155,7 @@ MapScript.loadModule("WSServer", {
 	},
 	subscribeEvent : function(name, callback) {
 		var listeners;
-		if (!this.conn) return;
+		if (!this.conn || !this.conn.isOpen()) return false;
 		listeners = this.events.get(name);
 		if (listeners == null) {
 			listeners = new java.util.concurrent.CopyOnWriteArrayList();
@@ -168,9 +168,10 @@ MapScript.loadModule("WSServer", {
 				eventName : name
 			}
 		}));
+		return true;
 	},
 	unsubscribeEvent : function(name, callback) {
-		if (!this.conn) return;
+		if (!this.conn || !this.conn.isOpen()) return false;
 		var listeners = this.events.get(name);
 		if (listeners != null) {
 			listeners.remove(callback);
@@ -184,9 +185,10 @@ MapScript.loadModule("WSServer", {
 				}));
 			}
 		}
+		return true;
 	},
 	sendCommand : function(cmd, callback) {
-		if (!this.conn) return;
+		if (!this.conn || !this.conn.isOpen()) return null;
 		var json = {
 			header : this.buildHeader("commandRequest"),
 			body : {
@@ -220,7 +222,7 @@ MapScript.loadModule("WSServer", {
 				self.history.length = 0;
 				self.lines.push(new G.SpannableStringBuilder());
 				self.print("WSServer控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
-				self.ready(null);
+				self.ready("exit");
 			}
 			self.print = function(str, span) {
 				var t = self.lines[self.lines.length - 1];
@@ -246,6 +248,7 @@ MapScript.loadModule("WSServer", {
 				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
 			self.exec = function(_s) {
+				var name, startTime;
 				if (_s.toLowerCase() == "exit") {
 					self.popup.exit();
 					return;
@@ -255,7 +258,7 @@ MapScript.loadModule("WSServer", {
 				} else if (_s.toLowerCase() == "close") {
 					WSServer.sendCommand("closewebsocket");
 				} else if (_s.toLowerCase().startsWith("subscribe ")) {
-					var name = _s.slice(10);
+					name = _s.slice(10);
 					WSServer.subscribeEvent(name, self.eventReceiver[name] = function(body) {
 						G.ui(function() {try {
 							var t = body.eventName;
@@ -266,11 +269,11 @@ MapScript.loadModule("WSServer", {
 					});
 					self.print("Event subscribed!");
 				} else if (_s.toLowerCase().startsWith("unsubscribe ")) {
-					var name = _s.slice(12);
+					name = _s.slice(12);
 					WSServer.unsubscribeEvent(name, self.eventReceiver[name]);
 					self.print("Event unsubscribed!");
 				} else if (_s.toLowerCase().startsWith("/")) {
-					var startTime = Date.now();
+					startTime = Date.now();
 					WSServer.sendCommand(_s.slice(1), function(body) {
 						var timer = Date.now() - startTime;
 						G.ui(function() {try {
