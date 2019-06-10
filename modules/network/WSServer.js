@@ -4,8 +4,8 @@ MapScript.loadModule("WSServer", {
 	startPort : 19134,
 	endPort : 19165,
 	conn : null,
-	events : {},
-	responsers : {},
+	events : new java.util.concurrent.ConcurrentHashMap(8, 0.75, 4),
+	responsers : new java.util.concurrent.ConcurrentHashMap(32, 0.75, 16),
 	unload : function() {
 		if (this.isAvailable()) this.stop();
 	},
@@ -66,8 +66,8 @@ MapScript.loadModule("WSServer", {
 			return;
 		}
 		this.conn = conn;
-		this.events = {};
-		this.responsers = {};
+		this.events.clear();
+		this.responsers.clear();
 		Common.toast("设备" + conn.getRemoteSocketAddress() + "已连接");
 		AndroidBridge.notifySettings();
 		Plugins.emit("WSServer", "connectionOpen");
@@ -101,18 +101,19 @@ MapScript.loadModule("WSServer", {
 		}
 	},
 	onEvent : function(json) {
-		var callback = this.events[json.body.eventName];
-		if (callback != null) {
-			callback.forEach(function(e) {
+		var listeners = this.events.get(json.body.eventName), iter, e;
+		if (listeners != null) {
+			iter = listeners.iterator();
+			while (iter.hasNext()) {
+				e = iter.next();
 				try {
 					e(json.body, json);
 				} catch(e) {erp(e, true)}
-			});
+			}
 		}
 	},
 	onResponse : function(json) {
-		var callback = this.responsers[json.header.requestId];
-		delete this.responsers[json.header.requestId];
+		var callback = this.responsers.remove(json.header.requestId);
 		if (callback != null) {
 			try {
 				callback(json.body, json);
@@ -153,9 +154,14 @@ MapScript.loadModule("WSServer", {
 		};
 	},
 	subscribeEvent : function(name, callback) {
+		var listeners;
 		if (!this.conn) return;
-		if (!this.events[name]) this.events[name] = [];
-		this.events[name].push(callback);
+		listeners = this.events.get(name);
+		if (listeners == null) {
+			listeners = new java.util.concurrent.CopyOnWriteArrayList();
+			this.events.put(name, listeners);
+		}
+		listeners.add(callback);
 		this.conn.send(JSON.stringify({
 			header : this.buildHeader("subscribe"),
 			body : {
@@ -165,16 +171,18 @@ MapScript.loadModule("WSServer", {
 	},
 	unsubscribeEvent : function(name, callback) {
 		if (!this.conn) return;
-		var i = this.events[name].indexOf(callback);
-		if (i >= 0) this.events[name].splice(i, 1);
-		if (!this.events[name].length) {
-			this.conn.send(JSON.stringify({
-				header : this.buildHeader("unsubscribe"),
-				body : {
-					eventName : name
-				}
-			}));
-			delete this.events[name];
+		var listeners = this.events.get(name);
+		if (listeners != null) {
+			listeners.remove(callback);
+			if (listeners.isEmpty()) {
+				this.events.remove(name, listeners);
+				this.conn.send(JSON.stringify({
+					header : this.buildHeader("unsubscribe"),
+					body : {
+						eventName : name
+					}
+				}));
+			}
 		}
 	},
 	sendCommand : function(cmd, callback) {
@@ -187,7 +195,7 @@ MapScript.loadModule("WSServer", {
 				origin : "player"
 			}
 		};
-		this.responsers[json.header.requestId] = callback;
+		this.responsers.put(json.header.requestId, callback);
 		this.conn.send(JSON.stringify(json));
 		return json.header.requestId;
 	},
