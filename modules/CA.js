@@ -453,6 +453,7 @@ MapScript.loadModule("CA", {
 						PopupPage.setRect(rect[0], rect[1], rect[2], rect[3]);
 					}
 					if (CA.settings.pageWindowed) PopupPage.setFullScreen(false, PopupPage.isLocked());
+					if (!isNaN(CA.settings.unfocusedAlpha)) PopupPage.setAlpha(1, CA.settings.unfocusedAlpha);
 					self.iconUpdate();
 				})
 				.on("removePopup", self.iconUpdate)
@@ -2776,7 +2777,7 @@ MapScript.loadModule("CA", {
 				get : self.getsettingbool,
 				set : self.setsettingbool
 			}, {
-				name : "悬浮窗",
+				name : "悬浮图标",
 				type : "tag"
 			}, {
 				name : "图标样式",
@@ -2861,6 +2862,24 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(fset) {
 					CA.showActionEdit(CA.settings.quickBarActions, fset, CA.quickBarDefaultActions);
+				}
+			}, {
+				name : "悬浮窗",
+				type : "tag"
+			}, {
+				name : "不活跃时不透明度",
+				type : "seekbar",
+				current : function(p) {
+					return p + "%";
+				},
+				max : 100,
+				get : function() {
+					return isNaN(CA.settings.unfocusedAlpha) ? 70 : CA.settings.unfocusedAlpha * 100;
+				},
+				set : function(v) {
+					var value = v / 100;
+					CA.settings.unfocusedAlpha = value;
+					PopupPage.setAlpha(1, value);
 				}
 			}, {
 				name : "命令生成器",

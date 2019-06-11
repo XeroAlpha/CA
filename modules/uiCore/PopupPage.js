@@ -14,6 +14,8 @@ MapScript.loadModule("PopupPage", (function() {
 		r.fullscreen = true;
 		r.focusable = true;
 		r.debugPrint = false;
+		r.focusedAlpha = 1; 
+		r.unfocusedAlpha = 0.6;
 		r.initialize = function() {G.ui(function() {try {
 			var vcfg = G.ViewConfiguration.get(ctx);
 			var longPressTimeout = vcfg.getLongPressTimeout();
@@ -42,20 +44,10 @@ MapScript.loadModule("PopupPage", (function() {
 				dispatchTouchEvent : function(e, thisObj) {
 					switch (e.getAction()) {
 						case e.ACTION_DOWN:
-						if (!r.focusable) {
-							r.focusable = true;
-							r.resizeView.setVisibility(G.View.VISIBLE);
-							r.setFocusable(r.defaultWindow, true);
-							r.trigger("focus");
-						}
+						r.setFocused(true);
 						break;
 						case e.ACTION_OUTSIDE:
-						if (r.focusable) {
-							r.focusable = false;
-							r.resizeView.setVisibility(G.View.GONE);
-							r.setFocusable(r.defaultWindow, false);
-							r.trigger("blur");
-						}	
+						r.setFocused(false);
 						break;
 					}
 					return 0;
@@ -226,6 +218,7 @@ MapScript.loadModule("PopupPage", (function() {
 				Common.applyStyle(this.defaultStub, "textview_prompt", 3);
 				this.headerView.setVisibility(G.View.VISIBLE);
 			}
+			this.updateAlpha();
 		}
 		r.setFullScreen = function(isFullScreen, isLocked) {
 			this.locked = Boolean(isLocked);
@@ -269,6 +262,33 @@ MapScript.loadModule("PopupPage", (function() {
 			if (this.defaultVisible && !this.fullscreen) {
 				this.updateView(this.defaultWindow, this.x, this.y, this.width, this.height);
 				this.trigger("rectUpdate", this.x, this.y, this.width, this.height, oldX, oldY, oldWidth, oldHeight, fromUser);
+			}
+		}
+		r.setFocused = function(focused) {
+			if (focused && !this.focusable) {
+				this.focusable = true;
+				this.resizeView.setVisibility(G.View.VISIBLE);
+				this.setFocusable(this.defaultWindow, true);
+				this.updateAlpha();
+				this.trigger("focus");
+			} else if (!focused && this.focusable) {
+				this.focusable = false;
+				this.resizeView.setVisibility(G.View.GONE);
+				this.setFocusable(this.defaultWindow, false);
+				this.updateAlpha();
+				this.trigger("blur");
+			}
+		}
+		r.setAlpha = function(focused, unfocused) {
+			this.focusedAlpha = focused;
+			this.unfocusedAlpha = unfocused;
+			this.updateAlpha();
+		}
+		r.updateAlpha = function() {
+			if (this.focusable) {
+				this.defaultWindow.setAlpha(r.focusedAlpha);
+			} else {
+				this.defaultWindow.setAlpha(r.unfocusedAlpha);
 			}
 		}
 		r.defaultVisible = false;
@@ -438,6 +458,9 @@ MapScript.loadModule("PopupPage", (function() {
 				this.trigger("addPopup");
 				if (this.debugPrint) Log.d("Show FloatWindow");
 			}
+			if (this.visible) {
+				this.setFocused(true);
+			}
 		}
 		r.hidePage = function(page, notRemoveWindow) {
 			var stack = page.currentContainer == this.floatContainer ? this.floatStack : this.defaultStack;
@@ -560,6 +583,7 @@ MapScript.loadModule("PopupPage", (function() {
 				}
 			}
 			this.defaultWindow.setVisibility(G.View.VISIBLE);
+			this.setFocused(true);
 			this.updateOverlays();
 			this.trigger("show");
 		}
