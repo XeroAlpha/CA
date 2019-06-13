@@ -1204,7 +1204,7 @@ MapScript.loadModule("GiteeFeedback", {
 		}
 	},
 	showLogin : function self(callback) {G.ui(function() {try {
-		var usernsme, password, popup;
+		var username, password, popup;
 		popup = PopupPage.showDialog("feedback.GiteeLogin", L.ScrollView({
 			style : "message_bg",
 			child : L.LinearLayout({

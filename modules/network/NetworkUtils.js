@@ -16,7 +16,7 @@ MapScript.loadModule("NetworkUtils", {
 			conn.setDoOutput(true);
 		}
 		if (contentType) conn.setRequestProperty("Content-Type", contentType);
-		var rd, s, ln;
+		var rd, s, ln, err;
 		try {
 			conn.connect();
 			if (data) {
@@ -35,14 +35,17 @@ MapScript.loadModule("NetworkUtils", {
 			} catch(er) {
 				throw e;
 			}
-			s = [conn.getResponseCode() + " " + conn.getResponseMessage()];
+			err = this.RequestError.create(e);
+			err.responseCode = conn.getResponseCode();
+			err.responseMessage = String(conn.getResponseMessage());
+			s = [];
 			if (rd) {
 				rd = new java.io.BufferedReader(new java.io.InputStreamReader(rd));
 				while (ln = rd.readLine()) s.push(ln);
 				rd.close();
 			}
-			s.push(e);
-			throw s.join("\n");
+			err.errorMessage = s.join("\n");
+			throw err;
 		}
 	},
 	download : function(url, path) {
@@ -110,5 +113,23 @@ MapScript.loadModule("NetworkUtils", {
 			}
 		}
 		return ips;
-	}
+	},
+	RequestError : (function() {
+		var o = Object.create(Error.prototype);
+		o.toString = function() {
+			return [
+				"RequestError: " + this.responseCode + " " + this.responseMessage,
+				this.errorMessage,
+				this.error
+			].join("\n");
+		}
+		o.create = function(err) {
+			var r = Object.create(this);
+			r.error = err;
+			r.message = err.message;
+			r.stack = err.stack;
+			return r;
+		}
+		return o;
+	})()
 });
