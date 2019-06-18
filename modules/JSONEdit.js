@@ -1,72 +1,11 @@
 MapScript.loadModule("JSONEdit", {
-	edit : null,
-	pathbar : null,
-	list : null,
-	path : [],
-	clipboard : undefined,
-	showAll : false,
-	listItems : Object.keys,
-	isObject : function(o) {
-		return o instanceof Object;
-	},
+	clipboard : null,
 	onCreate : function() {
 		Intl.mapNamespace(this, "intl", "jsonEdit");
 	},
-	show : function(o) {
-		var i;
-		o = Object(o);
-		var name = o.rootname ? o.rootname : this.intl.root;
-		var data = o.source;
-		if (data === null) {
-			return false;
-		}
-		this.showAll = Boolean(o.showAll);
-		this.listItems = o.showAll ? function(o) {
-			try {
-				return Object.getOwnPropertyNames(o);
-			} catch(e) {
-				return Object.keys(o);
-			}
-		} : Object.keys;
-		this.isObject = o.showAll ? function(o) {
-			if (o == null) return false;
-			if (o instanceof java.lang.CharSequence) return false;
-			return typeof o == "object" || typeof o == "function";
-		} : function(o) {
-			return o instanceof Object;
-		};
-		if (!this.isObject(o.source)) {
-			this.showData(this.intl.resolve("editData", name), data, function(newValue) {
-				o.source = newValue;
-				if (o.update) o.update();
-			});
-			return true;
-		}
-		this.path.length = 0;
-		this.path.push({
-			name : name,
-			data : data,
-			pos : 0
-		});
-		if (o.path) {
-			for (i in o.path) {
-				this.path.push({
-					name : String(o.path[i]),
-					data : this.isObject(data = data[o.path[i]]) ? data : {},
-					pos : 0
-				});
-			}
-		}
-		this.updateListener = o.update ? function() {
-			o.update();
-		} : function() {};
-		this.showEdit();
-		this.refresh();
-		return true;
-	},
 	create : function(callback, rootname) {
 		this.showNewItem(function(data) {
-			if (JSONEdit.isObject(data)) {
+			if (data instanceof Object) {
 				JSONEdit.show({
 					source : data,
 					rootname : rootname,
@@ -184,169 +123,434 @@ MapScript.loadModule("JSONEdit", {
 		}
 		Common.showOperateDialog(self.menu);
 	},
-
-	showEdit : function self() {G.ui(function() {try {
+	show : function(o) {
+		var i, name, data;
+		var options = {};
+		if (o.showAll) {
+			options.itemAccessor = this.itemAccessor.debug;
+		} else {
+			options.itemAccessor = this.itemAccessor.json;
+		}
+		name = o.rootname ? o.rootname : this.intl.root;
+		data = o.source;
+		if (data === null) {
+			return false;
+		} else if (options.itemAccessor.isTree(data)) {
+			options.path = [{
+				name : name,
+				data : data,
+				pos : 0
+			}];
+			if (o.path) {
+				for (i in o.path) {
+					options.path.push({
+						name : String(o.path[i]),
+						data : options.itemAccessor.isTree(data = data[o.path[i]]) ? data : {},
+						pos : 0
+					});
+				}
+			}
+			this.showEdit(options, o.update);
+		} else {
+			this.showData(this.intl.resolve("editData", name), data, function(newValue) {
+				o.source = newValue;
+				if (o.update) o.update();
+			});
+		}
+		return true;
+	},
+	itemAccessor : {
+		json : {
+			listItems : function(o) {
+				return Object.keys(o);
+			},
+			getCount : function(o) {
+				return this.listItems(o).length;
+			},
+			isTree : function(o) {
+				return o instanceof Object;
+			},
+			toArrayItemName : function(index) {
+				return "#" + (parseInt(index) + 1);
+			}
+		},
+		debug : {
+			listItems : function(o) {
+				try {
+					return Object.getOwnPropertyNames(o);
+				} catch(e) {
+					return Object.keys(o);
+				}
+			},
+			getCount : function(o) {
+				return this.listItems(o).length;
+			},
+			isTree : function(o) {
+				if (o == null) return false;
+				if (o instanceof java.lang.CharSequence) return false;
+				return typeof o == "object" || typeof o == "function";
+			},
+			toArrayItemName : function(index) {
+				return index;
+			}
+		}
+	},
+	showEdit : function self(options, callback) {G.ui(function() {try {
 		if (!self.main) {
-			self.drawDivider = function(height) {
+			self.menuIntl = Intl.getNamespace("jsonEdit.itemMenu");
+			self.getHeaderDivider = function(height) {
 				var width = Math.floor(height / 2);
 				var bmp = G.Bitmap.createBitmap(width, height, G.Bitmap.Config.ARGB_8888);
 				var cv = new G.Canvas(bmp);
 				var pa = new G.Paint();
+				var ph = new G.Path();
 				pa.setStrokeCap(G.Paint.Cap.BUTT);
 				pa.setStyle(G.Paint.Style.STROKE)
 				pa.setColor(Common.theme.promptcolor);
 				pa.setStrokeWidth(2);
 				pa.setAntiAlias(true);
-
-				var ph = new G.Path();
 				ph.moveTo(0, 0);
 				ph.lineTo(width, width);
 				ph.lineTo(0, height);
 				cv.drawPath(ph, pa);
-
 				return new G.BitmapDrawable(ctx.getResources(), bmp);
 			}
-
-			self.main = new G.LinearLayout(ctx);
-			self.main.setOrientation(G.LinearLayout.VERTICAL);
-
-			self.header = new G.LinearLayout(ctx);
-			self.header.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-			self.header.setOrientation(G.LinearLayout.HORIZONTAL);
-			Common.applyStyle(self.header, "bar_float");
-
-			self.back = new G.TextView(ctx);
-			self.back.setText("< " + Common.intl.back);
-			self.back.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-			self.back.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			Common.applyStyle(self.back, "button_critical", 2);
-			self.back.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-				self.popup.exit();
-				return true;
-			} catch(e) {erp(e)}}}));
-			self.header.addView(self.back);
-
-			self.hscr = new G.HorizontalScrollView(ctx);
-			self.hscr.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			self.hscr.setHorizontalScrollBarEnabled(false);
-
-			JSONEdit.pathbar = new G.LinearLayout(ctx);
-			self.back.measure(0, 0);
-			JSONEdit.pathbar.setDividerDrawable(self.drawDivider(self.back.getMeasuredHeight()));
-			JSONEdit.pathbar.setShowDividers(G.LinearLayout.SHOW_DIVIDER_MIDDLE);
-			JSONEdit.pathbar.setPadding(10 * G.dp, 0, 10 * G.dp, 0);
-			JSONEdit.pathbar.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
-			self.hscr.addView(JSONEdit.pathbar);
-			self.header.addView(self.hscr);
-			self.main.addView(self.header);
-
-			self.create = new G.TextView(ctx);
-			self.create.setText(JSONEdit.intl.addItem);
-			self.create.setGravity(G.Gravity.CENTER);
-			self.create.setPadding(20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp);
-			self.create.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-			Common.applyStyle(self.create, "textview_default", 3);
-
-			JSONEdit.list = new G.ListView(ctx);
-			JSONEdit.list.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -1));
-			JSONEdit.list.addHeaderView(self.create);
-			Common.applyStyle(JSONEdit.list, "message_bg");
-			JSONEdit.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
-				if (view == self.create) {
-					JSONEdit.showNewItem(function(newItem) {
-						var data = JSONEdit.path[JSONEdit.path.length - 1].data;
-						if (Array.isArray(data)) {
-							data.push(newItem);
-							JSONEdit.refresh();
-						} else if (JSONEdit.isObject(data)) {
-							Common.showInputDialog({
-								title : JSONEdit.intl.inputKeyName,
-								callback : function(s) {
-									if (!s) {
-										Common.toast(JSONEdit.intl.keyNameEmpty);
-									} else if (s in data) {
-										Common.toast(JSONEdit.intl.keyNameExists);
-									} else {
-										try {
-											data[s] = newItem;
-										} catch(e) {
-											Common.toast(e);
-										}
-										JSONEdit.refresh();
-									}
-								}
-							});
-						} else {
-							Common.toast(JSONEdit.intl.unableToInsert);
-						}
-					});
-					return true;
+			self.menu = [{
+				text : self.menuIntl.copy,
+				onclick : function(v, tag) {
+					JSONEdit.clipboard = {
+						name : tag.name,
+						item : tag.data
+					};
+					self.refresh();
 				}
-
-				var name = parent.getAdapter().getItem(pos), data;
+			}, {
+				text : self.menuIntl.cut,
+				onclick : function(v, tag) {
+					JSONEdit.clipboard = {
+						name : tag.name,
+						item : tag.data
+					};
+					if (Array.isArray(tag.src)) {
+						cd.splice(parseInt(tag.name), 1);
+					} else {
+						delete tag.src[tag.name];
+					}
+					self.refresh();
+				}
+			}, {
+				text : self.menuIntl.replace,
+				onclick : function(v, tag) {
+					JSONEdit.showNewItem(function(newItem) {
+						try {
+							tag.src[tag.name] = newItem;
+						} catch(e) {
+							Common.toast(e);
+						}
+						self.refresh();
+					});
+				}
+			}, {
+				text : self.menuIntl.remove,
+				onclick : function(v, tag) {
+					if (Array.isArray(tag.src)) {
+						tag.src.splice(parseInt(tag.name), 1);
+					} else {
+						delete tag.src[tag.name];
+					}
+					self.refresh();
+				}
+			}, {
+				text : self.menuIntl.rawEdit,
+				onclick : function(v, tag) {
+					JSONEdit.showRawEdit(tag.data, function(v) {
+						try {
+							tag.src[tag.name] = v;
+						} catch(e) {
+							Common.toast(e);
+						}
+						self.refresh();
+					});
+				}
+			}];
+			self.objMenu = [{
+				text : self.menuIntl.rename,
+				onclick : function(v, tag) {
+					Common.showInputDialog({
+						title : self.menuIntl.rename,
+						callback : function(s) {
+							try {
+								tag.src[s] = tag.src[tag.name];
+								delete tag.src[tag.name];
+							} catch(e) {
+								Common.toast(e);
+							}
+							self.refresh();
+						},
+						defaultValue : tag.name
+					});
+				}
+			}].concat(self.menu);
+			self.arrMenu = [{
+				text : self.menuIntl.insertBefore,
+				onclick : function(v, tag) {
+					JSONEdit.showNewItem(function(newItem) {
+						tag.src.splice(parseInt(tag.name), 0, newItem);
+						self.refresh();
+					});
+				}
+			}].concat(self.menu);
+			self.showItemAction = function(name) {
+				var cd = self.currentTree.data, data;
 				try {
-					data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
+					data = cd[name];
 				} catch(e) {
 					Common.toast(e);
 				}
-				JSONEdit.path[JSONEdit.path.length - 1].pos = JSONEdit.list.getFirstVisiblePosition();
-				if (JSONEdit.isObject(data)) {
-					JSONEdit.path.push({
-						name : String(name),
-						data : data,
-						pos : 0
-					});
-					JSONEdit.refresh();
-					self.hscr.post(function() {try {
-						self.hscr.fullScroll(G.View.FOCUS_RIGHT);
-					} catch(e) {erp(e)}});
-				} else if (data != null) {
-					JSONEdit.showData(JSONEdit.intl.resolve("editData", name), data, function(newValue) {
-						JSONEdit.path[JSONEdit.path.length - 1].data[name] = newValue;
-						JSONEdit.refresh();
-					});
-				}
-			} catch(e) {erp(e)}}}));
-			JSONEdit.list.setOnItemLongClickListener(new G.AdapterView.OnItemLongClickListener({onItemLongClick : function(parent, view, pos, id) {try {
-				if (view == self.create) {
-					return true;
-				}
-				JSONEdit.showItemAction(parent.getAdapter().getItem(pos));
-				return true;
-			} catch(e) {return erp(e), true}}}));
-			if (G.style == "Material") {
-				JSONEdit.list.setVerticalScrollbarPosition(G.View.SCROLLBAR_POSITION_LEFT);
-				JSONEdit.list.setFastScrollEnabled(true);
-				JSONEdit.list.setFastScrollAlwaysVisible(false);
+				Common.showOperateDialog(Array.isArray(cd) ? self.arrMenu : self.itemAccessor.isTree(cd) ? self.objMenu : obj.menu, {
+					name : name,
+					src : cd,
+					data : data
+				});
 			}
-			self.main.addView(JSONEdit.list);
-
+			self.pathClick = function(v) {
+				var i = self.pathbar.indexOfChild(v);
+				self.path.splice(i + 1);
+				self.refresh();
+			}
 			self.onBack = function() {
-				if (JSONEdit.path.length > 1) {
-					JSONEdit.path.pop();
-					JSONEdit.refresh();
+				if (self.path.length > 1) {
+					self.path.pop();
+					self.refresh();
 				} else {
 					self.popup.exit();
 				}
 			}
-			EventSender.init(self);
-			self.listener = {};
-
+			self.init = function(options, callback) {
+				self.callback = callback;
+				self.path = options.path;
+				self.itemAccessor = options.itemAccessor;
+				self.refresh();
+			}
+			self.refresh = function() {
+				var lbl, i, e, cd, items;
+				self.currentTree = self.path[self.path.length - 1];
+				cd = self.currentTree.data;
+				self.pathbar.removeAllViews();
+				for (i in self.path) {
+					e = self.path[i];
+					lbl = new G.TextView(ctx);
+					lbl.setText(String(e.name));
+					lbl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
+					lbl.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+					lbl.setOnClickListener(self.pathClick);
+					Common.applyStyle(lbl, "item_default", 2);
+					self.pathbar.addView(lbl);
+				}
+				items = self.itemAccessor.listItems(cd);
+				//items.sort();
+				self.adpt.setArray(items);
+				gHandler.post(function() {try {
+					self.list.setSelection(self.currentTree.pos);
+				} catch(e) {erp(e)}});
+			}
+			self.showCreate = function() {
+				JSONEdit.showNewItem(function(newItem) {
+					var data = self.currentTree.data;
+					if (Array.isArray(data)) {
+						data.push(newItem);
+						self.refresh();
+					} else if (self.itemAccessor.isTree(data)) {
+						Common.showInputDialog({
+							title : JSONEdit.intl.inputKeyName,
+							callback : function(s) {
+								if (!s) {
+									Common.toast(JSONEdit.intl.keyNameEmpty);
+								} else if (s in data) {
+									Common.toast(JSONEdit.intl.keyNameExists);
+								} else {
+									try {
+										data[s] = newItem;
+									} catch(e) {
+										Common.toast(e);
+									}
+									self.refresh();
+								}
+							}
+						});
+					} else {
+						Common.toast(JSONEdit.intl.unableToInsert);
+					}
+				});
+			}
+			self.enterTree = function(name, data) {
+				if (self.currentTree) {
+					self.currentTree.pos = self.list.getFirstVisiblePosition();
+				}
+				self.path.push({
+					name : String(name),
+					data : data,
+					pos : 0
+				});
+				self.refresh();
+				gHandler.post(function() {try {
+					self.hscr.fullScroll(G.View.FOCUS_RIGHT);
+				} catch(e) {erp(e)}});
+			}
+			self.vmaker = function(holder) {
+				var hl, vl, name, data, more;
+				hl = new G.LinearLayout(ctx);
+				hl.setOrientation(G.LinearLayout.HORIZONTAL);
+				hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
+				hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
+				vl = new G.LinearLayout(ctx);
+				vl.setOrientation(G.LinearLayout.VERTICAL);
+				vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
+				vl.getLayoutParams().gravity = G.Gravity.CENTER;
+				name = holder.name = new G.TextView(ctx);
+				name.setEllipsize(G.TextUtils.TruncateAt.END);
+				name.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(name, "textview_default", 3);
+				vl.addView(name);
+				data = holder.data = new G.TextView(ctx);
+				data.setMaxLines(2);
+				data.setEllipsize(G.TextUtils.TruncateAt.END);
+				data.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
+				Common.applyStyle(data, "textview_prompt", 1);
+				vl.addView(data);
+				hl.addView(vl);
+				more = new G.TextView(ctx);
+				more.setText(">");
+				more.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+				more.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
+				more.getLayoutParams().gravity = G.Gravity.CENTER;
+				Common.applyStyle(more, "button_secondary", 4);
+				more.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
+					self.showItemAction(holder.e);
+				} catch(e) {erp(e)}}}));
+				hl.addView(more);
+				return hl;
+			}
+			self.vbinder = function(holder, e, i, a) {
+				var par = self.currentTree.data;
+				holder.name.setText(Array.isArray(par) ? self.itemAccessor.toArrayItemName(e) : String(e));
+				holder.data.setText(self.getDesp(par, e));
+				holder.e = e;
+			}
+			self.getDesp = function(obj, propertyName) {
+				var e;
+				try {
+					e = obj[propertyName];
+					if (Array.isArray(e)) {
+						return e.length ? JSONEdit.intl.resolve("arrayDesc", e[0], e.length) : JSONEdit.intl.emptyArrayDesc;
+					} else if (e instanceof Object && typeof e !== "function" && !(e instanceof java.lang.CharSequence)) {
+						return JSONEdit.intl.resolve("objectDesc", self.itemAccessor.getCount(e));
+					} else if (e === null) {
+						return JSONEdit.intl.nullDesc;
+					} else return String(e);
+				} catch(er) {
+					Log.e(er);
+					return String(er);
+				}
+			}
+			self.adpt = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
+			self.main = L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				children : [
+					L.LinearLayout({
+						orientation : L.LinearLayout("horizontal"),
+						layoutWidth : -1, layoutHeight : -2,
+						style : "bar_float",
+						children : [
+							L.TextView({
+								text : "< " + Common.intl.back,
+								padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+								layoutWidth : -2, layoutHeight : -2,
+								style : "button_critical",
+								fontSize : 2,
+								onClick : function() {try {
+									self.popup.exit();
+								} catch(e) {erp(e)}},
+								inflate : function(view) {
+									view.measure(0, 0);
+									self.headerHeight = view.getMeasuredHeight();
+								}
+							}),
+							self.hscr = L.HorizontalScrollView({
+								horizontalScrollBarEnabled : true,
+								layoutWidth : -1, layoutHeight : -1,
+								child : self.pathbar = L.LinearLayout({
+									dividerDrawable : self.getHeaderDivider(self.headerHeight),
+									showDividers : L.LinearLayout("show_divider_middle"),
+									padding : [10 * G.dp, 0, 10 * G.dp, 0],
+									layoutWidth : -1, layoutHeight : -1
+								})
+							})
+						]
+					}),
+					self.list = L.ListView({
+						adapter : self.adpt.self,
+						style : "message_bg",
+						layoutWidth : -1, layoutHeight : -1,
+						_headerView : self.create = L.TextView({
+							text : JSONEdit.intl.addItem,
+							gravity : L.Gravity("center"),
+							padding : [20 * G.dp, 20 * G.dp, 20 * G.dp, 20 * G.dp],
+							layoutWidth : -1, layoutHeight : -2,
+							style : "textview_default",
+							fontSize : 3
+						}),
+						inflate : function(view) {
+							view.addHeaderView(this._headerView);
+							if (G.style == "Material") {
+								view.setVerticalScrollbarPosition(G.View.SCROLLBAR_POSITION_LEFT);
+								view.setFastScrollEnabled(true);
+								view.setFastScrollAlwaysVisible(false);
+							}
+						},
+						onItemClick : function(parent, view, pos, id) {try {
+							if (view == self.create) {
+								self.showCreate();
+								return true;
+							}
+							var name = parent.getAdapter().getItem(pos), data;
+							try {
+								data = self.currentTree.data[name];
+							} catch(e) {
+								Common.toast(e);
+								return;
+							}
+							if (self.itemAccessor.isTree(data)) {
+								self.enterTree(name, data);
+							} else if (data != null) {
+								JSONEdit.showData(JSONEdit.intl.resolve("editData", name), data, function(newValue) {
+									self.path[self.path.length - 1].data[name] = newValue;
+									self.refresh();
+								});
+							}
+						} catch(e) {erp(e)}},
+						onItemLongClick : function(parent, view, pos, id) {try {
+							if (view == self.create) {
+								return true;
+							}
+							self.showItemAction(parent.getAdapter().getItem(pos));
+							return true;
+						} catch(e) {return erp(e), true}}
+					})
+				]
+			});
 			self.popup = new PopupPage(self.main, "jsonedit.Main");
 			self.popup.on("back", function(name, cancelDefault) {
 				self.onBack();
 				cancelDefault();
 			});
 			self.popup.on("exit", function() {
-				if (JSONEdit.updateListener) JSONEdit.updateListener();
+				if (self.callback) self.callback();
 			});
 			PWM.registerResetFlag(self, "main");
 		}
-		JSONEdit.edit = self.popup.enter();
-	} catch(e) {erp(e)}})},
-	hideEdit : function() {G.ui(function() {try {
-		if (JSONEdit.edit) JSONEdit.edit.exit();
-		JSONEdit.edit = null;
+		self.init(options, callback);
+		self.popup.enter();
 	} catch(e) {erp(e)}})},
 	showData : function(msg, data, callback) {G.ui(function() {try {
 		var scr, layout, title, text, ret, exit, popup;
@@ -533,187 +737,6 @@ MapScript.loadModule("JSONEdit", {
 		}
 		Common.showOperateDialog(self.menu, {callback : callback});
 	},
-	showItemAction : function self(name) {
-		if (!self.menu) {
-			self.intl = Intl.getNamespace("jsonEdit.itemMenu");
-			self.menu = [{
-				text : self.intl.copy,
-				onclick : function(v, tag) {
-					JSONEdit.clipboard = {
-						name : tag.name,
-						item : tag.data
-					};
-					JSONEdit.refresh();
-				}
-			}, {
-				text : self.intl.cut,
-				onclick : function(v, tag) {
-					JSONEdit.clipboard = {
-						name : tag.name,
-						item : tag.data
-					};
-					if (Array.isArray(tag.src)) {
-						cd.splice(parseInt(tag.name), 1);
-					} else {
-						delete tag.src[tag.name];
-					}
-					JSONEdit.refresh();
-				}
-			}, {
-				text : self.intl.replace,
-				onclick : function(v, tag) {
-					JSONEdit.showNewItem(function(newItem) {
-						try {
-							tag.src[tag.name] = newItem;
-						} catch(e) {
-							Common.toast(e);
-						}
-						JSONEdit.refresh();
-					});
-				}
-			}, {
-				text : self.intl.remove,
-				onclick : function(v, tag) {
-					if (Array.isArray(tag.src)) {
-						tag.src.splice(parseInt(tag.name), 1);
-					} else {
-						delete tag.src[tag.name];
-					}
-					JSONEdit.refresh();
-				}
-			}, {
-				text : self.intl.rawEdit,
-				onclick : function(v, tag) {
-					JSONEdit.showRawEdit(tag.data, function(v) {
-						try {
-							tag.src[tag.name] = v;
-						} catch(e) {
-							Common.toast(e);
-						}
-						JSONEdit.refresh();
-					});
-				}
-			}];
-			self.objMenu = [{
-				text : self.intl.rename,
-				onclick : function(v, tag) {
-					Common.showInputDialog({
-						title : self.intl.rename,
-						callback : function(s) {
-							try {
-								tag.src[s] = tag.src[tag.name];
-								delete tag.src[tag.name];
-							} catch(e) {
-								Common.toast(e);
-							}
-							JSONEdit.refresh();
-						},
-						defaultValue : tag.name
-					});
-				}
-			}].concat(self.menu);
-			self.arrMenu = [{
-				text : self.intl.insertBefore,
-				onclick : function(v, tag) {
-					JSONEdit.showNewItem(function(newItem) {
-						tag.src.splice(parseInt(tag.name), 0, newItem);
-						JSONEdit.refresh();
-					});
-				}
-			}].concat(self.menu);
-		}
-		var cd = JSONEdit.path[JSONEdit.path.length - 1].data, data;
-		try {
-			data = JSONEdit.path[JSONEdit.path.length - 1].data[name];
-		} catch(e) {
-			Common.toast(e);
-		}
-		Common.showOperateDialog(Array.isArray(cd) ? self.arrMenu : JSONEdit.isObject(cd) ? self.objMenu : obj.menu, {
-			name : name,
-			src : cd,
-			data : data
-		});
-	},
-	pathClick : new G.View.OnClickListener({onClick : function(v) {try {
-		var i = JSONEdit.pathbar.indexOfChild(v);
-		JSONEdit.path.splice(i + 1);
-		JSONEdit.refresh();
-	} catch(e) {erp(e)}}}),
-	viewMaker : function(holder, par) {
-		var hl, vl, name, data, more;
-		hl = new G.LinearLayout(ctx);
-		hl.setOrientation(G.LinearLayout.HORIZONTAL);
-		hl.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
-		hl.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-		vl = new G.LinearLayout(ctx);
-		vl.setOrientation(G.LinearLayout.VERTICAL);
-		vl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 1.0));
-		vl.getLayoutParams().gravity = G.Gravity.CENTER;
-		name = holder.name = new G.TextView(ctx);
-		name.setEllipsize(G.TextUtils.TruncateAt.END);
-		name.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		Common.applyStyle(name, "textview_default", 3);
-		vl.addView(name);
-		data = holder.data = new G.TextView(ctx);
-		data.setMaxLines(2);
-		data.setEllipsize(G.TextUtils.TruncateAt.END);
-		data.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		Common.applyStyle(data, "textview_prompt", 1);
-		vl.addView(data);
-		hl.addView(vl);
-		more = new G.TextView(ctx);
-		more.setText(">");
-		more.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-		more.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2, 0));
-		more.getLayoutParams().gravity = G.Gravity.CENTER;
-		Common.applyStyle(more, "button_secondary", 4);
-		more.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
-			JSONEdit.showItemAction(holder.e);
-		} catch(e) {erp(e)}}}));
-		hl.addView(more);
-		return hl;
-	},
-	viewBinder : function(holder, e, i, a, par) {
-		holder.name.setText(Array.isArray(par) && !JSONEdit.showAll ? "#" + (parseInt(e) + 1) : String(e));
-		holder.data.setText(JSONEdit.getDesp(par, e));
-		holder.e = e;
-	},
-	getDesp : function(obj, propertyName) {
-		var e;
-		try {
-			e = obj[propertyName];
-			if (Array.isArray(e)) {
-				return e.length ? JSONEdit.intl.resolve("arrayDesc", e[0], e.length) : JSONEdit.intl.emptyArrayDesc;
-			} else if (e instanceof Object && typeof e !== "function" && !(e instanceof java.lang.CharSequence)) {
-				return JSONEdit.intl.resolve("objectDesc", this.listItems(e).length);
-			} else if (e === null) {
-				return JSONEdit.intl.nullDesc;
-			} else return String(e);
-		} catch(er) {
-			Log.e(er);
-			return String(er);
-		}
-	},
-	refresh : function() {G.ui(function() {try {
-		var lbl, i, e, ci = JSONEdit.path[JSONEdit.path.length - 1], cd = ci.data, items;
-		JSONEdit.pathbar.removeAllViews();
-		for (i in JSONEdit.path) {
-			e = JSONEdit.path[i];
-			lbl = new G.TextView(ctx);
-			lbl.setText(String(e.name));
-			lbl.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -1));
-			lbl.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			lbl.setOnClickListener(JSONEdit.pathClick);
-			Common.applyStyle(lbl, "item_default", 2);
-			JSONEdit.pathbar.addView(lbl);
-		}
-		items =  JSONEdit.listItems(cd);
-		//items.sort();
-		JSONEdit.list.setAdapter(new SimpleListAdapter(items, JSONEdit.viewMaker, JSONEdit.viewBinder, cd));
-		JSONEdit.list.post(function() {try {
-			JSONEdit.list.setSelection(ci.pos);
-		} catch(e) {erp(e)}});
-	} catch(e) {erp(e)}})},
 	traceGlobal : function() {
 		this.show({
 			source : eval.call(null, "this"),
