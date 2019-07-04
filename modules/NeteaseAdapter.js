@@ -67,7 +67,9 @@ MapScript.loadModule("NeteaseAdapter", {
 	},
 	getNeteaseVersion : function(packageName) {
 		var c = ctx.getPackageManager().getPackageInfo(packageName, 0).versionCode;
-		if (c >= 840064213) { //1.13.0.64213
+		if (c >= 840068012) { //1.14.0.68012
+			return "1.11.4.2";
+		} else if (c >= 840064213) { //1.13.0.64213
 			return "1.9.1.15";
 		} else if (c >= 840060355) { //1.12.4.60355
 			return "1.9.0.15";
