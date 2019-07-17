@@ -721,6 +721,9 @@ MapScript.loadModule("Common", {
 					},
 					binder : function(holder, e) {
 						holder.e = e;
+						holder.busy = true;
+						holder.box.setChecked(e.get());
+						holder.busy = false;
 						holder.name.setText(String(e.name));
 						if (e.description) {
 							holder.description.setText(String(e.description));
@@ -728,9 +731,6 @@ MapScript.loadModule("Common", {
 						} else {
 							holder.description.setVisibility(G.View.GONE);
 						}
-						holder.busy = true;
-						holder.box.setChecked(e.get());
-						holder.busy = false;
 					}
 				},
 				"custom" : {
@@ -764,14 +764,14 @@ MapScript.loadModule("Common", {
 					},
 					binder : function(holder, e) {
 						holder.e = e;
+						holder.text.setText(e.get ? String(e.get()) : "");
 						holder.name.setText(String(e.name));
 						if (e.description) {
 							holder.description.setText(String(e.description));
 							holder.description.setVisibility(G.View.VISIBLE);
 						} else {
 							holder.description.setVisibility(G.View.GONE);
-						}						
-						holder.text.setText(e.get ? String(e.get()) : "");
+						}
 					}
 				},
 				"space" : {
@@ -852,9 +852,9 @@ MapScript.loadModule("Common", {
 					},
 					binder : function(holder, e) {
 						holder.e = e;
-						holder.name.setText(String(e.name));
 						holder.seekbar.setMax(e.max);
 						holder.seekbar.setProgress(e.get());
+						holder.name.setText(String(e.name));
 					}
 				},
 				"layout" : {
@@ -880,6 +880,7 @@ MapScript.loadModule("Common", {
 			self.setData = function(data) {
 				self.adpt.setArray(data.data);
 				self.title.setText(data.title || Common.intl.settings);
+				self.list.setSelection(0);
 			}
 			self.onBack = function() {
 				self.current.data.forEach(function(e, i) {
