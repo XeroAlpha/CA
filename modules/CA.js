@@ -2496,12 +2496,9 @@ MapScript.loadModule("CA", {
 				if (f) CA.showSettings();
 				CA.showIcon();
 			}
-			self.root = [{
-				name : "关于命令助手",
-				type : "custom",
-				onclick : function(fset) {
-					Common.showSettings("关于", self.about);
-				}
+			self.root = [UserManager.getSettingItem(), {
+				type : "space",
+				height : 12 * G.dp
 			}, {
 				name : "外观",
 				description : "主题、悬浮窗、背景图片",
@@ -2542,6 +2539,12 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(fset) {
 					AndroidBridge.showSettings("辅助功能设置");
+				}
+			}, {
+				name : "关于命令助手",
+				type : "custom",
+				onclick : function(fset) {
+					Common.showSettings("关于", self.about);
 				}
 			}];
 			self.about = [MapScript.host == "Android" ? {

@@ -548,6 +548,35 @@ MapScript.loadModule("Loader", {
 		for (i = 0; i < a.length; i++) {
 			if (typeof obj[a[i]] != "function") this.freezeProperty(obj, a[i]);
 		}
+	},
+	ProtectedMethodWrapper : function(realFunc) {
+			var i, args = new Array(arguments.length - 1);
+			for (i = 0; i < args.length; i++) {
+				args[i] = arguments[i + 1];
+			}
+			return realFunc.apply(this, args);
+		},
+	protectMethods : function(parent, objName, publicProp) {
+		var i, obj = parent[objName], target = {}, propName, propData;
+		for (i = 0; i < publicProp.length; i++) {
+			propName = publicProp[i];
+			propData = obj[propName];
+			if (typeof propData == "function") {
+				target[propName] = this.ProtectedMethodWrapper.bind(obj, propData);
+			} else {
+				Object.defineProperty(obj, propertyName, {
+					enumerable: true,
+					configurable: false,
+					get: function() {
+						return obj[propName];
+					},
+					set: function(value) {
+						obj[propName] = value;
+					},
+				});
+			}
+		}
+		parent[objName] = target;
 	}
 });
 
@@ -619,6 +648,8 @@ Loader.fromFile("modules/core/DexPlugin.js")
 Loader.fromFile("modules/NeteaseAdapter.js")
 
 Loader.fromFile("modules/network/WSServer.js")
+
+Loader.fromFile("modules/network/UserManager.js")
 
 Loader.fromFile("modules/network/GiteeFeedback.js")
 

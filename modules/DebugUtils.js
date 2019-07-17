@@ -417,5 +417,5 @@ MapScript.loadModule("DebugUtils", {
 	},
 	initialize : function() {try {
 		this.updateDebugAction();
-	} catch(e) {erp(e)}},
+	} catch(e) {erp(e)}}
 });
