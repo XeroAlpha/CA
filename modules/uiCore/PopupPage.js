@@ -863,7 +863,7 @@ MapScript.loadModule("PopupPage", (function() {
 		return this.busy;
 	};
 	r.showDialog = function(name, layout, width, height, modal) {
-		var frame, popup, topPage, hasMargins = false;
+		var frame, popup, hasMargins = false;
 		frame = new G.FrameLayout(ctx);
 		frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		frame.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
@@ -879,8 +879,7 @@ MapScript.loadModule("PopupPage", (function() {
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name, modal);
-		topPage = r.getTopPage();
-		popup.enterAnimation(r.dialogEnterAnimation);
+		popup.enterAnimation(r.dialogEnterAnimation.bind(r, { layout : layout }));
 		popup.on("resume", function() {
 			frame.setBackgroundColor(Common.argbInt(0x80, 0, 0, 0));
 		});
@@ -901,6 +900,63 @@ MapScript.loadModule("PopupPage", (function() {
 		popup.dialog = true;
 		popup.enter();
 		popup.trigger("resize", popup.getWidth(), popup.getHeight());
+		return popup;
+	};
+	r.showSideBar = function(name, layout, direction, offsetAdd, offsetMul, modal) {
+		var frame, linear, background, bgdrawable, popup, param;
+		frame = new G.FrameLayout(ctx);
+		background = new G.ImageView(ctx);
+		background.setImageDrawable(bgdrawable = new G.ColorDrawable(Common.argbInt(0x80, 0, 0, 0)));
+		background.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+		frame.addView(background);
+		linear = new G.LinearLayout(ctx);
+		linear.setWeightSum(1.0);
+		linear.setLayoutParams(new G.FrameLayout.LayoutParams(-1, -1));
+		linear.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
+			if (e.getAction() == e.ACTION_DOWN && !modal) {
+				if (e.getX() < layout.getLeft() || e.getX() >= layout.getRight() ||
+					e.getY() < layout.getTop() || e.getY() >= layout.getBottom()) {
+					popup.exit();
+				}
+			}
+			return true;
+		} catch(e) {return erp(e), true}}}));
+		if (direction == "left") {
+			linear.setOrientation(G.LinearLayout.HORIZONTAL);
+			linear.setGravity(G.Gravity.LEFT);
+			layout.setLayoutParams(new G.LinearLayout.LayoutParams(offsetAdd, -1, offsetMul));
+		} else if (direction == "top") {
+			linear.setOrientation(G.LinearLayout.VERTICAL);
+			linear.setGravity(G.Gravity.TOP);
+			layout.setLayoutParams(new G.LinearLayout.LayoutParams(-1, offsetAdd, offsetMul));
+		} else if (direction == "right") {
+			linear.setOrientation(G.LinearLayout.HORIZONTAL);
+			linear.setGravity(G.Gravity.RIGHT);
+			layout.setLayoutParams(new G.LinearLayout.LayoutParams(offsetAdd, -1, offsetMul));
+		} else { //bottom
+			linear.setOrientation(G.LinearLayout.VERTICAL);
+			linear.setGravity(G.Gravity.BOTTOM);
+			layout.setLayoutParams(new G.LinearLayout.LayoutParams(-1, offsetAdd, offsetMul));
+		}
+		linear.addView(layout);
+		frame.addView(linear);
+		if (G.style == "Material") layout.setElevation(16 * G.dp);
+		popup = new r(frame, name, modal);
+		param = {
+			background : background,
+			layout : layout,
+			direction : direction
+		};
+		popup.enterAnimation(r.sideBarEnterAnimation.bind(r, param));
+		popup.exitAnimation(r.sideBarExitAnimation.bind(r, param));
+		popup.on("resume", function() {
+			background.setImageDrawable(bgdrawable);
+		});
+		popup.on("pause", function() {
+			background.setImageDrawable(null);
+		});
+		popup.dialog = true;
+		popup.enter();
 		return popup;
 	};
 	r.overlays = [];
@@ -1003,8 +1059,8 @@ MapScript.loadModule("PopupPage", (function() {
 		aniSet.addAnimation(new G.AlphaAnimation(1, 0));
 		return new r.ViewAnimationController(v, aniSet).start();
 	}
-	r.dialogEnterAnimation = function(v, callback) {
-		var alphaAni, scaleAni, layout = v.getChildAt(0);
+	r.dialogEnterAnimation = function(param, v, callback) {
+		var alphaAni, scaleAni, layout = param.layout;
 		alphaAni = new G.AlphaAnimation(0, 1);
 		alphaAni.setDuration(200);
 		scaleAni = new G.ScaleAnimation(0.95, 1, 0.95, 1, G.Animation.RELATIVE_TO_SELF, 0.5, G.Animation.RELATIVE_TO_SELF, 0.5);
@@ -1019,6 +1075,60 @@ MapScript.loadModule("PopupPage", (function() {
 			scaleAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
 		}
 		return new r.ViewAnimationController(v, alphaAni).addAnimation(layout, scaleAni).start();
+	}
+	r.sideBarEnterAnimation = function(param, v, callback) {
+		var alphaAni, transAni, offsets;
+		var background = param.background, layout = param.layout, direction = param.direction
+		if (direction == "left") {
+			offsets = [-1, 0, 0, 0];
+		} else if (direction == "top") {
+			offsets = [0, 0, -1, 0];
+		} else if (direction == "right") {
+			offsets = [1, 0, 0, 0];
+		} else { //bottom
+			offsets = [0, 0, 1, 0];
+		}
+		alphaAni = new G.AlphaAnimation(0, 1);
+		alphaAni.setDuration(200);
+		transAni = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, offsets[0], G.Animation.RELATIVE_TO_SELF, offsets[1], G.Animation.RELATIVE_TO_SELF, offsets[2], G.Animation.RELATIVE_TO_SELF, offsets[3]);
+		transAni.setDuration(200);
+		transAni.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		if (G.style == "Material") {
+			alphaAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+			transAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+		}
+		return new r.ViewAnimationController(background, alphaAni).addAnimation(layout, transAni).start();
+	}
+	r.sideBarExitAnimation = function(param, v, callback) {
+		var alphaAni, transAni, offsets;
+		var background = param.background, layout = param.layout, direction = param.direction
+		if (direction == "left") {
+			offsets = [0, -1, 0, 0];
+		} else if (direction == "top") {
+			offsets = [0, 0, 0, -1];
+		} else if (direction == "right") {
+			offsets = [0, 1, 0, 0];
+		} else { //bottom
+			offsets = [0, 0, 0, 1];
+		}
+		alphaAni = new G.AlphaAnimation(1, 0);
+		alphaAni.setDuration(200);
+		transAni = new G.TranslateAnimation(G.Animation.RELATIVE_TO_SELF, offsets[0], G.Animation.RELATIVE_TO_SELF, offsets[1], G.Animation.RELATIVE_TO_SELF, offsets[2], G.Animation.RELATIVE_TO_SELF, offsets[3]);
+		transAni.setDuration(200);
+		transAni.setAnimationListener(new G.Animation.AnimationListener({
+			onAnimationEnd : function(a) {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}},
+		}));
+		if (G.style == "Material") {
+			alphaAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+			transAni.setInterpolator(ctx, G.R.interpolator.fast_out_slow_in);
+		}
+		return new r.ViewAnimationController(background, alphaAni).addAnimation(layout, transAni).start();
 	}
 	r.ViewAnimationController = function(v, ani) {
 		this.views = [];

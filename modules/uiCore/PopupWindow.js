@@ -259,7 +259,7 @@ MapScript.loadModule("PopupWindow", (function() {
 		frame.addView(layout);
 		if (G.style == "Material") layout.setElevation(16 * G.dp);
 		popup = new r(frame, name);
-		PopupPage.dialogEnterAnimation(frame, null);
+		PopupPage.dialogEnterAnimation({ layout : layout }, frame, null);
 		popup.show({
 			height : -1, width : -1,
 			modal : modal
