@@ -920,6 +920,17 @@ MapScript.loadModule("AndroidBridge", {
 			settings : function() {
 				PushService.showSettings("推送设置");
 			}
+		},
+		user : {
+			login : function() {
+				UserManager.processUriAction("login");
+			},
+			info : function() {
+				UserManager.processUriAction("info");
+			},
+			autologin : function(fragment, query, extras) {
+				UserManager.processUriAction("autologin", query);
+			}
 		}
 	}
 });

@@ -132,21 +132,22 @@ MapScript.loadModule("UserManager", {
 		this.accessData = CA.settings.userSettings;
 		if (this.accessData) {
 			refreshToken = this.accessData.refreshToken;
-			Threads.run(function() {try {
-				realThis.refreshLogin(refreshToken);
-			} catch(e) {Log.e(e)}});
+			realThis.showRefreshLogin(refreshToken, true);
 		}
 	},
 	saveToken : function(result) {
 		this.accessToken = result.accessToken;
 		result.expiredDate = Date.now() + result.expiredIn * 1000;
 		this.accessData = CA.settings.userSettings = result;
-		this.userInfo = this.getUserInfo();
+		this.updateUserInfo();
 	},
 	clearToken : function() {
 		this.accessToken = null;
 		this.accessData = CA.settings.userSettings = null;
 		this.userInfo = null;
+	},
+	updateUserInfo : function() {
+		this.userInfo = this.getUserInfo();
 	},
 	getCachedUserInfo : function() {
 		return this.userInfo;
@@ -158,6 +159,15 @@ MapScript.loadModule("UserManager", {
 			rest : exp % 500,
 			levelExp : 500
 		};
+	},
+	processUriAction : function(type, query) {
+		if (type == "login") {
+			this.showLogin();
+		} else if (type == "info") {
+			this.showUpdateInfo();
+		} else if (type == "autologin") {
+			this.showRefreshLogin(query.token, false);
+		}
 	},
 	showLogin : function self(callback) { var realThis = this; G.ui(function() {try {
 		var username, password, popup;
@@ -213,8 +223,10 @@ MapScript.loadModule("UserManager", {
 									Log.e(e);
 									return Common.toast("登录失败\n" + e);
 								}
+								CA.trySave();
 								G.ui(function() {try {
 									popup.exit();
+									Common.toast("登录成功");
 									if (callback) callback();
 								} catch(e) {erp(e)}});
 							});
@@ -326,7 +338,7 @@ MapScript.loadModule("UserManager", {
 								}
 								G.ui(function() {try {
 									popup.exit();
-									Common.showTextDialog("一份用于验证的邮件已发送至" + email.text + "\n请在1天内点击邮件内的链接来确认注册");
+									Common.showTextDialog("一份用于验证的邮件正在发送至" + email.text + "\n请在1天内点击邮件内的链接来确认注册");
 								} catch(e) {erp(e)}});
 							});
 						} catch(e) {erp(e)}}
@@ -335,6 +347,32 @@ MapScript.loadModule("UserManager", {
 			})
 		}), -1, -2);
 	} catch(e) {erp(e)}})},
+	showRefreshLogin : function(refreshToken, silent) {
+		var realThis = this;
+		Common.showProgressDialog(function(dia) {
+			dia.setText("正在登录...");
+			try {
+				realThis.refreshLogin(refreshToken);
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("登录失败\n" + e);
+			}
+			CA.trySave();
+			if (!silent) Common.toast("登录成功");
+		});
+	},
+	showUpdateUserInfo : function() {
+		var realThis = this;
+		Common.showProgressDialog(function(dia) {
+			dia.setText("正在更新用户信息...");
+			try {
+				realThis.updateUserInfo();
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("更新用户信息失败\n" + e);
+			}
+		});
+	},
 	showForgetPassword : function self() { var realThis = this; G.ui(function() {try {
 		var email, password, password2, popup;
 		popup = PopupPage.showDialog("usermanager.ForgetPassword", L.ScrollView({
@@ -402,7 +440,7 @@ MapScript.loadModule("UserManager", {
 								}
 								G.ui(function() {try {
 									popup.exit();
-									Common.showTextDialog("一份用于确认重置密码的邮件已发送至" + email.text + "\n请在1天内点击邮件内的链接来确认重置密码");
+									Common.showTextDialog("一份用于确认重置密码的邮件正在发送至" + email.text + "\n请在1天内点击邮件内的链接来确认重置密码");
 								} catch(e) {erp(e)}});
 							});
 						} catch(e) {erp(e)}}
