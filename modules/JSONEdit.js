@@ -206,7 +206,7 @@ MapScript.loadModule("JSONEdit", {
 				var ph = new G.Path();
 				pa.setStrokeCap(G.Paint.Cap.BUTT);
 				pa.setStyle(G.Paint.Style.STROKE)
-				pa.setColor(Common.theme.promptcolor);
+				Common.setPaintColor(pa, Common.theme.promptcolor);
 				pa.setStrokeWidth(2);
 				pa.setAntiAlias(true);
 				ph.moveTo(0, 0);

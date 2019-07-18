@@ -1194,7 +1194,7 @@ MapScript.loadModule("CA", {
 				var cv = new G.Canvas(bmp);
 				var pa = new G.Paint();
 				pa.setStyle(G.Paint.Style.FILL)
-				pa.setColor(Common.theme.promptcolor);
+				Common.setPaintColor(pa, Common.theme.promptcolor);
 				pa.setAntiAlias(true);
 				var ph = new G.Path();
 				ph.moveTo(0.3 * width, 0.3 * height);
@@ -4990,7 +4990,7 @@ MapScript.loadModule("CA", {
 			cv.scale(w / 256, w / 256);
 			var pt = new G.Paint();
 			pt.setAntiAlias(true);
-			pt.setColor(Common.theme.go_bgcolor);
+			Common.setPaintColor(pt, Common.theme.go_bgcolor);
 			pt.setShadowLayer(16, 0, 0, Common.theme.go_touchbgcolor);
 			cv.drawCircle(128, 128, 112, pt);
 			pt.setTextSize(128);
@@ -4998,7 +4998,7 @@ MapScript.loadModule("CA", {
 			pt.clearShadowLayer();
 			var fb = new G.Rect(), fm = pt.getFontMetrics();
 			pt.getTextBounds("CA", 0, 2, fb);
-			pt.setColor(Common.theme.go_textcolor);
+			Common.setPaintColor(pt, Common.theme.go_textcolor);
 			cv.drawText("CA", 128 - fb.centerX(), 128 - (fm.descent + fm.ascent) / 2 , pt);
 			var frm = new G.FrameLayout(ctx);
 			var view = new G.ImageView(ctx);
@@ -5060,7 +5060,7 @@ MapScript.loadModule("CA", {
 		var cv = new G.Canvas(bmp);
 		var pt = new G.Paint();
 		pt.setAntiAlias(false);
-		pt.setColor(G.Color.BLACK);
+		Common.setPaintColor(pt, G.Color.BLACK);
 		pt.setStyle(G.Paint.Style.FILL);
 		cv.drawColor(G.Color.WHITE);
 		cv.scale(bmp.width / code.width, bmp.height / code.height);
@@ -5116,13 +5116,13 @@ MapScript.loadModule("CA", {
 				});
 				pt1.setAntiAlias(true);
 				pt1.setTextAlign(G.Paint.Align.CENTER);
-				pt1.setColor(G.Color.BLACK);
+				Common.setPaintColor(pt1, G.Color.BLACK);
 				pt1.setTextSize(0.1 * width);
 				fontHeight1 = pt1.descent() - pt1.ascent();
 				textHeight1 = self.getTextHeight(text1, width * 0.6, pt1, 0, 0);
 				totalHeight += textHeight1 + fontHeight1;
 				pt2 = new G.Paint(pt1);
-				pt2.setColor(G.Color.GRAY);
+				Common.setPaintColor(pt2, G.Color.GRAY);
 				pt2.setTextSize(0.07 * width);
 				fontHeight2 = pt2.descent() - pt2.ascent();
 				pt3 = new G.Paint(pt2);
@@ -5719,11 +5719,11 @@ MapScript.loadModule("CA", {
 				var bmp = G.Bitmap.createBitmap(fb.width() + 2 * offset, fb.height() + 2 * offset, G.Bitmap.Config.ARGB_8888);
 				var cv = new G.Canvas(bmp);
 				var ox = -fb.left, oy = -fb.top;
-				pt.setColor(bgcolor);
+				Common.setPaintColor(pt, bgcolor);
 				fb.inset(-padding, -padding);
 				fb.offsetTo(margin, margin);
 				cv.drawRect(fb, pt);
-				pt.setColor(frcolor);
+				Common.setPaintColor(pt, frcolor);
 				cv.drawText(text, offset + ox, offset + oy , pt);
 				self.bmpcache.push(bmp);
 				return new G.ImageSpan(ctx, bmp, 0); //0 = ALIGN_BOTTOM
