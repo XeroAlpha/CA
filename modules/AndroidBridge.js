@@ -26,7 +26,7 @@ MapScript.loadModule("AndroidBridge", {
 				delete AndroidBridge.intentCallback[requestCode];
 				cb(resultCode, data);
 			} catch(e) {erp(e)}},
-			onBeginPermissonRequest : function(activity) {try {
+			onBeginPermissionRequest : function(activity) {try {
 				return AndroidBridge.onBeginPermissonRequest(activity);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {try {
