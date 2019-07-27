@@ -2,7 +2,7 @@ const process = require("process");
 const child_process = require("child_process");
 module.exports = function(context, args) {
 	return new Promise(function(resolve, reject) {
-		var cmd = "gradlew --console plain " + args;
+		var cmd = "gradlew --console plain --warning-mode all " + args;
 		console.log("Running " + args);
 		var child = child_process.exec(cmd, {
 			cwd : context.shellcwd
