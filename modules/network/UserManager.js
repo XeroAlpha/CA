@@ -1,8 +1,9 @@
 MapScript.loadModule("UserManager", {
+	apiHost : "https://ca.projectxero.top",
 	login : function(emailOrName, password) {
 		var d;
 		try {
-			d = JSON.parse(NetworkUtils.postPage("https://ca.projectxero.top/user/login", NetworkUtils.toQueryString({
+			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/login", NetworkUtils.toQueryString({
 				name : emailOrName,
 				pass : password
 			}), "application/x-www-form-urlencoded"));
@@ -16,7 +17,7 @@ MapScript.loadModule("UserManager", {
 	},
 	register : function(email, name, password) {
 		try {
-			NetworkUtils.postPage("https://ca.projectxero.top/user/register", NetworkUtils.toQueryString({
+			NetworkUtils.postPage(this.apiHost + "/user/register", NetworkUtils.toQueryString({
 				email : email,
 				name : name,
 				pass : password
@@ -28,7 +29,7 @@ MapScript.loadModule("UserManager", {
 	refreshLogin : function(refreshToken) {
 		var d;
 		try {
-			d = JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/user/refresh?" + NetworkUtils.toQueryString({
+			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/user/refresh?" + NetworkUtils.toQueryString({
 				token : refreshToken
 			})));
 		} catch(e) {
@@ -39,7 +40,7 @@ MapScript.loadModule("UserManager", {
 	getUserInfo : function() {
 		var d;
 		try {
-			d = JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/user/info?" + NetworkUtils.toQueryString({
+			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/user/info?" + NetworkUtils.toQueryString({
 				token : this.accessToken
 			})));
 		} catch(e) {
@@ -49,7 +50,7 @@ MapScript.loadModule("UserManager", {
 	},
 	requestResetPassword : function(email, password) {
 		try {
-			NetworkUtils.postPage("https://ca.projectxero.top/user/forget_password", NetworkUtils.toQueryString({
+			NetworkUtils.postPage(this.apiHost + "/user/forget_password", NetworkUtils.toQueryString({
 				email : email,
 				pass : password
 			}), "application/x-www-form-urlencoded");
@@ -59,7 +60,7 @@ MapScript.loadModule("UserManager", {
 	},
 	setPassword : function(oldPassword, newPassword) {
 		try {
-			NetworkUtils.postPage("https://ca.projectxero.top/user/set_password", NetworkUtils.toQueryString({
+			NetworkUtils.postPage(this.apiHost + "/user/set_password", NetworkUtils.toQueryString({
 				accessToken : this.accessToken,
 				oldPwd : oldPassword,
 				newPwd : newPassword
@@ -70,7 +71,7 @@ MapScript.loadModule("UserManager", {
 	},
 	setUsername : function(name) {
 		try {
-			NetworkUtils.postPage("https://ca.projectxero.top/user/set_username", NetworkUtils.toQueryString({
+			NetworkUtils.postPage(this.apiHost + "/user/set_username", NetworkUtils.toQueryString({
 				accessToken : this.accessToken,
 				name : name
 			}), "application/x-www-form-urlencoded");
@@ -80,7 +81,7 @@ MapScript.loadModule("UserManager", {
 	},
 	changeEmail : function(email) {
 		try {
-			NetworkUtils.postPage("https://ca.projectxero.top/user/change_email", NetworkUtils.toQueryString({
+			NetworkUtils.postPage(this.apiHost + "/user/change_email", NetworkUtils.toQueryString({
 				accessToken : this.accessToken,
 				email : email
 			}), "application/x-www-form-urlencoded");
@@ -107,7 +108,9 @@ MapScript.loadModule("UserManager", {
 		"error.user.setName.writeError" : "写入账户记录失败",
 		"info.user.changeEmail.sameAddress" : "旧邮箱与新邮箱相同",
 		"error.user.changeEmail.emailOccupied" : "该邮箱已与其他账户绑定",
-		"error.user.changeEmail.sendEmailFailed" : "发送验证邮件失败"
+		"error.user.changeEmail.sendEmailFailed" : "发送验证邮件失败",
+		"error.user.addExp.notAllowed" : "在指定时间前，经验已到达上限",
+		"info.user.addExp.limitedToday" : "本日获得经验已到达上限" 
 	},
 	parseError : function(e) {
 		var json, message;
@@ -152,12 +155,31 @@ MapScript.loadModule("UserManager", {
 	getCachedUserInfo : function() {
 		return this.userInfo;
 	},
+	getLevelExp : function(level) {
+		if (level > 0 && level <= 15) {
+			return 2 * level + 7;
+		} else if (level > 15 && level <= 30) {
+			return 5 * level - 38;
+		} else if (level > 30) {
+			return 9 * level - 158;
+		} else {
+			return 10000;
+		}
+	},
 	parseExpLevel : function(exp) {
+		var lev = 1, levExp, rest = exp;
+		lev = 1;
+		levExp = this.getLevelExp(1);
+		while (rest >= levExp) {
+			rest -= levExp;
+			lev++;
+			levExp = this.getLevelExp(lev);
+		}
 		return {
 			total : exp,
-			level : Math.floor(exp / 500) + 1,
-			rest : exp % 500,
-			levelExp : 500
+			level : lev,
+			rest : rest,
+			levelExp : levExp
 		};
 	},
 	processUriAction : function(type, query) {
