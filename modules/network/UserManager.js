@@ -12,7 +12,7 @@ MapScript.loadModule("UserManager", {
 		}
 		this.saveToken(d.result);
 	},
-	logout :function() {
+	logout : function() {
 		this.clearToken();
 	},
 	register : function(email, name, password) {
@@ -43,6 +43,17 @@ MapScript.loadModule("UserManager", {
 			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/user/info?" + NetworkUtils.toQueryString({
 				token : this.accessToken
 			})));
+		} catch(e) {
+			throw this.parseError(e);
+		}
+		return d.result;
+	},
+	authorize : function() {
+		var d;
+		try {
+			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/authorize", NetworkUtils.toQueryString({
+				token : this.accessData.refreshToken
+			}), "application/x-www-form-urlencoded"));
 		} catch(e) {
 			throw this.parseError(e);
 		}
@@ -89,28 +100,122 @@ MapScript.loadModule("UserManager", {
 			throw this.parseError(e);
 		}
 	},
+	checkIn : function() {
+		var d;
+		try {
+			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/check_in", NetworkUtils.toQueryString({
+				token : this.accessToken
+			}), "application/x-www-form-urlencoded"));
+		} catch(e) {
+			throw this.parseError(e);
+		}
+		return d.result;
+	},
+	addExp : function(reasons) {
+		var d;
+		try {
+			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/add_exp", NetworkUtils.toQueryString({
+				token : this.accessToken,
+				reasons : Array.isArray(reasons) ? reasons.join(",") : reasons
+			}), "application/x-www-form-urlencoded"));
+		} catch(e) {
+			throw this.parseError(e);
+		}
+		return d.result;
+	},
 	errorMessage : {
+		"precond.user.info.token.missing" : "缺少访问令牌",
 		"error.user.info.invalidToken" : "无效的访问令牌",
 		"error.user.info.userNotExist" : "用户已被注销",
+
+		"precond.user.register.email.missing" : "缺少邮箱地址",
+		"precond.user.register.email.wrong" : "邮箱地址过长或格式不正确",
+		"precond.user.register.name.missing" : "缺少用户名",
+		"precond.user.register.name.wrong" : "用户名长度过短、过长或含有违法词语",
+		"precond.user.register.pass.missing" : "缺少密码",
+		"precond.user.register.pass.wrong" : "密码过短或过长",
 		"error.user.register.emailOccupied" : "邮箱已被使用",
 		"error.user.register.nameOccupied" : "用户名已被占用",
 		"error.user.register.abuseEmail" : "请不要向这个邮箱发送过多邮件或发送邮件发送过于频繁",
+		"error.user.register.writeError" : "写入数据库失败",
 		"error.user.register.sendEmailFailed" : "发送验证邮件失败",
+
+		// "precond.user.activate.token.missing" : "缺少token参数",
+		// "error.user.activate.invalidToken" : "链接已被使用过或参数不正确",
+		// "error.user.activate.emailOccupied" : "邮箱已被占用",
+		// "error.user.activate.nameOccupied" : "用户名已被占用",
+		// "error.user.activate.writeError" : "写入账户记录失败",
+
+		"precond.user.login.user.missing" : "缺少用户名",
+		"precond.user.login.pass.missing" : "缺少密码",
 		"error.user.login.userNotExist" : "用户名或密码不正确",
 		"error.user.login.wrongPassword" : "用户名或密码不正确",
+		"error.user.login.writeError" : "写入数据库失败",
+
+		"precond.user.refreshLogin.token.missing" : "缺少刷新令牌",
+		"error.user.refreshLogin.writeError" : "写入数据库失败",
 		"error.user.refreshLogin.invalidToken" : "刷新令牌不可用",
+		"error.user.refreshLogin.writeError" : "写入数据库失败",
+
+		"precond.user.authorize.token.missing" : "缺少刷新令牌",
+		"error.user.authorize.writeError" : "写入数据库失败",
+		"error.user.authorize.invalidToken" : "刷新令牌不可用",
+
+		"precond.user.loginOAuth.token.missing" : "授权令牌不可用",
+		"error.user.loginOAuth.invalidToken" : "已取得OAuth令牌或授权令牌不可用",
+
+		"precond.user.forgetPwd.email.missing" : "缺少邮箱地址",
+		"precond.user.forgetPwd.pass.missing" : "缺少密码",
+		"precond.user.forgetPwd.pass.wrong" : "密码过短或过长",
 		"error.user.forgetPwd.userNotExist" : "没有账户和该邮箱绑定",
 		"error.user.forgetPwd.abuseEmail" : "请不要向这个邮箱发送过多邮件或发送邮件发送过于频繁",
 		"error.user.forgetPwd.sendEmailFailed" : "发送重置密码邮件失败",
+
+		// "precond.user.resetPwd.token.missing" : "缺少token参数",
+		// "error.user.resetPwd.invalidToken" : "链接已被使用过或参数不正确",
+		// "error.user.resetPwd.userNotExist" : "邮箱对应的账户已被注销",
+		// "error.user.resetPwd.writeError" : "写入账户记录失败",
+
+		"precond.user.setPwd.accessToken.missing" : "缺少访问令牌",
+		"precond.user.setPwd.oldPassword.missing" : "缺少旧密码",
+		"precond.user.setPwd.newPassword.missing" : "缺少新密码",
+		"precond.user.setPwd.newPassword.wrong" : "密码过短或过长",
 		"error.user.setPwd.wrongOldPassword" : "旧密码错误",
 		"error.user.setPwd.writeError" : "写入账户记录失败",
+
+		"precond.user.setName.accessToken.missing" : "缺少访问令牌",
+		"precond.user.setName.name.missing" : "缺少用户名",
+		"precond.user.setName.name.wrong" : "用户名长度过短、过长或含有违法词语",
 		"error.user.setName.nameOccupied" : "用户名被占用",
 		"error.user.setName.writeError" : "写入账户记录失败",
+
+		"precond.user.changeEmail.email.missing" : "缺少邮箱地址",
+		"precond.user.changeEmail.email.wrong" : "邮箱地址过长或格式不正确",
 		"info.user.changeEmail.sameAddress" : "旧邮箱与新邮箱相同",
 		"error.user.changeEmail.emailOccupied" : "该邮箱已与其他账户绑定",
 		"error.user.changeEmail.sendEmailFailed" : "发送验证邮件失败",
+
+		// "precond.user.confirmEmail.token.missing" : "缺少token参数",
+		// "error.user.confirmEmail.invalidToken" : "链接已被使用过或参数不正确",
+		// "error.user.confirmEmail.userNotExist" : "邮箱对应的账户已被注销",
+		// "error.user.confirmEmail.emailOccupied" : "邮箱已与其他账户绑定",
+		// "error.user.confirmEmail.writeError" : "写入账户记录失败",
+
+		"precond.user.addExp.token.missing" : "缺少访问令牌",
+		"precond.user.addExp.reason.missing" : "缺少经验来源",
+		"precond.user.addExp.reason.wrong" : "不是有效的经验来源",
 		"error.user.addExp.notAllowed" : "在指定时间前，经验已到达上限",
-		"info.user.addExp.limitedToday" : "本日获得经验已到达上限" 
+		"info.user.addExp.limitedToday" : "本日获得经验已到达上限",
+		"error.user.addExp.writeError" : "写入账户记录失败",
+
+		"precond.user.checkIn.token.missing" : "缺少访问令牌",
+		"error.user.checkIn.writeError" : "写入账户记录失败",
+
+		"precond.admin.auth.token.missing" : "缺少令牌",
+		"error.admin.auth.notAdmin" : "没有权限",
+		"error.admin.auth.invalidToken" : "无效的管理员令牌",
+		"error.admin.action.notExists" : "管理员任务不存在",
+		"error.admin.action.error" : "管理员任务执行出错"
 	},
 	parseError : function(e) {
 		var json, message;
@@ -155,6 +260,9 @@ MapScript.loadModule("UserManager", {
 	getCachedUserInfo : function() {
 		return this.userInfo;
 	},
+	isOnline : function() {
+		return MapScript.host == "Android" && ScriptInterface.isOnlineMode();
+	},
 	getLevelExp : function(level) {
 		if (level > 0 && level <= 15) {
 			return 2 * level + 7;
@@ -181,6 +289,34 @@ MapScript.loadModule("UserManager", {
 			rest : rest,
 			levelExp : levExp
 		};
+	},
+	expQueue : new java.util.concurrent.ConcurrentLinkedQueue(),
+	enqueueExp : function(reason) {
+		if (this.isOnline()) {
+			this.expQueue.add(reason);
+		}
+	},
+	hasExpToSync : function() {
+		return this.isOnline() && !(this.expQueue.isEmpty() && this.userInfo.checkedIn);
+	},
+	syncExp : function() {
+		var queue = this.expQueue;
+		var e, list = [], result, checkInExp = 0;
+		if (!this.hasExpToSync()) return 0;
+		if (!this.userInfo.checkedIn) {
+			checkInExp = this.checkIn().add;
+			this.userInfo.checkedIn = true;
+		}
+		e = queue.poll();
+		while (e != null) {
+			list.push(e);
+			e = queue.poll();
+		}
+		if (list.length == 0) list = ["info"];
+		result = this.addExp(list);
+		this.userInfo.experience = result.experience;
+		result.add += checkInExp;
+		return result.add;
 	},
 	processUriAction : function(type, query) {
 		if (type == "login") {
@@ -283,7 +419,7 @@ MapScript.loadModule("UserManager", {
 		}), -1, -2);
 	} catch(e) {erp(e)}})},
 	showRegister : function self() { var realThis = this; G.ui(function() {try {
-		var email, username, password, password2, popup;
+		var email, username, password, password2, popup, emailRegex = /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
 		popup = PopupPage.showDialog("usermanager.Register", L.ScrollView({
 			style : "message_bg",
 			child : L.LinearLayout({
@@ -347,8 +483,14 @@ MapScript.loadModule("UserManager", {
 						fontSize : 3,
 						onClick : function() {try {
 							if (!email.length()) return Common.toast("邮箱地址不能为空");
+							if (email.length() > 80) return Common.toast("邮箱地址过长");
+							if (!emailRegex.test(email.text)) return Common.toast("邮箱地址不正确");
 							if (!username.length()) return Common.toast("用户名不能为空");
+							if (username.length() < 2) return Common.toast("用户名太短\n用户名长度应大于等于2字符且小于等于80字符");
+							if (username.length() > 80) return Common.toast("用户名太长\n用户名长度应大于等于2字符且小于等于80字符");
 							if (!password.length()) return Common.toast("密码不能为空");
+							if (password.length() < 6) return Common.toast("密码太短\n密码长度应大于等于6字符且小于等于1000字符");
+							if (password.length() > 1000) return Common.toast("密码太长\n密码长度应大于等于6字符且小于等于1000字符");
 							if (String(password.text) != String(password2.text)) return Common.toast("两次密码输入不一致");
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在发送验证邮件...");
@@ -371,17 +513,28 @@ MapScript.loadModule("UserManager", {
 	} catch(e) {erp(e)}})},
 	showRefreshLogin : function(refreshToken, silent) {
 		var realThis = this;
-		Common.showProgressDialog(function(dia) {
-			dia.setText("正在登录...");
-			try {
-				realThis.refreshLogin(refreshToken);
-			} catch(e) {
-				Log.e(e);
-				return Common.toast("登录失败\n" + e);
-			}
-			CA.trySave();
-			if (!silent) Common.toast("登录成功");
-		});
+		if (silent) {
+			Threads.run(function() {
+				try {
+					realThis.refreshLogin(refreshToken);
+					CA.trySave();
+				} catch(e) {
+					Log.e(e);
+				}
+			});
+		} else {
+			Common.showProgressDialog(function(dia) {
+				dia.setText("正在登录...");
+				try {
+					realThis.refreshLogin(refreshToken);
+				} catch(e) {
+					Log.e(e);
+					return Common.toast("登录失败\n" + e);
+				}
+				CA.trySave();
+				Common.toast("登录成功");
+			});
+		}
 	},
 	showUpdateUserInfo : function() {
 		var realThis = this;
@@ -471,6 +624,27 @@ MapScript.loadModule("UserManager", {
 			})
 		}), -1, -2);
 	} catch(e) {erp(e)}})},
+	showAuthorize : function(query) {
+		var realThis = this;
+		if (this.accessToken) {
+			Common.showProgressDialog(function(dia) {
+				var authToken;
+				dia.setText("正在使用命令助手登录...");
+				try {
+					authToken = realThis.authorize();
+					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(query.redirect + "?token=" + encodeURIComponent(authToken)))
+						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch(e) {
+					Log.e(e);
+					return Common.toast("使用命令助手登录失败\n" + e);
+				}
+			});
+		} else {
+			this.showLogin(function() {
+				realThis.showAuthorize(query);
+			});
+		}
+	},
 	showChangePassword : function self() { var realThis = this; G.ui(function() {try {
 		var oldpwd, newpwd, newpwd2, popup;
 		popup = PopupPage.showDialog("usermanager.ForgetPassword", L.ScrollView({
@@ -571,6 +745,35 @@ MapScript.loadModule("UserManager", {
 			}
 		});
 	},
+	showSyncExp : function(callback, silent) {
+		var realThis = this, result;
+		if (silent) {
+			Threads.run(function() {
+				try {
+					realThis.syncExp();
+					if (callback) callback();
+				} catch(e) {
+					Log.e(e);
+				}
+			});
+		} else {
+			Common.showProgressDialog(function(dia) {
+				dia.setText("正在同步经验...");
+				try {
+					result = realThis.syncExp();
+					if (result > 0) {
+						Common.toast("同步经验成功\n已增加" + result + "点经验");
+					} else {
+						Common.toast("同步经验成功");
+					}
+					if (callback) callback();
+				} catch(e) {
+					Log.e(e);
+					Common.toast("同步经验失败\n" + e);
+				}
+			});
+		}
+	},
 	getSettingItem : function() {
 		var realThis = this;
 		return {
@@ -598,6 +801,7 @@ MapScript.loadModule("UserManager", {
 	showManage : function(callback) { var realThis = this; G.ui(function() {try {
 		var popup, userInfo = realThis.userInfo;
 		var exp = realThis.parseExpLevel(userInfo.experience);
+		var hasExpToSync = realThis.hasExpToSync();
 		popup = PopupPage.showSideBar("usermanager.Manage", L.ScrollView({
 			style : "message_bg",
 			fillViewport : true,
@@ -647,6 +851,22 @@ MapScript.loadModule("UserManager", {
 								fontSize : 1
 							}),
 						]
+					}),
+					L.TextView({
+						text : hasExpToSync && !userInfo.checkedIn ? "签到" : "同步经验",
+						padding : [0, 15 * G.dp, 0, 15 * G.dp],
+						gravity : L.Gravity("left"),
+						layout : { width : -1, height : -2 },
+						style : hasExpToSync ? "button_critical" : "button_highlight",
+						fontSize : 3,
+						onClick : function() {try {
+							if (realThis.isOnline()) {
+								realThis.showSyncExp(callback);
+							} else {
+								Common.toast("同步经验成功");
+							}
+							popup.exit();
+						} catch(e) {erp(e)}}
 					}),
 					L.TextView({
 						text : "更改用户名",

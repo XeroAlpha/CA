@@ -661,6 +661,7 @@ MapScript.loadModule("CA", {
 					return;
 				}
 				self.performClose();
+				if (s.length > 20) UserManager.enqueueExp("copyCommand");
 			}
 			self.activate = function(fl) {
 				CA.cmd.requestFocus();
@@ -6088,6 +6089,7 @@ MapScript.loadModule("CA", {
 							Common.toast("模板为空");
 							return;
 						}
+						self.addExp();
 						Common.showFileDialog({
 							type : 1,
 							callback : function(f) {
@@ -6118,6 +6120,7 @@ MapScript.loadModule("CA", {
 							callback : function() {
 								this.folder.children.push(this.data);
 								Common.toast("模板已收藏");
+								self.addExp();
 							},
 							onDismiss : function() {
 								if (CA.history) CA.showHistory();
@@ -6134,6 +6137,11 @@ MapScript.loadModule("CA", {
 				self.content_default = view;
 				PWM.registerResetFlag(self, "content_default");
 				return view;
+			}
+			self.addExp = function() {
+				if (self.getVariables().length > 0) {
+					UserManager.enqueueExp("createTemplate");
+				}
 			}
 
 			self.linear = new G.LinearLayout(ctx);

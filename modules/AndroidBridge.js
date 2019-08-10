@@ -930,6 +930,9 @@ MapScript.loadModule("AndroidBridge", {
 			},
 			autologin : function(fragment, query, extras) {
 				UserManager.processUriAction("autologin", query);
+			},
+			authorize : function(fragment, query, extras) {
+				UserManager.showAuthorize(query);
 			}
 		}
 	}
