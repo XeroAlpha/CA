@@ -576,7 +576,6 @@ MapScript.loadModule("JSONEdit", {
 			ret.setText(Common.toString(data));
 			ret.setSingleLine(false);
 			ret.setMinWidth(0.5 * Common.getScreenWidth());
-			ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			ret.setLayoutParams(new G.LinearLayout.LayoutParams(-2, 0, 1.0));
 			if (typeof data == "number") ret.setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 			ret.setSelection(ret.length());

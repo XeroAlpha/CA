@@ -1640,14 +1640,12 @@ MapScript.loadModule("CA", {
 		key.setHint("名称");
 		key.setSingleLine(true);
 		key.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
-		key.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 		key.setSelection(key.length());
 		Common.applyStyle(key, "edittext_default", 2);
 		linear.addView(key);
 		value = new G.EditText(ctx);
 		value.setHint("内容");
 		value.setSingleLine(true);
-		value.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 		value.setSelection(value.length());
 		Common.applyStyle(value, "edittext_default", 2);
 		linear.addView(value);

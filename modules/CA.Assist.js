@@ -191,7 +191,6 @@
 				ret.setText(defVal ? String(defVal) : e.text ? e.text : "");
 				ret.setSingleLine(true);
 				ret.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
-				ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 				ret.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 				ret.setSelection(ret.length());
 				Common.applyStyle(ret, "edittext_default", 2);
@@ -475,7 +474,6 @@
 			ret[i] = new G.EditText(ctx);
 			ret[i].setText(isNaN(e.pos[i]) ? "" : String(e.pos[i]));
 			ret[i].setSingleLine(true);
-			ret[i].setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 			ret[i].setInputType(G.InputType.TYPE_CLASS_NUMBER | G.InputType.TYPE_NUMBER_FLAG_SIGNED | G.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 			ret[i].setLayoutParams(new G.TableRow.LayoutParams(0, -2, 1));
 			ret[i].setSelection(ret[i].length());

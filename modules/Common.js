@@ -431,7 +431,6 @@ MapScript.loadModule("Common", {
 		if (s.keyListener) ret.setKeyListener(s.keyListener);
 		if (s.transformationMethod) ret.setTransformationMethod(s.transformationMethod);
 		ret.setLayoutParams(new G.LinearLayout.LayoutParams(-2, -2));
-		ret.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
 		ret.setSelection(ret.length());
 		Common.applyStyle(ret, "edittext_default", 2);
 		layout.addView(ret);
