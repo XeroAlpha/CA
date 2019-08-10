@@ -2639,7 +2639,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://projectxero.top/ca"))
+						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top"))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("项目官网打开失败");

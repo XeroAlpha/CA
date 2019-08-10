@@ -454,6 +454,7 @@ MapScript.loadModule("Updater", {
 	sources : {
 		id : "9f15605c-b7fa-49c7-8ee8-55b525570d96",
 		content : [
+			"https://ca.projectxero.top/hotfix.json",
 			"https://projectxero.top/ca/hotfix.json",
 			"https://projectxero.gitee.io/ca/hotfix.json",
 			"https://xeroalpha.github.io/CA/pages/hotfix.json"
@@ -462,6 +463,7 @@ MapScript.loadModule("Updater", {
 	betaSources : {
 		id : "7a0df683-bae8-477d-9d84-b2a0c72eadcc",
 		content : [
+			"https://ca.projectxero.top/snapshot.json",
 			"https://projectxero.top/ca/snapshot.json"
 		]
 	}

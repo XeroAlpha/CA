@@ -61,7 +61,7 @@ MapScript.loadModule("PushService", {
 		this.nms.cancel("capush", parseInt(o.id));
 	},
 	getPosts : function(since, limit, direction, sort) {
-		return JSON.parse(NetworkUtils.queryPage("https://projectxero.top/ca/push.php?" + NetworkUtils.toQueryString({
+		return JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/push?" + NetworkUtils.toQueryString({
 			since : since,
 			limit : limit,
 			dir : direction,
@@ -69,7 +69,7 @@ MapScript.loadModule("PushService", {
 		})));
 	},
 	getTags : function() {
-		return JSON.parse(NetworkUtils.queryPage("https://projectxero.top/ca/pushtags.json"));
+		return JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/push/tags"));
 	},
 	readPushs : function() {
 		var pushs = this.getPosts(this.lastPushId + 1, 10, "forward", "desc"), firstTime = this.lastPushId < 0;

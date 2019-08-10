@@ -356,7 +356,7 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 	if (self.count > 3) return;
 	if (!self.notReport) {
 		new java.lang.Thread(function() {try {
-			var url = new java.net.URL("https://projectxero.top/ca/bugreport.php");
+			var url = new java.net.URL("https://ca.projectxero.top/bugreport");
 			var conn = url.openConnection();
 			conn.setConnectTimeout(5000);
 			conn.setUseCaches(false);

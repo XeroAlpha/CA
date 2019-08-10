@@ -718,7 +718,7 @@
 		return this.getOriginSourceUrl();
 	},
 	getOriginSourceUrl : function() {
-		return "https://projectxero.top/ca/clib/";
+		return "https://ca.projectxero.top/clib/";
 	},
 	getVerify : function(source) {
 		return source.verifyObject ? source.verifyObject : (source.verifyObject = this.downloadAsArray(source.pubkey));
