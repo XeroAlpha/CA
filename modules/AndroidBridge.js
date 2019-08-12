@@ -87,6 +87,16 @@ MapScript.loadModule("AndroidBridge", {
 				MCAdapter.client = null;
 				MCAdapter.connInit = false;
 				AndroidBridge.notifySettings();
+			} catch(e) {erp(e)}},
+			onTileReady : function(config) {try {
+				var tileData = AndroidBridge.getTile();
+				var tile = AndroidBridge.Tiles[tileData.tile];
+				tile.updateTile(tileData, config);
+			} catch(e) {erp(e)}},
+			onTileClick : function(config) {try {
+				var tileData = AndroidBridge.getTile();
+				var tile = AndroidBridge.Tiles[tileData.tile];
+				tile.onTileClick(tileData, config);
 			} catch(e) {erp(e)}}
 		});
 		this.onNewIntent(ScriptInterface.getIntent(), true);
@@ -149,10 +159,6 @@ MapScript.loadModule("AndroidBridge", {
 			break;
 			case ScriptInterface.ACTION_URI_ACTION:
 			AndroidBridge.openUriAction(intent.getData(), intent.getExtras());
-			break;
-			case ScriptInterface.ACTION_SHOW_DEBUG:
-			//ctx.startActivity(new android.content.Intent("com.xero.ca.SHOW_DEBUG").setComponent(new android.content.ComponentName("com.xero.ca", "com.xero.ca.MainActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-			DebugUtils.showDebugDialog();
 			break;
 
 			default:
@@ -417,6 +423,24 @@ MapScript.loadModule("AndroidBridge", {
 				},
 				onclick : function(fset) {
 					CA.showActionEdit(AndroidBridge.getKeeperMenu(), fset, AndroidBridge.defaultKeeperMenu);
+				}
+			}, {
+				name : "快捷设置开关",
+				type : "custom",
+				hidden : function() {
+					return android.os.Build.VERSION.SDK_INT < 24;
+				},
+				get : function() {
+					var tileData = AndroidBridge.getTile();
+					var tile = AndroidBridge.Tiles[tileData.tile];
+					return tile ? tile.name : "未定义";
+				},
+				onclick : function(fset) {
+					AndroidBridge.showEditTile(AndroidBridge.getTile(), function(tileData) {
+						CA.settings.qstile = tileData;
+						ScriptInterface.notifyTileUpdate();
+						fset();
+					});
 				}
 			}];
 		}
@@ -896,6 +920,159 @@ MapScript.loadModule("AndroidBridge", {
 		{ action : "ca.switchIconVisibility" },
 		{ action : "ca.exit" }
 	],
+	Tiles : {
+		"null" : {
+			name : "无",
+			updateTile : function(data, tile) {
+				tile.label = "命令助手";
+				tile.subtitle = "";
+				tile.state = tile.STATE_INACTIVE;
+			},
+			onTileClick : function(data, tile) {
+				this.updateTile(data, tile);
+			}
+		},
+		"action" : {
+			name : "执行动作",
+			description : "点击后执行一个动作",
+			create : function() {
+				return {
+					action : {}
+				};
+			},
+			edit : function(data, newCreated, callback) {
+				var keys = Object.keys(CA.Actions), curIndex, curKey, curAction, curData = data.action;
+				if (!newCreated) {
+					curIndex = keys.indexOf(curData.action);
+				} else {
+					curIndex = -1;
+				}
+				if (curIndex >= 0) {
+					curKey = keys[curIndex];
+					curAction = CA.Actions[curKey];
+					keys.splice(curIndex, 1);
+				}
+				keys = keys.map(function(e) {
+					var action = CA.Actions[e];
+					return {
+						text : action.name,
+						description : action.description,
+						key : e,
+						action : action
+					};
+				});
+				if (curAction) {
+					keys.unshift({
+						text : "(当前) " + curAction.name,
+						description : curAction.description,
+						key : curKey,
+						action : curAction,
+						current : true
+					});
+				}
+				Common.showListChooser(keys, function(i) {
+					var e = keys[i];
+					var action = e.action;
+					if (!e.current) {
+						curData = action.create ? action.create() : {};
+						curData.action = e.key;
+					}
+					if (action.edit) {
+						action.edit(curData, !e.current, function() {
+							data.action = curData;
+							callback(data);
+						});
+					} else {
+						data.action = curData;
+						callback(data);
+					}
+				});
+			},
+			updateTile : function(data, tile) {
+				var actionData = data.action;
+				var action = CA.Actions[actionData.action];
+				if (!action) return;
+				if (action.available && !action.available(actionData)) return;
+				tile.label = (action.getName ? action.getName(actionData) : action.name) || "";
+				tile.subtitle = (action.getDescription ? action.getDescription(actionData) : action.description) || "";
+				tile.state = tile.STATE_INACTIVE;
+			},
+			onTileClick : function(data) {
+				var actionData = data.action;
+				var action = CA.Actions[actionData.action];
+				if (!action) return;
+				if (action.available && !action.available(actionData)) return;
+				action.execute(actionData);
+			}
+		},
+		"ca.iconVisibility" : {
+			name : "切换悬浮图标显示/隐藏",
+			updateTile : function(data, tile) {
+				tile.label = "悬浮图标";
+				tile.subtitle = "";
+				tile.state = CA.icon ? tile.STATE_ACTIVE : tile.STATE_INACTIVE;
+			},
+			onTileClick : function(data, tile) {
+				if (CA.icon) {
+					CA.hideIcon();
+					tile.state = tile.STATE_INACTIVE;
+				} else {
+					CA.showIcon();
+					tile.state = tile.STATE_ACTIVE;
+				}
+			}
+		}
+	},
+	getTile : function() {
+		if (!CA.settings.qstile) CA.settings.qstile = Object.copy(this.defaultTile);
+		return CA.settings.qstile;
+	},
+	defaultTile : {
+		tile : "null"
+	},
+	showEditTile : function self(data, callback) {G.ui(function() {try {
+		var keys = Object.keys(AndroidBridge.Tiles), curIndex, curKey, curTile, curData = data;
+		curIndex = keys.indexOf(data.tile);
+		if (curIndex >= 0) {
+			curKey = keys[curIndex];
+			curTile = AndroidBridge.Tiles[curKey];
+			keys.splice(curIndex, 1);
+		}
+		keys = keys.map(function(e) {
+			var data = AndroidBridge.Tiles[e];
+			return {
+				text : data.name,
+				description : data.description,
+				key : e,
+				data : data
+			};
+		});
+		keys.unshift({
+			text : "(当前) " + curTile.name,
+			description : curTile.description,
+			key : curKey,
+			data : curTile,
+			current : true
+		});
+		Common.showListChooser(keys, function(i) {
+			var e = keys[i];
+			var tile = e.data;
+			var data;
+			if (e.current) {
+				data = curData;
+			} else {
+				data = tile.create ? tile.create() : {};
+				data.tile = e.key;
+			}
+			if (tile.edit) {
+				tile.edit(data, !e.current, function() {
+					callback(data);
+				});
+			} else {
+				callback(data);
+			}
+		});
+	} catch(e) {erp(e)}})},
 	uriActions : {
 		open : {
 			default : function() {

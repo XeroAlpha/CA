@@ -355,7 +355,7 @@ MapScript.loadModule("DebugUtils", {
 				eval.call(null, data.expr);
 			} catch(e) {
 				erp(e, true);
-				Common.toast("无法执行自定义动作:" + data.name + "，报错已保存至错误日志\n" + e);
+				Common.toast("无法执行自定义动作:" + data.name + "，错误已保存至错误日志\n" + e);
 			}
 		}
 	},
@@ -428,11 +428,159 @@ MapScript.loadModule("DebugUtils", {
 		});
 		popup = PopupPage.showDialog("debug.actionEdit", layout, -1, -2);
 	} catch(e) {erp(e)}})},
+	debugTile : {
+		name : "自定义快捷开关",
+		description : "点击后会切换指定功能的开启与关闭",
+		create : function() {
+			return {
+				label : "",
+				update : "",
+				onClick : ""
+			};
+		},
+		edit : function(data, newCreated, callback) {
+			DebugUtils.showEditDebugTile(data, newCreated, callback);
+		},
+		updateTile : function(data, tile) {
+			if (data.label) tile.label = data.label;
+			this.evaluateTile("update", data, tile);
+		},
+		onTileClick : function(data, tile) {
+			this.evaluateTile("onClick", data, tile);
+		},
+		evaluateTile : function self(type, data, tile) {
+			var tileScope = {
+				label : tile.label,
+				subtitle : tile.subtitle,
+				state : this.stateToString(tile),
+				tile : tile,
+				invertState : this.invertState
+			};
+			tileScope.update = function() {
+				Loader.evalSpecial(data.update, "DebugTile", 0, tileScope, null);
+			};
+			tileScope.onClick = function() {
+				Loader.evalSpecial(data.onClick, "DebugTile", 0, tileScope, null);
+			};
+			try {
+				if (type == "onClick") {
+					tileScope.onClick();
+				} else {
+					tileScope.update();
+				}
+			} catch(e) {
+				erp(e, true);
+				Common.toast("快捷开关表达式计算出错，错误已保存至错误日志\n" + e);
+			}
+			tile.label = tileScope.label;
+			tile.subtitle = tileScope.subtitle;
+			tile.state = this.parseState(tileScope.state, tile);
+		},
+		stateToString : function(tile) {
+			switch (tile.state) {
+				case tile.STATE_ACTIVE:
+				return "active";
+				case tile.STATE_INACTIVE:
+				return "inactive";
+				case tile.STATE_UNAVAILABLE:
+				default:
+				return "unavailable";
+			}
+		},
+		parseState : function(state, tile) {
+			switch (state) {
+				case "active":
+				return tile.STATE_ACTIVE;
+				case "inactive":
+				return tile.STATE_INACTIVE;
+				case "unavailable":
+				return tile.STATE_UNAVAILABLE;
+			}
+			return tile.state;
+		},
+		invertState : function() {
+			switch (this.state) {
+				case "active":
+				this.state = "inactive";
+				break;
+				case "inactive":
+				this.state = "active";
+				break;
+				default:
+				this.state = "unavailable";
+			}
+		}
+	},
+	showEditDebugTile : function(data, newCreated, callback) {G.ui(function() {try {
+		var popup, layout, label, update, onClick;
+		layout = L.ScrollView({
+			style : "message_bg",
+			child : L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				padding : [15 * G.dp, 15 * G.dp, 15 * G.dp, 0],
+				children : [
+					L.TextView({
+						text : newCreated ? "新建自定义快捷开关" : "编辑自定义快捷开关",
+						padding : [0, 0, 0, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						style : "textview_default",
+						fontSize : 4
+					}),
+					label = L.EditText({
+						text : data.label,
+						hint : "标题(可选)",
+						singleLine : true,
+						padding : [0, 0, 0, 0],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 3,
+						layout : { width : -1, height : -2 }
+					}),
+					update = L.EditText({
+						text : data.update,
+						hint : "在此输入代码，会在更新快捷设置时触发",
+						padding : [0, 20 * G.dp, 0, 10 * G.dp],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 2,
+						layout : { width : -1, height : -2 }
+					}),
+					onClick = L.EditText({
+						text : data.onClick,
+						hint : "在此输入代码，会在点击快捷设置时触发",
+						padding : [0, 20 * G.dp, 0, 10 * G.dp],
+						imeOptions : L.EditorInfo("IME_FLAG_NO_FULLSCREEN"),
+						style : "edittext_default",
+						fontSize : 2,
+						layout : { width : -1, height : -2 }
+					}),
+					L.TextView({
+						text : "确定",
+						padding : [10 * G.dp, 20 * G.dp, 10 * G.dp, 20 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "button_critical",
+						fontSize : 3,
+						onClick : function() {try {
+							data.label = String(label.text);
+							data.update = String(update.text);
+							data.onClick = String(onClick.text);
+							if (callback) callback(data);
+							popup.exit();
+						} catch(e) {erp(e)}}
+					})
+				]
+			})
+		});
+		popup = PopupPage.showDialog("debug.tileEdit", layout, -1, -2);
+	} catch(e) {erp(e)}})},
 	updateDebugAction : function() {
 		if (CA.settings.enableDebugAction) {
 			CA.Actions["debug.action"] = this.debugAction;
+			AndroidBridge.Tiles["debug.tile"] = this.debugTile;
 		} else {
 			delete CA.Actions["debug.action"];
+			delete AndroidBridge.Tiles["debug.tile"];
 		}
 	},
 	initialize : function() {try {
