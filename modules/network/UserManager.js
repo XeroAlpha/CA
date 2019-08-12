@@ -123,6 +123,29 @@ MapScript.loadModule("UserManager", {
 		}
 		return d.result;
 	},
+	acquireAdminToken : function() {
+		var d;
+		try {
+			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/admin/auth?" + NetworkUtils.toQueryString({
+				token : this.accessToken
+			})));
+		} catch(e) {
+			throw this.parseError(e);
+		}
+		this.adminToken = d.result;
+	},
+	executeAdminAction : function(name, data) {
+		var d;
+		try {
+			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/admin/action?" + NetworkUtils.toQueryString({
+				token : this.adminToken,
+				action : name
+			}), JSON.stringify(data), "application/json"));
+		} catch(e) {
+			throw this.parseError(e);
+		}
+		return d.result;
+	},
 	errorMessage : {
 		"precond.user.info.token.missing" : "缺少访问令牌",
 		"error.user.info.invalidToken" : "无效的访问令牌",
@@ -905,6 +928,30 @@ MapScript.loadModule("UserManager", {
 							popup.exit();
 						} catch(e) {erp(e)}}
 					}),
+					L.TextView({
+						text : "进入管理界面",
+						visibility : L.View(userInfo.status == 999 ? "visible" : "gone"),
+						padding : [0, 15 * G.dp, 0, 15 * G.dp],
+						gravity : L.Gravity("left"),
+						layout : { width : -1, height : -2 },
+						style : "button_highlight",
+						fontSize : 3,
+						onClick : function() {try {
+							Common.showProgressDialog(function(dia) {
+								dia.setText("正在以管理员权限登录..");
+								try {
+									realThis.acquireAdminToken();
+								} catch(e) {
+									Log.e(e);
+									return Common.toast("使用管理员权限登录失败\n" + e);
+								}
+								G.ui(function() {try {
+									DebugUtils.showDebugDialog(realThis.getDebugInterface());
+								} catch(e) {erp(e)}});
+							});
+							popup.exit();
+						} catch(e) {erp(e)}}
+					}),
 					L.Space({
 						layout : { width : -1, height : 0, weight : 1.0 }
 					}),
@@ -924,6 +971,36 @@ MapScript.loadModule("UserManager", {
 		}), "left", 160 * G.dp, 0.2);
 		popup.enter();
 	} catch(e) {erp(e)}})},
+	getDebugInterface : function self() {
+		if (self.cache && self.cache.accessToken == this.accessToken) return self.cache;
+		var realThis = this;
+		var scope = {
+			UserManager : this,
+			list : function() {
+				return realThis.executeAdminAction("Admin.listActions");
+			},
+			action : realThis.executeAdminAction.bind(realThis),
+			lastError : function() {
+				return realThis.executeAdminAction("Admin.getLastError");
+			}
+		};
+		return self.cache = {
+			accessToken : realThis.accessToken,
+			getWelcomeText : function() {
+				return "欢迎使用管理员控制台 本控制台拓展了默认控制台的功能"
+			},
+			getGlobal : function() {
+				return MapScript.global;
+			},
+			evalExpr : function(expr) {
+				return Loader.evalSpecial(expr, "AdminDebugInterface", 0, scope, null);
+			},
+			onCommand : function(cmd) {
+				return false;
+			},
+			setPrinter : function() {}
+		};
+	},
 	initialize : function() {
 		this.loadToken();
 	}

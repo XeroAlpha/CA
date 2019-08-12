@@ -1,9 +1,57 @@
 MapScript.loadModule("DebugUtils", {
-	showDebugDialog : function self() {G.ui(function() {try {
+	showDebugDialog : function self(interface) {G.ui(function() {try {
+		var lastInterface;
 		if (!self.main) {
 			self.LINE_LIMIT = 200;
 			self.history = [];
 			self.lines = [];
+			self.defaultInterface = {
+				getWelcomeText : function() {
+					return "控制台 - 输入exit以退出";
+				},
+				getGlobal : function() {
+					return eval.call(null, "this");
+				},
+				evalExpr : function(expr) {
+					return eval.call(null, expr);
+				},
+				onCommand : function(cmd) {
+					var lc = cmd.toLowerCase();
+					if (lc.startsWith("id ")) {
+						try {
+							DebugUtils.startInteractiveDebug(cmd.slice(3), this.debugStatusListener);
+						} catch(_e) {
+							self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						}
+					} else {
+						return false;
+					}
+					return true;
+				},
+				setPrinter : function(printer) {},
+				debugStatusListener : function(status, arg1, arg2) {
+					switch(status) {
+						case "connecting":
+						self.print("\n[Interactive Debug] Connecting...");
+						break;
+						case "connected":
+						self.print("\n[Interactive Debug] Connected!");
+						break;
+						case "disconnected":
+						self.print("\n[Interactive Debug] Disconnected!");
+						break;
+						case "remoteExec":
+						self.print("\n[Interactive Debug] Remote:" + arg1);
+						break;
+						case "log":
+						self.print("\n[Interactive Debug] [" + arg1 + "]" + arg2);
+						break;
+						case "error":
+						self.print("\n[Interactive Debug] Error: " + arg1, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+						break;
+					}
+				}
+			};
 			self.vmaker = function(holder) {
 				var text = holder.text = new G.TextView(ctx);
 				text.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
@@ -18,7 +66,7 @@ MapScript.loadModule("DebugUtils", {
 				self.lines.length = 0;
 				self.history.length = 0;
 				self.lines.push(new G.SpannableStringBuilder());
-				self.print("控制台 - 输入exit以退出", new G.StyleSpan(G.Typeface.BOLD));
+				self.print(self.interface.getWelcomeText(), new G.StyleSpan(G.Typeface.BOLD));
 				self.ready("exit");
 			}
 			self.print = function(str, span) {G.ui(function() {try {
@@ -43,43 +91,23 @@ MapScript.loadModule("DebugUtils", {
 				self.adapter.notifyChange();
 				self.print(">  ", new G.ForegroundColorSpan(Common.theme.highlightcolor));
 			}
-			self.debugStatusListener = function(status, arg1, arg2) {
-				switch(status) {
-					case "connecting":
-					self.print("\n[Interactive Debug] Connecting...");
-					break;
-					case "connected":
-					self.print("\n[Interactive Debug] Connected!");
-					break;
-					case "disconnected":
-					self.print("\n[Interactive Debug] Disconnected!");
-					break;
-					case "remoteExec":
-					self.print("\n[Interactive Debug] Remote:" + arg1);
-					break;
-					case "log":
-					self.print("\n[Interactive Debug] [" + arg1 + "]" + arg2);
-					break;
-					case "error":
-					self.print("\n[Interactive Debug] Error: " + arg1, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-					break;
-				}
-			}
 			self.exec = function(_s) {
 				var _t, _ls = _s.toLowerCase();
-				if (_ls == "exit") {
+				if (self.interface.onCommand(_s)) {
+					return;
+				} else if (_ls == "exit") {
 					self.popup.exit();
 					return;
 				} else if (_ls == "cls") {
 					self.cls();
 					return;
 				} else if (_ls == "ls") {
-					JSONEdit.traceGlobal();
+					JSONEdit.trace(self.interface.getGlobal());
 				} else if (_ls.startsWith("ls ")) {
-					JSONEdit.trace(eval.call(null, _s.slice(3)));
+					JSONEdit.trace(self.interface.evalExpr(_s.slice(3)));
 				} else if (_ls.startsWith("cp ")) {
 					try {
-						var _t = MapScript.toSource(eval.call(null, _s.slice(3)));
+						var _t = MapScript.toSource(self.interface.evalExpr(_s.slice(3)));
 						self.print(_t);
 						Common.setClipboardText(_t);
 					} catch(_e) {
@@ -88,7 +116,7 @@ MapScript.loadModule("DebugUtils", {
 					}
 				} else if (_ls.startsWith("sn ")) {
 					try {
-						_t = MapScript.toSource(eval.call(null, _s.slice(3)));
+						_t = MapScript.toSource(self.interface.evalExpr(_s.slice(3)));
 						self.print(_t);
 					} catch(_e) {
 						self.print(_t = _e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
@@ -107,21 +135,15 @@ MapScript.loadModule("DebugUtils", {
 					}
 				} else if (_ls.startsWith("exec ")) {
 					try {
-						_t = eval(Common.readFile(_s.slice(5), ""));
+						_t = self.interface.evalExpr(Common.readFile(_s.slice(5), ""));
 						self.print(Log.debug("D", _t, 0).join("\n"));
-					} catch(_e) {
-						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
-					}
-				} else if (_ls.startsWith("id ")) {
-					try {
-						DebugUtils.startInteractiveDebug(_s.slice(3), self.debugStatusListener);
 					} catch(_e) {
 						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				} else if (_ls.startsWith("#")) {
 					Threads.run(function() {
 						try {
-							var _t = eval(_s.slice(1));
+							var _t = self.interface.evalExpr(_s.slice(1));
 							self.print(Log.debug("D", _t, 0).join("\n"));
 						} catch(_e) {
 							self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
@@ -133,20 +155,13 @@ MapScript.loadModule("DebugUtils", {
 					return;
 				} else {
 					try {
-						_t = eval(_s);
+						_t = self.interface.evalExpr(_s);
 						self.print(Log.debug("D", _t, 0).join("\n"));
 					} catch(_e) {
 						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
 					}
 				}
 				self.ready(_s);
-			}
-			function print(str) {
-				self.print(Common.toString(str));
-			}
-			function println(str) {
-				self.print(Common.toString(str));
-				self.print("\n");
 			}
 			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter(self.lines, self.vmaker, self.vbinder));
 
@@ -216,8 +231,13 @@ MapScript.loadModule("DebugUtils", {
 
 			self.popup = new PopupPage(self.main, "common.Console");
 
-			self.cls();
 			PWM.registerResetFlag(self, "main");
+		}
+		lastInterface = self.interface;
+		self.interface = interface || self.defaultInterface;
+		self.interface.setPrinter(self.print.bind(self));
+		if (self.interface != lastInterface) {
+			self.cls();
 		}
 		self.popup.enter();
 	} catch(e) {erp(e)}})},
