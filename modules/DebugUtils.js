@@ -126,7 +126,7 @@ MapScript.loadModule("DebugUtils", {
 					_fs.println(_t);
 					_fs.close();
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
 							.setType("text/plain")
 							.putExtra(android.content.Intent.EXTRA_STREAM, AndroidBridge.fileToUri(_file))
 							.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));

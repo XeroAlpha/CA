@@ -266,7 +266,7 @@ MapScript.loadModule("MCAdapter", {
 		intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 		intent.addCategory(android.content.Intent.CATEGORY_DEFAULT);
 		intent.setDataAndType(android.net.Uri.parse("file://" + path), mime);
-		ctx.startActivity(intent);
+		AndroidBridge.startActivity(intent);
 	},
 	existPackage : function(pkg) {
 		try {

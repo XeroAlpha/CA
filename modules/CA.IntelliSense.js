@@ -843,7 +843,7 @@
 			},
 			"查看中文Wiki" : function() {
 				try {
-					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"))
+					AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4"))
 						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 				} catch(e) {
 					Common.showWebViewDialog({
@@ -853,7 +853,7 @@
 			},
 			"加入我们..." : function() {
 				try {
-					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
+					AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
 						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 				} catch(e) {
 					Common.toast("QQ群号已复制至剪贴板");

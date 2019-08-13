@@ -151,7 +151,7 @@ MapScript.loadModule("AndroidBridge", {
 			if (!intent.getData()) break;
 			t = ctx.getPackageManager().getLaunchIntentForPackage(intent.getData().getSchemeSpecificPart());
 			if (t) {
-				ctx.startActivity(t);
+				AndroidBridge.startActivity(t);
 			}
 			break;
 			case ScriptInterface.ACTION_SCRIPT_ACTION:
@@ -165,12 +165,7 @@ MapScript.loadModule("AndroidBridge", {
 			if (startByIntent && CA.settings.chainLaunch) {
 				t = ctx.getPackageManager().getLaunchIntentForPackage(CA.settings.chainLaunch);
 				if (t) {
-					try {
-						ctx.startActivity(t);
-					} catch(e) {
-						Log.e(e);
-						CA.settings.chainLaunch = null;
-					}
+					AndroidBridge.startActivity(t);
 				}
 			}
 			if (!startByIntent) {
@@ -529,6 +524,19 @@ MapScript.loadModule("AndroidBridge", {
 			});
 		}, true);
 	},
+	startActivity : function(intent) {
+		try {
+			if (ctx.getPackageManager().queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).size() > 0) {
+				intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+				ctx.startActivity(intent);
+				return true;
+			}
+		} catch(e) {
+			Log.e(e);
+			Common.toast("打开外部应用失败，请检查您是否授予了命令助手后台弹出界面或类似的权限\n" + e);
+		}
+		return false;
+	},
 	startActivityForResult : function(intent, callback) {
 		var i;
 		for (i = 0; i < 65536; i++) {
@@ -539,7 +547,12 @@ MapScript.loadModule("AndroidBridge", {
 			return;
 		}
 		this.intentCallback[i] = callback;
-		ScriptInterface.startActivityForResult(intent, i);
+		try {
+			ScriptInterface.startActivityForResult(intent, i);
+		} catch(e) {
+			Log.e(e);
+			Common.toast("调用外部应用失败，请检查您是否授予了命令助手后台弹出界面或类似的权限\n" + e);
+		}
 	},
 	requestPermissionsByGroup : function(groups, callback) {
 		var result = {

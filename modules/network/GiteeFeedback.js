@@ -636,12 +636,8 @@ MapScript.loadModule("GiteeFeedback", {
 			}, {
 				text : "查看常见问题解答(FAQ)",
 				onclick : function(v, tag) {
-					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://gitee.com/projectxero/ca/wikis/pages?title=FAQ"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-					} catch(e) {
-						Common.toast("打开链接失败\n" + e);
-					}
+					AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://gitee.com/projectxero/ca/wikis/pages?title=FAQ"))
+						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 				}
 			}, {
 				text : "查看反馈说明",
@@ -1324,7 +1320,7 @@ MapScript.loadModule("GiteeFeedback", {
 	},
 	startOAuth : function(callback) {
 		this.oauthCallback = callback;
-		ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.getAuthorizeUrl()))
+		AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(this.getAuthorizeUrl()))
 			.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 	},
 	callbackOAuth : function(code) {

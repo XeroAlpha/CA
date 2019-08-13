@@ -348,7 +348,7 @@ MapScript.loadModule("PushService", {
 				}
 				var data = parent.getAdapter().getItem(pos), intent;
 				intent = PushService.getIntent(data);
-				if (intent) ctx.startActivity(intent);
+				if (intent) AndroidBridge.startActivity(intent);
 			} catch(e) {erp(e)}}}));
 			self.linear.addView(self.list, new G.LinearLayout.LayoutParams(-1, 0, 1.0));
 

@@ -2620,7 +2620,7 @@ MapScript.loadModule("CA", {
 				onclick : function() {
 					var t = "https://www.coolapk.com/game/190152";
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_SEND)
 							.setType("text/plain")
 							.putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String("Hi，我发现一款很棒的Minecraft辅助软件，命令助手。下载链接：" + t))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -2640,7 +2640,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function() {
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top"))
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top"))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("项目官网打开失败");
@@ -2654,7 +2654,7 @@ MapScript.loadModule("CA", {
 					Common.toast("QQ群号已复制至剪贴板");
 					Common.setClipboardText("303697689");
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=57Ac2tp"))
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=57Ac2tp"))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Log.e(e);
@@ -3274,8 +3274,13 @@ MapScript.loadModule("CA", {
 			text : "发送",
 			path : new java.io.File(ctx.getExternalCacheDir(), "ca_settings.dat"),
 			onclick : function() {
-				Common.fileCopy(new java.io.File(CA.profilePath), this.path);
-				ctx.startActivity(this.intent);
+				try {
+					Common.fileCopy(new java.io.File(CA.profilePath), this.path);
+					AndroidBridge.startActivity(this.intent);
+				} catch(e) {
+					Log.e(e);
+					Common.toast("发送配置文件失败\n" + e);
+				}
 			},
 			hidden : function() {
 				try {
@@ -3302,7 +3307,7 @@ MapScript.loadModule("CA", {
 				} catch(e) {Log.e(e)}
 			})(),
 			onclick : function() {
-				ctx.startActivity(this.intent);
+				AndroidBridge.startActivity(this.intent);
 			},
 			hidden : function() {
 				return !this.intent;
@@ -3323,7 +3328,7 @@ MapScript.loadModule("CA", {
 				} catch(e) {Log.e(e)}
 			})(),
 			onclick : function() {
-				ctx.startActivity(this.intent);
+				AndroidBridge.startActivity(this.intent);
 			},
 			hidden : function() {
 				return !this.intent;
@@ -4203,7 +4208,7 @@ MapScript.loadModule("CA", {
 											callback : function(id) {
 												if (id != 0) return;
 												try {
-													ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(arg_1))
+													AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(arg_1))
 														.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 													return;
 												} catch(e) {Log.e(e)}

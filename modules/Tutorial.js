@@ -263,7 +263,7 @@ MapScript.loadModule("Tutorial", {
 					break;
 					case "link":
 					try {
-						ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(e.url))
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(e.url))
 							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 					} catch(e) {
 						Common.toast("打开链接失败\n" + e);

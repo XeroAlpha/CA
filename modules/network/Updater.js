@@ -204,7 +204,7 @@ MapScript.loadModule("Updater", {
 		}
 		Common.showListChooser(d, function(i) {
 			try {
-				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(d[i].description))
+				AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(d[i].description))
 					.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 			} catch(e) {
 				Common.toast("打开链接失败\n" + e);

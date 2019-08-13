@@ -655,7 +655,7 @@ MapScript.loadModule("UserManager", {
 				dia.setText("正在使用命令助手登录...");
 				try {
 					authToken = realThis.authorize();
-					ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(query.redirect + "?token=" + encodeURIComponent(authToken)))
+					AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(query.redirect + "?token=" + encodeURIComponent(authToken)))
 						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
 				} catch(e) {
 					Log.e(e);
