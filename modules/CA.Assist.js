@@ -55,7 +55,7 @@
 			self.head = new G.TextView(ctx);
 			self.head.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			self.head.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-			self.head.setTypeface(G.Typeface.MONOSPACE);
+			self.head.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			self.head.setLineSpacing(10, 1);
 			Common.applyStyle(self.head, "textview_default", 2);
 			self.list = new G.ListView(ctx);

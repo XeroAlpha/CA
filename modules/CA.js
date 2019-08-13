@@ -781,7 +781,7 @@ MapScript.loadModule("CA", {
 			if (!CA.settings.openMenuByLongClick) {
 				self.menu = new G.TextView(ctx);
 				self.menu.setText("CA");
-				self.menu.setTypeface(G.Typeface.MONOSPACE);
+				self.menu.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 				self.menu.setGravity(G.Gravity.CENTER);
 				self.menu.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 				Common.applyStyle(self.menu, "button_reactive_auto", 3);
@@ -822,7 +822,7 @@ MapScript.loadModule("CA", {
 			CA.cmd.setFocusableInTouchMode(true);
 			CA.cmd.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			CA.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-			CA.cmd.setTypeface(G.Typeface.MONOSPACE);
+			CA.cmd.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			CA.cmd.setText(CA.cmdstr);
 			CA.cmd.addTextChangedListener(new G.TextWatcher({
 				afterTextChanged : function(s) {try {
@@ -2569,7 +2569,7 @@ MapScript.loadModule("CA", {
 					desp = new G.TextView(ctx);
 					desp.setGravity(G.Gravity.CENTER);
 					desp.setText("Developed by ProjectXero");
-					desp.setTypeface(G.Typeface.SERIF);
+					desp.setTypeface(G.Typeface.SERIF || G.Typeface.DEFAULT);
 					desp.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 					Common.applyStyle(desp, "textview_prompt", 2);
 					linear.addView(desp);
@@ -3385,7 +3385,7 @@ MapScript.loadModule("CA", {
 			self.hide.setTextColor(frcolor);
 			self.hide.setTextSize(Common.theme.textsize[2]);
 			self.hide.setGravity(G.Gravity.CENTER);
-			self.hide.setTypeface(G.Typeface.MONOSPACE);
+			self.hide.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			self.hide.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			self.hide.setBackgroundColor(Common.setAlpha(bgcolor, 0xC0));
 			self.hide.setLayoutParams(new G.FrameLayout.LayoutParams(-2, -2, G.Gravity.RIGHT));
@@ -3413,7 +3413,7 @@ MapScript.loadModule("CA", {
 			self.prompt.setEllipsize(G.TextUtils.TruncateAt.START);
 			self.prompt.setTextSize(Common.theme.textsize[2]);
 			self.prompt.setPadding(20 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
-			self.prompt.setTypeface(G.Typeface.MONOSPACE);
+			self.prompt.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			self.prompt.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				self.setVisible(false);
 			} catch(e) {erp(e)}}}));
@@ -3435,7 +3435,7 @@ MapScript.loadModule("CA", {
 					b.setTextColor(frcolor);
 					b.setTextSize(Common.theme.textsize[2]);
 					b.setGravity(G.Gravity.CENTER);
-					b.setTypeface(G.Typeface.MONOSPACE);
+					b.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 					b.setPadding(5 * G.dp, 10 * G.dp, 5 * G.dp, 10 * G.dp);
 					b.setText(FCString.parseFC(data[i][j]));
 					b.setOnClickListener(onclick);
@@ -3447,7 +3447,7 @@ MapScript.loadModule("CA", {
 			b.setTextColor(frcolor);
 			b.setTextSize(Common.theme.textsize[2]);
 			b.setGravity(G.Gravity.CENTER);
-			b.setTypeface(G.Typeface.MONOSPACE);
+			b.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			b.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
 			b.setText("..");
 			b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
@@ -4999,7 +4999,7 @@ MapScript.loadModule("CA", {
 			pt.setShadowLayer(16, 0, 0, Common.theme.go_touchbgcolor);
 			cv.drawCircle(128, 128, 112, pt);
 			pt.setTextSize(128);
-			pt.setTypeface(G.Typeface.create(G.Typeface.MONOSPACE, G.Typeface.BOLD));
+			pt.setTypeface(G.Typeface.create(G.Typeface.MONOSPACE || G.Typeface.DEFAULT, G.Typeface.BOLD));
 			pt.clearShadowLayer();
 			var fb = new G.Rect(), fm = pt.getFontMetrics();
 			pt.getTextBounds("CA", 0, 2, fb);
@@ -5428,7 +5428,7 @@ MapScript.loadModule("CA", {
 			self.edit.setSingleLine(true);
 			self.edit.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
 			self.edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-			self.edit.setTypeface(G.Typeface.MONOSPACE);
+			self.edit.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			Common.applyStyle(self.edit, "edittext_default", 3);
 			self.edit.addTextChangedListener(new G.TextWatcher({
 				afterTextChanged : function(s) {try {
@@ -5714,7 +5714,7 @@ MapScript.loadModule("CA", {
 				fontsize *= G.sp;
 				pt.setAntiAlias(true);
 				pt.setTextSize(fontsize);
-				pt.setTypeface(G.Typeface.MONOSPACE);
+				pt.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 				var fb = new G.Rect(), fm = pt.getFontMetrics();
 				fontsize -= 2 * offset / (fm.descent - fm.ascent);
 				pt.setTextSize(fontsize);
@@ -6162,7 +6162,7 @@ MapScript.loadModule("CA", {
 			self.edit.setSingleLine(true);
 			self.edit.setLayoutParams(new G.LinearLayout.LayoutParams(0, -2, 1.0));
 			self.edit.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-			self.edit.setTypeface(G.Typeface.MONOSPACE);
+			self.edit.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			Common.applyStyle(self.edit, "edittext_default", 3);
 			self.edit.setOnTouchListener(new G.View.OnTouchListener({onTouch : function touch(v, e) {try {
 				var link, x = e.getX(), y = e.getY();

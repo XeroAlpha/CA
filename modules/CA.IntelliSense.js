@@ -909,7 +909,7 @@
 			self.prompt = new G.TextView(ctx);
 			self.prompt.setLayoutParams(new G.AbsListView.LayoutParams(-1, -2));
 			self.prompt.setPadding(20 * G.dp, 10 * G.dp, 20 * G.dp, 10 * G.dp);
-			self.prompt.setTypeface(G.Typeface.MONOSPACE);
+			self.prompt.setTypeface(G.Typeface.MONOSPACE || G.Typeface.DEFAULT);
 			self.prompt.setLineSpacing(10, 1);
 			Common.applyStyle(self.prompt, "textview_default", 2);
 			self.list = new G.ListView(ctx);
