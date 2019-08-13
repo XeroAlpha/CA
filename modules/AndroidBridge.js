@@ -848,13 +848,17 @@ MapScript.loadModule("AndroidBridge", {
 		if (this.shouldForceRemoveTask()) keepActivity = false;
 		activity.runOnUiThread(function() {try {
 			if (keepActivity) {
-				activity.moveTaskToBack(false);
-			} else {
-				if (G.style == "Material") {
-					activity.finishAndRemoveTask();
-				} else {
-					activity.finish();
+				try {
+					activity.moveTaskToBack(false);
+					return;
+				} catch(e) {
+					Log.e(e);
 				}
+			}
+			if (G.style == "Material") {
+				activity.finishAndRemoveTask();
+			} else {
+				activity.finish();
 			}
 		} catch(e) {erp(e)}});
 	},
