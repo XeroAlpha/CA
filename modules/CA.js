@@ -411,8 +411,9 @@ MapScript.loadModule("CA", {
 				}
 			}
 			self.refreshIcon = function() {
-				if (!(CA.settings.iconSize > 0)) CA.settings.iconSize = 1;
-				self.icon = CA.settings.icon in CA.Icon ? CA.Icon[CA.settings.icon](CA.settings.iconSize, false) : CA.customIcon(CA.settings.icon, CA.settings.iconSize);
+				var iconSize = parseFloat(CA.settings.iconSize);
+				if (!(iconSize > 0)) CA.settings.iconSize = iconSize = 1;
+				self.icon = CA.settings.icon in CA.Icon ? CA.Icon[CA.settings.icon](iconSize, false) : CA.customIcon(CA.settings.icon, iconSize);
 				self.view.removeAllViews();
 				self.view.addView(self.icon);
 				self.refreshAlpha();
