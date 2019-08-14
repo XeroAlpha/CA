@@ -510,7 +510,16 @@ MapScript.loadModule("Loader", {
 	},
 	evalSpecial : function(source, sourceName, lineNumber, scope, thisArg) {
 		var cx = org.mozilla.javascript.Context.getCurrentContext();
-		return org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, scope, thisArg, [new java.lang.String(source)], sourceName, lineNumber);
+		var ret = org.mozilla.javascript.ScriptRuntime.evalSpecial(cx, scope, thisArg, [new java.lang.String(source)], sourceName, lineNumber);
+		if (ret instanceof java.lang.String) {
+			return String(ret);
+		} else if (ret instanceof java.lang.Boolean) {
+			return ret.booleanValue();
+		} else if (ret instanceof java.lang.Number) {
+			return ret.doubleValue();
+		} else {
+			return ret;
+		}
 	},
 	lockProperty : function(obj, propertyName) {
 		Object.defineProperty(obj, propertyName, {

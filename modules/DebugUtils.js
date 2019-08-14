@@ -13,7 +13,16 @@ MapScript.loadModule("DebugUtils", {
 					return eval.call(null, "this");
 				},
 				evalExpr : function(expr) {
-					return eval.call(null, expr);
+					return Loader.evalSpecial(expr, "Console", 0, this.evalScope, null);
+				},
+				evalScope : {
+					print : function(str) {
+						self.print(Common.toString(str));						
+					},
+					println : function(str) {
+						self.print(Common.toString(str));
+						self.print("\n");
+					}
 				},
 				onCommand : function(cmd) {
 					var lc = cmd.toLowerCase();
