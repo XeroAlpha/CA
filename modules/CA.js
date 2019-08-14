@@ -819,6 +819,7 @@ MapScript.loadModule("CA", {
 			CA.cmd.setHint("命令");
 			Common.applyStyle(CA.cmd, "edittext_default", 3);
 			CA.cmd.setInputType(G.InputType.TYPE_CLASS_TEXT | G.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT);
+			CA.cmd.setFilters([new G.InputFilter.LengthFilter(32768)])
 			CA.cmd.setFocusableInTouchMode(true);
 			CA.cmd.setPadding(5 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 			CA.cmd.setImeOptions(G.EditorInfo.IME_FLAG_NO_FULLSCREEN);

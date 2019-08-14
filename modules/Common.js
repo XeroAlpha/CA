@@ -1668,7 +1668,12 @@ MapScript.loadModule("Common", {
 		return clip.getItemAt(0).coerceToText(ctx);
 	},
 	setClipboardText : function(text) {
-		return ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setPrimaryClip(android.content.ClipData.newPlainText("", text));
+		try {
+			ctx.getSystemService(ctx.CLIPBOARD_SERVICE).setPrimaryClip(android.content.ClipData.newPlainText("", text));
+		} catch(e) {
+			Log.e(e);
+			Common.toast("无法复制指定文本到剪贴板，请检查您是否授权命令助手修改剪贴板的权限\n" + e);
+		}
 	},
 
 	getMetrics : function() {

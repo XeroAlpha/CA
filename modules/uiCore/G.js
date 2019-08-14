@@ -86,6 +86,7 @@ MapScript.loadModule("G", {
 	ImageDecoder: android.graphics.ImageDecoder,
 	ImageSpan: android.text.style.ImageSpan,
 	ImageView: android.widget.ImageView,
+	InputFilter: android.text.InputFilter,
 	InputMethodManager: android.view.inputmethod.InputMethodManager,
 	InputType: android.text.InputType,
 	Layout: android.text.Layout,
