@@ -51,9 +51,12 @@ MapScript.loadModule("AndroidBridge", {
 				if (msg.what != 1) return;
 				var data = msg.getData();
 				if (data.getString("action") != "init" && !MCAdapter.client) {
-					var msg2 = android.os.Message.obtain();
-					msg2.what = 2;
-					msg.replyTo.send(msg2);
+					var msg2;
+					if (msg.reply) { // 防止其他App误发消息被识别为适配器消息
+						msg2 = android.os.Message.obtain();
+						msg2.what = 2;
+						msg.replyTo.send(msg2);
+					}
 					return;
 				}
 				switch (String(data.getString("action"))) {
