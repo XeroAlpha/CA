@@ -2,6 +2,7 @@ MapScript.loadModule("AndroidBridge", {
 	intentCallback : {},
 	permissionRequestData : {start : 0, end : 0},
 	permissionCallback : {length : 0},
+	foregroundTask : {},
 	onCreate : function() {
 		G.ui(this.initIcon);
 	},
@@ -27,7 +28,10 @@ MapScript.loadModule("AndroidBridge", {
 				cb(resultCode, data);
 			} catch(e) {erp(e)}},
 			onBeginPermissionRequest : function(activity) {try {
-				return AndroidBridge.onBeginPermissonRequest(activity);
+				return AndroidBridge.onBeginPermissionRequest(activity);
+			} catch(e) {erp(e)}},
+			onBeginForegroundTask : function(activity, intent) {try {
+				return AndroidBridge.onBeginForegroundTask(activity, intent);
 			} catch(e) {erp(e)}},
 			onKeyEvent : function(e) {try {
 				if (e.getAction() == e.ACTION_DOWN) {
@@ -554,6 +558,28 @@ MapScript.loadModule("AndroidBridge", {
 			Common.toast("调用外部应用失败，请检查您是否授予了命令助手后台弹出界面或类似的权限\n" + e);
 		}
 	},
+	beginForegroundTask : function(name, callback) {
+		if (this.foregroundTask[name]) return;
+		this.foregroundTask[name] = callback;
+		try {
+			ScriptInterface.beginForegroundTask(new android.content.Intent("com.xero.ca.script.ForegroundScript")
+				.putExtra("taskName", new java.lang.String(name)));
+		} catch(e) {
+			Log.e(e);
+			Common.toast("无法切换至前台，请检查您是否授予了命令助手后台弹出界面或类似的权限\n" + e);
+		}
+	},
+	onBeginForegroundTask : function(activity, intent) {
+		var taskName = intent.getStringExtra("taskName");
+		var task = this.foregroundTask[taskName], delegee;
+		delete this.foregroundTask[taskName];
+		if (task) {
+			delegee = task(activity, intent);
+			if (delegee) {
+				activity.setDelegee(delegee);
+			}
+		}
+	},
 	requestPermissionsByGroup : function(groups, callback) {
 		var result = {
 			flag : true,
@@ -588,18 +614,25 @@ MapScript.loadModule("AndroidBridge", {
 				callback : callback,
 				mode : mode
 			});
-			if (!this.permissionRequest) ScriptInterface.beginPermissonRequest();
+			if (!this.permissionRequest) {
+				try {
+					ScriptInterface.beginPermissionRequest();
+				} catch(e) {
+					Log.e(e);
+					Common.toast("打开授权界面失败，可能造成部分App功能无法使用，请检查您是否授予了命令助手后台弹出界面或类似的权限\n" + e);
+				}
+			}
 		} else if (callback) {
 			callback(true, permissions.slice(), [], true);
 		}
 		return denied.length;
 	},
-	onBeginPermissonRequest : function(activity) {
+	onBeginPermissionRequest : function(activity) {
 		var lastData, code = 0;
 		this.permissionRequest = activity;
 		lastData = this.permissionRequestData[this.permissionRequestData.start];
 		if (this.permissionRequestData.start >= this.permissionRequestData.end) return activity.finish();
-		this.doPermissonRequest(activity, lastData, code);
+		this.doPermissionRequest(activity, lastData, code);
 		activity.setCallback({
 			onRequestPermissionsResult : function(activity, requestCode, permissions, grantResults) {try {
 				var i, succeed = [], failed = [];
@@ -621,7 +654,7 @@ MapScript.loadModule("AndroidBridge", {
 				}
 				lastData = AndroidBridge.permissionRequestData[AndroidBridge.permissionRequestData.start];
 				if (AndroidBridge.permissionRequestData.start < AndroidBridge.permissionRequestData.end) {
-					AndroidBridge.doPermissonRequest(activity, lastData, ++code);
+					AndroidBridge.doPermissionRequest(activity, lastData, ++code);
 				} else {
 					activity.finish();
 				}
@@ -631,7 +664,7 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		});
 	},
-	doPermissonRequest : function(activity, data, code) {
+	doPermissionRequest : function(activity, data, code) {
 		var msg = "命令助手需要申请" + data.permissions.length + "个权限。" + (data.explanation ? "\n" + data.explanation : "");
 		if (data.showRationale) {
 			new android.app.AlertDialog.Builder(activity)
