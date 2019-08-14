@@ -2379,7 +2379,7 @@ MapScript.loadModule("CA", {
 			self.vbinder = function(holder, e, i) {
 				holder.busy = true;
 				holder.check.setChecked(self.selection[i] == true);
-				holder.text1.setText(e.key);
+				holder.text1.setText(String(e.key));
 				holder.text2.setText(e.children ? "文件夹，包含" + e.children.length + "个成员" : e.value);
 				holder.edit.setVisibility(e.children ? G.View.GONE : G.View.VISIBLE);
 				holder.busy = false;
