@@ -781,16 +781,13 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	createShortcut : function(intent, name, icon) {
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
-			var manager = ctx.getSystemService(ctx.SHORTCUT_SERVICE);
-			var shortcut = new android.content.pm.ShortcutInfo.Builder(ctx, name)
-				.setShortLabel(name)
-				.setLongLabel(name)
-				.setIcon(isNaN(icon) ? icon : android.graphics.drawable.Icon.createWithResource(ctx, icon))
-				.setIntent(intent)
-				.build();
-			var callback = android.app.PendingIntent.getBroadcast(ctx, 0,
-				manager.createShortcutResultIntent(shortcut), android.app.PendingIntent.FLAG_ONE_SHOT);
-			manager.requestPinShortcut(shortcut, callback.getIntentSender());
+			if (ScriptInterface.isForeground()) {
+				AndroidBridge.doCreateShortcut(ctx, intent, name, icon);
+			} else {
+				this.beginForegroundTask("createShortcut@" + intent.hashCode().toString(16), function(activity) {
+					AndroidBridge.doCreateShortcut(activity, intent, name, icon);
+				});
+			}
 		} else {
 			var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
 			i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, name);
@@ -803,6 +800,18 @@ MapScript.loadModule("AndroidBridge", {
 			}
 			ctx.sendBroadcast(i);
 		}
+	},
+	doCreateShortcut : function(context, intent, name, icon) {
+		var manager = context.getSystemService(context.SHORTCUT_SERVICE);
+		var shortcut = new android.content.pm.ShortcutInfo.Builder(context, name)
+			.setShortLabel(name)
+			.setLongLabel(name)
+			.setIcon(isNaN(icon) ? icon : android.graphics.drawable.Icon.createWithResource(context, icon))
+			.setIntent(intent)
+			.build();
+		var callback = android.app.PendingIntent.getBroadcast(context, 0,
+			manager.createShortcutResultIntent(shortcut), android.app.PendingIntent.FLAG_ONE_SHOT);
+		manager.requestPinShortcut(shortcut, callback.getIntentSender());
 	},
 	scanMedia : function(files, statusListener) {
 		var scanConn, i = 0;
