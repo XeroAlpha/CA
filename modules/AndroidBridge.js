@@ -450,7 +450,12 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	getAppIcon : function() {
 		var appi = ctx.getPackageManager().getApplicationInfo("com.xero.ca", 128);
-		return ctx.getPackageManager().getResourcesForApplication(appi).getDrawable(appi.icon, null);
+		var res = ctx.getPackageManager().getResourcesForApplication(appi);
+		if (android.os.Build.VERSION.SDK_INT >= 21) {
+			return res.getDrawable(appi.icon, null);
+		} else {
+			return res.getDrawable(appi.icon);
+		}
 	},
 	getAppIconBadged : function() {
 		return ctx.getPackageManager().getApplicationIcon("com.xero.ca");

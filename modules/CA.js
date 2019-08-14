@@ -2665,6 +2665,14 @@ MapScript.loadModule("CA", {
 			}, {
 				name : "支持开发",
 				type : "custom",
+				hidden : function() {
+					if (MapScript.host == "Android") {
+						if (ScriptInterface.isOnlineMode()) {
+							return true;
+						}
+					}
+					return false;
+				},
 				onclick : function() {
 					CA.showDonate();
 				}
@@ -5117,8 +5125,18 @@ MapScript.loadModule("CA", {
 				var bmp, cv, pt1 = new G.Paint(), pt2, pt3, totalHeight = 0, fontHeight1, fontHeight2, textHeight1, footerHeight = 0.1 * width;
 				var text1 = o.title, text2 = o.description, text3 = o.comments;
 				var qr = G.Bitmap.createBitmap(width * 0.8, width * 0.8, G.Bitmap.Config.ARGB_8888);
+				var drawable;
+				if (MapScript.host == "Android") {
+					if (android.os.Build.VERSION.SDK_INT >= 21) {
+						drawable = ctx.getResources().getDrawable(com.xero.ca.R.drawable.icon, ctx.getTheme());
+					} else {
+						drawable = ctx.getResources().getDrawable(com.xero.ca.R.drawable.icon);
+					}
+				} else {
+					drawable = new G.ColorDrawable(G.Color.BLACK);
+				}
 				CA.drawQRCode(qr, o.qrCode, {
-					drawable : MapScript.host == "Android" ? ctx.getResources().getDrawable(com.xero.ca.R.drawable.icon, ctx.getTheme()) : new G.ColorDrawable(G.Color.BLACK)
+					drawable : drawable
 				});
 				pt1.setAntiAlias(true);
 				pt1.setTextAlign(G.Paint.Align.CENTER);
