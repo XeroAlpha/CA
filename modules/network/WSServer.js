@@ -28,11 +28,17 @@ MapScript.loadModule("WSServer", {
 			} catch(e) {erp(e)}},
 			onError : function(conn, err) {
 				if (err instanceof java.net.BindException && WSServer.port < WSServer.endPort) {
+					Log.e(e);
 					Common.toast("在端口" + WSServer.port + "上建立服务器失败，正在尝试其他端口");
 					WSServer.port++;
 					WSServer.start();
+				} else {
+					Common.toast("WebSocket服务器出错，连接已终止\n" + err);
 					erp(err, true);
-				} else erp(err);
+					if (this.server) {
+						WSServer.stop();
+					}
+				}
 			},
 			onStart : function() {try {
 				WSServer.onStart();
