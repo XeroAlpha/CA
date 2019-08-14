@@ -15,23 +15,14 @@
 	last : {},
 	callDelay : function self(s) {
 		if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3) return;
-		if (!self.thread) {
-			self.thread = new java.lang.Thread(new java.lang.Runnable({run : function() {try {
-				android.os.Looper.prepare();
-				self.handler = new android.os.Handler();
-				android.os.Looper.loop();
-				self.thread = null;
-			} catch(e) {erp(e)}}}));
-			self.thread.start();
-			self.running = java.util.concurrent.atomic.AtomicBoolean(false);
-			while (!self.handler); //这里我就偷懒了
+		if (!self.pool) {
+			self.pool = java.util.concurrent.Executors.newCachedThreadPool();
+			self.pool.setMaximumPoolSize(1);
+			self.pool.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy());
 		}
-		if (self.running.get()) self.handler.removeCallbacks(self.runnable);
-		self.handler.post(self.runnable = function() {
+		self.pool.execute(function() {
 			CA.IntelliSense.proc(s);
-			self.running.set(false);
 		});
-		self.running.set(true);
 	},
 	apply : function() {
 		if (this.ui) this.show.apply(this);
