@@ -3645,7 +3645,7 @@ MapScript.loadModule("CA", {
 
 	isMinecraftTextbox : function(packageName) {
 		return packageName == "net.zhuoweizhang.mcpelauncher.pro" ||
-		       packageName == "net.zhuoweizhang.mcpelauncher" ||
+			   packageName == "net.zhuoweizhang.mcpelauncher" ||
 			   NeteaseAdapter.packNames.indexOf(packageName) >= 0;
 	},
 	performPaste : function(cmd, warnSvcNotRun) {
