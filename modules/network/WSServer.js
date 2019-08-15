@@ -26,9 +26,9 @@ MapScript.loadModule("WSServer", {
 			onMessage : function(conn, message) {try {
 				WSServer.onMessage(conn, message);
 			} catch(e) {erp(e)}},
-			onError : function(conn, err) {
+			onError : function(conn, err) {try {
 				if (err instanceof java.net.BindException && WSServer.port < WSServer.endPort) {
-					Log.e(e);
+					Log.e(err);
 					Common.toast("在端口" + WSServer.port + "上建立服务器失败，正在尝试其他端口");
 					WSServer.port++;
 					WSServer.start();
@@ -39,7 +39,7 @@ MapScript.loadModule("WSServer", {
 						WSServer.stop();
 					}
 				}
-			},
+			} catch(e) {erp(e)}},
 			onStart : function() {try {
 				WSServer.onStart();
 			} catch(e) {erp(e)}}
