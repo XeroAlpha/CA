@@ -82,7 +82,7 @@ MapScript.loadModule("FilterListAdapter", (function() {
 			this.notifyDataSetChanged();
 		},
 		getRealPosition : function(pos) {
-			return this._filter ? this._pos[pos] : pos;
+			return this._filter ? (this._pos[pos] || 0) : pos;
 		},
 		notifyDataSetChanged : function() {
 			var i;
