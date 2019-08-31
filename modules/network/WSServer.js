@@ -55,7 +55,12 @@ MapScript.loadModule("WSServer", {
 		this.server.start();
 	},
 	stop : function() {
-		this.server.stop();
+		try {
+			this.server.stop();
+		} catch(e) {
+			Common.toast("无法停止WebSocket服务器\n" + e);
+			Log.e(e);
+		}
 		this.server = null;
 		this.running = false;
 		AndroidBridge.notifySettings();
