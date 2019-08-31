@@ -232,7 +232,7 @@ MapScript.loadModule("JSONEdit", {
 						item : tag.data
 					};
 					if (Array.isArray(tag.src)) {
-						cd.splice(parseInt(tag.name), 1);
+						tag.src.splice(parseInt(tag.name), 1);
 					} else {
 						delete tag.src[tag.name];
 					}
