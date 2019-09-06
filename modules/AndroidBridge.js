@@ -96,14 +96,22 @@ MapScript.loadModule("AndroidBridge", {
 				AndroidBridge.notifySettings();
 			} catch(e) {erp(e)}},
 			onTileReady : function(config) {try {
-				var tileData = AndroidBridge.getTile();
-				var tile = AndroidBridge.Tiles[tileData.tile];
-				tile.updateTile(tileData, config);
+				var tile = AndroidBridge.getTileService();
+				if (!tile.initialized) {
+					if (tile.service.initTile) {
+						tile.service.initTile(tile.data, config, tile.context);
+					}
+					tile.initialized = true;
+				}
+				if (tile.service.updateTile) {
+					tile.service.updateTile(tile.data, config, tile.context);
+				}
 			} catch(e) {erp(e)}},
 			onTileClick : function(config) {try {
-				var tileData = AndroidBridge.getTile();
-				var tile = AndroidBridge.Tiles[tileData.tile];
-				tile.onTileClick(tileData, config);
+				var tile = AndroidBridge.getTileService();
+				if (tile.service.onTileClick) {
+					tile.service.onTileClick(tile.data, config, tile.context);
+				}
 			} catch(e) {erp(e)}}
 		});
 		this.onNewIntent(ScriptInterface.getIntent(), true);
@@ -433,14 +441,15 @@ MapScript.loadModule("AndroidBridge", {
 					return android.os.Build.VERSION.SDK_INT < 24;
 				},
 				get : function() {
-					var tileData = AndroidBridge.getTile();
-					var tile = AndroidBridge.Tiles[tileData.tile];
-					return tile ? tile.name : "未定义";
+					var tile = AndroidBridge.getTileService();
+					return tile.service.name;
 				},
 				onclick : function(fset) {
-					AndroidBridge.showEditTile(AndroidBridge.getTile(), function(tileData) {
+					var tile = AndroidBridge.getTileService();
+					AndroidBridge.showEditTile(tile.data, function(tileData) {
 						CA.settings.qstile = tileData;
-						ScriptInterface.notifyTileUpdate();
+						tile.invalid = true;
+						AndroidBridge.notifyTileUpdate();
 						fset();
 					});
 				}
@@ -990,9 +999,11 @@ MapScript.loadModule("AndroidBridge", {
 	Tiles : {
 		"null" : {
 			name : "无",
-			updateTile : function(data, tile) {
+			initTile : function(data, tile) {
 				tile.label = "命令助手";
 				tile.subtitle = "";
+			},
+			updateTile : function(data, tile) {
 				tile.state = tile.STATE_INACTIVE;
 			},
 			onTileClick : function(data, tile) {
@@ -1074,9 +1085,11 @@ MapScript.loadModule("AndroidBridge", {
 		},
 		"ca.iconVisibility" : {
 			name : "切换悬浮图标显示/隐藏",
-			updateTile : function(data, tile) {
+			initTile : function(data, tile) {
 				tile.label = "悬浮图标";
 				tile.subtitle = "";
+			},
+			updateTile : function(data, tile) {
 				tile.state = CA.icon ? tile.STATE_ACTIVE : tile.STATE_INACTIVE;
 			},
 			onTileClick : function(data, tile) {
@@ -1090,9 +1103,32 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		}
 	},
-	getTile : function() {
+	getTileService : function() {
 		if (!CA.settings.qstile) CA.settings.qstile = Object.copy(this.defaultTile);
-		return CA.settings.qstile;
+		var lastTileService = AndroidBridge.lastTileService;
+		var tile = CA.settings.qstile;
+		var tileService = this.Tiles[tile.tile];
+		var tileContext = {};
+		if (!tileService) {
+			tileService = this.Tiles["null"];
+		}
+		if (lastTileService && tileService == lastTileService.service && tile == lastTileService.data && !lastTileService.invalid) {
+			return lastTileService;
+		}
+		if (lastTileService && lastTileService.service.unload) {
+			lastTileService.service.unload(lastTileService.data, lastTileService.context);
+		}
+		if (tileService.load) {
+			tileContext = tileService.load(tile, tileContext) || tileContext;
+		}
+		return AndroidBridge.lastTileService = {
+			data : tile,
+			service : tileService,
+			context : tileContext
+		};
+	},
+	notifyTileUpdate : function() {
+		ScriptInterface.notifyTileUpdate();
 	},
 	defaultTile : {
 		tile : "null"
