@@ -859,7 +859,7 @@
 		pp.append("命令助手 - 设置 & 关于\n");
 		appendSSB(pp, "（这个命令的用途是显示帮助，不过你有这个JS就不需要帮助了吧）", new G.ForegroundColorSpan(Common.theme.promptcolor));
 		this.prompt = [pp];
-		this.help = CA.aboutInfo;
+		this.help = "https://ca.projectxero.top/blog/about/";
 		this.patterns = [];
 		return this.apply();
 	},

@@ -22,7 +22,6 @@ MapScript.loadModule("CA", {
 	version : BuildConfig.versionCode,
 	versionName : BuildConfig.version,
 	publishDate : BuildConfig.date,
-	aboutInfo : Loader.fromFile("raw/about.js"),
 	tips : [],
 
 	initialize : function() {try {
@@ -2680,10 +2679,13 @@ MapScript.loadModule("CA", {
 				name : "关于命令助手",
 				type : "custom",
 				onclick : function() {
-					Common.showWebViewDialog({
-						mimeType : "text/html; charset=UTF-8",
-						code : CA.aboutInfo
-					});
+					try {
+						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top/blog/about/"))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+					} catch(e) {
+						Common.toast("关于页面打开失败");
+						Log.e(e);
+					}
 				}
 			}, {
 				name : "自动检查更新",
