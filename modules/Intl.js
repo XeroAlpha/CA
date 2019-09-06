@@ -168,7 +168,7 @@ MapScript.loadModule("Intl", {
 		return true;
 	},
 	lookupLang : function(ranges) {
-		var minIndex, minValue = Infinity, v;
+		var minIndex, minValue = Infinity, v, i;
 		for (i in ranges) {
 			v = this.getFitLocaleIndex(ranges[i]);
 			if (v >= 0 && v < minValue) {
