@@ -2,12 +2,12 @@ MapScript.loadModule("NetworkUtils", {
 	queryPage : function(url) {
 		return this.request(url, "GET");
 	},
-	postPage : function(url, data, contentType) {
-		return this.request(url, "POST", data, contentType);
+	postPage : function(url, data, headers) {
+		return this.request(url, "POST", data, headers);
 	},
-	request : function(url, method, data, contentType) {
+	request : function(url, method, data, headers) {
 		var url = new java.net.URL(url);
-		var conn = url.openConnection();
+		var conn = url.openConnection(), i;
 		conn.setConnectTimeout(5000);
 		conn.setUseCaches(false);
 		conn.setRequestMethod(method);
@@ -15,7 +15,15 @@ MapScript.loadModule("NetworkUtils", {
 			conn.setDoInput(true);
 			conn.setDoOutput(true);
 		}
-		if (contentType) conn.setRequestProperty("Content-Type", contentType);
+		if (headers) {
+			if (headers instanceof Object) {
+				for (i in headers) {
+					conn.setRequestProperty(i, headers[i]);
+				}
+			} else {
+				conn.setRequestProperty("Content-Type", headers);
+			}
+		}
 		var rd, s, ln, err;
 		try {
 			conn.connect();

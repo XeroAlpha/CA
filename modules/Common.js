@@ -499,7 +499,7 @@ MapScript.loadModule("Common", {
 			b.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
 			b.setText(String(e));
 			b.setGravity(G.Gravity.CENTER);
-			b.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
+			b.setPadding(0, 10 * G.dp, 0, 10 * G.dp);
 			Common.applyStyle(b, "button_critical", 3);
 			b.setOnClickListener(new G.View.OnClickListener({onClick : function(v) {try {
 				onClick(i);
