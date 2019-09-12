@@ -1,4 +1,5 @@
 MapScript.loadModule("PushService", {
+	apiHost : "https://ca.projectxero.top",
 	version : 1,
 	perPage : 20,
 	onCreate : function() {
@@ -60,8 +61,28 @@ MapScript.loadModule("PushService", {
 	cancelNotification : function(o) {
 		this.nms.cancel("capush", parseInt(o.id));
 	},
+	showDialog : function(o) {
+		var intent = this.getIntent(o);
+		if (intent) {
+			Common.showConfirmDialog({
+				title : o.name,
+				description : o.desc,
+				buttons : [Common.intl.open, Common.intl.close],
+				callback : function(index) {
+					if (index != 0) return;
+					AndroidBridge.startActivity(intent);
+				}
+			});
+		} else {
+			Common.showConfirmDialog({
+				title : o.name,
+				description : o.desc,
+				buttons : [Common.intl.ok]
+			});
+		}
+	},
 	getPosts : function(since, limit, direction, sort) {
-		return JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/push?" + NetworkUtils.toQueryString({
+		return JSON.parse(NetworkUtils.queryPage(this.apiHost + "/push?" + NetworkUtils.toQueryString({
 			since : since,
 			limit : limit,
 			dir : direction,
@@ -69,7 +90,7 @@ MapScript.loadModule("PushService", {
 		})));
 	},
 	getTags : function() {
-		return JSON.parse(NetworkUtils.queryPage("https://ca.projectxero.top/push/tags"));
+		return JSON.parse(NetworkUtils.queryPage(this.apiHost + "/push/tags"));
 	},
 	readPushs : function() {
 		var pushs = this.getPosts(this.lastPushId + 1, 10, "forward", "desc"), firstTime = this.lastPushId < 0;
@@ -86,19 +107,33 @@ MapScript.loadModule("PushService", {
 		return this.getPosts(0, 1, "forward", "desc");
 	},
 	shouldShowPush : function(push) {
-		var i, tags = push.tags.split("|");
-		for (i = 0; i < tags.length; i++) {
-			if (tags[i] == "hiddenForPush") return false;
-			if (this.disabledTags.indexOf(tags[i]) >= 0) return false;
+		var i;
+		for (i = 0; i < push.tags.length; i++) {
+			if (push.tags[i] == "hiddenForPush") return false;
+			if (this.disabledTags.indexOf(push.tags[i]) >= 0) return false;
 		}
 		if (push.minver > this.version) return false;
 		if (push.maxver < this.version) return false;
 		return true;
 	},
+	shouldShowAsDialog : function(push) {
+		var i;
+		for (i = 0; i < push.tags.length; i++) {
+			if (push.tags[i] == "important" || push.tags[i] == "showAsDialog") return true;
+		}
+		return false;
+	},
 	showPushs : function(pushs) {
 		var i;
 		for (i = 0; i < pushs.length; i++) {
-			if (this.shouldShowPush(pushs[i])) this.showNotification(pushs[i]);
+			pushs[i].tags = pushs[i].tags.split("|");
+			if (this.shouldShowPush(pushs[i])) {
+				if (this.shouldShowAsDialog(pushs[i])) {
+					this.showDialog(pushs[i]);
+				} else {
+					this.showNotification(pushs[i]);
+				}
+			}
 		}
 	},
 	doCheckPush : function() {
