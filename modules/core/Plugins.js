@@ -191,16 +191,16 @@ MapScript.loadModule("Plugins", {
 	 * @types Plugins.hookMethod(obj: object, propName: string, replacement: (this: object, propName: string, oldFunc: function, arguments: Arguments, tag?: any) => any, tag?: any): function;
 	 * @param obj {object} 对象
 	 * @param propName {string} 对象属性名称
-	 * @param replacement {function} 用于替换原函数的函数
-	 * @param tag {any} 标记用数据
+	 * @param replacement {ReplacementFunction} 用于替换原函数的函数
+	 * @param [tag] {any} 标记用数据
 	 * 
-	 * @function replacement
+	 * @callback ReplacementFunction
 	 * replacement函数会在hook的方法被调用时执行。
-	 * @this 调用原方法时的this对象，通常是被hook方法的对象
+	 * 调用时this对象指向调用原方法时的this对象，通常是被hook方法的对象
 	 * @param propName {string} 对象属性名称
 	 * @param oldFunction {function} 原函数
 	 * @param args {Arguments} 调用的参数
-	 * @param tag {any} 标记用数据
+	 * @param [tag] {any} 标记用数据
 	 *
 	 * @example
 	 * Plugins.hookMethod(Common, "showTextDialog", function(propName, oldFunc, args) {
