@@ -1,150 +1,106 @@
 MapScript.loadModule("UserManager", {
 	apiHost : "https://ca.projectxero.top",
 	login : function(emailOrName, password) {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/login", NetworkUtils.toQueryString({
-				name : emailOrName,
-				pass : password
-			}), "application/x-www-form-urlencoded"));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		this.saveToken(d.result);
+		var result = NetworkUtils.requestApi("POST", this.apiHost + "/user/login", {
+			name : emailOrName,
+			pass : password
+		});
+		this.saveToken(result);
 	},
 	logout : function() {
 		this.clearToken();
 	},
 	register : function(email, name, password) {
-		try {
-			NetworkUtils.postPage(this.apiHost + "/user/register", NetworkUtils.toQueryString({
-				email : email,
-				name : name,
-				pass : password
-			}), "application/x-www-form-urlencoded");
-		} catch(e) {
-			throw this.parseError(e);
-		}
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/register", {
+			email : email,
+			name : name,
+			pass : password
+		});
 	},
 	refreshLogin : function(refreshToken) {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/user/refresh?" + NetworkUtils.toQueryString({
-				token : refreshToken
-			})));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		this.saveToken(d.result);
+		var result = NetworkUtils.requestApi("GET", this.apiHost + "/user/refresh", {
+			token : refreshToken
+		});
+		this.saveToken(result);
 	},
 	getUserInfo : function() {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/user/info?" + NetworkUtils.toQueryString({
-				token : this.accessToken
-			})));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		return d.result;
+		return NetworkUtils.requestApi("GET", this.apiHost + "/user/info", {
+			token : this.accessToken
+		});
+	},
+	getPublicUserInfo : function(id) {
+		return NetworkUtils.requestApi("GET", this.apiHost + "/user/public/:id", {
+			id : id
+		});
 	},
 	authorize : function() {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/authorize", NetworkUtils.toQueryString({
-				token : this.accessData.refreshToken
-			}), "application/x-www-form-urlencoded"));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		return d.result;
+		return NetworkUtils.requestApi("POST", this.apiHost + "/user/authorize", {
+			token : this.accessData.refreshToken
+		});
 	},
 	requestResetPassword : function(email, password) {
-		try {
-			NetworkUtils.postPage(this.apiHost + "/user/forget_password", NetworkUtils.toQueryString({
-				email : email,
-				pass : password
-			}), "application/x-www-form-urlencoded");
-		} catch(e) {
-			throw this.parseError(e);
-		}
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/forget_password", {
+			email : email,
+			pass : password
+		});
 	},
 	setPassword : function(oldPassword, newPassword) {
-		try {
-			NetworkUtils.postPage(this.apiHost + "/user/set_password", NetworkUtils.toQueryString({
-				accessToken : this.accessToken,
-				oldPwd : oldPassword,
-				newPwd : newPassword
-			}), "application/x-www-form-urlencoded");
-		} catch(e) {
-			throw this.parseError(e);
-		}
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/set_password", {
+			accessToken : this.accessToken,
+			oldPwd : oldPassword,
+			newPwd : newPassword
+		});
 	},
 	setUsername : function(name) {
-		try {
-			NetworkUtils.postPage(this.apiHost + "/user/set_username", NetworkUtils.toQueryString({
-				accessToken : this.accessToken,
-				name : name
-			}), "application/x-www-form-urlencoded");
-		} catch(e) {
-			throw this.parseError(e);
-		}
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/set_username", {
+			accessToken : this.accessToken,
+			name : name
+		});
 	},
 	changeEmail : function(email) {
-		try {
-			NetworkUtils.postPage(this.apiHost + "/user/change_email", NetworkUtils.toQueryString({
-				accessToken : this.accessToken,
-				email : email
-			}), "application/x-www-form-urlencoded");
-		} catch(e) {
-			throw this.parseError(e);
-		}
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/change_email", {
+			accessToken : this.accessToken,
+			email : email
+		});
+	},
+	requestRemove : function() {
+		NetworkUtils.requestApi("POST", this.apiHost + "/user/request_remove", {
+			accessToken : this.accessToken
+		});
 	},
 	checkIn : function() {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/check_in", NetworkUtils.toQueryString({
-				token : this.accessToken
-			}), "application/x-www-form-urlencoded"));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		return d.result;
+		return NetworkUtils.requestApi("POST", this.apiHost + "/user/check_in", {
+			token : this.accessToken
+		});
 	},
 	addExp : function(reasons) {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/user/add_exp", NetworkUtils.toQueryString({
-				token : this.accessToken,
-				reasons : Array.isArray(reasons) ? reasons.join(",") : reasons
-			}), "application/x-www-form-urlencoded"));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		return d.result;
+		return NetworkUtils.requestApi("POST", this.apiHost + "/user/add_exp", {
+			token : this.accessToken,
+			reasons : Array.isArray(reasons) ? reasons.join(",") : reasons
+		});
 	},
 	acquireAdminToken : function() {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.queryPage(this.apiHost + "/admin/auth?" + NetworkUtils.toQueryString({
-				token : this.accessToken
-			})));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		this.adminToken = d.result;
+		var result = NetworkUtils.requestApi("GET", this.apiHost + "/admin/auth", {
+			token : this.accessToken
+		});
+		this.adminToken = result;
 	},
 	executeAdminAction : function(name, data) {
-		var d;
-		try {
-			d = JSON.parse(NetworkUtils.postPage(this.apiHost + "/admin/action?" + NetworkUtils.toQueryString({
-				token : this.adminToken,
-				action : name
-			}), JSON.stringify(data), "application/json"));
-		} catch(e) {
-			throw this.parseError(e);
-		}
-		return d.result;
+		return NetworkUtils.requestApi("POST", this.apiHost + "/admin/action", {
+			token : this.adminToken,
+			action : name
+		}, data);
+	},
+	allocateVisitorToken : function() {
+		return NetworkUtils.requestApi("POST", this.apiHost + "/visitor/allocate", {
+			tag : AndroidBridge.getUserID()
+		});
+	},
+	clearVisitorToken : function(token, secret) {
+		return NetworkUtils.requestApi("POST", this.apiHost + "/visitor/clear", {
+			token : token,
+			secret : secret
+		});
 	},
 	errorMessage : {
 		"precond.user.info.token.missing" : "缺少访问令牌",
@@ -212,6 +168,7 @@ MapScript.loadModule("UserManager", {
 		"error.user.setName.nameOccupied" : "用户名被占用",
 		"error.user.setName.writeError" : "写入账户记录失败",
 
+		"precond.user.changeEmail.token.missing" : "缺少访问令牌",
 		"precond.user.changeEmail.email.missing" : "缺少邮箱地址",
 		"precond.user.changeEmail.email.wrong" : "邮箱地址过长或格式不正确",
 		"info.user.changeEmail.sameAddress" : "旧邮箱与新邮箱相同",
@@ -223,6 +180,14 @@ MapScript.loadModule("UserManager", {
 		// "error.user.confirmEmail.userNotExist" : "邮箱对应的账户已被注销",
 		// "error.user.confirmEmail.emailOccupied" : "邮箱已与其他账户绑定",
 		// "error.user.confirmEmail.writeError" : "写入账户记录失败",
+
+		"precond.user.requestRemove.token.missing" : "缺少访问令牌",
+		"error.user.requestRemove.sendEmailFailed" : "发送确认邮件失败",
+
+		// "precond.user.confirmRemove.token.missing" : "缺少token参数",
+		// "error.user.confirmRemove.invalidToken" : "链接已被使用过或参数不正确",
+		// "error.user.confirmRemove.userNotExist" : "邮箱对应的账户已被注销",
+		// "error.user.confirmRemove.writeError" : "写入账户记录失败",
 
 		"precond.user.addExp.token.missing" : "缺少访问令牌",
 		"precond.user.addExp.reason.missing" : "缺少经验来源",
@@ -238,25 +203,22 @@ MapScript.loadModule("UserManager", {
 		"error.admin.auth.notAdmin" : "没有权限",
 		"error.admin.auth.invalidToken" : "无效的管理员令牌",
 		"error.admin.action.notExists" : "管理员任务不存在",
-		"error.admin.action.error" : "管理员任务执行出错"
-	},
-	parseError : function(e) {
-		var json, message;
-		if (!e.errorMessage) return e;
-		if (e.responseCode == 500) {
-			return "内部错误";
-		} else if (e.responseCode == 503) {
-			return "服务不可用";
-		}
-		try {
-			json = JSON.parse(e.errorMessage);
-		} catch(err) {/* Not a json */}
-		if (!json) return e;
-		message = this.errorMessage[json.error];
-		if (!message) {
-			message = "未知错误(" + json.error + ")\n" + json;
-		}
-		return message;
+		"error.admin.action.error" : "管理员任务执行出错",
+
+		"precond.visitor.allocate.tag.missing" : "缺少附加数据",
+		"precond.visitor.allocate.tag.wrong" : "附加数据过短或过长",
+		"error.visitor.create.writeError" : "写入访客记录失败",
+
+		"precond.visitor.remove.token.missing" : "缺少访客令牌",
+		"precond.visitor.remove.secret.missing" : "缺少访客密钥",
+		"error.visitor.remove.writeError" : "写入访客记录失败",
+
+		"error.visitor.info.invalidToken" : "无效的访客令牌",
+		"error.visitor.info.banned" : "您的访客账户已被封禁",
+
+		"error.visitor.update.writeError" : "写入访客记录失败",
+
+		"error.actor.notSupported" : "不支持的创建者类型"
 	},
 	loadToken : function() {
 		var realThis = this, refreshToken;
@@ -282,6 +244,25 @@ MapScript.loadModule("UserManager", {
 	},
 	getCachedUserInfo : function() {
 		return this.userInfo;
+	},
+	allocateActor : function() {
+		var visitorToken;
+		if (this.accessToken) {
+			return {
+				type : 0, // User
+				token : this.accessToken
+			};
+		} else {
+			visitorToken = CA.settings.visitorToken;
+			if (!visitorToken) {
+				visitorToken = this.allocateVisitorToken();
+				CA.settings.visitorToken = visitorToken;
+			}
+			return {
+				type : 1, // Visitor
+				token : visitorToken.token
+			}
+		}
 	},
 	isOnline : function() {
 		return MapScript.host == "Android" && ScriptInterface.isOnlineMode();
@@ -1001,7 +982,11 @@ MapScript.loadModule("UserManager", {
 			setPrinter : function() {}
 		};
 	},
+	onCreate : function() {
+		Internal.add("UserManager", this);
+	},
 	initialize : function() {
+		NetworkUtils.addErrorMessages(this.errorMessage);
 		this.loadToken();
 	}
 });
