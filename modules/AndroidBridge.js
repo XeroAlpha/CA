@@ -895,6 +895,9 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		});
 	},
+	getUserID : function() {
+		return ScriptInterface.getUserID();
+	},
 	shouldForceRemoveTask : function() {
 		return SettingsCompat.rom == "FLYME" || SettingsCompat.rom == "MEIZU";
 		//JavaException: android.view.WindowManager$BadTokenException: Unable to add window -- token null is not valid; is your activity running?
