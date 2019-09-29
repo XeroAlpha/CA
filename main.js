@@ -594,6 +594,8 @@ Loader.fromFile("modules/BuildConfig.js")
 
 Loader.fromFile("modules/test/FileLogger.js")
 
+Loader.fromFile("modules/core/Internal.js")
+
 Loader.fromFile("modules/uiCore/G.js")
 
 Loader.fromFile("modules/utils/JavaReflect.js")
