@@ -2631,7 +2631,7 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
-				name : "提出意见/反馈bug",
+				name : "意见与反馈",
 				type : "custom",
 				onclick : function() {
 					GiteeFeedback.showFeedbacks();
@@ -2674,6 +2674,22 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function() {
 					CA.showDonate();
+				}
+			}, {
+				name : "许可协议",
+				type : "custom",
+				onclick : function() {
+					Common.showWebViewDialog({
+						url : "https://ca.projectxero.top/blog/about/license/"
+					});
+				}
+			}, {
+				name : "隐私政策",
+				type : "custom",
+				onclick : function() {
+					Common.showWebViewDialog({
+						url : "https://ca.projectxero.top/blog/about/privacy/"
+					});
 				}
 			}, {
 				name : "关于命令助手",
