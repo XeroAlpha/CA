@@ -142,17 +142,19 @@ MapScript.loadModule("NetworkUtils", {
 	})(),
 	requestApi : function(method, url) {
 		var regexp = /:(\w+)/g, argCount = arguments.length, argIndex = 2;
-		var params, query, content, result;
+		var params, foundParam, query, content, result;
 		if (regexp.test(url) && argIndex < argCount) {
+			foundParam = false;
 			params = arguments[argIndex];
 			url = url.replace(regexp, function(match, key) {
 				if (key in params) {
+					foundParam = true;
 					return encodeURIComponent(params[key]);
 				} else {
-					return "";
+					return match;
 				}
 			});
-			argIndex++;
+			if (foundParam) argIndex++;
 		}
 		if (method == "GET" || method == "HEAD" || method == "DELETE") {
 			query = arguments[argIndex];
@@ -197,7 +199,6 @@ MapScript.loadModule("NetworkUtils", {
 		}
 		return message;
 	},
-
 	addErrorMessages : function(messages) {
 		var i;
 		for (i in messages) {
@@ -206,5 +207,9 @@ MapScript.loadModule("NetworkUtils", {
 			}
 			this.errorMessages[i] = messages[i];
 		}
+	},
+	urlBase : {
+		api : "http://127.0.0.1:3502",//"https://ca.projectxero.top",
+		ws : "wss://ca.projectxero.top"
 	}
 });

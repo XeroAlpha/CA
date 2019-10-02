@@ -1,5 +1,5 @@
 MapScript.loadModule("PushService", {
-	apiHost : "https://ca.projectxero.top",
+	apiHost : NetworkUtils.urlBase.api,
 	version : 1,
 	perPage : 20,
 	onCreate : function() {

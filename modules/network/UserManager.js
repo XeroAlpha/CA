@@ -1,5 +1,5 @@
 MapScript.loadModule("UserManager", {
-	apiHost : "https://ca.projectxero.top",
+	apiHost : NetworkUtils.urlBase.api,
 	login : function(emailOrName, password) {
 		var result = NetworkUtils.requestApi("POST", this.apiHost + "/user/login", {
 			name : emailOrName,
@@ -380,7 +380,7 @@ MapScript.loadModule("UserManager", {
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在登录...");
 								try {
-									realThis.login(username.text, password.text);
+									realThis.login(String(username.text), String(password.text));
 								} catch(e) {
 									Log.e(e);
 									return Common.toast("登录失败\n" + e);
@@ -499,7 +499,7 @@ MapScript.loadModule("UserManager", {
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在发送验证邮件...");
 								try {
-									realThis.register(email.text, username.text, password.text);
+									realThis.register(String(email.text), String(username.text), String(password.text));
 								} catch(e) {
 									Log.e(e);
 									return Common.toast("注册失败\n" + e);
@@ -612,7 +612,7 @@ MapScript.loadModule("UserManager", {
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在发送重置密码邮件...");
 								try {
-									realThis.requestResetPassword(email.text, password.text);
+									realThis.requestResetPassword(String(email.text), String(password.text));
 								} catch(e) {
 									Log.e(e);
 									return Common.toast("重置密码失败\n" + e);
@@ -709,7 +709,7 @@ MapScript.loadModule("UserManager", {
 							Common.showProgressDialog(function(dia) {
 								dia.setText("正在保存密码..");
 								try {
-									realThis.setPassword(oldpwd.text, newpwd.text);
+									realThis.setPassword(String(oldpwd.text), String(newpwd.text));
 								} catch(e) {
 									Log.e(e);
 									return Common.toast("密码保存失败\n" + e);
