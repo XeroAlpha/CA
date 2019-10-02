@@ -113,7 +113,11 @@ MapScript.loadModule("DebugUtils", {
 				} else if (_ls == "ls") {
 					JSONEdit.trace(self.interface.getGlobal());
 				} else if (_ls.startsWith("ls ")) {
-					JSONEdit.trace(self.interface.evalExpr(_s.slice(3)));
+					try {
+						JSONEdit.trace(self.interface.evalExpr(_s.slice(3)));
+					} catch(_e) {
+						self.print(_e + "\n" + _e.stack, new G.ForegroundColorSpan(Common.theme.criticalcolor));
+					}
 				} else if (_ls.startsWith("cp ")) {
 					try {
 						var _t = MapScript.toSource(self.interface.evalExpr(_s.slice(3)));
