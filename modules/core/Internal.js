@@ -27,7 +27,14 @@ MapScript.loadModule("Internal", (function() {
 			if (id in namespaces) {
 				throw new Error(id + " is occupied");
 			}
-			return namespaces[id] = namespace;
+			namespace["internal"] = namespaces;
+			Object.defineProperty(namespaces, id, {
+				enumerable : false,
+				writable : false,
+				configurable : true,
+				value : namespace
+			});
+			return namespace;
 		},
 		once : function(key, value) {
 			return function(providedKey) {

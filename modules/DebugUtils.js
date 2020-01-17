@@ -272,71 +272,76 @@ MapScript.loadModule("DebugUtils", {
 		return s.join("\n");
 	},
 	
-	startInteractiveDebug : function(uri, statusListener) {
-		if (MapScript.host != "Android") {
-			Log.throwError(new Error("Your device not support Interactive Debug!"));
-		}
-		if (this.wsclient) Log.throwError(new Error("Channel busy"));
-		statusListener("connecting");
-		this.wsclient = ScriptInterface.createWSClient(uri, {
-			onOpen : function(thisObj, handshake) {try {
-				thisObj.send(JSON.stringify({
-					type : "version",
-					version : CA.version,
-					publishDate : CA.publishDate
-				}));
-				Log.start(function(level, text) {
-					statusListener("log", level, text);
+	startInteractiveDebug : (function() {
+		var scope = {
+			KEY : Internal.getKey()
+		};
+		return function(uri, statusListener) {
+			if (MapScript.host != "Android") {
+				Log.throwError(new Error("Your device not support Interactive Debug!"));
+			}
+			if (this.wsclient) Log.throwError(new Error("Channel busy"));
+			statusListener("connecting");
+			this.wsclient = ScriptInterface.createWSClient(uri, {
+				onOpen : function(thisObj, handshake) {try {
 					thisObj.send(JSON.stringify({
-						type : "println",
-						level : level,
-						text : text
+						type : "version",
+						version : CA.version,
+						publishDate : CA.publishDate
 					}));
-				});
-				statusListener("connected");
-			} catch(e) {erp(e)}},
-			onClose : function(thisObj, code, reason, remote) {try {
-				Log.stop();
-				statusListener("disconnected");
-				DebugUtils.wsclient = null;
-			} catch(e) {erp(e)}},
-			onMessage : function(thisObj, message) {try {
-				try {
-					var o = JSON.parse(message);
-					switch (o.type) {
-						case "exec":
-						statusListener("remoteExec", o.cmd);
-						if (o.cmd.startsWith("#")) {
-							G.ui(function() {
+					Log.start(function(level, text) {
+						statusListener("log", level, text);
+						thisObj.send(JSON.stringify({
+							type : "println",
+							level : level,
+							text : text
+						}));
+					});
+					statusListener("connected");
+				} catch(e) {erp(e)}},
+				onClose : function(thisObj, code, reason, remote) {try {
+					Log.stop();
+					statusListener("disconnected");
+					DebugUtils.wsclient = null;
+				} catch(e) {erp(e)}},
+				onMessage : function(thisObj, message) {try {
+					try {
+						var o = JSON.parse(message);
+						switch (o.type) {
+							case "exec":
+							statusListener("remoteExec", o.cmd);
+							if (o.cmd.startsWith("#")) {
+								G.ui(function() {
+									try {
+										Log.s(Loader.evalSpecial(o.cmd.slice(1), "InteractiveDebugger", 0, scope, null));
+									} catch(e) {
+										Log.e(e);
+									}
+								});
+							} else {
 								try {
-									Log.s(eval.call(null, o.cmd.slice(1)));
+									Log.s(Loader.evalSpecial(o.cmd, "InteractiveDebugger", 0, scope, null));
 								} catch(e) {
 									Log.e(e);
 								}
-							});
-						} else {
-							try {
-								Log.s(eval.call(null, o.cmd));
-							} catch(e) {
-								Log.e(e);
-							}
-						};
-						break;
-						case "ping":
-						thisObj.send(JSON.stringify({type : "pong"}));
-						break;
+							};
+							break;
+							case "ping":
+							thisObj.send(JSON.stringify({type : "pong"}));
+							break;
+						}
+					} catch(e) {
+						Log.e(e);
 					}
-				} catch(e) {
-					Log.e(e);
+				} catch(e) {erp(e)}},
+				onError : function(thisObj, err) {
+					erp(err, true);
+					statusListener("error", err);
 				}
-			} catch(e) {erp(e)}},
-			onError : function(thisObj, err) {
-				erp(err, true);
-				statusListener("error", err);
-			}
-		});
-		this.wsclient.connect();
-	},
+			});
+			this.wsclient.connect();
+		};
+	})(),
 	stopInteractiveDebug : function() {
 		if (this.wsclient && this.wsclient.getReadyState() == org.java_websocket.WebSocket.READYSTATE.OPEN) this.wsclient.close();
 	},

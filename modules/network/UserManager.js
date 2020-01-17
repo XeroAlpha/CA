@@ -955,16 +955,10 @@ MapScript.loadModule("UserManager", {
 	getDebugInterface : function self() {
 		if (self.cache && self.cache.accessToken == this.accessToken) return self.cache;
 		var realThis = this;
-		var scope = {
-			UserManager : this,
-			list : function() {
-				return realThis.executeAdminAction("Admin.listActions");
-			},
-			action : realThis.executeAdminAction.bind(realThis),
-			lastError : function() {
-				return realThis.executeAdminAction("Admin.getLastError");
-			}
-		};
+		var scope = Object.create(this.internal);
+		scope.list = realThis.executeAdminAction.bind(realThis, "Admin.listActions");
+		scope.action = realThis.executeAdminAction.bind(realThis);
+		scope.lastError = realThis.executeAdminAction.bind(realThis, "Admin.getLastError");
 		return self.cache = {
 			accessToken : realThis.accessToken,
 			getWelcomeText : function() {
