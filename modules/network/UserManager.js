@@ -93,7 +93,7 @@ MapScript.loadModule("UserManager", {
 	},
 	allocateVisitorToken : function() {
 		return NetworkUtils.requestApi("POST", this.apiHost + "/visitor/allocate", {
-			tag : AndroidBridge.getUserID()
+			tag : String(AndroidBridge.getUserID())
 		});
 	},
 	clearVisitorToken : function(token, secret) {
