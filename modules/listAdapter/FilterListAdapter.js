@@ -3,18 +3,22 @@ MapScript.loadModule("FilterListAdapter", (function() {
 		this._wrap = wrap;
 		this._dso = [];
 		this._pos = [];
-		try {
-			new java.lang.Runnable({run : function() { //防止直接从InterfaceAdapter抛出
-				var self = this;
-				wrap.registerDataSetObserver(new JavaAdapter(android.database.DataSetObserver, {
-					onChanged : function() {
-						self.requestFilter();
-					}
-				}));
-			}}).run();
-		} catch(e) {Log.e(e)}
 	}
 	r.prototype = {
+		tryAttach : function() {
+			var self = this;
+			try {
+				new java.lang.Runnable({run : function() { //防止直接从InterfaceAdapter抛出
+					self._wrap.registerDataSetObserver(new JavaAdapter(android.database.DataSetObserver, {
+						onChanged : function() {
+							self.requestFilter();
+						}
+					}));
+				}}).run();
+				return true;
+			} catch(e) {Log.e(e)}
+			return false;
+		},
 		build : function() {
 			if (this.buildAdapter) return this.buildAdapter;
 			var self = this;
