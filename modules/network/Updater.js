@@ -456,6 +456,7 @@ MapScript.loadModule("Updater", {
 		content : [
 			"https://ca.projectxero.top/hotfix.json",
 			"https://projectxero.top/ca/hotfix.json",
+			"http://47.102.100.56/ca/hotfix.json",
 			"https://projectxero.gitee.io/ca/hotfix.json",
 			"https://xeroalpha.github.io/CA/pages/hotfix.json"
 		]
@@ -464,7 +465,8 @@ MapScript.loadModule("Updater", {
 		id : "7a0df683-bae8-477d-9d84-b2a0c72eadcc",
 		content : [
 			"https://ca.projectxero.top/snapshot.json",
-			"https://projectxero.top/ca/snapshot.json"
+			"https://projectxero.top/ca/snapshot.json",
+			"http://47.102.100.56/ca/snapshot.json"
 		]
 	}
 });
