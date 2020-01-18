@@ -185,7 +185,12 @@ MapScript.loadModule("MCAdapter", {
 				Common.toast("未找到BlockLauncher/BlockLauncher PRO");
 				return;
 			}
-			this.unpackAssets("adapter/ModPE.js", f);
+			try {
+				this.unpackAssets("adapter/ModPE.js", f);
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("释放适配器失败\n" + e);
+			}
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
 			if (!SettingsCompat.startSafely(i)) return Common.toast("导入适配器失败");
@@ -203,7 +208,12 @@ MapScript.loadModule("MCAdapter", {
 				Common.toast("未找到多玩我的世界盒子");
 				return;
 			}
-			this.unpackAssets("adapter/ModPE_Sandbox.js", f);
+			try {
+				this.unpackAssets("adapter/ModPE_Sandbox.js", f);
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("释放适配器失败\n" + e);
+			}
 			i.setDataAndType(AndroidBridge.fileToUri(f), "application/x-javascript");
 			i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
 			if (!SettingsCompat.startSafely(i)) return Common.toast("导入适配器失败");
@@ -231,9 +241,14 @@ MapScript.loadModule("MCAdapter", {
 					"build.config",
 					"mod_icon.png"
 				], i;
-				new java.io.File("/sdcard/games/com.mojang/mods/ICAdpt").mkdirs();
-				for (i in fs) {
-					this.unpackAssets("adapter/ICAdpt/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
+				try {
+					new java.io.File("/sdcard/games/com.mojang/mods/ICAdpt").mkdirs();
+					for (i in fs) {
+						this.unpackAssets("adapter/ICAdpt/" + fs[i], "/sdcard/games/com.mojang/mods/ICAdpt/" + fs[i]);
+					}
+				} catch(e) {
+					Log.e(e);
+					return Common.toast("释放适配器失败\n" + e);
 				}
 				Common.toast("Mod文件已释放");
 			} else {
