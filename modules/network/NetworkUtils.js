@@ -169,18 +169,20 @@ MapScript.loadModule("NetworkUtils", {
 			url += "?" + this.toQueryString(query);
 		}
 		try {
+			//Log.d(method + " " + url + "\n" + JSON.stringify(content, null, 4));
 			result = JSON.parse(NetworkUtils.request(
 				url,
 				method,
 				content ? JSON.stringify(content) : null,
 				content ? "application/json" : null
 			));
+			//Log.d(JSON.stringify(result, null, 4));
 		} catch(e) {
+			//Log.d(e);
 			throw NetworkUtils.parseError(e);
 		}
 		return result.result;
 	},
-	errorMessages : Object.create(null), 
 	parseError : function(e) {
 		var json, message;
 		if (!e.errorMessage) return e;
@@ -202,14 +204,121 @@ MapScript.loadModule("NetworkUtils", {
 	addErrorMessages : function(messages) {
 		var i;
 		for (i in messages) {
-			if (i in this.errorMessages) {
-				Log.throwError(new Error("Error message " + i + " already exists."));
-			}
 			this.errorMessages[i] = messages[i];
 		}
 	},
+	connectWSEvent : function(uri, listeners) {
+		if (typeof ScriptInterface != "object") {
+			return null;
+		}
+		var wsInterface, wsClient = ScriptInterface.createWSClient(uri, {
+			onOpen : function(thisObj, handshake) {try {
+				wsInterface.available = true;
+				if (listeners.onOpen) listeners.onOpen(wsInterface);
+			} catch(e) {erp(e)}},
+			onClose : function(thisObj, code, reason, remote) {try {
+				wsInterface.available = false;
+				if (listeners.onClose) listeners.onClose(wsInterface, code, reason, remote);
+			} catch(e) {erp(e)}},
+			onMessage : function(thisObj, message) {try {
+				var json;
+				try {
+					json = JSON.parse(message);
+					if (typeof json != "object") throw null;
+				} catch(e) {
+					wsInterface.sendError("wsevent.invalidFormat");
+					wsClient.close();
+					return;
+				}
+				switch (json.type) {
+					case "event":
+					if (listeners.onEvent) listeners.onEvent(wsInterface, json.name, json.data);
+					break;
+					case "command":
+					if (listeners.onCommand) listeners.onCommand(wsInterface, json.requestId, json.name, json.data);
+					break;
+					case "command_response":
+					if (listeners.onCommandResponse) listeners.onCommandResponse(wsInterface, json.requestId, json.data);
+					break;
+					case "ping":
+					wsInterface.sendPong(json.time);
+					break;
+					case "pong":
+					if (listeners.onPingPong) listeners.onPingPong(wsInterface, (android.os.SystemClock.uptimeMillis() - time) / 1000);
+					break;
+					default:
+					wsInterface.sendError("wsevent.invalidType");
+				}
+			} catch(e) {erp(e)}},
+			onError : function(thisObj, err) {try {
+				if (listeners.onError) listeners.onError(wsInterface, err);
+			} catch(e) {erp(e)}}
+		});
+		wsInterface = {
+			sendRaw : function() {
+				wsClient.send(JSON.stringify(json));
+			},
+			sendEvent : function(eventName, data) {
+				wsInterface.sendRaw({
+					type : "event",
+					name : eventName,
+					data : data
+				});
+			},
+			sendCommand : function(requestId, commandName, data) {
+				wsInterface.sendRaw({
+					type : "command",
+					requestId : requestId,
+					name : commandName,
+					data : data
+				});
+			},
+			sendCommandResponse : function(requestId, data) {
+				wsInterface.sendRaw({
+					type : "command_response",
+					requestId : requestId,
+					data : data
+				});
+			},
+			sendError : function(error, data) {
+				wsInterface.sendRaw({
+					type : "error",
+					error : error,
+					data : data
+				});
+			},
+			sendPing : function() {
+				wsInterface.sendRaw({
+					type : "ping",
+					time : android.os.SystemClock.uptimeMillis()
+				});
+			},
+			sendPong : function(time) {
+				wsInterface.sendRaw({
+					type : "pong",
+					time : time
+				});
+			},
+			close : function() {
+				wsClient.close();
+			},
+			client : wsClient,
+			listeners : listeners,
+			available : false
+		};
+		wsClient.connect();
+		return wsInterface;
+	},
+	onCreate : function() {
+		Object.defineProperty(this, "errorMessages", {
+			enumerable: false,
+			configurable: false,
+			writable: false,
+			value: Object.create(null)
+		});
+	},
 	urlBase : {
-		api : "http://127.0.0.1:3502",//"https://ca.projectxero.top",
+		api : "https://ca.projectxero.top",
 		ws : "wss://ca.projectxero.top"
 	}
 });

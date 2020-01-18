@@ -640,6 +640,8 @@ Loader.fromFile("modules/listAdapter/MultipleListAdapter.js")
 
 Loader.fromFile("modules/listAdapter/ExpandableListAdapter.js")
 
+Loader.fromFile("modules/listAdapter/MoreListAdapter.js")
+
 Loader.fromFile("modules/network/NetworkUtils.js")
 
 Loader.fromFile("modules/network/Updater.js")
@@ -663,6 +665,8 @@ Loader.fromFile("modules/NeteaseAdapter.js")
 Loader.fromFile("modules/network/WSServer.js")
 
 Loader.fromFile("modules/network/UserManager.js")
+
+Loader.fromFile("modules/network/IssueService.js")
 
 Loader.fromFile("modules/network/GiteeFeedback.js")
 

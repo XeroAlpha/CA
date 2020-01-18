@@ -2634,7 +2634,7 @@ MapScript.loadModule("CA", {
 				name : "意见与反馈",
 				type : "custom",
 				onclick : function() {
-					GiteeFeedback.showFeedbacks();
+					IssueService.showIssuesWithAgreement();
 				}
 			}, {
 				name : "项目官网",

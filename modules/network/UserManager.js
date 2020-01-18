@@ -97,9 +97,14 @@ MapScript.loadModule("UserManager", {
 		});
 	},
 	clearVisitorToken : function(token, secret) {
-		return NetworkUtils.requestApi("POST", this.apiHost + "/visitor/clear", {
+		NetworkUtils.requestApi("POST", this.apiHost + "/visitor/clear", {
 			token : token,
 			secret : secret
+		});
+	},
+	getVisitorID : function(token) {
+		return NetworkUtils.requestApi("GET", this.apiHost + "/visitor/id", {
+			token : token 
 		});
 	},
 	errorMessage : {
@@ -110,7 +115,7 @@ MapScript.loadModule("UserManager", {
 		"precond.user.register.email.missing" : "缺少邮箱地址",
 		"precond.user.register.email.wrong" : "邮箱地址过长或格式不正确",
 		"precond.user.register.name.missing" : "缺少用户名",
-		"precond.user.register.name.wrong" : "用户名长度过短、过长或含有违法词语",
+		"precond.user.register.name.wrong" : "用户名过短、过长或含有违规词语",
 		"precond.user.register.pass.missing" : "缺少密码",
 		"precond.user.register.pass.wrong" : "密码过短或过长",
 		"error.user.register.emailOccupied" : "邮箱已被使用",
@@ -164,7 +169,7 @@ MapScript.loadModule("UserManager", {
 
 		"precond.user.setName.accessToken.missing" : "缺少访问令牌",
 		"precond.user.setName.name.missing" : "缺少用户名",
-		"precond.user.setName.name.wrong" : "用户名长度过短、过长或含有违法词语",
+		"precond.user.setName.name.wrong" : "用户名过短、过长或含有违规词语",
 		"error.user.setName.nameOccupied" : "用户名被占用",
 		"error.user.setName.writeError" : "写入账户记录失败",
 
@@ -245,6 +250,20 @@ MapScript.loadModule("UserManager", {
 	getCachedUserInfo : function() {
 		return this.userInfo;
 	},
+	getVisitorTokenCached : function() {
+		var visitorToken = CA.settings.visitorToken;
+		if (!visitorToken) {
+			visitorToken = this.allocateVisitorToken();
+			CA.settings.visitorToken = visitorToken;
+		}
+		return visitorToken;
+	},
+	getVisitorIDCached : function() {
+		if (!this.visitorID) {
+			this.visitorID = this.getVisitorID(this.getVisitorTokenCached().token);
+		}
+		return this.visitorID;
+	},
 	allocateActor : function() {
 		var visitorToken;
 		if (this.accessToken) {
@@ -253,16 +272,49 @@ MapScript.loadModule("UserManager", {
 				token : this.accessToken
 			};
 		} else {
-			visitorToken = CA.settings.visitorToken;
-			if (!visitorToken) {
-				visitorToken = this.allocateVisitorToken();
-				CA.settings.visitorToken = visitorToken;
-			}
+			visitorToken = this.getVisitorTokenCached();
 			return {
 				type : 1, // Visitor
 				token : visitorToken.token
 			}
 		}
+	},
+	isMyActor : function(creatorType, creatorID) {
+		if (this.accessToken && creatorType == 0) {
+			if (this.userInfo.id == creatorID) return true;
+		} else if (!this.accessToken && creatorType == 1) {
+			if (this.getVisitorIDCached() == creatorID) return true; 
+		}
+		return false;
+	},
+	publicUserInfoCache : {},
+	getPublicUserInfoCached : function(id, forceUpdate) {
+		var data = this.publicUserInfoCache[id];
+		if (!data || forceUpdate) {
+			data = this.getPublicUserInfo(id);
+		}
+		return this.publicUserInfoCache[id] = data;
+	},
+	getMyActorName : function() {
+		if (this.accessToken) {
+			return this.userInfo.name;
+		} else {
+			return "匿名游客";
+		}
+	},
+	getActorName : function(creatorType, creatorID) {
+		var userInfo;
+		if (creatorType == 0) {
+			try {
+				userInfo = this.getPublicUserInfoCached(creatorID);
+			} catch(e) {Log.e(e)}
+			if (userInfo) {
+				return userInfo.name;
+			} else {
+				return "用户" + creatorID;
+			}
+		}
+		return "匿名游客" + creatorID;
 	},
 	isOnline : function() {
 		return MapScript.host == "Android" && ScriptInterface.isOnlineMode();
