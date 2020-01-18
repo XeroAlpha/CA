@@ -600,6 +600,8 @@ Loader.fromFile("modules/uiCore/G.js")
 
 Loader.fromFile("modules/utils/JavaReflect.js")
 
+Loader.fromFile("modules/utils/IntColor.js")
+
 Loader.fromFile("modules/core/EventSender.js")
 
 Loader.fromFile("modules/uiCore/L.js")

@@ -485,8 +485,8 @@ MapScript.loadModule("AndroidBridge", {
 				cv.scale(w / 256, w / 256);
 				var pt = new G.Paint();
 				pt.setAntiAlias(true);
-				Common.setPaintColor(pt, G.Color.BLACK);
-				pt.setShadowLayer(16, 0, 0, G.Color.BLACK);
+				IntColor.Paint.setColor(pt, G.Color.BLACK);
+				IntColor.Paint.setShadowLayer(pt, 16, 0, 0, G.Color.BLACK);
 				var ph = new G.Path();
 				ph.addCircle(128, 128, 112, G.Path.Direction.CW);
 				cv.drawPath(ph, pt);

@@ -6,7 +6,7 @@ MapScript.loadModule("JavaReflect", {
 			invokeArgs[i] = this.parseClass(argTypes[i]);
 		}
 		constructor = clazz.getConstructor(invokeArgs);
-		return constructor.newInstance.bind(constructor);
+		return this.toPrimitiveAcceptable(invokeArgs, constructor.newInstance.bind(constructor));
 	},
 	declaredConstructor : function(clazz, argTypes) {
 		var i, invokeArgs = new Array(argTypes.length), constructor;
@@ -16,7 +16,7 @@ MapScript.loadModule("JavaReflect", {
 		}
 		constructor = clazz.getDeclaredConstructor(invokeArgs);
 		constructor.setAccessible(true);
-		return constructor.newInstance.bind(constructor);
+		return this.toPrimitiveAcceptable(invokeArgs, constructor.newInstance.bind(constructor));
 	},
 	method : function(clazz, methodName, argTypes) {
 		var i, invokeArgs = new Array(argTypes.length), method;
@@ -25,7 +25,7 @@ MapScript.loadModule("JavaReflect", {
 			invokeArgs[i] = this.parseClass(argTypes[i]);
 		}
 		method = clazz.getMethod(methodName, invokeArgs);
-		return method.invoke.bind(method);
+		return this.toPrimitiveAcceptable([clazz].concat(invokeArgs), method.invoke.bind(method));
 	},
 	declaredMethod : function(clazz, methodName, argTypes) {
 		var i, invokeArgs = new Array(argTypes.length), method;
@@ -35,7 +35,32 @@ MapScript.loadModule("JavaReflect", {
 		}
 		method = clazz.getDeclaredMethod(methodName, invokeArgs);
 		method.setAccessible(true);
-		return method.invoke.bind(method);
+		return this.toPrimitiveAcceptable([clazz].concat(invokeArgs), method.invoke.bind(method));
+	},
+	staticMethod : function(clazz, methodName, argTypes) {
+		var i, invokeArgs = new Array(argTypes.length), method;
+		clazz = this.parseClass(clazz);
+		for (i = 0; i < argTypes.length; i++) {
+			invokeArgs[i] = this.parseClass(argTypes[i]);
+		}
+		method = clazz.getMethod(methodName, invokeArgs);
+		if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+			throw new Error("Method is not static");
+		}
+		return this.toPrimitiveAcceptable(invokeArgs, method.invoke.bind(method, null));
+	},
+	declaredStaticMethod : function(clazz, methodName, argTypes) {
+		var i, invokeArgs = new Array(argTypes.length), method;
+		clazz = this.parseClass(clazz);
+		for (i = 0; i < argTypes.length; i++) {
+			invokeArgs[i] = this.parseClass(argTypes[i]);
+		}
+		method = clazz.getDeclaredMethod(methodName, invokeArgs);
+		method.setAccessible(true);
+		if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+			throw new Error("Method is not static");
+		}
+		return this.toPrimitiveAcceptable(invokeArgs, method.invoke.bind(method, null));
 	},
 	field : function(clazz, fieldName) {
 		var field;
@@ -43,7 +68,7 @@ MapScript.loadModule("JavaReflect", {
 		field = clazz.getField(fieldName);
 		return {
 			get : field.get.bind(field),
-			set : field.set.bind(field)
+			set : this.toPrimitiveAcceptable([field.getType()], field.set.bind(field))
 		};
 	},
 	declaredField : function(clazz, fieldName) {
@@ -53,7 +78,7 @@ MapScript.loadModule("JavaReflect", {
 		field.setAccessible(true);
 		return {
 			get : field.get.bind(field),
-			set : field.set.bind(field)
+			set : this.toPrimitiveAcceptable([field.getType()], field.set.bind(field))
 		};
 	},
 	parseClass : function(type) {
@@ -71,7 +96,13 @@ MapScript.loadModule("JavaReflect", {
 			if (type == "long") return java.lang.Long.TYPE;
 			if (type == "short") return java.lang.Short.TYPE;
 			if (type == "void") return java.lang.Void.TYPE;
-			return null;
+			if (type.slice(-2) == "[]") {
+				return this.parseArrayDefinition(type);
+			}
+			if (type.indexOf("$") < 0) {
+				return this.guessSubclass(type);
+			}
+			throw new Error("Unable to parse \"" + type + "\" to class");
 		} else if (type instanceof java.lang.Class) {
 			return type;
 		} else if (type.arrayOf) {
@@ -79,6 +110,27 @@ MapScript.loadModule("JavaReflect", {
 		} else {
 			return type.getClass();
 		}
+	},
+	parseArrayDefinition : function(str) {
+		var start, current, dimensions = 0;
+		start = current = str.indexOf("[]");
+		while (current < str.length) {
+			if (str.slice(current, current + 2) != "[]") {
+				throw new Error("Not an array definition");
+			}
+			dimensions++;
+			current += 2;
+		}
+		return this.arrayClass(str.slice(0, start), dimensions);
+	},
+	guessSubclass : function(className) {
+		var parts = className.split("."), i;
+		for (i = parts.length - 1; i > 0; i--) {
+			try {
+				return java.lang.Class.forName(parts.slice(0, i).join(".") + "$" + parts.slice(i).join("$"), true, ctx.getClassLoader());
+			} catch(e) {/* Class not found */}
+		}
+		throw new Error("Unable to parse \"" + className + "\" to class");
 	},
 	arrayClass : function(arrayOf, dimensions) {
 		var i, str = "[";
@@ -111,7 +163,7 @@ MapScript.loadModule("JavaReflect", {
 		} else {
 			str += "L" + arrayOf.getName() + ";";
 		}
-		return str;
+		return java.lang.Class.forName(str, true, ctx.getClassLoader());
 	},
 	array : function(arrayOf) {
 		var i, args = new Array(arguments.length);
@@ -120,5 +172,48 @@ MapScript.loadModule("JavaReflect", {
 			args[i] = arguments[i];
 		}
 		return java.lang.reflect.Array.newInstance.apply(null, args);
+	},
+	getPrimitiveWrapper : function(clazz) {
+		if (clazz.isPrimitive()) {
+			if (clazz == java.lang.Boolean.TYPE) {
+				return java.lang.Boolean.valueOf;
+			} else if (clazz == java.lang.Byte.TYPE) {
+				return java.lang.Byte.valueOf;
+			} else if (clazz == java.lang.Character.TYPE) {
+				return java.lang.Character.valueOf;
+			} else if (clazz == java.lang.Double.TYPE) {
+				return java.lang.Double.valueOf;
+			} else if (clazz == java.lang.Float.TYPE) {
+				return java.lang.Float.valueOf;
+			} else if (clazz == java.lang.Integer.TYPE) {
+				return java.lang.Integer.valueOf;
+			} else if (clazz == java.lang.Long.TYPE) {
+				return java.lang.Long.valueOf;
+			} else if (clazz == java.lang.Short.TYPE) {
+				return java.lang.Short.valueOf;
+			} else { // void
+				return null;
+			}
+		} else {
+			return null;
+		}
+	},
+	toPrimitiveAcceptable : function(hints, f) {
+		var wrappers, self = this;
+		if (hints.some(function(e) {
+			return e.isPrimitive();
+		})) {
+			wrappers = hints.map(function(e) {
+				return self.getPrimitiveWrapper(e);
+			});
+			return function() {
+				var args = arguments;
+				return f.apply(this, wrappers.map(function(wrapper, i) {
+					return wrapper != null ? wrapper(args[i]) : args[i];
+				}));
+			};
+		} else {
+			return f;
+		}
 	}
 });

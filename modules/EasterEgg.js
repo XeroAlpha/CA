@@ -16,11 +16,11 @@ MapScript.loadModule("EasterEgg", {
 		pt.setTextSize(60);
 		var fm = pt.getFontMetrics();
 		var th = fm.bottom - fm.top;
-		Common.setPaintColor(pt, Common.argbInt(0x80, 0, 0, 0));
-		pt.setShadowLayer(1, 0, 0, pt.getColor());
+		IntColor.Paint.setColor(pt, Common.argbInt(0x80, 0, 0, 0));
+		IntColor.Paint.setShadowLayer(pt, 1, 0, 0, pt.getColor());
 		cv.drawRoundRect(0, 170 - th, 170, 200, 10, 10, pt);
-		Common.setPaintColor(pt, G.Color.WHITE);
-		pt.setShadowLayer(1, 0, 0, G.Color.BLACK);
+		IntColor.Paint.setColor(pt, G.Color.WHITE);
+		IntColor.Paint.setShadowLayer(pt, 1, 0, 0, G.Color.BLACK);
 		cv.drawText(" CA_", 0, 170 - fm.descent, pt);
 		return bmp;
 	},

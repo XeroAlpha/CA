@@ -34,13 +34,7 @@ MapScript.loadModule("Common", {
 	setAlpha : function(color, alpha) {
 		return (new java.lang.Long((alpha << 24) | (color & 0xffffff))).intValue();
 	},
-	setPaintColor : (function() {
-		var cls = java.lang.Class.forName("android.graphics.Paint");
-		var method = cls.getMethod("setColor", [java.lang.Integer.TYPE]);
-		return function(paint, color) {
-			method.invoke(paint, new java.lang.Integer(color));
-		};
-	})(),
+	setPaintColor : IntColor.Paint.setColor,
 
 	loadTheme : function(id) {
 		var light = {
@@ -1453,7 +1447,7 @@ MapScript.loadModule("Common", {
 			}
 			self.paint = new G.Paint();
 			self.paint.setStyle(G.Paint.Style.FILL);
-			Common.setPaintColor(self.paint, G.Color.WHITE);
+			IntColor.Paint.setColor(self.paint, G.Color.WHITE);
 			self.paint.setAntiAlias(true);
 			self.paint.setXfermode(G.PorterDuffXfermode(G.PorterDuff.Mode.DST_OUT));
 			self.cv = new G.Canvas();
