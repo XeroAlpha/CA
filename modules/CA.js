@@ -27,6 +27,9 @@ MapScript.loadModule("CA", {
 	initialize : function() {try {
 		this.plugin = Plugins.inject(this);
 		this.load();
+		if (!(this.settings.readAgreement > Date.parse(BuildConfig.licenceUpdate))) {
+			this.showAgreementSync();
+		}
 		this.checkFeatures();
 		if (!this.hasFeature("enableCommand")) {
 			Common.showTextDialog("兼容性警告\n\n您的Minecraft PE版本过低（" + getMinecraftVersion() + "），没有命令和命令方块等功能，无法正常使用命令助手。请升级您的Minecraft PE至1.2及以上。");
@@ -7211,6 +7214,115 @@ MapScript.loadModule("CA", {
 				}
 			}
 		}
+	},
+	showAgreement : function(callback) {G.ui(function() {try {
+		var popup, agree;
+		popup = PopupPage.showSideBar("ca.AgreementDialog", L.ScrollView({
+			style : "message_bg",
+			child : L.LinearLayout({
+				orientation : L.LinearLayout("vertical"),
+				gravity : L.Gravity("center"),
+				onClick : function() {try {
+					agree.performClick();
+				} catch(e) {erp(e)}},
+				children : [
+					L.TextView({
+						text : "命令助手",
+						padding : [10 * G.dp, 15 * G.dp, 10 * G.dp, 15 * G.dp],
+						gravity : L.Gravity("center"),
+						layout : { width : -1, height : -2 },
+						style : "textview_default",
+						fontSize : 4
+					}),
+					L.LinearLayout({
+						orientation : L.LinearLayout("horizontal"),
+						gravity : L.Gravity("center"),
+						padding : [10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp],
+						layout : { width : -1, height : -2 },
+						children : [
+							agree = L.CheckBox({
+								layout : { width : -2, height : -2 },
+								checked : false
+							}),
+							L.TextView({
+								text : "我已阅读并同意",
+								layout : { width : -2, height : -2 },
+								style : "textview_default",
+								fontSize : 2
+							}),
+							L.TextView({
+								text : "使用许可协议",
+								layout : { width : -2, height : -2 },
+								style : "textview_highlight",
+								fontSize : 2,
+								onClick : function() {try {
+									Common.showWebViewDialog({
+										url : "https://ca.projectxero.top/blog/about/license/"
+									});
+								} catch(e) {erp(e)}}
+							}),
+							L.TextView({
+								text : "与",
+								layout : { width : -2, height : -2 },
+								style : "textview_default",
+								fontSize : 2
+							}),
+							L.TextView({
+								text : "隐私政策",
+								layout : { width : -2, height : -2 },
+								style : "textview_highlight",
+								fontSize : 2,
+								onClick : function() {try {
+									Common.showWebViewDialog({
+										url : "https://ca.projectxero.top/blog/about/privacy/"
+									});
+								} catch(e) {erp(e)}}
+							})
+						]
+					}),
+					L.LinearLayout({
+						orientation : L.LinearLayout("horizontal"),
+						layout : { width : -1, height : -2 },
+						children : [
+							L.TextView({
+								text : "开始使用",
+								padding : [10 * G.dp, 15 * G.dp, 10 * G.dp, 15 * G.dp],
+								gravity : L.Gravity("center"),
+								layout : { width : 0, height : -2, weight : 0.5 },
+								style : "button_highlight",
+								fontSize : 3,
+								onClick : function() {try {
+									if (agree.checked) {
+										CA.settings.readAgreement = Date.now();
+										popup.exit();
+									} else {
+										Common.toast("请先同意使用许可协议与隐私政策");
+									}
+								} catch(e) {erp(e)}}
+							}),
+							L.TextView({
+								text : "关闭应用",
+								padding : [10 * G.dp, 15 * G.dp, 10 * G.dp, 15 * G.dp],
+								gravity : L.Gravity("center"),
+								layout : { width : 0, height : -2, weight : 0.5 },
+								style : "button_critical",
+								fontSize : 3,
+								onClick : function() {try {
+									popup.exit(true);
+									android.os.Process.killProcess(android.os.Process.myPid());
+								} catch(e) {erp(e)}}
+							})
+						]
+					})
+				]
+			})
+		}), "bottom", -2, 0, true);
+		if (callback) popup.on("exit", callback);
+	} catch(e) {erp(e)}})},
+	showAgreementSync : function() {
+		Threads.awaitPromise(function(resolve) {
+			CA.showAgreement(resolve);
+		});
 	},
 	
 	Library : Loader.fromFile("CA.Library.js"),

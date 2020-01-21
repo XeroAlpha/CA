@@ -21,5 +21,29 @@ MapScript.loadModule("Threads", {
 		} catch(e) {
 			return defaultValue;
 		}
+	},
+	awaitPromise : function(promise, timeout, defaultValue) {
+		var lock = new java.util.concurrent.Semaphore(0);
+		var released = false, result = defaultValue, err = null;
+		promise(function(v) {
+			if (released) return;
+			result = v;
+			released = true;
+			lock.release();
+		}, function(e) {
+			if (released) return;
+			err = e;
+			released = true;
+			lock.release();
+		});
+		if (timeout) {
+			lock.tryAcquire(timeout, java.util.concurrent.TimeUnit.MILLISECONDS);
+		} else {
+			lock.acquire();
+		}
+		if (!defaultValue && err) {
+			throw err;
+		}
+		return result;
 	}
 });

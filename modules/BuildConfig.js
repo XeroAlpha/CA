@@ -6,5 +6,6 @@ var BuildConfig = (function() {
 	var config = readConfig(Loader.readFile("./buildinfo.txt"));
 	config.variants = "debug";
 	config.publishTime = Date.now();
+	config.licenceUpdate = "1970/1/1";
 	return config;
 })();
