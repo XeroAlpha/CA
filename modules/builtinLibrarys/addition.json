@@ -6,7 +6,7 @@
 	"version": [0, 0, 1],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.11.0.5",
+	"targetSupportVer": "1.14.2.51",
 	"commands": {},
 	"enums": {
 		"structure": {
@@ -211,7 +211,7 @@
 									"name": "服务器URL"
 								},
 								{
-									"type": "uint",
+									"type": "float",
 									"name": "截屏发送频率"
 								}
 							]
@@ -239,6 +239,35 @@
 				}
 			},
 			"minSupportVer": "1.10.0.3"
+		},
+		"1.12.0.2": {
+			"commands": {
+				"videostream": {
+					"patterns": {
+						"withResolution": {
+							"params": [
+								{
+									"type": "string",
+									"name": "服务器URL"
+								},
+								{
+									"type": "float",
+									"name": "截屏发送频率"
+								},
+								{
+									"type": "int",
+									"name": "横向分辨率"
+								},
+								{
+									"type": "int",
+									"name": "纵向分辨率"
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.12.0.2"
 		}
 	}
 }

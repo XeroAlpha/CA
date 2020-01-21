@@ -1,12 +1,12 @@
 {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.11.0.5 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.14.2.51 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
 	"version": [0, 0, 1],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.11.0.5",
+	"targetSupportVer": "1.14.2.51",
 	"commands": {},
 	"idlist": [
 		{
@@ -70,6 +70,8 @@
 			"beacon": "信标",
 			"bed": "床",
 			"bedrock": "基岩",
+			"bee_nest": "蜂巢",
+			"beehive": "蜂箱",
 			"beetroot": "甜菜",
 			"bell": "钟",
 			"birch_button": "白桦木按钮",
@@ -95,6 +97,7 @@
 			"bubble_column": "气泡柱",
 			"cactus": "仙人掌",
 			"cake": "蛋糕",
+			"camera": "相机",
 			"campfire": "营火",
 			"carpet": "地毯",
 			"carrots": "胡萝卜",
@@ -191,6 +194,8 @@
 			"hardened_clay": "硬化粘土",
 			"hay_block": "干草块",
 			"heavy_weighted_pressure_plate": "测重压力板（重质）",
+			"honey_block": "蜂蜜块",
+			"honeycomb_block": "蜜脾块",
 			"hopper": "漏斗",
 			"ice": "冰",
 			"info_update": "数据更新方块（update!）",
@@ -222,6 +227,7 @@
 			"leaves2": "金合欢树叶",
 			"lectern": "讲台",
 			"lever": "拉杆",
+			"light_block": "光源方块",
 			"light_blue_glazed_terracotta": "淡蓝色带釉陶瓦",
 			"light_weighted_pressure_plate": "测重压力板（轻质）",
 			"lime_glazed_terracotta": "黄绿色带釉陶瓦",
@@ -239,7 +245,6 @@
 			"melon_block": "西瓜",
 			"melon_stem": "西瓜梗",
 			"mob_spawner": "刷怪箱",
-			"mod_ore": "模组矿石",
 			"monster_egg": "怪物蛋",
 			"mossy_cobblestone": "苔石",
 			"mossy_cobblestone_stairs": "苔石楼梯",
@@ -335,6 +340,7 @@
 			"stained_hardened_clay": "染色陶瓦",
 			"standing_banner": "站立的旗帜",
 			"standing_sign": "告示牌",
+			"stickypistonarmcollision": "粘性活塞臂",
 			"sticky_piston": "粘性活塞",
 			"stone": "石头",
 			"stone_brick_stairs": "石砖楼梯",
@@ -377,6 +383,7 @@
 			"web": "蜘蛛网",
 			"wheat": "小麦",
 			"white_glazed_terracotta": "白色带釉陶瓦",
+			"wither_rose": "凋零玫瑰",
 			"wood": "木头",
 			"wooden_button": "木质按钮",
 			"wooden_door": "木门",
@@ -387,18 +394,20 @@
 			"yellow_glazed_terracotta": "黄色带釉陶瓦"
 		},
 		"item": {
+			"acacia_sign": "金合欢木告示牌",
 			"apple": "苹果",
 			"appleenchanted": "附魔金苹果",
 			"armor_stand": "盔甲架",
 			"arrow": "箭",
 			"baked_potato": "烤马铃薯",
 			"banner": "旗帜",
+			"banner_pattern": "旗帜图案",
 			"beef": "生牛肉",
 			"beetroot_seeds": "甜菜种子",
 			"beetroot_soup": "甜菜汤",
+			"birch_sign": "桦木告示牌",
 			"blaze_powder": "烈焰粉",
 			"blaze_rod": "烈焰棒",
-			"board": "黑板",
 			"boat": "船",
 			"bone": "骨头",
 			"book": "书",
@@ -407,7 +416,6 @@
 			"bread": "面包",
 			"brick": "红砖",
 			"bucket": "桶",
-			"camera": "相机",
 			"carrot": "胡萝卜",
 			"carrotonastick": "胡萝卜钓竿",
 			"chainmail_boots": "锁链靴子",
@@ -432,6 +440,8 @@
 			"cooked_rabbit": "熟兔肉",
 			"cooked_salmon": "熟鲑鱼",
 			"cookie": "曲奇",
+			"crossbow": "弩",
+			"darkoak_sign": "深色橡木告示牌",
 			"diamond": "钻石",
 			"diamond_axe": "钻石斧",
 			"diamond_boots": "钻石靴子",
@@ -458,6 +468,7 @@
 			"fermented_spider_eye": "发酵蛛眼",
 			"fireball": "火焰弹",
 			"fireworks": "烟花火箭",
+			"fireworkscharge": "烟火之星",
 			"fish": "生鱼",
 			"fishing_rod": "钓鱼竿",
 			"flint": "燧石",
@@ -480,6 +491,8 @@
 			"golden_sword": "金剑",
 			"gunpowder": "火药",
 			"heart_of_the_sea": "海洋之心",
+			"honey_bottle": "蜂蜜瓶",
+			"honeycomb": "蜜脾",
 			"hopper_minecart": "漏斗矿车",
 			"horsearmordiamond": "钻石马铠",
 			"horsearmorgold": "金马铠",
@@ -496,6 +509,7 @@
 			"iron_pickaxe": "铁镐",
 			"iron_shovel": "铁锹",
 			"iron_sword": "铁剑",
+			"jungle_sign": "丛林木告示牌",
 			"lead": "拴绳",
 			"leather": "皮革",
 			"leather_boots": "皮革靴子",
@@ -504,24 +518,22 @@
 			"leather_leggings": "皮革裤子",
 			"lingering_potion": "滞留药水",
 			"magma_cream": "岩浆膏",
-			"medicine": "药物",
+			"map": "地图",
 			"melon": "西瓜片",
 			"melon_seeds": "西瓜种子",
 			"minecart": "矿车",
-			"minecartfurnace": "动力矿车",
 			"mushroom_stew": "蘑菇煲",
 			"muttoncooked": "熟羊肉",
 			"muttonraw": "生羊肉",
 			"name_tag": "命名牌",
 			"nautilus_shell": "鹦鹉螺",
-			"netherstar": "下界之星",
 			"netherbrick": "地狱砖",
+			"netherstar": "下界之星",
 			"painting": "画",
 			"paper": "纸",
 			"phantom_membrane": "幻翼膜",
 			"poisonous_potato": "毒马铃薯",
 			"porkchop": "生猪排",
-			"portfolio": "公文包",
 			"potato": "马铃薯",
 			"potion": "药水",
 			"prismarine_crystals": "海晶砂粒",
@@ -552,6 +564,7 @@
 			"saddle": "鞍",
 			"salmon": "生鲑鱼",
 			"shears": "剪刀",
+			"shield": "盾牌",
 			"shulker_shell": "潜影壳",
 			"sign": "告示牌",
 			"slime_ball": "粘液球",
@@ -560,6 +573,7 @@
 			"speckled_melon": "闪烁的西瓜",
 			"spider_eye": "蜘蛛眼",
 			"splash_potion": "喷溅药水",
+			"spruce_sign": "云杉木告示牌",
 			"stick": "木棍",
 			"stone_axe": "石斧",
 			"stone_hoe": "石锄",
@@ -573,6 +587,7 @@
 			"totem": "不死图腾",
 			"trident": "三叉戟",
 			"turtle_helmet": "海龟壳",
+			"turtle_shell_piece": "鳞甲",
 			"wheat_seeds": "小麦种子",
 			"wooden_axe": "木斧",
 			"wooden_hoe": "木锄",
@@ -618,6 +633,13 @@
 			"block.composter.fill_success": "",
 			"block.composter.empty": "",
 			"block.composter.ready": "",
+			"block.loom.use": "",
+			"ui.loom.take_result": "",
+			"ui.cartography_table.take_result": "",
+			"ui.loom.select_pattern": "",
+			"block.stonecutter.use": "",
+			"ui.stonecutter.take_result": "",
+			"block.cartography_table.use": "",
 			"block.grindstone.use": "",
 			"block.turtle_egg.drop": "海龟蛋掉落声",
 			"block.turtle_egg.break": "海龟蛋破坏声",
@@ -701,7 +723,7 @@
 			"bubble.downinside": "涡流气泡柱内部声",
 			"minecart.base": "矿车行驶声",
 			"minecart.inside": "矿车驾驶声",
-			"furnace.lit": "熔炉点燃声",
+			"block.furnace.lit": "",
 			"block.blastfurnace.fire_crackle": "",
 			"block.smoker.smoke": "",
 			"mob.agent.spawn": "",
@@ -758,6 +780,16 @@
 			"mob.enderdragon.hit": "末影龙受伤声",
 			"mob.enderdragon.flap": "末影龙扇翅声",
 			"mob.enderdragon.growl": "末影龙嘶吼声",
+			"mob.fox.ambient": "",
+			"mob.fox.hurt": "",
+			"mob.fox.death": "",
+			"mob.fox.aggro": "",
+			"mob.fox.sniff": "",
+			"mob.fox.bite": "",
+			"mob.fox.eat": "",
+			"mob.fox.screech": "",
+			"mob.fox.sleep": "",
+			"mob.fox.spit": "",
 			"mob.ghast.affectionate_scream": "恶魂深情的呐喊声",
 			"mob.ghast.charge": "恶魂将要发射火球声",
 			"mob.ghast.death": "恶魂死亡声",
@@ -816,6 +848,7 @@
 			"mob.husk.step": "尸壳走路声",
 			"mob.ravager.ambient": "",
 			"mob.ravager.bite": "",
+			"mob.ravager.celebrate": "",
 			"mob.ravager.death": "",
 			"mob.ravager.hurt": "",
 			"mob.ravager.roar": "",
@@ -837,6 +870,9 @@
 			"mob.magmacube.big": "大型岩浆怪死亡声",
 			"mob.magmacube.jump": "岩浆怪跳动声",
 			"mob.magmacube.small": "小型岩浆怪死亡声",
+			"mob.mooshroom.convert": "",
+			"mob.mooshroom.eat": "",
+			"mob.mooshroom.suspicious_milk": "",
 			"mob.parrot.idle": "鹦鹉叫声",
 			"mob.parrot.hurt": "鹦鹉受伤声",
 			"mob.parrot.death": "鹦鹉死亡声",
@@ -852,6 +888,7 @@
 			"mob.pig.boost": "猪加速声",
 			"mob.pig.say": "猪叫声",
 			"mob.pig.step": "猪走路声",
+			"mob.pillager.celebrate": "",
 			"mob.pillager.death": "",
 			"mob.pillager.hurt": "",
 			"mob.pillager.idle": "",
@@ -909,12 +946,14 @@
 			"mob.villager.idle": "村民叫声",
 			"mob.villager.no": "村民否定声",
 			"mob.villager.yes": "村民肯定声",
+			"mob.vindicator.celebrate": "",
 			"mob.vindicator.death": "卫道士死亡声",
 			"mob.vindicator.hurt": "卫道士受伤声",
 			"mob.vindicator.idle": "卫道士叫声",
 			"mob.evocation_fangs.attack": "尖牙咬合声",
 			"mob.evocation_illager.ambient": "",
 			"mob.evocation_illager.cast_spell": "唤魔者施法声",
+			"mob.evocation_illager.celebrate": "",
 			"mob.evocation_illager.death": "唤魔者死亡声",
 			"mob.evocation_illager.hurt": "唤魔者受伤声",
 			"mob.evocation_illager.prepare_attack": "唤魔者召唤尖牙声",
@@ -936,7 +975,18 @@
 			"item.trident.throw": "三叉戟掷出声",
 			"item.trident.thunder": "三叉戟引雷效果声",
 			"item.shield.block": "",
+			"mob.wanderingtrader.idle": "",
+			"mob.wanderingtrader.death": "",
+			"mob.wanderingtrader.disappeared": "",
+			"mob.wanderingtrader.drink_milk": "",
+			"mob.wanderingtrader.drink_potion": "",
+			"mob.wanderingtrader.haggle": "",
+			"mob.wanderingtrader.yes": "",
+			"mob.wanderingtrader.no": "",
+			"mob.wanderingtrader.hurt": "",
+			"mob.wanderingtrader.reappeared": "",
 			"mob.witch.ambient": "女巫讥笑声",
+			"mob.witch.celebrate": "",
 			"mob.witch.death": "女巫死亡声",
 			"mob.witch.hurt": "女巫受伤声",
 			"mob.witch.drink": "女巫喝药水声",
@@ -998,13 +1048,23 @@
 			"mob.zombie_villager.say": "僵尸村民叫声",
 			"mob.zombie_villager.death": "僵尸村民死亡声",
 			"mob.zombie_villager.hurt": "僵尸村民受伤声",
+			"note.banjo": "",
 			"note.bass": "音符盒低音声",
 			"note.bassattack": "音符盒木质音调声",
 			"note.bd": "音符盒石质音调声",
+			"note.bell": "",
+			"note.bit": "",
+			"note.cow_bell": "",
+			"note.didgeridoo": "",
+			"note.flute": "",
+			"note.guitar": "",
 			"note.harp": "音符盒竖琴声",
 			"note.hat": "音符盒玻璃质音调声",
+			"note.chime": "",
+			"note.iron_xylophone": "",
 			"note.pling": "音符盒未知声(未确认)",
 			"note.snare": "音符盒沙质音调声",
+			"note.xylophone": "",
 			"portal.portal": "下界传送门噪音声",
 			"portal.travel": "下界/末地传送门传送声",
 			"portal.trigger": "下界传送门方块穿过/离开声",
@@ -1108,23 +1168,21 @@
 			"record.ward": "ward唱片音乐",
 			"record.11": "11唱片音乐",
 			"record.wait": "wait唱片音乐",
+			"raid.horn": "",
 			"music.menu": "主界面背景音乐",
 			"music.game": "生存模式背景音乐",
 			"music.game.creative": "创造模式背景音乐",
 			"music.game.end": "末地背景音乐",
 			"music.game.endboss": "末影龙主题乐",
 			"music.game.nether": "下界背景音乐",
-			"music.game.credits": "制作人员名单背景音乐",
-			"ui.cartography_table.take_result": "",
-			"ui.loom.select_pattern": "",
-			"ui.loom.take_result": "",
-			"ui.stonecutter.take_result": ""
+			"music.game.credits": "制作人员名单背景音乐"
 		},
 		"entity": {
 			"minecraft:area_effect_cloud": "效果区域云(无法用summon生成)",
 			"minecraft:armor_stand": "盔甲架",
 			"minecraft:arrow": "箭",
 			"minecraft:bat": "蝙蝠",
+			"minecraft:bee": "蜜蜂",
 			"minecraft:blaze": "烈焰人",
 			"minecraft:boat": "船",
 			"minecraft:cat": "猫",
@@ -1135,13 +1193,14 @@
 			"minecraft:cod": "鳕鱼",
 			"minecraft:command_block_minecart": "命令方块矿车",
 			"minecraft:cow": "牛",
-			"minecraft:creeper": "爬行者",
+			"minecraft:creeper": "苦力怕",
 			"minecraft:dolphin": "海豚",
 			"minecraft:donkey": "驴",
 			"minecraft:dragon_fireball": "末影龙火球(无法用summon生成)",
 			"minecraft:drowned": "溺尸",
 			"minecraft:egg": "丢出的鸡蛋",
 			"minecraft:elder_guardian": "远古守卫者",
+			"minecraft:elder_guardian_ghost": "远古守卫者幻影",
 			"minecraft:ender_crystal": "末影水晶",
 			"minecraft:ender_dragon": "末影龙",
 			"minecraft:ender_pearl": "丢出的末影珍珠(无法用summon生成)",
@@ -1154,6 +1213,7 @@
 			"minecraft:fireball": "火球(无法用summon生成)",
 			"minecraft:fireworks_rocket": "烟花火箭",
 			"minecraft:fishing_hook": "鱼钩(无法用summon生成)",
+			"minecraft:fox": "狐狸",
 			"minecraft:ghast": "恶魂",
 			"minecraft:guardian": "守卫者",
 			"minecraft:hopper_minecart": "漏斗矿车",
@@ -1228,71 +1288,97 @@
 			"minecraft:arrow_spell_emitter": "",
 			"minecraft:balloon_gas_particle": "",
 			"minecraft:basic_bubble_particle": "",
+			"minecraft:basic_bubble_particle_manual": "",
 			"minecraft:basic_crit_particle": "",
 			"minecraft:basic_flame_particle": "",
 			"minecraft:basic_portal_particle": "",
 			"minecraft:basic_smoke_particle": "",
 			"minecraft:bleach": "",
 			"minecraft:block_destruct": "",
+			"minecraft:breaking_item_icon": "",
+			"minecraft:breaking_item_terrain": "",
 			"minecraft:bubble_column_bubble": "",
 			"minecraft:bubble_column_down_particle": "",
 			"minecraft:bubble_column_up_particle": "",
+			"minecraft:camera_shoot_explosion": "",
 			"minecraft:campfire_smoke_particle": "",
 			"minecraft:campfire_tall_smoke_particle": "",
 			"minecraft:cauldron_bubble_particle": "",
 			"minecraft:cauldron_splash_particle": "",
 			"minecraft:cauldron_spell_emitter": "",
-			"minecraft:crit_emitter": "",
+			"minecraft:colored_flame_particle": "",
+			"minecraft:conduit_particle": "",
+			"minecraft:conduit_absorb_particle": "",
+			"minecraft:conduit_attack_emitter": "",
+			"minecraft:critical_hit_emitter": "",
 			"minecraft:dolphin_move_particle": "",
+			"minecraft:dragon_breath_fire": "",
+			"minecraft:dragon_breath_lingering": "",
+			"minecraft:dragon_breath_trail": "",
+			"minecraft:dragon_death_explosion_emitter": "",
+			"minecraft:dragon_destroy_block": "",
+			"minecraft:dragon_dying_explosion": "",
+			"minecraft:enchanting_table_particle": "",
 			"minecraft:end_chest": "",
 			"minecraft:endrod": "",
 			"minecraft:elephant_tooth_paste_vapor_particle": "",
 			"minecraft:evocation_fang_particle": "",
 			"minecraft:evoker_spell": "",
-			"minecraft:example_beziercurve": "",
-			"minecraft:example_bounce": "",
-			"minecraft:example_catmullromcurve": "",
-			"minecraft:example_colorcurve": "",
-			"minecraft:example_colorcurve2": "",
-			"minecraft:example_combocurve": "",
-			"minecraft:example_directional_sphere": "",
-			"minecraft:example_entity_sparkle_box": "",
-			"minecraft:example_entity_sparkle_aabb": "",
-			"minecraft:example_flipbook": "",
-			"minecraft:example_highrestitution": "",
-			"minecraft:example_linearcurve": "",
-			"minecraft:example_smoke_puff": "",
-			"minecraft:example_spiral": "",
-			"minecraft:example_vertexrandom": "",
-			"minecraft:example_watertest": "",
 			"minecraft:cauldron_explosion_emitter": "",
 			"minecraft:death_explosion_emitter": "",
 			"minecraft:egg_destroy_emitter": "",
 			"minecraft:eyeofender_death_explode_particle": "",
 			"minecraft:misc_fire_vapor_particle": "",
 			"minecraft:explosion_particle": "",
+			"minecraft:explosion_manual": "",
 			"minecraft:eye_of_ender_bubble_particle": "",
+			"minecraft:falling_border_dust_particle": "",
+			"minecraft:falling_dust": "",
+			"minecraft:falling_dust_concrete_powder_particle": "",
+			"minecraft:falling_dust_dragon_egg_particle": "",
+			"minecraft:falling_dust_gravel_particle": "",
+			"minecraft:falling_dust_red_sand_particle": "",
+			"minecraft:falling_dust_sand_particle": "",
+			"minecraft:falling_dust_scaffolding_particle": "",
+			"minecraft:falling_dust_top_snow_particle": "",
 			"minecraft:fish_hook_particle": "",
 			"minecraft:fish_pos_particle": "",
 			"minecraft:guardian_attack_particle": "",
 			"minecraft:guardian_water_move_particle": "",
 			"minecraft:heart_particle": "",
+			"minecraft:huge_explosion_lab_misc_emitter": "",
+			"minecraft:huge_explosion_emitter": "",
 			"minecraft:ice_evaporation_emitter": "",
 			"minecraft:ink_emitter": "",
 			"minecraft:knockback_roar_particle": "",
+			"minecraft:lab_table_heatblock_dust_particle": "",
+			"minecraft:lab_table_misc_mystical_particle": "",
+			"minecraft:large_explosion": "",
 			"minecraft:lava_drip_particle": "",
+			"minecraft:lava_particle": "",
+			"minecraft:llama_spit_smoke": "",
 			"minecraft:magnesium_salts_emitter": "",
 			"minecraft:mob_block_spawn_emitter": "",
 			"minecraft:mob_portal": "",
 			"minecraft:mobflame_emitter": "",
+			"minecraft:mobflame_single": "",
 			"minecraft:mobspell_emitter": "",
+			"minecraft:mycelium_dust_particle": "",
 			"minecraft:note_particle": "",
+			"minecraft:obsidian_glow_dust_particle": "",
+			"minecraft:phantom_trail_particle": "",
 			"minecraft:portal_directional": "",
 			"minecraft:portal_east_west": "",
 			"minecraft:portal_north_south": "",
 			"minecraft:rain_splash_particle": "",
+			"minecraft:redstone_ore_dust_particle": "",
+			"minecraft:redstone_repeater_dust_particle": "",
+			"minecraft:redstone_torch_dust_particle": "",
+			"minecraft:redstone_wire_dust_particle": "",
+			"minecraft:rising_border_dust_particle": "",
 			"minecraft:shulker_bullet": "",
 			"minecraft:silverfish_grief_emitter": "",
+			"minecraft:sparkler_emitter": "",
 			"minecraft:splash_spell_emitter": "",
 			"minecraft:sponge_absorb_water_particle": "",
 			"minecraft:squid_flee_particle": "",
@@ -1300,11 +1386,15 @@
 			"minecraft:squid_move_particle": "",
 			"minecraft:stunned_emitter": "",
 			"minecraft:totem_particle": "",
+			"minecraft:totem_manual": "",
 			"minecraft:underwater_torch_particle": "",
 			"minecraft:villager_angry": "",
 			"minecraft:villager_happy": "",
+			"minecraft:water_drip_particle": "",
 			"minecraft:water_evaporation_actor_emitter": "",
 			"minecraft:water_evaporation_bucket_emitter": "",
+			"minecraft:water_evaporation_manual": "",
+			"minecraft:water_splash_particle_manual": "",
 			"minecraft:water_splash_particle": "",
 			"minecraft:water_wake_particle": "",
 			"minecraft:wither_boss_invulnerable": ""
@@ -1335,10 +1425,10 @@
 			"slowness": "缓慢",
 			"speed": "速度",
 			"strength": "力量",
+			"village_hero": "村庄英雄",
 			"water_breathing": "水下呼吸",
 			"weakness": "虚弱",
-			"wither": "凋零",
-			"village_hero": "村庄英雄"
+			"wither": "凋零"
 		},
 		"enchant_type": {
 			"aqua_affinity": "水下速掘",
@@ -1425,7 +1515,7 @@
 			//"sp": "",
 			"0": "",
 			"1": "",
-			"2": "",
+			"2": ""
 			//"3": ""
 		},
 		"mobevent": {
@@ -2479,7 +2569,7 @@
 									"list": "bool"
 								}
 							]
-						},
+						}
 						/*"set_string": {
 							"description": "设置指定游戏规则的值",
 							"params": [
@@ -3387,7 +3477,7 @@
 									"name": "排序方式",
 									"optional": "true",
 									"list": "scoreboard_sort_order"
-								},
+								}
 							]
 						},
 						"objectives_setdisplay": {
@@ -3735,38 +3825,38 @@
 								},
 								{
 									"type": "selector",
-									"name": "对象①",
+									"name": "前者",
 									"target": "entity",
 									"suggestion": "scoreboard_player"
 								},
 								{
 									"type": "string",
-									"name": "记分项①"
+									"name": "前者记分项"
 								},
 								{
 									"type": "enum",
 									"name": "操作方式",
 									"list": {
-										"+=": "加法:把对象②的分数加到对象①的分数上",
-										"-=": "减法:在对象①的分数上减去对象②的分数",
-										"*=": "乘法:将对象①的分数设为对象①的分数与对象②分数的乘积",
-										"/=": "除法:将对象①的分数设为被对象②的分数整除后的结果",
-										"%=": "求余:将对象①的分数设为被对象②的分数除后得到的余数",
-										"=": "赋值:将对象①的分数设为对象②的分数",
-										"<": "取较小值:如果对象②的分数比对象①的分数小，则将对象①的分数设为对象②的分数",
-										">": "取较大值:如果对象②的分数比对象①的分数大，则将对象①的分数设为对象②的分数",
-										"><": "交换对象②与对象①的分数"
+										"+=": "加法:把后者的分数加到前者的分数上",
+										"-=": "减法:在前者的分数上减去后者的分数",
+										"*=": "乘法:把前者的分数设为前者分数与后者分数的乘积",
+										"/=": "除法:把前者的分数设为前者分数被后者分数整除后的结果",
+										"%=": "求余:把前者的分数设为前者分数被后者分数除后得到的余数",
+										"=": "赋值:把前者的分数设为后者的分数",
+										"<": "取较小值:如果后者的分数比前者的分数小，则把前者的分数设为后者的分数",
+										">": "取较大值:如果后者的分数比前者的分数大，则把前者的分数设为后者的分数",
+										"><": "交换前者与后者的分数"
 									}
 								},
 								{
 									"type": "selector",
-									"name": "对象②",
+									"name": "后者",
 									"target": "entity",
 									"suggestion": "scoreboard_player"
 								},
 								{
 									"type": "string",
-									"name": "记分项②"
+									"name": "后者记分项"
 								}
 							]
 						}
@@ -4150,7 +4240,7 @@
 			},
 			"minSupportVer": "1.9.0.2"
 		},
-		"1.11.0.1": {
+		"worldage": {
 			"commands": {
 				"worldage": {
 					"description": "更改或查询世界自开始时所经历的秒数",
@@ -4195,9 +4285,10 @@
 						}
 					},
 					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/worldage"
-				},
+				}
 			},
-			"minSupportVer": "1.11.0.1"
+			"minSupportVer": "1.11.0.1",
+			"maxSupportVer": "1.11.0.4"
 		},
 		"1.11.0.3": {
 			"commands": {
@@ -4231,9 +4322,365 @@
 						}
 					},
 					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/mobevent"
-				},
+				}
 			},
 			"minSupportVer": "1.11.0.3"
+		},
+		"1.12.0.2": {
+			"commands": {
+				"summon": {
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "实体ID",
+									"suggestion": "entity"
+								},
+								{
+									"type": "position",
+									"name": "生成位置",
+									"optional": true
+								},
+								{
+									"type": "string",
+									"name": "实体事件",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.12.0.2"
+		},
+		"1.13.0.1": {
+			"commands": {
+				"tp": {
+					"patterns": {
+						"current_to_entity": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目的地实体",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"current_to_position": {
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "relative",
+									"name": "水平旋转值",
+									"optional": true
+								},
+								{
+									"type": "relative",
+									"name": "垂直旋转值",
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"current_to_position_check_for_blocks": {
+							"description": "将玩家传送至目的地坐标",
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_entity": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "selector",
+									"name": "目的地实体",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_position": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "relative",
+									"name": "水平旋转值",
+									"optional": true
+								},
+								{
+									"type": "relative",
+									"name": "垂直旋转值",
+									"optional": true
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_position_check_for_blocks": {
+							"description": "将目标实体传送至目的地坐标",
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"current_to_position_facing_block": {
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "position",
+									"name": "面向坐标"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"current_to_position_facing_entity": {
+							"params": [
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "selector",
+									"name": "面向实体",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_position_facing_block": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "position",
+									"name": "面向坐标"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						},
+						"entity_to_position_facing_entity": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "position",
+									"name": "目的地坐标"
+								},
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "面向..."
+								},
+								{
+									"type": "selector",
+									"name": "面向实体",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "是否检测区块加载",
+									"list": "bool",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.13.0.1"
+		},
+		"1.13.0.9": {
+			"commands": {
+				"summon": {
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "实体ID",
+									"suggestion": "entity"
+								},
+								{
+									"type": "position",
+									"name": "生成位置",
+									"optional": true
+								},
+								{
+									"type": "string",
+									"name": "实体事件",
+									"optional": true
+								},
+								{
+									"type": "string",
+									"name": "实体名称",
+									"optional": true
+								}
+							]
+						},
+						"named": {
+							"description": "生成一个特定名称的实体",
+							"params": [
+								{
+									"type": "string",
+									"name": "实体ID",
+									"suggestion": "entity"
+								},
+								{
+									"type": "plain",
+									"name": "named",
+									"prompt": "命名"
+								},
+								{
+									"type": "string",
+									"name": "实体名称"
+								},
+								{
+									"type": "position",
+									"name": "生成位置",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.13.0.9"
+		},
+		"1.13.0.18": {
+			"commands": {
+				"summon": {
+					"patterns": {
+						"named": {
+							"params": [
+								{
+									"type": "string",
+									"name": "实体ID",
+									"suggestion": "entity"
+								},
+								{
+									"type": "string",
+									"name": "实体名称"
+								},
+								{
+									"type": "position",
+									"name": "生成位置",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.13.0.18"
+		},
+		"1.14.0.51": {
+			"enums": {
+				"gamerule_bool": {
+					"showtags": "显示命名标签"
+				}
+			},
+			"minSupportVer": "1.14.0.51"
 		}
 	}
 }
