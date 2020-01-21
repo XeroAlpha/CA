@@ -118,9 +118,11 @@ MapScript.loadModule("AndroidBridge", {
 		if (CA.settings.autoStartAccSvcRoot) this.startAccessibilitySvcByRootAsync(null, true);
 		if (CA.settings.startWSSOnStart) WSServer.start(true);
 		if (G.shouldFloat) this.showActivityContent(G.supportFloat);
-		this.checkNecessaryPermissions(function(success) {
-			if (G.supportFloat) AndroidBridge.exitLoading(!CA.settings.hideRecent);
-		});
+		if (!CA.settings.permissionChecked) {
+			this.checkNecessaryPermissionsSync();
+			CA.settings.permissionChecked = true;
+		}
+		if (G.supportFloat) AndroidBridge.exitLoading(!CA.settings.hideRecent);
 	} catch(e) {erp(e)}},
 	onNewIntent : function(intent, startByIntent) {
 		function onReturn() {
@@ -962,6 +964,11 @@ MapScript.loadModule("AndroidBridge", {
 			layout.addView(exit);
 			activity.setContentView(layout);
 		} catch(e) {erp(e)}});
+	},
+	checkNecessaryPermissionsSync : function() {
+		Threads.awaitPromise(function(resolve) {
+			AndroidBridge.checkNecessaryPermissions(resolve);
+		});
 	},
 	checkNecessaryPermissions : function(callback) {
 		AndroidBridge.requestPermissionsByGroup([{
