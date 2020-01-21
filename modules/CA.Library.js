@@ -202,7 +202,7 @@
 		try {
 			return this.evalLib(file, code);
 		} catch(e) {
-			error.error = e;
+			if (error) error.error = e;
 			return defaultValue;
 		}
 	},
