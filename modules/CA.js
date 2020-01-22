@@ -7242,7 +7242,7 @@ MapScript.loadModule("CA", {
 						children : [
 							agree = L.CheckBox({
 								layout : { width : -2, height : -2 },
-								checked : false
+								checked : Boolean(CA.settings.readAgreement > Date.parse(BuildConfig.licenceUpdate))
 							}),
 							L.TextView({
 								text : "我已阅读并同意",

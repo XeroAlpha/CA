@@ -955,18 +955,24 @@ MapScript.loadModule("IssueService", {
 	showIssuesWithAgreement : function() {
 		var realThis = this;
 		if (CA.settings.readFeedbackAgreement) {
-			this.showIssues();
+			if (realThis.internal.UserManager.isAdmin()) {
+				this.showIssuesPrivileged();
+			} else {
+				this.showIssues();
+			}
 		} else {
 			this.showIssueAgreement(function() {
-				realThis.showIssues();
+				realThis.showIssuesWithAgreement();
 			});
 		}
 	},
 	showIssuesPrivileged : function() {
 		var realThis = this;
 		this.privilegedMode = true;
-		this.showIssues(function() {
-			realThis.privilegedMode = false;
+		this.internal.UserManager.showAdminAuth(function() {
+			realThis.showIssues(function() {
+				realThis.privilegedMode = false;
+			});
 		});
 	},
 	onCreate : function() {

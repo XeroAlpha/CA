@@ -316,6 +316,9 @@ MapScript.loadModule("UserManager", {
 		}
 		return "匿名游客" + creatorID;
 	},
+	isAdmin : function() {
+		return this.userInfo ? this.userInfo.status == 999 : false;
+	},
 	isOnline : function() {
 		return MapScript.host == "Android" && ScriptInterface.isOnlineMode();
 	},
@@ -701,6 +704,21 @@ MapScript.loadModule("UserManager", {
 			});
 		}
 	},
+	showAdminAuth : function(callback) {
+		var realThis = this;
+		Common.showProgressDialog(function(dia) {
+			dia.setText("正在以管理员权限登录..");
+			try {
+				realThis.acquireAdminToken();
+			} catch(e) {
+				Log.e(e);
+				return Common.toast("使用管理员权限登录失败\n" + e);
+			}
+			G.ui(function() {try {
+				if (callback) callback();
+			} catch(e) {erp(e)}});
+		});
+	},
 	showChangePassword : function self() { var realThis = this; G.ui(function() {try {
 		var oldpwd, newpwd, newpwd2, popup;
 		popup = PopupPage.showDialog("usermanager.ForgetPassword", L.ScrollView({
@@ -963,24 +981,15 @@ MapScript.loadModule("UserManager", {
 					}),
 					L.TextView({
 						text : "进入管理界面",
-						visibility : L.View(userInfo.status == 999 ? "visible" : "gone"),
+						visibility : L.View(realThis.isAdmin() ? "visible" : "gone"),
 						padding : [0, 15 * G.dp, 0, 15 * G.dp],
 						gravity : L.Gravity("left"),
 						layout : { width : -1, height : -2 },
 						style : "button_highlight",
 						fontSize : 3,
 						onClick : function() {try {
-							Common.showProgressDialog(function(dia) {
-								dia.setText("正在以管理员权限登录..");
-								try {
-									realThis.acquireAdminToken();
-								} catch(e) {
-									Log.e(e);
-									return Common.toast("使用管理员权限登录失败\n" + e);
-								}
-								G.ui(function() {try {
-									DebugUtils.showDebugDialog(realThis.getDebugInterface());
-								} catch(e) {erp(e)}});
+							realThis.showAdminAuth(function() {
+								DebugUtils.showDebugDialog(realThis.getDebugInterface());
 							});
 							popup.exit();
 						} catch(e) {erp(e)}}
