@@ -207,13 +207,13 @@ MapScript.loadModule("CA", {
 			this.his.splice(CA.settings.histroyCount);
 		}
 	},
-	getFavoriteDir : function(key, folder, noCreate) {
+	getFavoriteDir : function(key, folder, doNotCreate) {
 		var i, t;
 		if (!folder) folder = this.fav;
 		for (i in folder) {
 			if (key == folder[i].key && folder[i].children) return folder[i];
 		}
-		if (noCreate) return null;
+		if (doNotCreate) return null;
 		folder.push(t = {
 			key : key,
 			children : []
@@ -1150,7 +1150,7 @@ MapScript.loadModule("CA", {
 								Common.toast("名称不能为空");
 								return;
 							}
-							if (CA.getFavoriteDir(s, tag.folder ? tag.folder.children : null)) {
+							if (CA.getFavoriteDir(s, tag.folder ? tag.folder.children : null, true)) {
 								Common.toast("名称已存在");
 								return;
 							}
