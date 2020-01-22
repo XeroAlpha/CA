@@ -425,12 +425,14 @@ MapScript.loadModule("PopupPage", (function() {
 			return false;
 		};
 		r.back = function(source) {
-			var stack = source == this.floatContainer ? this.floatStack : this.defaultStack, cancelEvent = false;
+			var stack = source == this.floatContainer ? this.floatStack : this.defaultStack, cancelEvent, stackItem;
 			if (stack.length) {
-				stack[stack.length - 1].page.trigger("back", function() {
+				stackItem = stack[stack.length - 1];
+				cancelEvent = stackItem.page.modal;
+				stackItem.page.trigger("back", function() {
 					cancelEvent = true;
 				});
-				if (!cancelEvent) stack[stack.length - 1].page.exit();
+				if (!cancelEvent) stackItem.page.exit();
 			}
 		}
 		r.showPage = function(page) {
