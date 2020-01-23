@@ -2733,7 +2733,7 @@ MapScript.loadModule("CA", {
 					CA.settings.notReportError = !v;
 					erp.notReport = CA.settings.notReportError;
 				}
-			}, {
+			},/* {
 				name : "Beta计划",
 				description : "检测Beta版更新，体验新版功能",
 				type : "custom",
@@ -2760,7 +2760,7 @@ MapScript.loadModule("CA", {
 						}, true);
 					}
 				}
-			}, {
+			},*/ {
 				name : "开发者工具",
 				type : "tag"
 			}, {

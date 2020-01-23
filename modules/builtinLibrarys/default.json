@@ -3130,6 +3130,7 @@
 					"description": "添加、移除或列出常加载区域",
 					"patterns": {
 						"add_box": {
+							"description": "添加长方体常加载区域",
 							"params": [
 								{
 									"type": "plain",
@@ -3151,6 +3152,7 @@
 							]
 						},
 						"add_sphere": {
+							"description": "添加球形常加载区域",
 							"params": [
 								{
 									"type": "plain",
@@ -3172,6 +3174,7 @@
 							]
 						},
 						"remove_pos": {
+							"description": "移除所有包含指定位置的常加载区域",
 							"params": [
 								{
 									"type": "plain",
@@ -3180,11 +3183,12 @@
 								},
 								{
 									"type": "position",
-									"name": "Position"
+									"name": "位置"
 								}
 							]
 						},
 						"remove_id": {
+							"description": "移除指定ID的常加载区域",
 							"params": [
 								{
 									"type": "plain",
@@ -3198,6 +3202,7 @@
 							]
 						},
 						"remove_all": {
+							"description": "移除所有常加载区域",
 							"params": [
 								{
 									"type": "plain",
@@ -3207,6 +3212,7 @@
 							]
 						},
 						"list": {
+							"description": "列出所有常加载区域",
 							"params": [
 								{
 									"type": "plain",
