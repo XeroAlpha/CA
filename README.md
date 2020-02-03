@@ -18,5 +18,15 @@ App工程参见[命令助手Android版](https://gitee.com/projectxero/cadroid)�
 * [正式版下载链接](https://www.coolapk.com/game/com.xero.ca)
 
 ## 生成
-在当前目录下运行 `build buildRelease` 即可。
-文件会导出至 `/dist` 。
+### 准备工作
+1. 安装[命令助手构建工具](https://gitee.com/projectxero/cabuildtools)。
+2. 按需要修改 `config` 文件夹内的配置文件。
+
+### 生成正式版JS
+在当前目录下运行 `cabuild buildRelease` 即可，文件会导出至 `/build/dist` 。
+
+### 生成快照版JS
+在当前目录下运行 `cabuild buildSnapshot` 即可，文件会导出至 `/build/dist` 。
+
+### 生成正式版APP
+在当前目录下运行 `cabuild shellBuildRelease` 即可，文件会导出至 `/build/dist` 。

@@ -1,4 +1,11 @@
-"IGNORELN_START";
+/*LOADER
+if (variables.buildConfig.variants == "release") {
+	postprocessor = function(src) {
+		var jsmin = require("jsmin").jsmin;
+		return jsmin(src, 2);
+	};
+}
+*/
 CA.Library.inner["default"] = Loader.fromFile("builtinLibrarys/default.json");
 CA.Library.inner["addition"] = Loader.fromFile("builtinLibrarys/addition.json");
 CA.Library.inner["basicedu"] = Loader.fromFile("builtinLibrarys/basicedu.json");
@@ -76,4 +83,3 @@ CA.tips = CA.defalutTips = [
 	//by ProjectXero
 	"潜影贝只是站错了阵营的好孩子～"
 ];
-"IGNORELN_END";

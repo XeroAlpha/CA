@@ -111,6 +111,12 @@ MapScript.loadModule("WSServer", {
 			erp(e, true, message);
 		}
 	},
+	/**
+	 * @callback EventReceiver
+	 * 事件回调
+	 * @param {Object} body 事件body
+	 * @param {Object} message 事件消息
+	 */
 	onEvent : function(json) {
 		var listeners = this.events.get(json.body.eventName), iter, e;
 		if (listeners != null) {
@@ -123,6 +129,12 @@ MapScript.loadModule("WSServer", {
 			}
 		}
 	},
+	/**
+	 * @callback CommandResponseReceiver
+	 * 命令响应回调
+	 * @param {Object} body 命令响应body
+	 * @param {Object} message 命令响应消息
+	 */
 	onResponse : function(json) {
 		var callback = this.responsers.remove(json.header.requestId);
 		if (callback != null) {
@@ -164,6 +176,12 @@ MapScript.loadModule("WSServer", {
 			messageType : "commandRequest"
 		};
 	},
+	/**
+	 * 订阅一个事件。
+	 * @param {string} name 事件名
+	 * @param {EventReceiver} callback 事件回调
+	 * @returns {boolean} 服务器是否在线
+	 */
 	subscribeEvent : function(name, callback) {
 		var listeners;
 		if (!this.conn || !this.conn.isOpen()) return false;
@@ -181,6 +199,12 @@ MapScript.loadModule("WSServer", {
 		}));
 		return true;
 	},
+	/**
+	 * 取消订阅一个事件。
+	 * @param {string} name 事件名
+	 * @param {EventReceiver} callback 事件回调
+	 * @returns {boolean} 服务器是否在线
+	 */
 	unsubscribeEvent : function(name, callback) {
 		if (!this.conn || !this.conn.isOpen()) return false;
 		var listeners = this.events.get(name);
@@ -198,6 +222,12 @@ MapScript.loadModule("WSServer", {
 		}
 		return true;
 	},
+	/**
+	 * 发送一条命令。
+	 * @param {string} cmd 命令，不包括斜杠
+	 * @param {CommandResponseReceiver} callback 命令响应回调
+	 * @returns {boolean} 服务器是否在线
+	 */
 	sendCommand : function(cmd, callback) {
 		if (!this.conn || !this.conn.isOpen()) return null;
 		var json = {

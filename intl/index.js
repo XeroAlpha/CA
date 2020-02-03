@@ -1,3 +1,12 @@
+/*LOADER
+if (variables.buildConfig.variants == "release") {
+	postprocessor = function(src) {
+		var jsmin = require("jsmin").jsmin;
+		return jsmin(src, 2);
+	};
+}
+*/
+Intl.defaultLang = Loader.fromFile("./zh_CN/main.json");
 switch (Intl.lookupLang({
 	"zh_CN" : {
 		language : "zh",
@@ -9,12 +18,10 @@ switch (Intl.lookupLang({
 	}
 })) {
 	case "en_US":
-	"IGNORELN_START";
 	Intl.loadLang({
 		language : "en",
 		country : "US"
 	}, Loader.fromFile("./en_US/main.json"), false);
-	"IGNORELN_END";
 	break;
 	default:
 	Intl.loadLang({

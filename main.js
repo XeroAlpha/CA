@@ -590,6 +590,22 @@ MapScript.loadModule("Loader", {
 });
 
 Loader.load(function() {
+/*LOADER
+if (variables.buildConfig.variants == "release") {
+	postprocessor = function(src) {
+		var jsmin = require("jsmin").jsmin;
+		return jsmin(src, 1)
+			.replace(/\{DATE\}/g, variables.buildConfig.date)
+			.replace(/^\s+/, "") //去除开头多余的空行
+			.replace(/^"ui";\n/, "").replace(/CA\.RELEASE/g, "true"); //去除UI标志，标记正式版
+	};
+} else if (variables.buildConfig.variants == "snapshot") {
+	postprocessor = function(src) {
+		return src.replace(/\{DATE\}/g, "S" + variables.buildConfig.date);
+	};
+}
+*/
+
 Loader.fromFile("modules/BuildConfig.js")
 
 Loader.fromFile("modules/test/FileLogger.js")

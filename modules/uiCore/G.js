@@ -1,4 +1,11 @@
-"IGNORELN_START";
+/*LOADER
+if (variables.buildConfig.variants == "release") {
+	postprocessor = function(src) {
+		var jsmin = require("jsmin").jsmin;
+		return jsmin(src, 2);
+	};
+}
+*/
 MapScript.loadModule("G", {
 	onCreate : function() {
 		var t;
@@ -139,4 +146,3 @@ MapScript.loadModule("G", {
 	WindowManager: android.view.WindowManager
 //IMPORTS_END
 });
-"IGNORELN_END";

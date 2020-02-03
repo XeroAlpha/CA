@@ -1,7 +1,4 @@
 MapScript.loadModule("Intl", {
-	/*"IGNORELN_START";*/
-	defaultLang : Loader.fromFile("../intl/zh_CN/main.json"),
-	/*"IGNORELN_END";*/
 	rescache : {},
 	getLocales : function() {
 		var r, i, a;
