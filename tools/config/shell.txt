@@ -1,5 +1,0 @@
-@jarsignerPath C:\Program Files\Java\jdk1.8.0_221\bin\jarsigner.exe
-JDK中jarsigner.exe的绝对路径，没有安装JDK则可使用(Android Studio安装目录)\jre\bin\jarsigner.exe
-
-@zipalignPath C:\Users\Administrator\AppData\Local\Android\Sdk\build-tools\28.0.3\zipalign.exe
-Build Tools中zipalign.exe的绝对路径
