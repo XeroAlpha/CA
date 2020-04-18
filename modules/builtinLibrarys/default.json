@@ -1,12 +1,12 @@
 {
 	"name": "默认命令库",
 	"author": "CA制作组",
-	"description": "该命令库基于Minecraft PE 1.14.2.51 的命令，大部分由CA制作组成员ProjectXero整理。该命令库包含部分未来特性。",
+	"description": "该命令库基于Minecraft PE 1.14.2.51 的命令，大部分由CA制作组成员ProjectXero整理。",
 	"uuid": "acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
-	"version": [0, 0, 1],
+	"version": [1, 0, 0],
 	"require": [],
 	"minSupportVer": "0.7.4",
-	"targetSupportVer": "1.14.2.51",
+	"targetSupportVer": "1.16.0.57",
 	"commands": {},
 	"idlist": [
 		{
@@ -39,10 +39,7 @@
 		},
 		{
 			"name": "游戏规则",
-			"lists": [
-				"gamerule_bool",
-				"gamerule_int"
-			]
+			"lists": ["gamerule_bool", "gamerule_int"]
 		},
 		{
 			"name": "生物事件",
@@ -53,20 +50,23 @@
 		"block": {
 			"acacia_button": "金合欢木按钮",
 			"acacia_door": "金合欢木门",
-			"acacia_fence_gate": "金合欢栅栏门",
+			"acacia_fence_gate": "金合欢木栅栏门",
 			"acacia_pressure_plate": "金合欢木压力板",
-			"acacia_stairs": "金合欢楼梯",
+			"acacia_stairs": "金合欢木楼梯",
 			"acacia_standing_sign": "金合欢木告示牌",
 			"acacia_trapdoor": "金合欢木活板门",
 			"acacia_wall_sign": "墙上的金合欢木告示牌",
 			"activator_rail": "激活铁轨",
 			"air": "空气",
+			"allow": "允许方块",
+			"ancient_debris": "远古残骸",
 			"andesite_stairs": "安山岩楼梯",
 			"anvil": "铁砧",
 			"bamboo": "竹子",
 			"bamboo_sapling": "竹笋",
 			"barrel": "木桶",
 			"barrier": "屏障",
+			"basalt_block": "玄武岩",
 			"beacon": "信标",
 			"bed": "床",
 			"bedrock": "基岩",
@@ -83,14 +83,22 @@
 			"birch_trapdoor": "白桦木活板门",
 			"birch_wall_sign": "墙上的白桦木告示牌",
 			"black_glazed_terracotta": "黑色带釉陶瓦",
+			"blackstone": "黑石",
+			"blackstone_double_slab": "双层黑石台阶",
+			"blackstone_slab": "黑石台阶",
+			"blackstone_stairs": "黑石楼梯",
+			"blackstone_wall": "黑石墙",
 			"blast_furnace": "高炉",
+			"blue_fire": "灵魂火",
 			"blue_glazed_terracotta": "蓝色带釉陶瓦",
 			"blue_ice": "蓝冰",
+			"blue_nether_wart_block": "诡异疣块",
 			"bone_block": "骨块",
 			"bookshelf": "书架",
+			"border_block": "边界方块",
 			"brewing_stand": "酿造台",
 			"brick_block": "砖块",
-			"brick_stairs": "砖块楼梯",
+			"brick_stairs": "砖楼梯",
 			"brown_glazed_terracotta": "棕色带釉陶瓦",
 			"brown_mushroom": "棕色蘑菇",
 			"brown_mushroom_block": "棕色蘑菇",
@@ -104,8 +112,11 @@
 			"cartography_table": "制图台",
 			"carved_pumpkin": "雕刻过的南瓜",
 			"cauldron": "炼药锅",
+			"chain": "锁链",
 			"chain_command_block": "连锁型命令方块",
 			"chest": "箱子",
+			"chiseled_nether_bricks": "錾制下界砖块",
+			"chiseled_polished_blackstone": "錾制磨制黑石",
 			"chorus_flower": "紫颂花",
 			"chorus_plant": "紫颂植物",
 			"clay": "粘土块",
@@ -122,11 +133,31 @@
 			"coral": "珊瑚",
 			"coral_block": "珊瑚块",
 			"coral_fan": "珊瑚扇",
-			"coral_fan_dead": "死亡珊瑚扇",
-			"coral_fan_hang": "",
-			"coral_fan_hang2": "",
-			"coral_fan_hang3": "",
+			"coral_fan_dead": "失活的珊瑚扇",
+			"coral_fan_hang": "墙上的珊瑚扇",
+			"coral_fan_hang2": "墙上的珊瑚扇",
+			"coral_fan_hang3": "墙上的珊瑚扇",
+			"cracked_nether_bricks": "裂纹下界砖块",
+			"cracked_polished_blackstone_bricks": "裂纹磨制黑石砖",
 			"crafting_table": "工作台",
+			"crimson_button": "绯红木按钮",
+			"crimson_door": "绯红木门",
+			"crimson_double_slab": "双层绯红木台阶",
+			"crimson_fence": "绯红木栅栏",
+			"crimson_fence_gate": "绯红木栅栏门",
+			"crimson_fungus": "绯红菌",
+			"crimson_hyphae": "绯红菌核",
+			"crimson_nylium": "绯红菌岩",
+			"crimson_planks": "绯红木板",
+			"crimson_pressure_plate": "绯红木压力板",
+			"crimson_roots": "绯红菌索",
+			"crimson_slab": "绯红木台阶",
+			"crimson_stairs": "绯红木楼梯",
+			"crimson_standing_sign": "绯红木告示牌",
+			"crimson_stem": "绯红菌柄",
+			"crimson_trap_door": "绯红木活板门",
+			"crimson_wall_sign": "墙上的绯红木告示牌",
+			"crying_obsidian": "哭泣的黑曜石",
 			"cyan_glazed_terracotta": "青色带釉陶瓦",
 			"dark_oak_button": "深色橡木按钮",
 			"dark_oak_door": "深色橡木门",
@@ -137,9 +168,10 @@
 			"dark_prismarine_stairs": "暗海晶石楼梯",
 			"darkoak_standing_sign": "深色橡木告示牌",
 			"darkoak_wall_sign": "墙上的深色橡木告示牌",
-			"daylight_detector": "阳光传感器",
-			"daylight_detector_inverted": "反向阳光传感器",
+			"daylight_detector": "阳光探测器",
+			"daylight_detector_inverted": "反向阳光探测器",
 			"deadbush": "枯萎的灌木",
+			"deny": "拒绝方块",
 			"detector_rail": "探测铁轨",
 			"diamond_block": "钻石块",
 			"diamond_ore": "钻石矿石",
@@ -147,11 +179,11 @@
 			"dirt": "泥土",
 			"dispenser": "发射器",
 			"double_plant": "向日葵",
-			"double_stone_slab": "双石台阶",
-			"double_stone_slab2": "双红砂岩台阶",
-			"double_stone_slab3": "双石台阶",
-			"double_stone_slab4": "双石台阶",
-			"double_wooden_slab": "双木台阶",
+			"double_stone_slab": "双层石质台阶",
+			"double_stone_slab2": "双层石质台阶",
+			"double_stone_slab3": "双层石质台阶",
+			"double_stone_slab4": "双层石质台阶",
+			"double_wooden_slab": "双层木制台阶",
 			"dragon_egg": "龙蛋",
 			"dried_kelp_block": "干海带块",
 			"dropper": "投掷器",
@@ -177,6 +209,7 @@
 			"frame": "物品展示框",
 			"frosted_ice": "霜冰",
 			"furnace": "熔炉",
+			"gilded_blackstone": "镶金黑石",
 			"glass": "玻璃",
 			"glass_pane": "玻璃板",
 			"glowingobsidian": "发光的黑曜石",
@@ -193,7 +226,7 @@
 			"grindstone": "砂轮",
 			"hardened_clay": "硬化粘土",
 			"hay_block": "干草块",
-			"heavy_weighted_pressure_plate": "测重压力板（重质）",
+			"heavy_weighted_pressure_plate": "重质测重压力板",
 			"honey_block": "蜂蜜块",
 			"honeycomb_block": "蜜脾块",
 			"hopper": "漏斗",
@@ -229,7 +262,7 @@
 			"lever": "拉杆",
 			"light_block": "光源方块",
 			"light_blue_glazed_terracotta": "淡蓝色带釉陶瓦",
-			"light_weighted_pressure_plate": "测重压力板（轻质）",
+			"light_weighted_pressure_plate": "轻质测重压力板",
 			"lime_glazed_terracotta": "黄绿色带釉陶瓦",
 			"lit_blast_furnace": "燃烧中的高炉",
 			"lit_furnace": "燃烧中的熔炉",
@@ -237,6 +270,7 @@
 			"lit_redstone_lamp": "点亮的红石灯",
 			"lit_redstone_ore": "发光的红石矿石",
 			"lit_smoker": "燃烧中的烟熏炉",
+			"lodestone_block": "磁石",
 			"log": "木头",
 			"log2": "金合欢木",
 			"loom": "织布机",
@@ -244,19 +278,22 @@
 			"magma": "岩浆块",
 			"melon_block": "西瓜",
 			"melon_stem": "西瓜梗",
-			"mob_spawner": "刷怪箱",
-			"monster_egg": "怪物蛋",
+			"mob_spawner": "刷怪笼",
+			"monster_egg": "被虫蚀的方块",
 			"mossy_cobblestone": "苔石",
 			"mossy_cobblestone_stairs": "苔石楼梯",
 			"mossy_stone_brick_stairs": "苔石砖楼梯",
 			"movingblock": "被活塞推动的方块",
 			"mycelium": "菌丝",
-			"nether_brick": "地狱砖块",
-			"nether_brick_fence": "地狱砖栅栏",
-			"nether_brick_stairs": "地狱砖楼梯",
-			"nether_wart": "地狱疣",
-			"nether_wart_block": "地狱疣块",
-			"netherrack": "地狱岩",
+			"nether_brick": "下界砖块",
+			"nether_brick_fence": "下界砖栅栏",
+			"nether_brick_stairs": "下界砖楼梯",
+			"nether_gold_ore": "下界金矿石",
+			"nether_sprouts": "下界苗",
+			"nether_wart": "下界疣",
+			"nether_wart_block": "下界疣块",
+			"netherite_block": "下界合金块",
+			"netherrack": "下界岩",
 			"netherreactor": "下界反应核",
 			"normal_stone_stairs": "石楼梯",
 			"noteblock": "音符盒",
@@ -271,9 +308,22 @@
 			"planks": "木板",
 			"podzol": "灰化土",
 			"polished_andesite_stairs": "磨制安山岩楼梯",
+			"polished_basalt_block": "磨制玄武岩",
+			"polished_blackstone": "磨制黑石",
+			"polished_blackstone_brick_double_slab": "双层磨制黑石砖台阶",
+			"polished_blackstone_brick_slab": "磨制黑石砖台阶",
+			"polished_blackstone_brick_stairs": "磨制黑石砖楼梯",
+			"polished_blackstone_brick_wall": "磨制黑石砖墙",
+			"polished_blackstone_bricks": "磨制黑石砖",
+			"polished_blackstone_button": "磨制黑石按钮",
+			"polished_blackstone_double_slab": "双层磨制黑石台阶",
+			"polished_blackstone_pressure_plate": "磨制黑石压力板",
+			"polished_blackstone_slab": "磨制黑石台阶",
+			"polished_blackstone_stairs": "磨制黑石楼梯",
+			"polished_blackstone_wall": "磨制黑石墙",
 			"polished_diorite_stairs": "磨制闪长岩楼梯",
 			"polished_granite_stairs": "磨制花岗岩楼梯",
-			"portal": "下界传送门",
+			"portal": "下界传送门方块",
 			"potatoes": "马铃薯",
 			"powered_comparator": "充能的红石比较器",
 			"powered_repeater": "充能的红石中继器",
@@ -284,8 +334,9 @@
 			"pumpkin_stem": "南瓜梗",
 			"purple_glazed_terracotta": "紫色带釉陶瓦",
 			"purpur_block": "紫珀块",
-			"purpur_stairs": "紫珀块楼梯",
+			"purpur_stairs": "紫珀楼梯",
 			"quartz_block": "石英块",
+			"quartz_bricks": "石英砖",
 			"quartz_ore": "下界石英矿石",
 			"quartz_stairs": "石英楼梯",
 			"rail": "铁轨",
@@ -293,8 +344,8 @@
 			"red_glazed_terracotta": "红色带釉陶瓦",
 			"red_mushroom": "红色蘑菇",
 			"red_mushroom_block": "红色蘑菇",
-			"red_nether_brick": "红色地狱砖块",
-			"red_nether_brick_stairs": "红色地狱砖楼梯",
+			"red_nether_brick": "红色下界砖块",
+			"red_nether_brick_stairs": "红色下界砖楼梯",
 			"red_sandstone": "红砂岩",
 			"red_sandstone_stairs": "红砂岩楼梯",
 			"redstone_block": "红石块",
@@ -305,6 +356,7 @@
 			"reeds": "甘蔗",
 			"repeating_command_block": "循环型命令方块",
 			"reserved6": "reserved6",
+			"respawn_anchor": "重生锚",
 			"sand": "沙子",
 			"sandstone": "砂岩",
 			"sandstone_stairs": "砂岩楼梯",
@@ -313,6 +365,7 @@
 			"sealantern": "海晶灯",
 			"sea_pickle": "海泡菜",
 			"seagrass": "海草",
+			"shroomlight_block": "菌光体",
 			"shulker_box": "潜影盒",
 			"silver_glazed_terracotta": "淡灰色带釉陶瓦",
 			"skull": "生物头颅",
@@ -325,13 +378,17 @@
 			"smooth_stone": "平滑石头",
 			"snow": "雪块",
 			"snow_layer": "雪",
+			"soul_campfire": "灵魂营火",
+			"soul_lantern": "灵魂灯笼",
 			"soul_sand": "灵魂沙",
+			"soul_soil_block": "灵魂土",
+			"soul_torch": "灵魂火把",
 			"sponge": "海绵",
 			"spruce_button": "云杉木按钮",
 			"spruce_door": "云杉木门",
 			"spruce_fence_gate": "云杉木栅栏门",
 			"spruce_pressure_plate": "云杉木压力板",
-			"spruce_stairs": "云杉楼梯",
+			"spruce_stairs": "云杉木楼梯",
 			"spruce_standing_sign": "云杉木告示牌",
 			"spruce_trapdoor": "云杉木活板门",
 			"spruce_wall_sign": "墙上的云杉木告示牌",
@@ -356,14 +413,19 @@
 			"stonecutter_block": "切石机",
 			"stripped_acacia_log": "去皮金合欢木",
 			"stripped_birch_log": "去皮白桦木",
+			"stripped_crimson_hyphae": "去皮绯红菌核",
+			"stripped_crimson_stem": "去皮绯红菌柄",
 			"stripped_dark_oak_log": "去皮深色橡木",
 			"stripped_jungle_log": "去皮丛林木",
 			"stripped_oak_log": "去皮橡木",
 			"stripped_spruce_log": "去皮云杉木",
+			"stripped_warped_hyphae": "去皮诡异菌核",
+			"stripped_warped_stem": "去皮诡异菌柄",
 			"structure_block": "结构方块",
 			"structure_void": "结构空位",
 			"sweet_berry_bush": "甜浆果丛",
-			"tallgrass": "草丛",
+			"tallgrass": "高草丛",
+			"target_block": "标靶",
 			"tnt": "TNT",
 			"torch": "火把",
 			"trapdoor": "活板门",
@@ -371,6 +433,7 @@
 			"tripwire": "绊线",
 			"tripwire_hook": "绊线钩",
 			"turtle_egg": "海龟蛋",
+			"twisting_vines_block": "缠怨藤植物",
 			"undyed_shulker_box": "未染色的潜影盒",
 			"unlit_redstone_torch": "熄灭的红石火把",
 			"unpowered_comparator": "红石比较器",
@@ -378,9 +441,27 @@
 			"vine": "藤蔓",
 			"wall_banner": "墙上的旗帜",
 			"wall_sign": "墙上的告示牌",
+			"warped_button": "诡异木按钮",
+			"warped_door": "诡异木门",
+			"warped_double_slab": "双层诡异木台阶",
+			"warped_fence": "诡异木栅栏",
+			"warped_fence_gate": "诡异木栅栏门",
+			"warped_fungus": "诡异菌",
+			"warped_hyphae": "诡异菌核",
+			"warped_nylium": "诡异菌岩",
+			"warped_planks": "诡异木板",
+			"warped_pressure_plate": "诡异木压力板",
+			"warped_roots": "诡异菌索",
+			"warped_slab": "诡异木台阶",
+			"warped_stairs": "诡异木楼梯",
+			"warped_standing_sign": "诡异木告示牌",
+			"warped_stem": "诡异菌柄",
+			"warped_trapdoor": "诡异木活板门",
+			"warped_wall_sign": "墙上的诡异木告示牌",
 			"water": "水",
 			"waterlily": "睡莲",
 			"web": "蜘蛛网",
+			"weeping_vines_block": "垂泪藤植物",
 			"wheat": "小麦",
 			"white_glazed_terracotta": "白色带釉陶瓦",
 			"wither_rose": "凋零玫瑰",
@@ -388,7 +469,7 @@
 			"wooden_button": "木质按钮",
 			"wooden_door": "木门",
 			"wooden_pressure_plate": "木质压力板",
-			"wooden_slab": "木台阶",
+			"wooden_slab": "木质台阶",
 			"wool": "羊毛",
 			"yellow_flower": "蒲公英",
 			"yellow_glazed_terracotta": "黄色带釉陶瓦"
@@ -440,6 +521,7 @@
 			"cooked_rabbit": "熟兔肉",
 			"cooked_salmon": "熟鲑鱼",
 			"cookie": "曲奇",
+			"crimson_sign": "绯红木告示牌",
 			"crossbow": "弩",
 			"darkoak_sign": "深色橡木告示牌",
 			"diamond": "钻石",
@@ -526,8 +608,19 @@
 			"muttoncooked": "熟羊肉",
 			"muttonraw": "生羊肉",
 			"name_tag": "命名牌",
-			"nautilus_shell": "鹦鹉螺",
-			"netherbrick": "地狱砖",
+			"nautilus_shell": "鹦鹉螺壳",
+			"netherbrick": "下界砖",
+			"netherite_axe": "下界合金斧",
+			"netherite_boots": "下界合金靴子",
+			"netherite_chestplate": "下界合金胸甲",
+			"netherite_helmet": "下界合金头盔",
+			"netherite_hoe": "下界合金锄",
+			"netherite_ingot": "下界合金锭",
+			"netherite_leggings": "下界合金护腿",
+			"netherite_pickaxe": "下界合金镐",
+			"netherite_scrap": "下界合金碎片",
+			"netherite_shovel": "下界合金锹",
+			"netherite_sword": "下界合金剑",
 			"netherstar": "下界之星",
 			"painting": "画",
 			"paper": "纸",
@@ -554,6 +647,7 @@
 			"record_far": "far唱片",
 			"record_mall": "mall唱片",
 			"record_mellohi": "mellohi唱片",
+			"record_pigstep": "pigstep唱片",
 			"record_stal": "stal唱片",
 			"record_strad": "strad唱片",
 			"record_wait": "wait唱片",
@@ -570,7 +664,7 @@
 			"slime_ball": "粘液球",
 			"snowball": "雪球",
 			"spawn_egg": "刷怪蛋",
-			"speckled_melon": "闪烁的西瓜",
+			"speckled_melon": "闪烁的西瓜片",
 			"spider_eye": "蜘蛛眼",
 			"splash_potion": "喷溅药水",
 			"spruce_sign": "云杉木告示牌",
@@ -588,6 +682,7 @@
 			"trident": "三叉戟",
 			"turtle_helmet": "海龟壳",
 			"turtle_shell_piece": "鳞甲",
+			"warped_sign": "诡异木告示牌",
 			"wheat_seeds": "小麦种子",
 			"wooden_axe": "木斧",
 			"wooden_hoe": "木锄",
@@ -597,6 +692,7 @@
 			"writable_book": "书与笔"
 		},
 		"sound": {
+			"ambient.cave": "",
 			"ambient.weather.thunder": "打雷声",
 			"ambient.weather.lightning.impact": "打雷声（爆炸）",
 			"ambient.weather.rain": "雨声",
@@ -1071,6 +1167,7 @@
 			"random.anvil_break": "铁砧破坏声",
 			"random.anvil_land": "铁砧放置声",
 			"random.anvil_use": "铁砧使用声",
+			"hit.anvil": "",
 			"random.bow": "投掷器投掷声/发射器发射声/射箭声",
 			"random.bowhit": "箭射中方块或实体/剪刀剪掉绊线/激活的绊线钩破坏声",
 			"random.break": "玩家工具用坏声",
@@ -1172,6 +1269,7 @@
 			"music.menu": "主界面背景音乐",
 			"music.game": "生存模式背景音乐",
 			"music.game.creative": "创造模式背景音乐",
+			"music.game.water": "",
 			"music.game.end": "末地背景音乐",
 			"music.game.endboss": "末影龙主题乐",
 			"music.game.nether": "下界背景音乐",
@@ -1216,6 +1314,7 @@
 			"minecraft:fox": "狐狸",
 			"minecraft:ghast": "恶魂",
 			"minecraft:guardian": "守卫者",
+			"minecraft:hoglin": "疣猪兽",
 			"minecraft:hopper_minecart": "漏斗矿车",
 			"minecraft:horse": "马",
 			"minecraft:husk": "尸壳",
@@ -1231,13 +1330,14 @@
 			"minecraft:mooshroom": "哞菇",
 			"minecraft:moving_block": "移动中的方块(无法用summon生成)",
 			"minecraft:mule": "骡",
-			"minecraft:npc": "NPC(无法用summon生成)",
+			"minecraft:npc": "NPC",
 			"minecraft:ocelot": "豹猫",
 			"minecraft:painting": "画(无法用summon生成)",
 			"minecraft:panda": "熊猫",
 			"minecraft:parrot": "鹦鹉",
 			"minecraft:phantom": "幻翼",
 			"minecraft:pig": "猪",
+			"minecraft:piglin": "猪灵",
 			"minecraft:pillager": "掠夺者",
 			"minecraft:player": "玩家(无法用summon生成)",
 			"minecraft:polar_bear": "北极熊",
@@ -1259,15 +1359,14 @@
 			"minecraft:splash_potion": "丢出的喷溅药水",
 			"minecraft:squid": "鱿鱼",
 			"minecraft:stray": "流浪者",
-			"minecraft:thrown_trident": "掷出的三叉戟",
+			"minecraft:strider": "炽足兽",
+			"minecraft:thrown_trident": "掷出的三叉戟(无法用summon生成)",
 			"minecraft:tnt": "已激活的TNT",
 			"minecraft:tnt_minecart": "TNT矿车",
-			"minecraft:tripod_camera": "相机",
 			"minecraft:tropicalfish": "热带鱼",
 			"minecraft:turtle": "海龟",
 			"minecraft:vex": "恼鬼",
 			"minecraft:villager": "村民",
-			"minecraft:villager_v2": "村民（v2）",
 			"minecraft:vindicator": "卫道士",
 			"minecraft:wandering_trader": "流浪商人",
 			"minecraft:witch": "女巫",
@@ -1278,11 +1377,11 @@
 			"minecraft:wolf": "狼",
 			"minecraft:xp_bottle": "丢出的附魔之瓶",
 			"minecraft:xp_orb": "经验球",
+			"minecraft:zoglin": "僵尸疣猪兽",
 			"minecraft:zombie": "僵尸",
 			"minecraft:zombie_horse": "僵尸马",
-			"minecraft:zombie_pigman": "僵尸猪人",
-			"minecraft:zombie_villager": "僵尸村民",
-			"minecraft:zombie_villager_v2": "僵尸村民（v2）"
+			"minecraft:zombie_pigman": "僵尸猪灵",
+			"minecraft:zombie_villager": "僵尸村民"
 		},
 		"particle_emitter": {
 			"minecraft:arrow_spell_emitter": "",
@@ -1433,6 +1532,7 @@
 		"enchant_type": {
 			"aqua_affinity": "水下速掘",
 			"bane_of_arthropods": "节肢杀手",
+			"binding": "绑定诅咒",
 			"blast_protection": "爆炸保护",
 			"channeling": "引雷",
 			"depth_strider": "深海探索者",
@@ -1463,8 +1563,10 @@
 			"sharpness": "锋利",
 			"silk_touch": "精准采集",
 			"smite": "亡灵杀手",
+			"soul_speed": "灵魂疾行",
 			"thorns": "荆棘",
-			"unbreaking": "耐久"
+			"unbreaking": "耐久",
+			"vanishing": "消失诅咒"
 		},
 		"gamerule_bool": {
 			"commandblockoutput": "命令执行时是否在控制台进行文本提示",
@@ -1507,21 +1609,32 @@
 			"survival": "生存模式",
 			"creative": "创造模式",
 			"adventure": "冒险模式",
-			//"spectator": "旁观模式",
 			"d": "",
 			"s": "",
 			"c": "",
 			"a": "",
-			//"sp": "",
 			"0": "",
 			"1": "",
 			"2": ""
-			//"3": ""
 		},
 		"mobevent": {
 			"minecraft:pillager_patrols_event": "生成灾厄巡逻队",
 			"minecraft:wandering_trader_event": "生成流浪商人",
 			"events_enabled": "启用生物事件"
+		},
+		"entity_slot": {
+			"slot.armor": "马铠",
+			"slot.armor.chest": "胸甲",
+			"slot.armor.feet": "靴子",
+			"slot.armor.head": "头盔",
+			"slot.armor.legs": "腿甲",
+			"slot.chest": "箱子",
+			"slot.enderchest": "末影箱",
+			"slot.hotbar": "快捷栏",
+			"slot.inventory": "物品栏",
+			"slot.saddle": "鞍",
+			"slot.weapon.mainhand": "主手持有",
+			"slot.weapon.offhand": "副手持有"
 		},
 		"bool": {
 			"true": "是",
@@ -2706,20 +2819,7 @@
 								{
 									"type": "enum",
 									"name": "格子类型",
-									"list": {
-										"slot.armor": "马铠",
-										"slot.armor.chest": "胸甲",
-										"slot.armor.feet": "靴子",
-										"slot.armor.head": "头盔",
-										"slot.armor.legs": "腿甲",
-										"slot.chest": "箱子",
-										"slot.enderchest": "末影箱",
-										"slot.hotbar": "快捷栏",
-										"slot.inventory": "物品栏",
-										"slot.saddle": "鞍",
-										"slot.weapon.mainhand": "主手持有",
-										"slot.weapon.offhand": "副手持有"
-									}
+									"list": "entity_slot"
 								},
 								{
 									"type": "uint",
@@ -3973,6 +4073,11 @@
 			"maxSupportVer": "1.7.*"
 		},
 		"1.8.0.8": {
+			"enums": {
+				"gamerule_int": {
+					"randomtickspeed": "每一游戏刻中每一区块发生随机刻的次数"
+				}
+			},
 			"commands": {
 				"particle": {
 					"description": "在指定位置显示颗粒效果",
@@ -4333,6 +4438,11 @@
 			"minSupportVer": "1.11.0.3"
 		},
 		"1.12.0.2": {
+			"enums": {
+				"gamerule_int": {
+					"spawnradius": "默认重生点的重生半径"
+				}
+			},
 			"commands": {
 				"summon": {
 					"patterns": {
@@ -4687,6 +4797,140 @@
 				}
 			},
 			"minSupportVer": "1.14.0.51"
+		},
+		"1.16.0.57": {
+			"commands": {
+				"kick": {
+					"description": "将指定的玩家踢出服务器",
+					"patterns": {
+						"named": {
+							"params": [
+								{
+									"type": "selector",
+									"name": "目标玩家",
+									"target": "player"
+								},
+								{
+									"type": "string",
+									"name": "原因"
+								}
+							]
+						}
+					}
+				},
+				"replaceitem": {
+					"patterns": {
+						"block_oldItemHandling": {
+							"description": "用给出的物品替换方块内的物品",
+							"params": [
+								{
+									"type": "plain",
+									"name": "block",
+									"prompt": "替换方块内物品"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "enum",
+									"name": "格子类型",
+									"list": {
+										"slot.container": "容器"
+									}
+								},
+								{
+									"type": "uint",
+									"name": "格子ID"
+								},
+								{
+									"type": "enum",
+									"name": "旧物品处理方式",
+									"list": {
+										"destroy": "[默认]直接替换为目标物品",
+										"keep": "如果目标格子被占据，则不替换该格内的物品"
+									}
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "json",
+									"name": "数据标签",
+									"component": "item_component",
+									"optional": true
+								}
+							]
+						},
+						"entity_oldItemHandling": {
+							"description": "用给出的物品替换实体物品栏内的物品",
+							"params": [
+								{
+									"type": "plain",
+									"name": "entity",
+									"prompt": "替换实体内物品"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "格子类型",
+									"list": "entity_slot"
+								},
+								{
+									"type": "uint",
+									"name": "格子ID"
+								},
+								{
+									"type": "enum",
+									"name": "旧物品处理方式",
+									"list": {
+										"destroy": "[默认]直接替换为目标物品",
+										"keep": "如果目标格子被占据，则不替换该格内的物品"
+									}
+								},
+								{
+									"type": "string",
+									"name": "物品ID",
+									"suggestion": "item"
+								},
+								{
+									"type": "uint",
+									"name": "数量",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "数据值",
+									"optional": true
+								},
+								{
+									"type": "json",
+									"name": "数据标签",
+									"component": "item_component",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.16.0.57"
 		}
 	}
 }

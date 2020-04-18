@@ -6,10 +6,11 @@
 	"version": [0, 0, 1],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.14.2.51",
+	"targetSupportVer": "1.16.0.57",
 	"commands": {},
 	"enums": {
 		"structure": {
+			"bastionremnant": "堡垒遗迹",
 			"buriedtreasure": "埋藏的宝藏",
 			"endcity": "末地城",
 			"fortress": "下界要塞",
@@ -17,6 +18,7 @@
 			"mineshaft": "废弃矿井",
 			"monument": "海底遗迹",
 			"pillageroutpost": "掠夺者前哨站",
+			"ruinedportal": "废弃传送门",
 			"ruins": "水下遗迹",
 			"shipwreck": "沉船",
 			"stronghold": "要塞",
@@ -238,7 +240,8 @@
 					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/videostreamaction"
 				}
 			},
-			"minSupportVer": "1.10.0.3"
+			"minSupportVer": "1.10.0.3",
+			"maxSupportVer": "1.16.0.55"
 		},
 		"1.12.0.2": {
 			"commands": {
@@ -267,7 +270,8 @@
 					}
 				}
 			},
-			"minSupportVer": "1.12.0.2"
+			"minSupportVer": "1.12.0.2",
+			"maxSupportVer": "1.16.0.55"
 		}
 	}
 }
