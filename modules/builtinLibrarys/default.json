@@ -1753,11 +1753,11 @@
 		}
 	},
 	"help": {
-		"command": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4",
-		"tilder": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
-		"selector": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E7.9B.AE.E6.A0.87.E9.80.89.E6.8B.A9.E5.99.A8",
-		"nbt": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E6.95.B0.E6.8D.AE.E6.A0.87.E7.AD.BE",
-		"rawjson": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4#.E5.8E.9F.E5.A7.8BJSON.E6.96.87.E6.9C.AC"
+		"command": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4",
+		"tilder": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4#.E6.B3.A2.E6.B5.AA.E5.8F.B7",
+		"selector": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4#.E7.9B.AE.E6.A0.87.E9.80.89.E6.8B.A9.E5.99.A8",
+		"nbt": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4#.E6.95.B0.E6.8D.AE.E6.A0.87.E7.AD.BE",
+		"rawjson": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4#.E5.8E.9F.E5.A7.8BJSON.E6.96.87.E6.9C.AC"
 	},
 	"versionPack": {
 		"base": {
@@ -1858,7 +1858,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/clone"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/clone"
 				},
 				"execute": {
 					"description": "让某一实体在某一位置执行一条命令",
@@ -1882,7 +1882,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/execute"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/execute"
 				},
 				"fill": {
 					"description": "用特定方块全部或部分填充一个区域",
@@ -1960,7 +1960,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/fill"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/fill"
 				},
 				"gamemode": {
 					"description": "设置某个玩家的游戏模式",
@@ -1991,7 +1991,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/gamemode"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/gamemode"
 				},
 				"give": {
 					"description": "给一位玩家一种物品",
@@ -2027,7 +2027,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/give"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/give"
 				},
 				"help": {
 					"description": "显示帮助",
@@ -2050,7 +2050,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/kill"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/kill"
 				},
 				"msg": {
 					"alias": "tell"
@@ -2067,7 +2067,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/say"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/say"
 				},
 				"setblock": {
 					"description": "将一个方块更改为另一个方块",
@@ -2101,7 +2101,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/setblock"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/setblock"
 				},
 				"setworldspawn": {
 					"description": "设置世界出生点",
@@ -2118,7 +2118,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/setworldspawn"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/setworldspawn"
 				},
 				"spawnpoint": {
 					"description": "为特定玩家设置出生点",
@@ -2149,7 +2149,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/spawnpoint"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/spawnpoint"
 				},
 				"summon": {
 					"description": "生成一个实体",
@@ -2169,7 +2169,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/summon"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/summon"
 				},
 				"tell": {
 					"description": "发送一条私密信息给一个或多个玩家",
@@ -2188,7 +2188,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tell"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/tell"
 				},
 				"testforblock": {
 					"description": "探测某个方块是否在特定位置",
@@ -2212,7 +2212,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testforblock"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/testforblock"
 				},
 				"testforblocks": {
 					"description": "测试两个区域的方块是否相同",
@@ -2244,7 +2244,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testforblocks"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/testforblocks"
 				},
 				"time": {
 					"description": "更改或查询游戏中的世界时间",
@@ -2319,14 +2319,14 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/time"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/time"
 				},
 				"toggledownfall": {
 					"description": "切换天气",
 					"noparams": {
 						"description": "如果天气目前晴朗，就会转换成下雨或下雪。如果天气目前是雨雪天气，它将停止下雨下雪。"
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/toggledownfall"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/toggledownfall"
 				},
 				"tp": {
 					"description": "传送实体",
@@ -2400,7 +2400,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tp"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/tp"
 				},
 				"teleport": {
 					"alias": "tp"
@@ -2441,7 +2441,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/weather"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/weather"
 				},
 				"xp": {
 					"description": "将经验值给予一个玩家",
@@ -2479,7 +2479,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/xp"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/xp"
 				},
 				"?": {
 					"alias": "help"
@@ -2530,7 +2530,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/enchant"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/enchant"
 				}
 			},
 			"minSupportVer": "0.15.90.5"
@@ -2576,7 +2576,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/clear"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/clear"
 				},
 				"difficulty": {
 					"description": "设置游戏难度等级",
@@ -2591,7 +2591,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/difficulty"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/difficulty"
 				},
 				"effect": {
 					"description": "设置玩家及实体的状态效果",
@@ -2643,7 +2643,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/effect"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/effect"
 				},
 				"gamerule": {
 					"description": "设置或查询一条游戏规则的值",
@@ -2698,7 +2698,7 @@
 							]
 						}*/
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/gamerule"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/gamerule"
 				},
 				"me": {
 					"description": "显示一条关于你自己的信息",
@@ -2712,7 +2712,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/me"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/me"
 				},
 				"playsound": {
 					"description": "对指定玩家播放指定声音",
@@ -2752,7 +2752,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/playsound"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/playsound"
 				},
 				"replaceitem": {
 					"description": "用给出的物品替换方块或实体物品栏内的物品",
@@ -2849,7 +2849,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/replaceitem"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/replaceitem"
 				},
 				"spreadplayers": {
 					"description": "把实体随机传送到区域内地表的某个位置",
@@ -2881,7 +2881,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/spreadplayers"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/spreadplayers"
 				},
 				"stopsound": {
 					"description": "停止音效播放",
@@ -2916,7 +2916,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/stopsound"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/stopsound"
 				},
 				"testfor": {
 					"description": "检测并统计符合指定条件的实体",
@@ -2931,7 +2931,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/testfor"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/testfor"
 				},
 				"title": {
 					"description": "标题命令相关",
@@ -3051,7 +3051,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/title"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/title"
 				}
 			},
 			"minSupportVer": "1.0.5.0"
@@ -3107,7 +3107,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/particle"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/particle"
 				}
 			},
 			"minSupportVer": "1.0.5.0",
@@ -3200,7 +3200,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/detect"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/detect"
 				}
 			}
 		},
@@ -3221,7 +3221,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/alwaysday"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/alwaysday"
 				},
 				"daylock": {
 					"alias": "alwaysday"
@@ -3328,7 +3328,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tickingarea"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/tickingarea"
 				},
 				"tp": {
 					"patterns": {
@@ -3967,7 +3967,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E8%AE%B0%E5%88%86%E6%9D%BF#.E5.91.BD.E4.BB.A4.E5.88.97.E8.A1.A8"
+					"help": "https://wiki.biligame.com/mc/%E8%AE%B0%E5%88%86%E6%9D%BF#.E5.91.BD.E4.BB.A4.E5.88.97.E8.A1.A8"
 				}
 			}
 		},
@@ -4096,12 +4096,12 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/particle"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/particle"
 				},
 				"reload": {
 					"description": "重新加载数据包",
 					"noparams": {},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/reload"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/reload"
 				}
 			},
 			"minSupportVer": "1.8.0.8"
@@ -4120,7 +4120,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/function"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/function"
 				}
 			},
 			"minSupportVer": "1.8.0.10"
@@ -4150,7 +4150,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tellraw"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/tellraw"
 				}
 			},
 			"minSupportVer": "1.9.0.0"
@@ -4226,7 +4226,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/tag"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/tag"
 				},
 				"titleraw": {
 					"description": "标题命令相关（使用JSON文本）",
@@ -4346,7 +4346,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/titleraw"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/titleraw"
 				}
 			},
 			"minSupportVer": "1.9.0.2"
@@ -4395,7 +4395,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/worldage"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/worldage"
 				}
 			},
 			"minSupportVer": "1.11.0.1",
@@ -4432,7 +4432,7 @@
 							]
 						}
 					},
-					"help": "https://minecraft-zh.gamepedia.com/%E5%91%BD%E4%BB%A4/mobevent"
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/mobevent"
 				}
 			},
 			"minSupportVer": "1.11.0.3"
