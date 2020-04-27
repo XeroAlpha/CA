@@ -2644,10 +2644,22 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function() {
 					try {
-						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+						AndroidBridge.viewUri("https://ca.projectxero.top");
 					} catch(e) {
 						Common.toast("项目官网打开失败");
+						Log.e(e);
+					}
+				}
+			}, {
+				name : "哔哩哔哩空间",
+				type : "custom",
+				onclick : function() {
+					try {
+						if (!AndroidBridge.viewUri("bilibili://space/76999418")) {
+							AndroidBridge.viewUri("https://space.bilibili.com/76999418");
+						}
+					} catch(e) {
+						Common.toast("哔哩哔哩打开失败");
 						Log.e(e);
 					}
 				}
@@ -2658,8 +2670,7 @@ MapScript.loadModule("CA", {
 					Common.toast("QQ群号已复制至剪贴板");
 					Common.setClipboardText("303697689");
 					try {
-						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=57Ac2tp"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+						AndroidBridge.viewUri("https://jq.qq.com/?_wv=1027&k=57Ac2tp");
 					} catch(e) {
 						Log.e(e);
 					}
@@ -2685,8 +2696,7 @@ MapScript.loadModule("CA", {
 				type : "custom",
 				onclick : function() {
 					try {
-						AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://ca.projectxero.top/blog/about/"))
-							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+						AndroidBridge.viewUri("https://ca.projectxero.top/blog/about/");
 					} catch(e) {
 						Common.toast("关于页面打开失败");
 						Log.e(e);

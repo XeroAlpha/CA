@@ -798,6 +798,9 @@ MapScript.loadModule("AndroidBridge", {
 			}
 		});
 	},
+	viewUri : function(uri) {
+		return AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri)));
+	},
 	createShortcut : function(intent, name, icon) {
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
 			if (ScriptInterface.isForeground()) {
