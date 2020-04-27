@@ -2665,20 +2665,6 @@ MapScript.loadModule("CA", {
 					}
 				}
 			}, {
-				name : "支持开发",
-				type : "custom",
-				hidden : function() {
-					if (MapScript.host == "Android") {
-						if (ScriptInterface.isOnlineMode()) {
-							return true;
-						}
-					}
-					return false;
-				},
-				onclick : function() {
-					CA.showDonate();
-				}
-			}, {
 				name : "许可协议",
 				type : "custom",
 				onclick : function() {
@@ -5267,112 +5253,6 @@ MapScript.loadModule("CA", {
 			} catch(e) {erp(e)}}, 1000);
 		});
 	} catch(e) {erp(e)}})},
-	showDonate : function() {
-		var payMethods = {
-			alipay : {
-				name : "支付宝",
-				comments : "请使用支付宝扫描上方二维码",
-				width : 41, height : 41,
-				whiteRect : { x : 17, y : 17, width : 7, height : 7 }
-			},
-			alipay_1 : {
-				name : "支付宝",
-				comments : "请使用支付宝扫描上方二维码",
-				width : 33, height : 33,
-				whiteRect : { x : 14, y : 14, width : 5, height : 5 }
-			},
-			weixin : {
-				name : "微信支付",
-				comments : "请使用微信支付扫描上方二维码",
-				width : 37, height : 37,
-				whiteRect : { x : 14, y : 14, width : 9, height : 9 }
-			}
-		};
-		var list = [{
-			cost : 1,
-			description : "请命令助手作者喝水",
-			qrCodes : [{
-				bytes : "f/O10/2Dnha/CHalKkvU7aKr6qLbRRYtWDcoBmuJ4F9VVVV/gNlOwgBcvw4vzwdJ3m6rxYm2oW1i4CnUDDF/iQIrBsPpkSWz07dirorOZv/F2urIf7rrBjwAaPnn4QP40OCdA0Cj5W4WgAFt4Rfg+P33DQDfkMvSAOc343an7ghD2Tnrfb+HJH5VICXfRr4FNb2DXqYmfclDa/8kyNmp3pEHKEdBUPAn3wBeWSmj/jlRJ1cJwm9KiNG1+uz1v+sg10RxV+Rcq68gXzykSn8I6So4AA==",
-				payMethod : "alipay"
-			}, {
-				bytes : "f90J0T8of00IdjVTcd0uZZOu2yVRVnWDWtuO4F9VVfUHmEQ1AFxB3ut8xRA/LWAHIJ9nnSdlXPTvlO1EEzsAonfTBoCf5ZwAqHVcCgBNNicBgDy6FwCQeQQNAGtzpwCgIQwxAOLicABAeVSIABBG3en///jW5Kw3lQtqLK1eerRan8WEoZ8BJj8jwh8yRFcPEuLUCF2Fa/C9Kw8CMXfl5Q3SIDtb8/UnbRLGAQ==",
-				payMethod : "weixin"
-			}]
-		}, {
-			cost : 2,
-			description : "请命令助手作者喝矿泉水",
-			qrCodes : [{
-				bytes : "f3INJPyDNLWCCXZ1BWbS7Wr0QarbxbtpSjfIZHSM4F9VVVV/ACRSAQDYkke9YXTAeVYxBqNmMknLtCcTPR3sKDnwiNa2e1QvN/sHk8NCLBZIOcolUNmiVogDGqd4dwIsZh2QAmC7QscS4EDflS5gG0WdewAWA9zVgPfx/Jv0WG1iWAz3um8REC7HNhxypMa7hPiuzGIU4rqA2rFadbzyG/zbz3ZXqFyh/wCaARqj/d0ar9cIgqDrjd11f2r+q6ussTVtF++Oj+YgvMgqqX9I8w5xAA==",
-				payMethod : "alipay"
-			}, {
-				bytes : "fwtF2T8IusILdklSfN2uNQSv20Xp0HSDoKeJ4F9VVfUHYHcaAHS9vyNS0WdsAsNbj4qfXvatKbJeMDK9NQIAdkWTBsBePFkAwLNvCQBzEZYBQBzJLQAY51IBgCr/zgBANE4jACRjMwPAv94UADhzan6u0x9hOldMNHeRfUdBJHErGn24Zn8BEio18p+iudQOyrLNyF3zDfO7C0RfPnS95WrSIG8MRPnHc7W4AQ==",
-				payMethod : "weixin"
-			}]
-		}, {
-			cost : 3,
-			description : "请命令助手作者喝可乐",
-			qrCodes : [{
-				bytes : "f0CMMPyDnGWAC3Z1/kTU7QpVAKrbRepsSjfIdESM4F9VVVV/ACSSAQDYkk+9YQjEPVY1kjnuMmmzgDUSfYHUb3zwWGb82lAvFbHDksNGS1Vo+U4LHZmjdeACmqc83wYoZg0QCJizYgQOsEidtTZAG8W0P0CWglWZgP/yRpr8WG0EGgj3vg6TgTfnBD1TlAaD3cmszGrlF2yA2hPQ0bTy22dVzTZTcEix/wCmAp6i/fWs5VcJgj5Bjd0V1qb+qSslmgVtF6/Ir+Yg9AQqqX/Icw5xAA==",
-				payMethod : "alipay"
-			}, {
-				bytes : "f8NB0T+oitsJdkmfcd2uAVSu2zX6snWDRguE4F9VVfUHIG+ZAEi4DZebdn1tHLqz/YHBRFXuv/n1uDK1Cw8AYk3YBEB1llkAwLDbDQAHNCcAQDnYDQAo594DgGSuVABgxkoRAGwDvwZAmvd5ACjYY2KysRgHnJbYtDuWz0nPrX0rs/3iUr8BzgAv4p+yCNQO4sfJ6F2sivWzq1FcPnTpIzHcIG+h3f9HchGaAQ==",
-				payMethod : "weixin"
-			}]
-		}, {
-			cost : 5,
-			description : "请命令助手作者吃面",
-			qrCodes : [{
-				bytes : "f//lZfyDwM6vCHZlJkjU7SJjAarbFVY5WDdIBnyK4F9VVVV/gBASygBgtoYvVUmHPVYlTou2qS066C+mHJn/KU3w0Fd6l2Cj8rFQp4pEsvVreWpS6rlrNgAD9H/6TwIo5rRMAjC3wV4IYAHPoBTgG4XXawDbEEXTgON1WpJ0WG0K33z/eQobpH512ARDt4bDJP/kXi5jdPsG+xAFJbTymPeiDAbBvGo0XwCW152j/RFWLlcJarXVjNXlfgz+q4sYcTVhF+Aaq68geAwqqX8I6So4AA==",
-				payMethod : "alipay"
-			}, {
-				bytes : "f8mBzT8oft8KdvXWEd0ubfus2yX2U3WDDluO4F9VVfUHWOUFAFwhkP78IPMsK3NXPp8DH+fsXH2MdOWVezMAoPXVBoCYJb0AkHd2DACMl4MAgDOWVQA8YYQBgFhxPwDgRQ4nAGISuALA+UE0ABA2z837D75jZCwTNk8MbLfMPL5eWE40sZ8Bbjkhwh/bfFUPAvalCF2HX/29KwspMHclQBvEIOdjMfWnZKfJAQ==",
-				payMethod : "weixin"
-			}]
-		}, {
-			cost : 10,
-			description : "请命令助手作者吃盖浇饭",
-			qrCodes : [{
-				bytes : "f8oCCfyD2kOhCXaRgcvR7dJtKqXbZZTHQDdoK4y44F9VVVV/gFPp/gDw3LapjCrOr3Z8DO2iZlwGOCNZL5UHILETyLKY01D/vGV4q02UntfeVGB52SCIOssA/v7ueQQwpXQcCABAPbUV0DFhkyOgiWH7TEDD1lDQANu5QJ0XYOE5GEz3vkptOaBERNHG+h19DkBDZig3xpo2N7E5rs1uBgOWM4nPAbyrPwCKHjOi/51f6lYMqmOEj9nVdh39swu+ghVtF0FJl+ggHRecxH/i2aTbAA==",
-				payMethod : "alipay"
-			}, {
-				bytes : "f1up2T+oqJ8Jdol7K92uNTSv2zVc8HWDNm+E4F9VVfUHQO2KAEiUUZebxETfDeqVjcGpABxnszD+KDrEMwsAQM9RBUBdVlkAmLL2GwDUNYYAYCHgDwDk494PgCH/VAFg4kwmAGxzHwJAGn11ABi4+X3t4VhTnReTlAWIjwVBLXcv/9SKUr8Bjkc94h/7sNYO8tmo6F0Ym/Wzq09rT3TpBCTaII+VEf9HfwfTAQ==",
-				payMethod : "weixin"
-			}]
-		}, {
-			description : "为命令助手作者提供开发的动力",
-			qrCodes : [{
-				bytes : "f9mw/YPCKwt2Pf3Q7ULEq9ulzUc3aGK64F9VVX+AlHMAXIPkzzUxR0N4v9OEGdTIL65t87u5ot0qPVwGmh+RAaivRT3I4FZoUKAIU4DrF7zmckTkp7ghpu2qRhR4xeQWVKxi0VQ7vwGSnqP8IQtXDHIGiNd1gPa5K3YkX1e31JEgvDydfwroWQA=",
-				payMethod : "alipay_1",
-				comments : "请使用支付宝扫描上方二维码\n请适度发电"
-			}, {
-				bytes : "f3WozD8oSMsIdlXXUd0uTdOv26VxU3WDzgOO4F9VVfUHqJcmAFwzsu28EQmkFkBVHJ8XBebqXHflvP2lAzcAsGRWB0D/VbwA4HJkCQBe9gYAIACiVQD0/4IFAGoBNwDAASwjAOrWFAbAeU+ZACDFTuDmH7izxiQi1hkILN+cvL8eVEwsoV8Baj4ywp8b9VYPMsTyCF23KvC9Kwe6EHeFQhnEIFP38vSnaWKhAQ==",
-				payMethod : "weixin",
-				comments : "请使用微信支付扫描上方二维码\n请适度发电"
-			}]
-		}];
-		Common.showListChooser(list.map(function(e) {
-			return {
-				text : e.description,
-				description : isNaN(e.cost) ? "自定义捐助" : "捐助 " + e.cost + " 元"
-			};
-		}), function(pos) {
-			var element = list[pos];
-			CA.showDonateDialog(element.qrCodes.map(function(e) {
-				var pm = payMethods[e.payMethod];
-				return {
-					name : pm.name,
-					title : isNaN(element.cost) ? "捐助" : element.cost.toFixed(2) + " 元",
-					description : element.description,
-					comments : e.comments || element.comments || pm.comments,
-					qrCode : {
-						width : pm.width, height : pm.height,
-						whiteRect : pm.whiteRect,
-						bytes : e.bytes
-					}
-				};
-			}));
-		});
-	},
 	chooseIDList : function(callback) {
 		var allIds = [];
 		var r = CA.IntelliSense.library.idlist.map(function(e) {
