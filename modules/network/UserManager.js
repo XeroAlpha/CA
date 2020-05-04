@@ -235,8 +235,7 @@ MapScript.loadModule("UserManager", {
 	},
 	saveToken : function(result) {
 		this.accessToken = result.accessToken;
-		result.expiredDate = Date.now() + result.expiredIn * 1000;
-		this.accessData = CA.settings.userSettings = result;
+		this.accessData = CA.settings.userSettings = { refreshToken : result.refreshToken };
 		this.updateUserInfo();
 	},
 	clearToken : function() {
