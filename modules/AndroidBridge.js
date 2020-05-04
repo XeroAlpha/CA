@@ -5,10 +5,11 @@ MapScript.loadModule("AndroidBridge", {
 	foregroundTask : {},
 	onCreate : function() {
 		G.ui(this.initIcon);
+		if (MapScript.host != "Android") return;
+		if (CA.RELEASE) gHandler.post(this.verifyApk);
 	},
 	initialize : function() {try {
 		if (MapScript.host != "Android") return;
-		if (CA.RELEASE) gHandler.post(this.verifyApk);
 		ScriptInterface.setBridge({
 			applyIntent : function(intent) {try {
 				AndroidBridge.callHide();
