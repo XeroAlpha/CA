@@ -14,7 +14,7 @@ App工程参见[命令助手Android版](https://gitee.com/projectxero/cadroid)�
 * 支持更换主题样式
 
 ### 信息
-* 宣传片： [bilibili:av14938870](http://www.bilibili.com/video/av14938870)
+* 宣传片： [BV1nx411V7jB](https://www.bilibili.com/video/BV1nx411V7jB)
 * [正式版下载链接](https://www.coolapk.com/game/com.xero.ca)
 
 ## 生成
