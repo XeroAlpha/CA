@@ -265,7 +265,7 @@ MapScript.loadModule("L", (function self(defaultContext) {
 			this.valueData = {};
 			this.srcJson = this.viewToJson(baseView);
 			this.jsons.forEach(function(e) {
-				var k = self.analyseJson(e);
+				var k = self.analyzeJson(e);
 				if (k) self.valueData[e._holderId] = k;
 			});
 		},
@@ -319,7 +319,7 @@ MapScript.loadModule("L", (function self(defaultContext) {
 			this.jsons.push(json);
 			return json;
 		},
-		analyseJson : function(json) {
+		analyzeJson : function(json) {
 			var i, a, r = {}, hasAbstractKey = false;
 			a = Object.keys(json);
 			for (i = 0; i < a.length; i++) {

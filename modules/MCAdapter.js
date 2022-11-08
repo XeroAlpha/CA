@@ -14,7 +14,8 @@ MapScript.loadModule("MCAdapter", {
 		}
 	},
 	initialize : function() {
-		this.asked = CA.settings.neverAskAdapter;
+		// this.asked = CA.settings.neverAskAdapter;
+		this.asked = true;
 	},
 	inLevel : false,
 	newLevel : function() {
