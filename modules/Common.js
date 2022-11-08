@@ -578,7 +578,7 @@ MapScript.loadModule("Common", {
 				prg.startAnimation(aset);
 			}
 			self.init = function(o) {G.ui(function() {try {
-				var layout, text, prg, popup;
+				var layout, text, prg;
 				layout = new G.LinearLayout(ctx);
 				layout.setOrientation(G.LinearLayout.VERTICAL);
 				Common.applyStyle(layout, "message_bg");
@@ -601,34 +601,45 @@ MapScript.loadModule("Common", {
 				});
 			} catch(e) {erp(e)}})},
 			self.controller = {
-				setText : function(s) {
+				setText : function(s, uptimeMillis) {
 					var o = this;
-					G.ui(function() {try {
+					gHandler.postAtTime(() => {try {
+						if (o.closed) return;
+						o.currentText = s;
+						if (!o.popup) {
+							self.init(o);
+						}
 						o.text.setText(Common.toString(s));
-					} catch(e) {erp(e)}});
+					} catch(e) {erp(e)}}, uptimeMillis || android.os.SystemClock.uptimeMillis());
 				},
-				close : function() {
+				setTextDelayed : function(s, millis) {
+					this.setText(s, android.os.SystemClock.uptimeMillis() + millis);
+				},
+				close : function(callback) {
 					var o = this;
 					G.ui(function() {try {
 						if (o.closed) return;
 						o.closed = true;
-						o.popup.exit();
+						if (o.popup) {
+							o.popup.exit();
+						}
+						if (callback) callback();
 					} catch(e) {erp(e)}});
 				},
-				async : function(f) {
+				async : function(f, onFinally) {
 					var o = this;
 					Threads.run(function() {
 						try {
 							f(o);
 						} catch(e) {erp(e)}
-						o.close();
+						o.close(onFinally);
 					});
 				}
 			};
 		}
 		var o = Object.create(self.controller);
+		o.startTime = android.os.SystemClock.uptimeMillis();
 		o.onCancel = onCancel;
-		self.init(o);
 		if (f) o.async(f);
 		return o;
 	},
@@ -1048,7 +1059,10 @@ MapScript.loadModule("Common", {
 					fi.sort(self.compare);
 				}
 				var a = o.fileFirst ? fi.concat(dir) : dir.concat(fi);
-				if (o.curdir.getParent()) a.unshift(null);
+				var parent = o.curdir.getParent();
+				if (parent && ExternalStorage.isInStorage(parent)) {
+					a.unshift(null);
+				}
 				self.list.setAdapter(self.curadp = new SimpleListAdapter(a, self.vmaker, self.vbinder));
 			}
 			self.linear = new G.LinearLayout(ctx);
@@ -1142,10 +1156,21 @@ MapScript.loadModule("Common", {
 			self.list.setOnItemClickListener(new G.AdapterView.OnItemClickListener({onItemClick : function(parent, view, pos, id) {try {
 				var o = self.sets;
 				var e = self.curadp.getItem(pos);
-				if (!e) {
-					o.curdir = o.curdir.getParentFile();
-				} else if (e.isDirectory()) {
-					o.curdir = e;
+				var newdir;
+				if (!e || e.isDirectory()) {
+					if (e) {
+						newdir = e;
+					} else {
+						newdir = o.curdir.getParentFile();
+					}
+					if (ExternalStorage.isAccessible(newdir.getAbsolutePath())) {
+						o.curdir = newdir;
+					} else {
+						ExternalStorage.ensureExternalStorage(function() {
+							o.curdir = newdir;
+							self.refresh();
+						});
+					}
 				} else if (o.type == 0) {
 					self.choose(e);
 					return true;
@@ -1217,7 +1242,9 @@ MapScript.loadModule("Common", {
 		self.sets = o;
 		try {
 			o.curdir = new java.io.File(String(o.initDir ? o.initDir : self.lastDir));
-			if (!o.curdir.isDirectory()) o.curdir = android.os.Environment.getExternalStorageDirectory();
+			if (!o.curdir.isDirectory() || !ExternalStorage.isAccessible(o.curdir.getAbsolutePath())) {
+				o.curdir = ExternalStorage.getAccessibleRoot();
+			}
 			self.refresh();
 		} catch (e) {
 			Common.toast(self.intl.resolve("errAccessDir", e));
@@ -1750,5 +1777,15 @@ MapScript.loadModule("Common", {
 			while (o.hasNext()) r.push(o.next());
 		}
 		return r;
+	},
+	stringComparator : function(a, b) {
+		a = String(a);
+		b = String(b);
+		return a > b ? 1 : a < b ? -1 : 0;
+	},
+	stringComparatorIgnoreCase : function(a, b) {
+		a = String(a).toLowerCase();
+		b = String(b).toLowerCase();
+		return a > b ? 1 : a < b ? -1 : 0;
 	}
 });

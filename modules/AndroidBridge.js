@@ -136,23 +136,30 @@ MapScript.loadModule("AndroidBridge", {
 		if (!intent) return;
 		switch (intent.getAction()) {
 			case ScriptInterface.ACTION_ADD_LIBRARY:
-			t = AndroidBridge.uriToFile(intent.getData());
+			t = intent.getData();
 			if (!t) {
-				Common.toast("无法从" + intent.getData() + "读取拓展包");
+				Common.toast("无法读取拓展包");
 				break;
 			}
 			Common.showConfirmDialog({
-				title : "确定加载拓展包“" + t + "”？",
+				title : "确定加载拓展包“" + ExternalStorage.uriToName(t) + "”？",
 				callback : function(id) {
 					if (id != 0) return onReturn();
-					if (!CA.Library.enableLibrary(String(t))) {
-						Common.toast("无法导入该拓展包，可能文件不存在");
+					const importFile = ExternalStorage.importFile(t, "caclib_*.json");
+					try {
+						CA.Library.enableLibrary(String(ExternalStorage.toUri(importFile)));
+						CA.Library.initLibrary(function() {
+							Common.toast("导入成功！");
+							CA.showLibraryMan(onReturn);
+						});
+					} catch(e) {
+						Log.e(e);
+						Common.toast("无法导入该拓展包\n" + e);
 						return CA.showLibraryMan(onReturn);
 					}
-					CA.Library.initLibrary(function() {
-						Common.toast("导入成功！");
-						CA.showLibraryMan(onReturn);
-					});
+				},
+				onDismiss : function() {
+					ctx.revokeUriPermission(ctx.getPackageName(), t, 0x3); // Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION
 				}
 			});
 			break;
@@ -249,12 +256,12 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	openUriAction : function(uri, extras) {
 		if (!uri) return;
+		var path, obj, query, fragment;
+		path = uri.getPath();
+		query = uri.getEncodedQuery();
+		fragment = uri.getFragment();
 		switch (String(uri.getHost()).toLowerCase()) {
 			case "base":
-			var path, obj, query, fragment;
-			path = uri.getPath();
-			query = uri.getEncodedQuery();
-			fragment = uri.getFragment();
 			if (path) {
 				obj = this.getBaseUriAction(String(path));
 				if (obj) {
@@ -338,14 +345,14 @@ MapScript.loadModule("AndroidBridge", {
 				},
 				onclick : function(fset) {
 					var self = this;
-					AndroidBridge.listApp(function(pkg) {
+					AndroidBridge.listLaunchableApp(function(pkg) {
 						if (pkg == ctx.getPackageName()) {
 							Common.toast("不能连锁启动自身！");
 							return;
 						}
 						CA.settings.chainLaunch = pkg;
 						fset(self.get());
-					});
+					}, true);
 				}
 			}, {
 				name : "WebSocket服务器",
@@ -391,12 +398,6 @@ MapScript.loadModule("AndroidBridge", {
 					CA.settings.hideRecent = Boolean(v);
 					Common.toast("本项设置将在重启命令助手后应用");
 				}
-			}, {
-				name : "隐藏通知",
-				description : "可能导致应用被自动关闭",
-				type : "boolean",
-				get : preference.getHideNotification.bind(preference),
-				set : ScriptInterface.setHideNotification.bind(ScriptInterface)
 			}, {
 				name : "自动启动无障碍服务",
 				description : "需要Root",
@@ -523,15 +524,18 @@ MapScript.loadModule("AndroidBridge", {
 			};
 		}
 	},
-	listApp : function(callback) {
+	listLaunchableApp : function(callback, includeCancel) {
 		Common.showProgressDialog(function(o) {
 			var pm = ctx.getPackageManager();
-			o.setText("正在加载列表……");
+			o.setTextDelayed("正在加载列表……", 200);
 			var lp = pm.getInstalledPackages(0).toArray();
-			var i, r = [{
-				text : "不使用",
-				result : null
-			}];
+			var i, r = [];
+			if (includeCancel) {
+				r.push({
+					text : "取消选择",
+					result : null
+				});
+			}
 			for (i in lp) {
 				if (!lp[i].applicationInfo) continue;
 				if (!pm.getLaunchIntentForPackage(lp[i].packageName)) continue;
@@ -547,6 +551,9 @@ MapScript.loadModule("AndroidBridge", {
 				callback(r[id].result);
 			});
 		}, true);
+	},
+	listApp : function(callback) { // Deprecated
+		this.listLaunchableApp(callback, true);
 	},
 	startActivity : function(intent) {
 		try {
@@ -769,48 +776,49 @@ MapScript.loadModule("AndroidBridge", {
 		var i = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
 		i.setType(mimeType);
 		this.startActivityForResult(i, function(resultCode, data) {
-			if (resultCode != -1) return; // RESULT_OK = -1
+			if (resultCode != -1) return; // RESULT_OK
 			callback(AndroidBridge.uriToFile(data.getData()));
 		});
 	},
 	selectImage : function(callback) {
-		if (MapScript.host == "Android") {
-			try {
-				this.selectFile("image/*", function(path) {
-					callback(path);
-				});
-				return;
-			} catch(e) {erp(e, true)}
-		}
-		Common.showFileDialog({
-			type : 0,
-			check : function(path) {
-				var bmp = G.BitmapFactory.decodeFile(path.getAbsolutePath());
-				if (!bmp) {
-					Common.toast("不支持的图片格式");
-					return false;
-				}
-				bmp.recycle();
-				return true;
-			},
-			callback : function(f) {
-				var path = String(f.result.getAbsolutePath());
+		try {
+			this.selectFile("image/*", function(path) {
 				callback(path);
-			}
-		});
+			});
+			return;
+		} catch(e) {erp(e, true)}
+	},
+	sendText : function(text, withSharesheet) {
+		let intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+		intent.setType("text/plain");
+		intent.putExtra(android.content.Intent.EXTRA_TEXT, new java.lang.String(String(text)));
+		if (withSharesheet) {
+			intent = android.content.Intent.createChooser(intent, null);
+		}
+		return this.startActivity(intent);
+	},
+	sendUri : function(uri, mimeType, withSharesheet) {
+		let intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+		intent.setType(mimeType);
+		intent.putExtra(android.content.Intent.EXTRA_STREAM, uri);
+		intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+		if (withSharesheet) {
+			intent = android.content.Intent.createChooser(intent, null);
+		}
+		return this.startActivity(intent);
+	},
+	sendFile : function(file, mimeType, withSharesheet) {
+		return this.sendUri(this.fileToUri(file), mimeType, withSharesheet);
+	},
+	shareText : function(text) {
+		return this.sendText(text, true);
 	},
 	viewUri : function(uri) {
 		return AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri)));
 	},
 	createShortcut : function(intent, name, icon) {
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
-			if (ScriptInterface.isForeground()) {
-				AndroidBridge.doCreateShortcut(ctx, intent, name, icon);
-			} else {
-				this.beginForegroundTask("createShortcut@" + intent.hashCode().toString(16), function(activity) {
-					AndroidBridge.doCreateShortcut(activity, intent, name, icon);
-				});
-			}
+			AndroidBridge.doCreateShortcut(ctx, intent, name, icon);
 		} else {
 			var i = new android.content.Intent("com.android.launcher.action.INSTALL_SHORTCUT");
 			i.putExtra(android.content.Intent.EXTRA_SHORTCUT_NAME, name);
@@ -976,23 +984,6 @@ MapScript.loadModule("AndroidBridge", {
 	},
 	checkNecessaryPermissions : function(callback) {
 		AndroidBridge.requestPermissionsByGroup([{
-			permissions : [
-				"android.permission.READ_EXTERNAL_STORAGE",
-				"android.permission.WRITE_EXTERNAL_STORAGE"
-			],
-			explanation : "读取内部存储\n写入内部存储\n\n这些权限将用于读写命令库、编辑JSON、记录错误日志等",
-			callback : function(flag, success, denied, sync) {
-				if (!sync) {
-					if (flag) {
-						CA.load();
-						Common.toast("权限请求成功，已重新加载配置");
-					} else {
-						Common.toast("权限请求失败\n将造成部分命令库无法读取等问题");
-					}
-				}
-			},
-			mode : 2
-		}, {
 			permissions : [
 				"android.permission.READ_PHONE_STATE"
 			],

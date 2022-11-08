@@ -21,6 +21,8 @@
 		"edit": "Edit",
 		"edit_desc": "Return to edit JSON",
 		"nowhereEditable": "Nowhere is editable",
+		"replace": "Replace",
+		"replace_desc": "Create a new JSON and replace the original",
 		"copy": "Copy",
 		"copy_desc": "Copy JSON value",
 		"copy_success": "JSON value copied",

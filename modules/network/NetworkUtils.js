@@ -90,6 +90,20 @@ MapScript.loadModule("NetworkUtils", {
 		is.close();
 		return android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP) == sha1;
 	},
+	downloadToUri : function(url, uri) {
+		var url = new java.net.URL(url);
+		var conn = url.openConnection();
+		conn.setConnectTimeout(5000);
+		conn.setUseCaches(false);
+		conn.setRequestMethod("GET");
+		conn.connect();
+		var is, os;
+		is = conn.getInputStream();
+		os = ExternalStorage.openOutputStream(uri);
+		ExternalStorage.pipe(is, os, 8192);
+		os.close();
+		is.close();
+	},
 	verifyFile : function(path, sha1) {
 		const BUFFER_SIZE = 8192;
 		var is, digest, buf, hr;

@@ -4,7 +4,7 @@
 	loadingStatus : null,
 	currentLoadingLibrary : null,
 	initLibrary : function(callback) {
-		var info, flag = true, t, t2, lib;
+		var info, flag = true, lib;
 		if (this.loadingStatus) return false;
 		this.loadingStatus = "core";
 		CA.IntelliSense.library = lib = {
@@ -42,15 +42,15 @@
 		} catch(e) {erp(e)}});
 		return true;
 	},
-	clearCache : function(src) {
-		if (src) {
-			delete this.cache[src];
+	clearCache : function(uriStr) {
+		if (uriStr) {
+			delete this.cache[uriStr];
 		} else {
 			this.cache = {};
 		}
 	},
-	isLibrary : function(path) {
-		return path in CA.Library.inner || new java.io.File(path).isFile();
+	isLibrary : function(uriStr) { // Deprecated
+		return uriStr in CA.Library.inner || ExternalStorage.canRead(ExternalStorage.toUri(uriStr));
 	},
 	isDeprecated : function(uuid, version) {
 		if (!Array.isArray(version)) return true;
@@ -59,44 +59,45 @@
 		if (uuid == "5a204d07-4b6d-4c51-9470-a2d8c8676ab8") return true; //调试屏幕：根本没用
 		return false;
 	},
-	enableLibrary : function(path) {
-		Common.removeSet(CA.settings.disabledLibrarys, path);
-		Common.removeSet(CA.settings.coreLibrarys, path);
-		return Common.addSet(CA.settings.enabledLibrarys, path);
+	enableLibrary : function(uriStr) {
+		Common.removeSet(CA.settings.disabledLibrarys, uriStr);
+		Common.removeSet(CA.settings.coreLibrarys, uriStr);
+		return Common.addSet(CA.settings.enabledLibrarys, uriStr);
 	},
-	disableLibrary : function(path) {
-		Common.removeSet(CA.settings.enabledLibrarys, path);
-		Common.removeSet(CA.settings.coreLibrarys, path);
-		return Common.addSet(CA.settings.disabledLibrarys, path);
+	disableLibrary : function(uriStr) {
+		Common.removeSet(CA.settings.enabledLibrarys, uriStr);
+		Common.removeSet(CA.settings.coreLibrarys, uriStr);
+		return Common.addSet(CA.settings.disabledLibrarys, uriStr);
 	},
-	removeLibrary : function(path) {
+	removeLibrary : function(uriStr) {
 		var fl = false;
-		fl = Common.removeSet(CA.settings.enabledLibrarys, path) || fl;
-		fl = Common.removeSet(CA.settings.coreLibrarys, path) || fl;
-		return Common.removeSet(CA.settings.disabledLibrarys, path) || fl;
+		ExternalStorage.tryReleaseImportUri(ExternalStorage.toUri(uriStr));
+		fl = Common.removeSet(CA.settings.enabledLibrarys, uriStr) || fl;
+		fl = Common.removeSet(CA.settings.coreLibrarys, uriStr) || fl;
+		return Common.removeSet(CA.settings.disabledLibrarys, uriStr) || fl;
 	},
-	enableCoreLibrary : function(path) {
-		Common.removeSet(CA.settings.enabledLibrarys, path);
-		Common.removeSet(CA.settings.disabledLibrarys, path);
-		return Common.addSet(CA.settings.coreLibrarys, path);
+	enableCoreLibrary : function(uriStr) {
+		Common.removeSet(CA.settings.enabledLibrarys, uriStr);
+		Common.removeSet(CA.settings.disabledLibrarys, uriStr);
+		return Common.addSet(CA.settings.coreLibrarys, uriStr);
 	},
-	loadLibrary : function(path, targetLib) {
-		var m, v, cur, resolved;
+	loadLibrary : function(uriStr, targetLib) {
+		var m, cur, resolved;
 		try {
-			if (this.cache[path]) {
-				cur = this.cache[path].data;
-				m = this.cache[path].mode;
+			if (this.cache[uriStr]) {
+				cur = this.cache[uriStr].data;
+				m = this.cache[uriStr].mode;
 			} else {
-				cur = this.readLibrary(path);
+				cur = this.readLibrary(uriStr);
 				if (!cur) throw "无法读取或解析拓展包";
 				if (cur.error) throw cur.error;
 				if (!(cur.data instanceof Object)) throw "错误的拓展包格式";
-				this.cache[path] = cur;
+				this.cache[uriStr] = cur;
 				m = cur.mode;
 				cur = cur.data;
 			}
 			resolved = {
-				src : path,
+				src : uriStr,
 				name : cur.name,
 				author : cur.author,
 				description : cur.description,
@@ -117,8 +118,8 @@
 				return resolved;
 			} else {
 				return {
-					src : path,
-					name : m == 0 ? path : (new java.io.File(path)).getName(),
+					src : uriStr,
+					name : m == 0 ? uriStr : ExternalStorage.uriToName(ExternalStorage.toUri(uriStr)),
 					hasError : true,
 					mode : m,
 					error : err
@@ -126,13 +127,13 @@
 			}
 		}
 	},
-	readLibrary : function(path) {
-		var t, er, f, securityLevel = CA.settings.securityLevel, requiredSecLevel;
+	readLibrary : function(uriStr) {
+		var t, er, uri, securityLevel = CA.settings.securityLevel, requiredSecLevel;
 		//-1 禁止所有非内置拓展包
 		//0 允许所有拓展包
 		//1 仅允许锁定拓展包与官方拓展包
 		//2+ 仅允许商店下载的拓展包
-		if (t = CA.Library.inner[path]) {
+		if (t = CA.Library.inner[uriStr]) {
 			return {
 				data : t,
 				mode : 0
@@ -143,35 +144,37 @@
 			};
 		}
 		if (securityLevel >= 0) {
-			f = new java.io.File(path);
-			if (!f.isFile()) {
+			uri = ExternalStorage.toUri(uriStr);
+			ExternalStorage.tryTakeUriPermission(uri);
+			if (!ExternalStorage.isFile(uri)) {
 				return {
 					error : "拓展包文件不存在"
 				};
 			}
-			requiredSecLevel = this.testSecurityLevel(f);
+			requiredSecLevel = this.testSecurityLevel(uri);
 			if (requiredSecLevel < securityLevel) {
 				return {
 					error : "您正在使用的安全等级不允许加载此拓展包\n您可以在右上角▼处打开菜单，然后点击“设置安全级别”来调整当前安全级别"
 				};
 			}
 			if (requiredSecLevel >= 2) {
-				if (t = CA.Library.loadSignedV1(f, null, er)) {
+				if (t = CA.Library.loadSignedV1(uri, null, er)) {
 					return {
 						data : t,
 						mode : 3
 					};
 				}
 			} else if (requiredSecLevel == 1) {
-				if (t = CA.Library.loadPrefixed(f, null, er)) {
+				if (t = CA.Library.loadPrefixed(uri, null, er)) {
 					return {
 						data : t,
 						mode : 2
 					};
 				}
 			} else if (requiredSecLevel == 0) {
-				if (t = Common.readFile(f.getPath(), null, false, er)) {
-					t = this.safeEval(f, t, er);
+				t = ExternalStorage.readFileContent(uri, "UTF-8", (error) => void (er = { error }))
+				if (t) {
+					t = this.safeEval(uri, t, er);
 					if (t) {
 						return {
 							data : t,
@@ -187,29 +190,25 @@
 		}
 		return er;
 	},
-	evalLib : function(file, code) {
-		return Loader.evalSpecial("(" + code + ")", file.getName(), 0, {
-			path : String(file.getPath()),
-			code : code,
-			LibInfo : {
-				file : file,
-				uri : android.net.Uri.fromFile(file),
-				code : code
-			}
+	evalLib : function(uri, code) {
+		return Loader.evalSpecial("(" + code + ")", ExternalStorage.uriToName(uri), 0, {
+			path : String(uri.getPath()),
+			code,
+			LibInfo : { uri, code }
 		}, this);
 	},
-	safeEval :function(file, code, defaultValue, error) {
+	safeEval : function(uri, code, defaultValue, error) {
 		try {
-			return this.evalLib(file, code);
+			return this.evalLib(uri, code);
 		} catch(e) {
 			if (error) error.error = e;
 			return defaultValue;
 		}
 	},
-	testSecurityLevel : function(file) {
-		if (this.shouldVerifySigned(file) >= 0) {
+	testSecurityLevel : function(uri) {
+		if (this.shouldVerifySigned(uri) >= 0) {
 			return 2;
-		} else if (this.isPrefixed(file)) {
+		} else if (this.isPrefixed(uri)) {
 			return 1;
 		} else return 0;
 	},
@@ -263,10 +262,10 @@
 		}
 		return null;
 	},
-	isPrefixed : function(file) {
+	isPrefixed : function(uri) {
 		try {
 			var rd, q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
-			rd = new java.io.FileInputStream(file);
+			rd = ExternalStorage.openInputStream(uri);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();
@@ -282,10 +281,10 @@
 			return false;
 		}
 	},
-	loadPrefixed : function(file, defaultValue, error) {
+	loadPrefixed : function(uri, defaultValue, error) {
 		try{
 			var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59];
-			rd = new java.io.FileInputStream(file);
+			rd = ExternalStorage.openInputStream(uri);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();
@@ -296,18 +295,16 @@
 			rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
 			while (q = rd.readLine()) s.push(q);
 			rd.close();
-			return this.evalLib(file, s.join("\n"));
+			return this.evalLib(uri, s.join("\n"));
 		} catch(e) {
 			if (error) error.error = e;
 			return defaultValue;
 		}
 	},
-	savePrefixed : function(path, object) {
+	savePrefixed : function(uri, object) {
 		var wr, ar;
-		var f = new java.io.File(path).getParentFile();
-		if (f) f.mkdirs();
-		wr = new java.io.FileOutputStream(path);
-		ar = java.nio.ByteBuffer.allocate(15); //LIBRARY
+		wr = ExternalStorage.openOutputStream(uri);
+		ar = java.nio.ByteBuffer.allocate(15); // LIBRARY
 		ar.put([0x4c, 0x49, 0x42, 0x52, 0x41, 0x52, 0x59]).putLong((new java.util.Date()).getTime());
 		wr.write(ar.array());
 		wr = new java.util.zip.GZIPOutputStream(wr);
@@ -424,7 +421,7 @@
 				op = o.patterns;
 				sp = src.patterns;
 				if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法合并";
-				if (Array.isArray(op)) {
+				if (Array.isArray(op)) { // Deprecated
 					for (i in op) {
 						t = sp.indexOf(op[i]);
 						if (t < 0) sp.push(op[i]);
@@ -441,7 +438,7 @@
 				op = o.patterns;
 				sp = src.patterns;
 				if (Array.isArray(sp) != Array.isArray(op)) throw "命令模式格式不一致，无法过滤";
-				if (Array.isArray(op)) {
+				if (Array.isArray(op)) { // Deprecated
 					for (i in op) {
 						t = sp.indexOf(op[i]);
 						if (t >= 0) sp.splice(t, 1);
@@ -537,7 +534,7 @@
 				} else if ((i in cur.commands) && l.mode != "overwrite") {
 					joinCmd(cur.commands[i], l.commands[i]);
 				} else {
-					cur.commands[i] = l.commands[i];
+					cur.commands[i] = Object.copy(l.commands[i]);
 				}
 			}
 			for (i in l.enums) {
@@ -550,7 +547,7 @@
 				} else if ((i in cur.enums) && l.mode != "overwrite") {
 					joinEnum(cur.enums[i], parseAliasEnum(cur, l.enums[i]));
 				} else {
-					cur.enums[i] = parseAliasEnum(cur, l.enums[i]);
+					cur.enums[i] = Object.copy(parseAliasEnum(cur, l.enums[i]));
 				}
 			}
 			for (i in l.selectors) {
@@ -792,10 +789,12 @@
 			os.write(arr);
 			os.close();
 		}
-		return MapScript.baseDir + "libs/" + libinfo.uuid + ".lib";
+		return ExternalStorage.toUri(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
 	},
-	shouldVerifySigned : function(file) {
-		if (!file.isFile()) return -1;
+	shouldVerifySigned : function(uri) {
+		if (!ExternalStorage.isFile(uri)) return -1;
+		const file = ExternalStorage.uriToFile(uri);
+		if (!file) return -1;
 		var i, arr = this.readAsArray(new java.io.FileInputStream(file)), digest, bytes, buf;
 		if (this.arrayStartsWith(arr, [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31])) { //LIBSIGN01
 			buf = java.nio.ByteBuffer.wrap(arr);
@@ -815,10 +814,10 @@
 			return 1;
 		} else return -1;
 	},
-	loadSignedV1 : function(file, defaultValue, error) {
+	loadSignedV1 : function(uri, defaultValue, error) {
 		try{
 			var rd, s = [], q, start = [0x4c, 0x49, 0x42, 0x53, 0x49, 0x47, 0x4e, 0x30, 0x31]; //LIBSIGN01
-			rd = new java.io.FileInputStream(file);
+			rd = ExternalStorage.openInputStream(uri);
 			while (start.length) {
 				if (rd.read() != start.shift()) {
 					rd.close();
@@ -832,7 +831,7 @@
 			rd = new java.io.BufferedReader(new java.io.InputStreamReader(new java.util.zip.GZIPInputStream(rd)));
 			while (q = rd.readLine()) s.push(q);
 			rd.close();
-			return this.evalLib(file, s.join("\n"));
+			return this.evalLib(uri, s.join("\n"));
 		} catch(e) {
 			if (error) error.error = e;
 			return defaultValue;
@@ -880,32 +879,33 @@
 		callback(NeteaseAdapter.compareVersion(r.version, libinfo.version) > 0 ? 1 : 0, r, libinfo);
 	},
 	doUpdate : function(updateInfo, libInfo, statusListener) {
-		var path;
+		var uriStr;
 		if (updateInfo.method == "intent") { //通过链接启动
 			statusListener("downloadFromUri", String(updateInfo.uri));
 		} else {
 			statusListener("startDownload");
 			try {
 				if (updateInfo.source) {
-					path = this.downloadLib({
+					uriStr = String(this.downloadLib({
 						downloadurl : updateInfo.url,
 						sha1 : updateInfo.sha1,
 						uuid : updateInfo.uuid
-					}, this.requestSourceInfoCached(updateInfo.source));
-					if (path != libInfo.src) {
+					}, this.requestSourceInfoCached(updateInfo.source)));
+					if (uriStr != libInfo.src) {
+						ExternalStorage.tryReleaseImportUri(ExternalStorage.toUri(libInfo.src));
 						if (Common.inSet(CA.settings.coreLibrarys, libInfo.src)) {
-							Common.replaceLinkedSet(CA.settings.coreLibrarys, libInfo.src, path);
-							Common.removeSet(CA.settings.enabledLibrarys, path);
+							Common.replaceLinkedSet(CA.settings.coreLibrarys, libInfo.src, uriStr);
+							Common.removeSet(CA.settings.enabledLibrarys, uriStr);
 						} else {
-							Common.replaceLinkedSet(CA.settings.enabledLibrarys, libInfo.src, path);
-							Common.removeSet(CA.settings.coreLibrarys, path);
+							Common.replaceLinkedSet(CA.settings.enabledLibrarys, libInfo.src, uriStr);
+							Common.removeSet(CA.settings.coreLibrarys, uriStr);
 						}
 						if (libInfo.mode == 0) {
 							Common.addSet(CA.settings.disabledLibrarys, libInfo.src);
 						}
 					}
 				} else {
-					NetworkUtils.download(updateInfo.url, libInfo.src);
+					NetworkUtils.downloadToUri(updateInfo.url, ExternalStorage.toUri(libInfo.src));
 				}
 			} catch(e) {
 				statusListener("downloadError", e);
@@ -936,7 +936,7 @@
 								}
 							});
 						}
-					} else if (statusCode == 1) {
+					} else if (statusCode == 0) {
 						e.updateState = "latest";
 					} else if (statusCode < 0) {
 						e.updateState = "unavailable";

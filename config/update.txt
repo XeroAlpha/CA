@@ -1,9 +1,6 @@
 @downloadSource
 {
-	"酷安网（最推荐）": "https://www.coolapk.com/game/com.xero.ca",
-	"话唠兔的小站（直链）": "https://projectxero.top/ca/release.apk",
-	"Gitee": "https://gitee.com/projectxero/ca/releases",
-	"反馈群（加群303697689获得）": "https://jq.qq.com/?_wv=1027&k=5OOYWLn"
+	"官方网站（最推荐）": "https://projectxero.top/ca/release.apk"
 }
 @end downloadSource
 可用的下载地址

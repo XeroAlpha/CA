@@ -267,7 +267,7 @@ var proto = {
 		return (this.println("Debug", this.debug("D", s, 0).join("\n")), s);
 	},
 	t : function self(s) { //显示Toast
-		ctx.runOnUiThread(function() {
+		gHandler.post(function() {
 			if (self.last) self.last.cancel();
 			(self.last = android.widget.Toast.makeText(ctx, String(s), 0)).show();
 		});
@@ -335,7 +335,7 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 	if (extra) tech += "\n" + Log.debug("额外数据", extra, 0).join("\n");
 	android.util.Log.e("CA", tech);
 	try {
-		var fs = new java.io.PrintWriter(new java.io.FileOutputStream(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/com.xero.ca.error.log", true));
+		var fs = new java.io.PrintWriter(new java.io.FileOutputStream(MapScript.baseDir + "com.xero.ca.error.log", true));
 		fs.println("* " + (silent ? "Warning" : "Error") + ": " + new Date().toLocaleString());
 		fs.println(tech);
 		fs.close();
@@ -381,7 +381,7 @@ MapScript.loadModule("erp", function self(error, silent, extra) {
 		var dialog = new android.app.AlertDialog.Builder(ctx);
 		dialog.setTitle("错误");
 		dialog.setCancelable(false);
-		dialog.setMessage("您好，" + error.fileName + "出现了一个错误。您可以将这个错误反馈给我们，来推动这个Mod的更新。您也可以选择忽略。作者联系方式：QQ-814518615(Xero)\n\n错误信息：\n" + tech);
+		dialog.setMessage("您好，" + error.fileName + "出现了一个错误。您可以将这个错误反馈给我们，来推动这个Mod的更新。您也可以选择忽略。您可以直接在设置-关于-意见与反馈里进行反馈，也可直接联系作者：QQ-2687587184；Email-projectxero@163.com\n\n错误信息：\n" + tech);
 		dialog.setPositiveButton("忽略", new android.content.DialogInterface.OnClickListener({
 			onClick : function(dia,w) {
 				dia.dismiss();
@@ -675,6 +675,8 @@ Loader.fromFile("modules/EasterEgg.js")
 Loader.fromFile("modules/MCAdapter.js")
 
 Loader.fromFile("modules/AndroidBridge.js")
+
+Loader.fromFile("modules/utils/ExternalStorage.js")
 
 Loader.fromFile("modules/core/DexPlugin.js")
 
