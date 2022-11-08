@@ -1,0 +1,1290 @@
+{
+	"$schema": "https://ca.projectxero.top/clib/schema_v1.json",
+	"name": "实验性玩法命令库",
+	"author": "CA制作组",
+	"description": "该命令库包含了需要打开实验性玩法才能出现的命令",
+	"uuid": "9c190ced-8a85-4f65-a231-30d3349ab960",
+	"version": [1, 0, 0],
+	"require": [
+		"acf728c5-dd5d-4a38-b43d-7c4f18149fbd",
+		"590cdcb5-3cdf-42fa-902c-b578779335ab"
+	],
+	"minSupportVer": "1.2.13.8",
+	"commands": {},
+	"enums": {
+		"block": {
+			"acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"bamboo_button": "竹按钮",
+			"bamboo_door": "竹门",
+			"bamboo_double_slab": "双层竹台阶",
+			"bamboo_fence": "竹栅栏",
+			"bamboo_fence_gate": "竹栅栏门",
+			"bamboo_hanging_sign": "悬挂式竹告示牌",
+			"bamboo_mosaic": "竹马赛克",
+			"bamboo_mosaic_double_slab": "双层竹马赛克台阶",
+			"bamboo_mosaic_slab": "竹马赛克台阶",
+			"bamboo_mosaic_stairs": "竹马赛克楼梯",
+			"bamboo_planks": "竹板",
+			"bamboo_pressure_plate": "竹压力板",
+			"bamboo_slab": "竹台阶",
+			"bamboo_stairs": "竹楼梯",
+			"bamboo_standing_sign": "竹告示牌",
+			"bamboo_trapdoor": "竹活板门",
+			"bamboo_wall_sign": "墙上的竹告示牌",
+			"birch_hanging_sign": "悬挂式白桦木告示牌",
+			"chiseled_bookshelf": "雕纹书架",
+			"crimson_hanging_sign": "悬挂式绯红木告示牌",
+			"dark_oak_hanging_sign": "悬挂式深色橡木告示牌",
+			"jungle_hanging_sign": "悬挂式丛林木告示牌",
+			"mangrove_hanging_sign": "悬挂式红树木告示牌",
+			"oak_hanging_sign": "悬挂式橡木告示牌",
+			"spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"warped_hanging_sign": "悬挂式诡异木告示牌"
+		},
+		"item": {
+			"acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"bamboo_button": "竹按钮",
+			"bamboo_chest_raft": "运输竹筏",
+			"bamboo_door": "竹门",
+			"bamboo_fence": "竹栅栏",
+			"bamboo_fence_gate": "竹栅栏门",
+			"bamboo_hanging_sign": "悬挂式竹告示牌",
+			"bamboo_mosaic": "竹马赛克",
+			"bamboo_mosaic_slab": "竹马赛克台阶",
+			"bamboo_mosaic_stairs": "竹马赛克楼梯",
+			"bamboo_planks": "竹板",
+			"bamboo_pressure_plate": "竹压力板",
+			"bamboo_raft": "竹筏",
+			"bamboo_sign": "竹告示牌",
+			"bamboo_slab": "竹台阶",
+			"bamboo_stairs": "竹楼梯",
+			"bamboo_trapdoor": "竹活板门",
+			"birch_hanging_sign": "悬挂式白桦木告示牌",
+			"camel_spawn_egg": "骆驼刷怪蛋",
+			"chiseled_bookshelf": "雕纹书架",
+			"crimson_hanging_sign": "悬挂式绯红木告示牌",
+			"dark_oak_hanging_sign": "悬挂式深色橡木告示牌",
+			"jungle_hanging_sign": "悬挂式丛林木告示牌",
+			"mangrove_hanging_sign": "悬挂式红树木告示牌",
+			"oak_hanging_sign": "悬挂式橡木告示牌",
+			"spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"warped_hanging_sign": "悬挂式诡异木告示牌"
+		},
+		"entity": {
+			"camel": "骆驼",
+			"minecraft:camel": "骆驼"
+		},
+		"entity_event": {
+			"minecraft:add_can_ride": "",
+			"minecraft:camel_saddled": "",
+			"minecraft:camel_unsaddled": "",
+			"minecraft:start_sitting": "",
+			"minecraft:stop_sitting": ""
+		},
+		"entity_family": {
+			"camel": "骆驼"
+		},
+		"animation": {
+			"animation.camel.look_at_player": "",
+			"animation.camel.walk": "",
+			"animation.camel.stand_up": "",
+			"animation.camel.dash": "",
+			"animation.camel.idle": "",
+			"animation.camel.sit_down": "",
+			"animation.camel.sit": ""
+		},
+		"animation_controller": {
+			"controller.animation.camel.general": "",
+			"controller.animation.camel.idle": "",
+			"controller.animation.camel.look_at_player": ""
+		},
+		"sound": {
+			"break.bamboo_wood": "",
+			"break.hanging_sign": "",
+			"break.nether_wood": "",
+			"click_off.bamboo_wood_button": "",
+			"click_off.bamboo_wood_pressure_plate": "",
+			"click_off.metal_pressure_plate": "",
+			"click_off.nether_wood_button": "",
+			"click_off.nether_wood_pressure_plate": "",
+			"click_off.stone_pressure_plate": "",
+			"click_off.wooden_pressure_plate": "",
+			"click_on.bamboo_wood_button": "",
+			"click_on.bamboo_wood_pressure_plate": "",
+			"click_on.metal_pressure_plate": "",
+			"click_on.nether_wood_button": "",
+			"click_on.nether_wood_pressure_plate": "",
+			"click_on.stone_pressure_plate": "",
+			"click_on.wooden_pressure_plate": "",
+			"close.bamboo_wood_door": "",
+			"close.bamboo_wood_fence_gate": "",
+			"close.bamboo_wood_trapdoor": "",
+			"close.fence_gate": "",
+			"close.iron_door": "",
+			"close.iron_trapdoor": "",
+			"close.nether_wood_door": "",
+			"close.nether_wood_fence_gate": "",
+			"close.nether_wood_trapdoor": "",
+			"close.wooden_door": "",
+			"close.wooden_trapdoor": "",
+			"fall.bamboo_wood": "",
+			"fall.nether_wood": "",
+			"hit.bamboo_wood": "",
+			"hit.nether_wood": "",
+			"mob.camel.ambient": "骆驼：呼噜",
+			"mob.camel.dash": "骆驼：冲刺",
+			"mob.camel.dash_ready": "骆驼：恢复体力",
+			"mob.camel.death": "骆驼：死亡",
+			"mob.camel.eat": "骆驼：进食",
+			"mob.camel.hurt": "骆驼：受伤",
+			"mob.camel.sit": "骆驼：坐下",
+			"mob.camel.stand": "骆驼：站起",
+			"mob.camel.step": "骆驼：脚步声",
+			"mob.camel.step_sand": "骆驼：踏沙",
+			"open.bamboo_wood_door": "",
+			"open.bamboo_wood_fence_gate": "",
+			"open.bamboo_wood_trapdoor": "",
+			"open.fence_gate": "",
+			"open.iron_door": "",
+			"open.iron_trapdoor": "",
+			"open.nether_wood_door": "",
+			"open.nether_wood_fence_gate": "",
+			"open.nether_wood_trapdoor": "",
+			"open.wooden_door": "",
+			"open.wooden_trapdoor": "",
+			"place.bamboo_wood": "",
+			"place.nether_wood": "",
+			"random.wood_click": "按钮：咔哒",
+			"step.bamboo_wood": "",
+			"step.hanging_sign": "",
+			"step.nether_wood": ""
+		},
+		"summonable_entity": {
+			"camel": "骆驼",
+			"minecraft:camel": "骆驼"
+		},
+		"loot_tool": {
+			"minecraft:acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"minecraft:bamboo_button": "竹按钮",
+			"minecraft:bamboo_chest_raft": "运输竹筏",
+			"minecraft:bamboo_door": "竹门",
+			"minecraft:bamboo_fence": "竹栅栏",
+			"minecraft:bamboo_fence_gate": "竹栅栏门",
+			"minecraft:bamboo_hanging_sign": "悬挂式竹告示牌",
+			"minecraft:bamboo_mosaic": "竹马赛克",
+			"minecraft:bamboo_mosaic_slab": "竹马赛克台阶",
+			"minecraft:bamboo_mosaic_stairs": "竹马赛克楼梯",
+			"minecraft:bamboo_planks": "竹板",
+			"minecraft:bamboo_pressure_plate": "竹压力板",
+			"minecraft:bamboo_raft": "竹筏",
+			"minecraft:bamboo_sign": "竹告示牌",
+			"minecraft:bamboo_slab": "竹台阶",
+			"minecraft:bamboo_stairs": "竹楼梯",
+			"minecraft:bamboo_trapdoor": "竹活板门",
+			"minecraft:birch_hanging_sign": "悬挂式白桦木告示牌",
+			"minecraft:camel_spawn_egg": "骆驼刷怪蛋",
+			"minecraft:chiseled_bookshelf": "雕纹书架",
+			"minecraft:crimson_hanging_sign": "悬挂式绯红木告示牌",
+			"minecraft:dark_oak_hanging_sign": "悬挂式深色橡木告示牌",
+			"minecraft:jungle_hanging_sign": "悬挂式丛林木告示牌",
+			"minecraft:mangrove_hanging_sign": "悬挂式红树木告示牌",
+			"minecraft:oak_hanging_sign": "悬挂式橡木告示牌",
+			"minecraft:spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"minecraft:warped_hanging_sign": "悬挂式诡异木告示牌"
+		}
+	},
+	"selectors": {},
+	"help": {},
+	"versionPack": {
+		"1.16.210.60": {
+			"commands": {
+				"gametest": {
+					"description": "管理GameTest框架",
+					"patterns": {
+						"runthese": {
+							"description": "运行附近的全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runthese",
+									"prompt": "运行附近的全部测试"
+								}
+							]
+						},
+						"run_short": {
+							"description": "运行指定的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "run",
+									"prompt": "运行测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"runset": {
+							"description": "运行带有标签的全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runall",
+									"prompt": "运行带有标签的全部测试"
+								},
+								{
+									"type": "string",
+									"name": "测试标签",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"clearall": {
+							"description": "清除范围内的全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "clearall",
+									"prompt": "清除全部测试"
+								},
+								{
+									"type": "uint",
+									"name": "半径",
+									"optional": true
+								}
+							]
+						},
+						"pos": {
+							"description": "查看面向方块相对于测试原点的位置",
+							"params": [
+								{
+									"type": "plain",
+									"name": "pos",
+									"prompt": "查看面向方块的相对位置"
+								}
+							]
+						},
+						"create": {
+							"description": "创建一个测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "create",
+									"prompt": "创建测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "uint",
+									"name": "长",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "宽",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "高",
+									"optional": true
+								}
+							]
+						},
+						"runthis": {
+							"description": "运行最近的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runthese",
+									"prompt": "运行最近的测试"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/gametest"
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.16.210.05",
+					"max": "1.16.210.05"
+				},
+				{
+					"min": "1.16.210.60",
+					"max": "1.19.40.21.*"
+				}
+			]
+		},
+		"1.16.220.02": {
+			"commands": {
+				"gametest": {
+					"patterns": {
+						"run_default": {
+							"description": "运行指定的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "run",
+									"prompt": "运行测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "enum",
+									"name": "失败即停止",
+									"list": "bool"
+								},
+								{
+									"type": "uint",
+									"name": "重复次数"
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.16.220.02",
+			"maxSupportVer": "1.19.40.21.*"
+		},
+		"1.16.230.50": {
+			"commands": {
+				"gametest": {
+					"patterns": {
+						"runset": {
+							"description": "运行指定的测试集合",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runall",
+									"prompt": "运行测试集合"
+								},
+								{
+									"type": "string",
+									"name": "测试集合名",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.16.230.50",
+			"maxSupportVer": "1.19.40.21.*"
+		},
+		"1.17.30.23": {
+			"commands": {
+				"script": {
+					"description": "管理GameTest脚本",
+					"patterns": {
+						"debugger_close": {
+							"description": "与调试器断开连接",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger close",
+									"prompt": "与调试器断开连接"
+								}
+							]
+						},
+						"debugger_connect": {
+							"description": "连接调试器",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger connect",
+									"prompt": "连接调试器"
+								},
+								{
+									"type": "string",
+									"name": "服务器地址"
+								},
+								{
+									"type": "uint",
+									"name": "端口号"
+								}
+							]
+						},
+						"debugger_listen": {
+							"description": "监听并等待调试器连接",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger listen",
+									"prompt": "监听并等待调试器连接"
+								},
+								{
+									"type": "uint",
+									"name": "端口号"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/script"
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.17.30.04",
+					"max": "1.17.30.04"
+				},
+				{
+					"min": "1.17.30.23",
+					"max": "1.19.40.21.*"
+				}
+			]
+		},
+		"1.18.20.21": {
+			"commands": {
+				"volumearea": {
+					"description": "添加、移除或列出功能域",
+					"patterns": {
+						"add_rect": {
+							"description": "添加长方体功能域",
+							"params": [
+								{
+									"type": "plain",
+									"name": "add",
+									"prompt": "添加长方体功能域"
+								},
+								{
+									"type": "string",
+									"name": "功能域ID"
+								},
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "string",
+									"name": "区域名",
+									"optional": true
+								}
+							]
+						},
+						"list": {
+							"description": "列出所有功能域",
+							"params": [
+								{
+									"type": "plain",
+									"name": "list",
+									"prompt": "列出所有功能域"
+								},
+								{
+									"type": "plain",
+									"name": "all-dimensions",
+									"prompt": "列出所有维度的功能域",
+									"optional": true
+								}
+							]
+						},
+						"remove_id": {
+							"description": "移除指定ID的功能域",
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "移除指定功能域"
+								},
+								{
+									"type": "string",
+									"name": "区域名"
+								}
+							]
+						},
+						"remove_pos": {
+							"description": "移除所有包含指定位置的功能域",
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove",
+									"prompt": "移除指定功能域"
+								},
+								{
+									"type": "position",
+									"name": "位置"
+								}
+							]
+						},
+						"remove_all": {
+							"description": "移除所有功能域",
+							"params": [
+								{
+									"type": "plain",
+									"name": "remove_all",
+									"prompt": "移除所有功能域"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/volumearea"
+				}
+			},
+			"minSupportVer": "1.18.20.21"
+		},
+		"1.18.20.27": {
+			"commands": {
+				"gametest": {
+					"patterns": {
+						"clearall": {
+							"description": "清除全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "clearall",
+									"prompt": "清除全部测试"
+								}
+							]
+						}
+					}
+				}
+			},
+			"minSupportVer": "1.18.20.27",
+			"maxSupportVer": "1.19.40.21.*"
+		},
+		"1.18.30.04_gamemode6": {
+			"enums": {
+				"gamemode": {
+					"6": ""
+				}
+			},
+			"minSupportVer": "1.18.30.04",
+			"maxSupportVer": "1.19.22.01"
+		},
+		"1.18.31.04": {
+			"enums": {
+				"gamemode": {
+					"spectator": "旁观模式"
+				}
+			},
+			"minSupportVer": "1.18.31.04",
+			"maxSupportVer": "1.19.41.*"
+		},
+		"1.19.0.20": {
+			"commands": {
+				"script": {
+					"patterns": {
+						"debugger_connect": {
+							"description": "连接调试器",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger connect",
+									"prompt": "连接调试器"
+								},
+								{
+									"type": "string",
+									"name": "服务器地址",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "端口号",
+									"optional": true
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.0.05",
+					"max": "1.19.0.05"
+				},
+				{
+					"min": "1.19.0.20",
+					"max": "1.19.40.21.*"
+				}
+			]
+		},
+		"1.19.0.30": {
+			"commands": {
+				"script": {
+					"patterns": {
+						"profiler_start": {
+							"description": "启动脚本性能分析",
+							"params": [
+								{
+									"type": "plain",
+									"name": "profiler start",
+									"prompt": "启动脚本性能分析"
+								}
+							]
+						},
+						"profiler_stop": {
+							"description": "停止脚本性能分析",
+							"params": [
+								{
+									"type": "plain",
+									"name": "profiler stop",
+									"prompt": "停止脚本性能分析"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.0.05",
+					"max": "1.19.0.05"
+				},
+				{
+					"min": "1.19.0.30",
+					"max": "1.19.40.21.*"
+				}
+			]
+		},
+		"1.19.10.20_remove_execute": {
+			"commands": {
+				"execute": {
+					"patterns": {
+						"default": null,
+						"detect": null
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.10.03",
+					"max": "1.19.10.03"
+				},
+				{
+					"min": "1.19.10.20",
+					"max": "1.19.50.22.*"
+				}
+			],
+			"mode": "remove"
+		},
+		"1.19.10.20": {
+			"commands": {
+				"execute": {
+					"description": "更改命令执行的主体、位置等上下文",
+					"patterns": {
+						"run": {
+							"description": "执行命令",
+							"params": [
+								{
+									"type": "plain",
+									"name": "run",
+									"prompt": "执行命令"
+								},
+								{
+									"type": "command",
+									"name": "命令"
+								}
+							]
+						},
+						"as": {
+							"description": "改变执行主体",
+							"params": [
+								{
+									"type": "plain",
+									"name": "as",
+									"prompt": "改变执行主体"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"at": {
+							"description": "改变执行位置与朝向",
+							"params": [
+								{
+									"type": "plain",
+									"name": "at",
+									"prompt": "改变执行位置与朝向"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"positioned": {
+							"description": "改变执行位置",
+							"params": [
+								{
+									"type": "plain",
+									"name": "positioned",
+									"prompt": "改变执行位置"
+								},
+								{
+									"type": "position",
+									"name": "位置"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"positioned_as": {
+							"description": "改变执行位置",
+							"params": [
+								{
+									"type": "plain",
+									"name": "positioned",
+									"prompt": "改变执行位置"
+								},
+								{
+									"type": "plain",
+									"name": "as",
+									"prompt": "……到目标位置"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_block": {
+							"description": "指定方块满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "block",
+									"prompt": "指定方块满足……"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_block_withData": {
+							"description": "指定方块满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "block",
+									"prompt": "指定方块满足……"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "int",
+									"name": "数据值"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_block_withBlockStates": {
+							"description": "指定方块满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "block",
+									"prompt": "指定方块满足……"
+								},
+								{
+									"type": "position",
+									"name": "坐标"
+								},
+								{
+									"type": "string",
+									"name": "方块ID",
+									"suggestion": "block"
+								},
+								{
+									"type": "string", // blockStates
+									"name": "方块状态"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_blocks": {
+							"description": "区域内方块满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "blocks",
+									"prompt": "指定区域的方块满足……"
+								},
+								{
+									"type": "position",
+									"name": "起点"
+								},
+								{
+									"type": "position",
+									"name": "终点"
+								},
+								{
+									"type": "position",
+									"name": "目标点"
+								},
+								{
+									"type": "enum",
+									"name": "匹配模式",
+									"list": "testforblocks_mode"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_entity": {
+							"description": "满足条件的实体存在时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "entity",
+									"prompt": "实体满足……"
+								},
+								{
+									"type": "selector",
+									"name": "目标实体",
+									"target": "entity"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_score_compare": {
+							"description": "记分项分数满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "score",
+									"prompt": "记分项分数满足……"
+								},
+								{
+									"type": "selector",
+									"name": "前者",
+									"target": "entity"
+								},
+								{
+									"type": "string",
+									"name": "前者记分项"
+								},
+								{
+									"type": "enum",
+									"name": "比较方式",
+									"list": "scoreboard_compare_operators"
+								},
+								{
+									"type": "selector",
+									"name": "后者",
+									"target": "entity"
+								},
+								{
+									"type": "string",
+									"name": "后者记分项"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"conditional_score_matches": {
+							"description": "记分项分数满足条件时执行",
+							"params": [
+								{
+									"type": "enum",
+									"name": "条件执行",
+									"list": "execute_conditional"
+								},
+								{
+									"type": "plain",
+									"name": "score",
+									"prompt": "记分项分数满足……"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "string",
+									"name": "目标记分项"
+								},
+								{
+									"type": "plain",
+									"name": "matches",
+									"prompt": "在范围……"
+								},
+								{
+									"type": "string",
+									"name": "范围"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.10.03",
+					"max": "1.19.10.03"
+				},
+				{
+					"min": "1.19.10.20",
+					"max": "1.19.50.22.*"
+				}
+			]
+		},
+		"1.19.30.22": {
+			"commands": {
+				"script": {
+					"patterns": {
+						"watchdog_exportstats": {
+							"description": "导出看门狗计时器统计数据",
+							"params": [
+								{
+									"type": "plain",
+									"name": "watchdog exportstats",
+									"prompt": "导出看门狗计时器统计数据"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.30.04",
+					"max": "1.19.30.04"
+				},
+				{
+					"min": "1.19.30.22",
+					"max": "1.19.40.21.*"
+				}
+			]
+		},
+		"1.19.40.20": {
+			"commands": {
+				"execute": {
+					"patterns": {
+						"rotated": {
+							"description": "改变执行朝向",
+							"params": [
+								{
+									"type": "plain",
+									"name": "rotated",
+									"prompt": "改变执行朝向"
+								},
+								{
+									"type": "relative",
+									"name": "水平旋转值"
+								},
+								{
+									"type": "relative",
+									"name": "垂直旋转值"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"rotated_as": {
+							"description": "改变执行朝向",
+							"params": [
+								{
+									"type": "plain",
+									"name": "rotated",
+									"prompt": "改变执行朝向"
+								},
+								{
+									"type": "plain",
+									"name": "as",
+									"prompt": "……到目标朝向"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.40.02",
+					"max": "1.19.40.02"
+				},
+				{
+					"min": "1.19.40.20",
+					"max": "1.19.50.22.*"
+				}
+			]
+		},
+		"1.19.40.21": {
+			"commands": {
+				"execute": {
+					"patterns": {
+						"align": {
+							"description": "将执行坐标向下取整",
+							"params": [
+								{
+									"type": "plain",
+									"name": "align",
+									"prompt": "将执行坐标向下取整"
+								},
+								{
+									"type": "custom",
+									"name": "轴",
+									"vtype": "字母组合",
+									"input": "^[xyz]{0,3}",
+									"finish": "^[xyz]{1,3}"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"facing": {
+							"description": "改变执行朝向为面向指定位置",
+							"params": [
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "改变执行朝向为面向……"
+								},
+								{
+									"type": "position",
+									"name": "位置"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"facing_entity": {
+							"description": "改变执行朝向为面向指定实体",
+							"params": [
+								{
+									"type": "plain",
+									"name": "facing",
+									"prompt": "改变执行朝向为面向……"
+								},
+								{
+									"type": "plain",
+									"name": "entity",
+									"prompt": "……指定实体"
+								},
+								{
+									"type": "selector",
+									"name": "目标",
+									"target": "entity"
+								},
+								{
+									"type": "enum",
+									"name": "基准点",
+									"list": "execute_anchor"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.40.02",
+					"max": "1.19.40.02"
+				},
+				{
+					"min": "1.19.40.21",
+					"max": "1.19.50.22.*"
+				}
+			]
+		},
+		"1.19.40.23": {
+			"commands": {
+				"execute": {
+					"patterns": {
+						"anchored": {
+							"description": "改变执行朝向基准点",
+							"params": [
+								{
+									"type": "plain",
+									"name": "anchored",
+									"prompt": "改变执行朝向基准点"
+								},
+								{
+									"type": "enum",
+									"name": "基准点",
+									"list": "execute_anchor"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						},
+						"in": {
+							"description": "改变执行维度与坐标系",
+							"params": [
+								{
+									"type": "plain",
+									"name": "in",
+									"prompt": "改变执行维度与坐标系"
+								},
+								{
+									"type": "enum",
+									"name": "维度",
+									"list": "execute_dimension"
+								},
+								{
+									"type": "subcommand",
+									"name": "子命令",
+									"mainCommand": "execute"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.40.02",
+					"max": "1.19.40.02"
+				},
+				{
+					"min": "1.19.40.23",
+					"max": "1.19.50.22.*"
+				}
+			]
+		}
+	}
+}

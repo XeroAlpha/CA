@@ -1,9 +1,10 @@
 {
+	"$schema": "https://ca.projectxero.top/clib/schema_v1.json",
 	"name": "基本命令教程",
 	"author": "ProjectXero",
 	"description": "该教程为命令初学者提供了入门级别的教程。",
 	"uuid": "8a4cc227-66f4-455c-9be4-7f988f408696",
-	"version": [0, 0, 1],
+	"version": [1, 0, 0],
 	"require": [],
 	"tutorials": [{
 		"name": "初识命令",
@@ -12,7 +13,7 @@
 		"type": "tutorial",
 		"intro": [
 			{
-				"text": "请使用基岩版 1.0.5及以上版本或国服最新版",
+				"text": "请使用基岩版 1.0.5 及以上版本或国服最新版",
 				"bold": true,
 				"color": "criticalcolor"
 			},

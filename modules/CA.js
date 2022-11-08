@@ -83,16 +83,22 @@ MapScript.loadModule("CA", {
 			} else {
 				Common.loadTheme(f.settings.theme);
 			}
-			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = Object.keys(this.Library.inner);
+			if (!f.settings.enabledLibrarys) f.settings.enabledLibrarys = this.Library.recommended;
 			if (!f.settings.coreLibrarys) f.settings.coreLibrarys = [];
-			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = [];
+			if (!f.settings.disabledLibrarys) f.settings.disabledLibrarys = this.Library.defaultDisabled;
 			if (!f.settings.deprecatedLibrarys) f.settings.deprecatedLibrarys = [];
 			if (f.settings.libPath) {
 				this.Library.enableLibrary(f.settings.libPath);
 				delete f.settings.libPath;
 			}
 			Object.keys(this.Library.inner).forEach(function(e) {
-				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) this.enabledLibrarys.push(e);
+				if (this.enabledLibrarys.indexOf(e) < 0 && this.disabledLibrarys.indexOf(e) < 0) {
+					if (CA.Library.recommended.indexOf(e) >= 0) {
+						this.enabledLibrarys.push(e);
+					} else {
+						this.disabledLibrarys.push(e);
+					}
+				}
 			}, this.settings);
 			if (isNaN(f.settings.firstUse)) {
 				f.settings.firstUse = Date.parse(this.publishDate) - 30 * 24 * 60 * 60 * 1000; //30d
@@ -176,9 +182,10 @@ MapScript.loadModule("CA", {
 				tipsRead : 0,
 				iiMode : -1,
 				libraryAutoUpdate : 1,
-				enabledLibrarys : Object.keys(this.Library.inner),
+				securityLevel : 1,
+				enabledLibrarys : this.Library.recommended,
 				coreLibrarys : [],
-				disabledLibrarys : [],
+				disabledLibrarys : this.Library.defaultDisabled,
 				deprecatedLibrarys : [],
 				customExpression : [],
 				quickBarActions : Object.copy(CA.quickBarDefaultActions)

@@ -1,0 +1,1037 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://ca.projectxero.top/clib/schema_v1.json",
+    "definitions": {
+        "minimumVersion": {
+            "type": "string",
+            "pattern": "^((\\+|-)?\\d+)(\\.(\\+|-)?\\d+)*$",
+            "description": "版本区间所能包括的最低版本（包含）。\n只有当版本介于版本区间时才会进行加载。"
+        },
+        "maximumVersion": {
+            "type": "string",
+            "pattern": "^((\\+|-)?\\d+|\\*)(\\.((\\+|-)?\\d+|\\*))*$",
+            "description": "版本区间所能包括的最高版本（包含）。\n只有当版本介于版本区间时才会进行加载。\n星号（*）表示匹配任意数字。\n例如某个功能在1.0.0加入，在1.0.1移除，那么区间就是['1.0.0', '1.0.0.*']。"
+        },
+        "versionRanges": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "min": { "$ref": "#/definitions/minimumVersion" },
+                    "max": { "$ref": "#/definitions/maximumVersion" }
+                },
+                "minProperties": 1
+            },
+            "minItems": 1,
+            "description": "复合版本区间。\n由多个版本区间组成，表示它们的并集。\n只有当版本介于其中至少一个版本区间时才会进行加载。\n可与minSupportVer或maxSupportVer同时使用，命令助手会优先测试这两者是否满足条件。"
+        },
+        "filterFlag": {
+            "const": null,
+            "description": "过滤标志。\n表示对此对象进行过滤。"
+        },
+        "commandDescription": {
+            "type": "string",
+            "description": "用法描述。\n会显示在补全界面语法提示的下方。"
+        },
+        "helpDefinition": {
+            "type": "string",
+            "description": "帮助页面。\n网页URL或HTML代码。\n可通过在补全或辅助补全界面向一侧拖动打开。"
+        },
+        "commandOverloadTypeText": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "text",
+                    "description": "文本类型。\n会包含后续的所有输入内容，因此后方的所有参数定义均会被忽略。"
+                }
+            }
+        },
+        "commandOverloadTypeRawJSON": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "rawjson",
+                    "description": "原始JSON文本类型。\n会包含后续的所有输入内容，因此后方的所有参数定义均会被忽略。"
+                }
+            }
+        },
+        "commandOverloadTypeJSON": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "json",
+                    "description": "JSON类型。\n可通过JSON编辑界面编辑。\n会包含后续的所有输入内容，因此后方的所有参数定义均会被忽略。"
+                },
+                "component": {
+                    "type": "string",
+                    "description": "JSON模式ID。\n若提供将尝试使用给定的模式进行补全。\n如果不提供则使用默认的JSON编辑器。"
+                }
+            }
+        },
+        "commandOverloadTypePlain": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "plain",
+                    "description": "固定值类型。\n必须输入name中指定的值。"
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "出现在补全界面待选列表中的提示内容。"
+                }
+            },
+            "required": ["prompt"]
+        },
+        "commandOverloadTypeSelector": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "selector",
+                    "description": "选择器类型。\n需要输入一个目标选择器。"
+                },
+                "target": {
+                    "type": "string",
+                    "oneOf": [
+                        {
+                            "const": "player",
+                            "description": "此选择器仅匹配玩家。\n仅显示 @a、@p、@r、@s"
+                        },
+                        {
+                            "const": "entity",
+                            "description": "此选择器匹配包括玩家在内的存活实体。\n仅显示 @a、@p、@r、@e、@s"
+                        }
+                    ],
+                    "description": "选择器匹配的对象。"
+                }
+            },
+            "required": ["target"]
+        },
+        "commandOverloadTypeUnsignedInt": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "uint",
+                    "description": "正整数类型（包含0）。"
+                }
+            }
+        },
+        "commandOverloadTypeInt": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "int",
+                    "description": "整数类型。"
+                }
+            }
+        },
+        "commandOverloadTypeFloat": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "float",
+                    "description": "数值类型（可以为小数）。"
+                }
+            }
+        },
+        "commandOverloadTypeRelative": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "relative",
+                    "description": "相对数值类型。\n相较于数值类型允许在开头加上”~“符号表示某个值的偏移量。"
+                }
+            }
+        },
+        "commandOverloadTypePosition": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "position",
+                    "description": "坐标类型。\n允许通过绝对坐标、相对坐标或者局部坐标指定位置。"
+                }
+            }
+        },
+        "commandOverloadTypeCustom": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "custom",
+                    "description": "自定义类型。\n通过自定义的正则表达式来匹配自定义的参数。"
+                },
+                "input": {
+                    "type": "string",
+                    "description": "匹配未结束输入内容的正则表达式。"
+                },
+                "finish": {
+                    "type": "string",
+                    "description": "匹配已结束输入内容的正则表达式。"
+                },
+                "vtype": {
+                    "type": "string",
+                    "description": "自定义类型的名称。"
+                },
+                "prefix": {
+                    "type": "string",
+                    "description": "添加在参数语法前的文本。"
+                },
+                "suffix": {
+                    "type": "string",
+                    "description": "添加在参数语法后的文本。"
+                }
+            },
+            "required": ["input", "finish"]
+        },
+        "commandOverloadTypeEnum": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "enum",
+                    "description": "枚举类型。\n只能为一个列表中的某个值。"
+                },
+                "list": {
+                    "$ref": "#/definitions/enumDefinitionOrReference",
+                    "description": "枚举引用或内联枚举定义。"
+                }
+            }
+        },
+        "commandOverloadTypeCommand": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "command",
+                    "description": "命令类型。\n后续内容应当是一条命令。"
+                }
+            }
+        },
+        "commandOverloadTypeSubcommand": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "subcommand",
+                    "description": "子命令类型。\n后续内容应当是一条子命令。"
+                },
+                "mainCommand": {
+                    "type": "string",
+                    "description": "子命令所属命令的名称。"
+                }
+            }
+        },
+        "commandOverloadTypeString": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "string",
+                    "description": "字符串类型。\n后续内容应当是一段没有空格的文本。"
+                }
+            }
+        },
+        "commandOverloadType": {
+            "oneOf": [
+                { "$ref": "#/definitions/commandOverloadTypeText" },
+                { "$ref": "#/definitions/commandOverloadTypeRawJSON" },
+                { "$ref": "#/definitions/commandOverloadTypeJSON" },
+                { "$ref": "#/definitions/commandOverloadTypePlain" },
+                { "$ref": "#/definitions/commandOverloadTypeSelector" },
+                { "$ref": "#/definitions/commandOverloadTypeUnsignedInt" },
+                { "$ref": "#/definitions/commandOverloadTypeInt" },
+                { "$ref": "#/definitions/commandOverloadTypeFloat" },
+                { "$ref": "#/definitions/commandOverloadTypeRelative" },
+                { "$ref": "#/definitions/commandOverloadTypePosition" },
+                { "$ref": "#/definitions/commandOverloadTypeCustom" },
+                { "$ref": "#/definitions/commandOverloadTypeEnum" },
+                { "$ref": "#/definitions/commandOverloadTypeCommand" },
+                { "$ref": "#/definitions/commandOverloadTypeSubcommand" },
+                { "$ref": "#/definitions/commandOverloadTypeString" }
+            ]
+        },
+        "commandOverloadParam": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "参数类型。\n将会显示在补全界面语法提示中。"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "参数名。\n将会显示在补全界面语法提示中。"
+                },
+                "optional": {
+                    "type": "boolean",
+                    "const": true,
+                    "description": "是否可选。\n如果不为可选参数，请勿添加此属性。\n将会以括号形式显示在补全界面语法提示中。"
+                },
+                "suggestion": {
+                    "$ref": "#/definitions/enumDefinitionOrReference",
+                    "description": "参考建议。\n将会出现在补全界面的待选列表中。"
+                }
+            },
+            "required": ["type", "name"],
+            "allOf": [{ "$ref": "#/definitions/commandOverloadType" }],
+            "default": { "type": "" }
+        },
+        "commandOverloadDefinition": {
+            "type": "object",
+            "properties": {
+                "description": { "$ref": "#/definitions/commandDescription" },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/commandOverloadParam",
+                        "description": "参数定义。"
+                    },
+                    "minItems": 1,
+                    "description": "重载的参数定义列表。\n定义了此重载的所有参数。"
+                }
+            },
+            "required": ["params"],
+            "description": "命令重载定义。\n定义了一条命令在特定参数类型下的用法、描述等内容。"
+        },
+        "commandNoParamOverloadDefinition": {
+            "type": "object",
+            "properties": {
+                "description": { "$ref": "#/definitions/commandDescription" }
+            },
+            "description": "无参数命令重载定义。\n定义了一条命令在不提供参数时的用法、描述等内容。"
+        },
+        "commandDefinition": {
+            "type": "object",
+            "properties": {
+                "description": { "$ref": "#/definitions/commandDescription" },
+                "noparams": { "$ref": "#/definitions/commandNoParamOverloadDefinition" },
+                "patterns": {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/definitions/commandOverloadDefinition" },
+                    "description": "ID-命令重载定义键值对。\n“命令重载定义”定义了一条命令在特定参数类型下的用法、描述等内容。\n为方便在版本包中使用，请勿使用数组形式的命令重载定义列表。"
+                },
+                "help": { "$ref": "#/definitions/helpDefinition" }
+            },
+            "description": "命令定义。\n定义了一条命令的用法、描述等内容。"
+        },
+        "commandAliasDefinition": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string",
+                    "description": "命令别名所指向的实际命令名。"
+                }
+            },
+            "required": ["alias"],
+            "description": "命令别名定义。\n定义了一条命令的别名。"
+        },
+        "placeHolderCommandDefinition": {
+            "type": "object",
+            "properties": {
+                "description": { "$ref": "#/definitions/commandDescription" },
+                "noparams": { "$ref": "#/definitions/commandNoParamOverloadDefinition" },
+                "content": {
+                    "type": "string",
+                    "description": "占位符命名空间。\n不使用，仅用于编写时提示占位符用途。"
+                }
+            },
+            "required": ["content"],
+            "description": "内部占位符命令定义。\n通过命令助手输入命令触发特殊页面时使用的占位符。\n目前只有help命令使用。"
+        },
+        "commandDefinitions": {
+            "type": "object",
+            "additionalProperties": {
+                "if": {
+                    "type": "object",
+                    "required": ["alias"]
+                },
+                "then": { "$ref": "#/definitions/commandAliasDefinition" },
+                "else": {
+                    "anyOf": [
+                        { "$ref": "#/definitions/commandDefinition" },
+                        { "$ref": "#/definitions/placeHolderCommandDefinition" }
+                    ]
+                }
+            },
+            "description": "命令名-命令定义键值对。\n“命令定义”定义了“命令名”指定的这条命令的用法、描述等内容。"
+        },
+        "enumDefinition": {
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                {
+                    "type": "object",
+                    "additionalItems": { "type": "string" }
+                }
+            ],
+            "description": "枚举定义。\n定义一个可用于命令参数和ID表的枚举。"
+        },
+        "enumDefinitionOrReference": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "$ref": "#/definitions/enumDefinition"
+                }
+            ],
+            "description": "枚举定义或引用。\n定义一个可用于命令参数和ID表的枚举或引用已有的枚举。"
+        },
+        "enumDefinitionMap": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/definitions/enumDefinitionOrReference" },
+            "description": "枚举定义表。"
+        },
+        "selectorDefinition": {
+            "type": "object",
+            "properties": {
+                "hasInverted": {
+                    "type": "boolean",
+                    "const": true,
+                    "description": "选择器是否接受反选。\n允许在值前面加上”!“感叹号表示反选。"
+                }
+            },
+            "allOf": [
+                { "$ref": "#/definitions/commandOverloadParam" }
+            ],
+            "description": "选择器参数定义。"
+        },
+        "selectorDefinitions": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/definitions/selectorDefinition" },
+            "description": "选择器参数定义表。"
+        },
+        "jsonArrayDefinition": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "array",
+                    "description": "此JSON模式对应于一个数组。"
+                },
+                "children": {
+                    "$ref": "#/definitions/jsonDefinition",
+                    "description": "数组的成员类型。"
+                }
+            },
+            "required": ["type", "name", "children"]
+        },
+        "jsonObjectDefinition": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "object",
+                    "description": "此JSON模式对应于一个对象。"
+                },
+                "children": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/jsonDefinition",
+                        "description": "对象的成员类型。"
+                    },
+                    "description": "对象的成员列表。"
+                }
+            },
+            "required": ["type", "name", "children"]
+        },
+        "jsonExtendedDefinition": {
+            "type": "object",
+            "properties": {
+                "extends": {
+                    "type": "string",
+                    "description": "JSON模式ID。\n引用一个JSON模式并继承其持有的定义。"
+                }
+            },
+            "required": ["extends"]
+        },
+        "jsonValueDefinition": {
+            "type": "object",
+            "properties": {
+                "suggestion": {
+                    "$ref": "#/definitions/enumDefinitionOrReference",
+                    "description": "参考建议。\n将会出现在补全界面的待选列表中。"
+                }
+            },
+            "allOf": [{ "$ref": "#/definitions/commandOverloadType" }],
+            "required": ["type", "name"]
+        },
+        "jsonDefinition": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "JSON的类型。"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "JSON模式的名称。\n对此JSON模式表示内容的简短描述。"
+                }
+            },
+            "anyOf": [
+                { "$ref": "#/definitions/jsonArrayDefinition" },
+                { "$ref": "#/definitions/jsonObjectDefinition" },
+                { "$ref": "#/definitions/jsonExtendedDefinition" },
+                { "$ref": "#/definitions/jsonValueDefinition" }
+            ],
+            "description": "JSON模式。"
+        },
+        "jsonDefinitions": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/definitions/jsonDefinition" },
+            "description": "JSON模式表。"
+        },
+        "helpDefinitions": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/definitions/helpDefinition" },
+            "description": "帮助页面表。"
+        },
+        "segmentRawJSONColor": {
+            "type": "string",
+            "description": "ISegment原始字符串的颜色。\n接受主题颜色ID或者可被Android接受的颜色字符串作为参数。",
+            "examples": [
+                "bgcolor",
+                "float_bgcolor",
+                "message_bgcolor",
+                "textcolor",
+                "promptcolor",
+                "highlightcolor",
+                "criticalcolor",
+                "go_bgcolor",
+                "go_textcolor",
+                "go_touchbgcolor",
+                "go_touchtextcolor",
+                "#AARRGGBB",
+                "#RRGGBB",
+                "red",
+                "blue",
+                "green",
+                "black",
+                "white",
+                "gray",
+                "cyan",
+                "magenta",
+                "yellow",
+                "lightgray",
+                "darkgray",
+                "grey",
+                "lightgrey",
+                "darkgrey",
+                "aqua",
+                "fuchsia",
+                "lime",
+                "maroon",
+                "navy",
+                "olive",
+                "purple",
+                "silver",
+                "teal"
+            ]
+        },
+        "segmentRawJSON": {
+            "description": "ISegment原始字符串。",
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "ISegment原始字符串的字符串形式。"
+                },
+                {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/segmentRawJSON" },
+                    "description": "ISegment原始字符串的数组形式。\n其中所有的原始字符子串都将被拼接。"
+                },
+                {
+                    "type": "object",
+                    "description": "ISegment原始字符串的对象形式。",
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "text": {
+                                    "type": "string",
+                                    "description": "纯文本。"
+                                }
+                            },
+                            "required": ["text"]
+                        },
+                        {
+                            "properties": {
+                                "lines": {
+                                    "type": "array",
+                                    "items": { "$ref": "#/definitions/segmentRawJSON" },
+                                    "description": "多行文本。\n数组中的每一行将被拼接，并在两行间插入换行符。"
+                                }
+                            },
+                            "required": ["lines"]
+                        },
+                        {
+                            "properties": {
+                                "variable": {
+                                    "type": "string",
+                                    "description": "变量引用。"
+                                }
+                            },
+                            "required": ["variable"]
+                        },
+                        {
+                            "properties": {
+                                "formattedCommand": {
+                                    "type": "string",
+                                    "description": "格式化后的命令。\n其中的格式化代码会被应用，格式化代码本身会显示为半透明。\n文本样式改为黑底白字的等宽字符。"
+                                }
+                            },
+                            "required": ["formattedCommand"]
+                        },
+                        {
+                            "properties": {
+                                "formattedText": {
+                                    "type": "string",
+                                    "description": "格式化后的文本。\n其中的格式化代码会被应用，格式化代码本身会被隐藏。"
+                                }
+                            },
+                            "required": ["formattedText"]
+                        },
+                        {
+                            "properties": {
+                                "command": {
+                                    "type": "string",
+                                    "description": "命令。\n字体改为等宽字符。"
+                                }
+                            },
+                            "required": ["command"]
+                        },
+                        {
+                            "properties": {
+                                "list": {
+                                    "type": "array",
+                                    "items": { "$ref": "#/definitions/segmentRawJSON" },
+                                    "description": "列表。\n与多行文本类似，但在每一行前会增加一个项目符号。"
+                                }
+                            },
+                            "required": ["list"]
+                        },
+                        {
+                            "properties": {
+                                "html": {
+                                    "type": "string",
+                                    "description": "HTML代码。\n使用Android自带的HTML解析器对HTML进行解析。"
+                                }
+                            },
+                            "required": ["html"]
+                        },
+                        {
+                            "properties": {
+                                "image": {
+                                    "type": "string",
+                                    "description": "图片URL。\n插入一张图片。"
+                                }
+                            },
+                            "required": ["image"]
+                        }
+                    ],
+                    "properties": {
+                        "extra": {
+                            "$ref": "#/definitions/segmentRawJSON",
+                            "description": "额外内容。"
+                        },
+                        "link": {
+                            "type": "string",
+                            "description": "表示这是一个链接。\n点击后将跳转至值指向的URL。"
+                        },
+                        "color": {
+                            "$ref": "#/definitions/segmentRawJSONColor",
+                            "description": "文字颜色（前景色）。"
+                        },
+                        "bgcolor": {
+                            "$ref": "#/definitions/segmentRawJSONColor",
+                            "description": "背景色。"
+                        },
+                        "bold": {
+                            "const": true,
+                            "description": "粗体。"
+                        },
+                        "italic": {
+                            "const": true,
+                            "description": "斜体。"
+                        },
+                        "underlined": {
+                            "const": true,
+                            "description": "下划线。"
+                        },
+                        "strikethrough": {
+                            "const": true,
+                            "description": "删除线。"
+                        },
+                        "superscript": {
+                            "const": true,
+                            "description": "上标。"
+                        },
+                        "subscript": {
+                            "const": true,
+                            "description": "下标。"
+                        },
+                        "typeface": {
+                            "type": "string",
+                            "description": "字体名。\n设置字体或字体族。",
+                            "examples": [
+                                "monospace",
+                                "serif",
+                                "sans-serif"
+                            ]
+                        },
+                        "size": {
+                            "anyOf": [
+                                { "type": "string" },
+                                { "type": "number" }
+                            ],
+                            "description": "字号。\n可以使用单位“px”（像素）、“dp”（设备无关像素）、“ts”（字体大小预设值，0~4）、“%”（相对百分比）。不提供单位则默认使用相对字号。"
+                        },
+                        "align": {
+                            "type": "string",
+                            "enum": ["left", "normal", "right", "opposite", "center"],
+                            "description": "对齐方式。"
+                        },
+                        "tabWidth": {
+                            "type": "number",
+                            "description": "Tab宽度。\nTab符号（”\\t“）在排版时占据的宽度。"
+                        }
+                    }
+                }
+            ]
+        },
+        "tutorialTutorialDefinition": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "tutorial",
+                    "description": "表示这是一篇教程。\n教程应当由一连串的段落组成。"
+                },
+                "segments": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "stepMode": {
+                                "type": "string",
+                                "enum": ["manual", "auto"],
+                                "description": "前进模式。\n选择“manual”（手动）则需要手动点击才能继续。"
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "properties": {
+                                    "text": {
+                                        "$ref": "#/definitions/segmentRawJSON",
+                                        "description": "文本。"
+                                    }
+                                },
+                                "required": ["text"],
+                                "description": "文本段落。"
+                            },
+                            {
+                                "properties": {
+                                    "command": {
+                                        "type": "string",
+                                        "description": "命令。"
+                                    }
+                                },
+                                "required": ["command"],
+                                "description": "命令段落。"
+                            },
+                            {
+                                "properties": {
+                                    "link": {
+                                        "type": "string",
+                                        "description": "链接。\n点击后会跳转至指定的URL。"
+                                    },
+                                    "prompt": {
+                                        "$ref": "#/definitions/segmentRawJSON",
+                                        "description": "链接的名称。\n在链接处显示的文字。"
+                                    }
+                                },
+                                "required": ["link"],
+                                "description": "链接段落。"
+                            }
+                        ]
+                    },
+                    "description": "教程的段落。"
+                }
+            },
+            "required": ["segments"]
+        },
+        "tutorialDefinition": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "教程的ID。\n用于存储教程进度与移除。"
+                },
+                "type": {
+                    "type": "string",
+                    "description": "教程的类型ID。"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "教程的名称。"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "教程的描述。\n将出现在教程一览界面上。"
+                },
+                "intro": {
+                    "$ref": "#/definitions/segmentRawJSON",
+                    "description": "教程的引导文本。\n在每次打开教程时会出现。"
+                }
+            },
+            "required": ["id", "type", "name", "segments"],
+            "oneOf": [
+                { "$ref": "#/definitions/tutorialTutorialDefinition" }
+            ],
+            "description": "教程。"
+        },
+        "tutorialDefinitions": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/tutorialDefinition" },
+            "description": "教程列表。"
+        },
+        "idlistDefinition": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "ID表的名称。"
+                },
+                "list": { "$ref": "#/definitions/enumDefinitionOrReference" },
+                "lists": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/enumDefinitionOrReference" },
+                    "description": "ID表包含的枚举列表。\n枚举列表中所有的内容将被整合并显示。"
+                }
+            },
+            "required": ["name"],
+            "oneOf": [
+                { "required": ["list"] },
+                { "required": ["lists"] }
+            ],
+            "description": "ID表定义。"
+        },
+        "idlistDefinitions": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/idlistDefinition" },
+            "description": "ID表定义列表。"
+        },
+        "versionMergeMode": {
+            "type": "string",
+            "enum": ["merge", "overwrite", "remove"],
+            "description": "版本包的合并模式。\nmerge - 合并，将命令模式与枚举添加到已有的中去\noverwrite - 覆盖，替换掉原有的命令与枚举\nremove - 移除，移除版本包中提到的命令模式或枚举条目"
+        },
+        "versionPackageFilter": {
+            "type": "object",
+            "properties": {
+                "mode": true,
+                "minSupportVer": true,
+                "maxSupportVer": true,
+                "supportVer": true,
+                "commands": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/definitions/filterFlag",
+                                "description": "此命令的所有用法将被移除。"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "noparams": {
+                                        "$ref": "#/definitions/filterFlag",
+                                        "description": "此命令的无参数用法将被移除。"
+                                    },
+                                    "patterns": {
+                                        "type": "object",
+                                        "additionalProperties": { "$ref": "#/definitions/filterFlag" },
+                                        "description": "此键值对中键所指定的匹配模式将被移除。"
+                                    }
+                                },
+                                "default": {},
+                                "title": "只有特定的匹配模式将被移除。"
+                            }
+                        ]
+                    },
+                    "description": "命令名-命令过滤器键值对。\n此键值对中的命令用法将被过滤。"
+                },
+                "enums": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/definitions/filterFlag",
+                                "description": "此枚举将被移除。"
+                            },
+                            {
+                                "type": "array",
+                                "items": { "type": "string" },
+                                "description": "此枚举中的项将被移除。"
+                            },
+                            {
+                                "type": "object",
+                                "additionalItems": {
+                                    "$ref": "#/definitions/filterFlag",
+                                    "description": "此项将被移除。"
+                                },
+                                "description": "此枚举中的项将被移除。"
+                            }
+                        ]
+                    },
+                    "description": "枚举ID-枚举过滤器键值对。\n此键值对中的枚举与其中的项将被过滤。"
+                },
+                "selectors": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/filterFlag",
+                        "description": "此选择器定义将被移除。"
+                    },
+                    "description": "选择器名-选择器过滤器键值对。\n此键值对中的选择器定义将被移除。"
+                },
+                "json": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/filterFlag",
+                        "description": "此JSON模式将被移除。"
+                    },
+                    "description": "ID-JSON过滤器键值对。\n此键值对中的JSON模式将被移除。"
+                },
+                "help": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/filterFlag",
+                        "description": "此帮助页面将被移除。"
+                    },
+                    "description": "ID-帮助页面过滤器键值对。\n此键值对中的帮助页面将被移除。"
+                },
+                "tutorials": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "需要移除的教程的ID。"
+                            }
+                        },
+                        "description": "教程过滤器。"
+                    },
+                    "description": "教程过滤器列表。\n此列表中的教程将被移除。"
+                },
+                "idlist": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "需要移除的ID表的名称。"
+                            }
+                        },
+                        "description": "ID表过滤器。"
+                    },
+                    "description": "ID表过滤器列表。\n此列表中的ID表将被移除。"
+                }
+            }
+        },
+        "versionPackageMerger": {
+            "type": "object",
+            "properties": {
+                "mode": true,
+                "minSupportVer": true,
+                "maxSupportVer": true,
+                "supportVer": true,
+                "commands": { "$ref": "#/definitions/commandDefinitions" },
+                "enums": { "$ref": "#/definitions/enumDefinitionMap" },
+                "selectors": { "$ref": "#/definitions/selectorDefinitions" },
+                "json": { "$ref": "#/definitions/jsonDefinitions" },
+                "help": { "$ref": "#/definitions/helpDefinitions" },
+                "tutorials": { "$ref": "#/definitions/tutorialDefinitions" },
+                "idlist": { "$ref": "#/definitions/idlistDefinitions" }
+            }
+        },
+        "versionPackage": {
+            "properties": {
+                "mode": { "$ref": "#/definitions/versionMergeMode" },
+                "minSupportVer": { "$ref": "#/definitions/minimumVersion" },
+                "maxSupportVer": { "$ref": "#/definitions/maximumVersion" },
+                "supportVer": { "$ref": "#/definitions/versionRanges" }
+            },
+            "if": {
+                "properties": {
+                    "mode": { "const": "remove" }
+                },
+                "required": ["mode"]
+            },
+            "then": { "$ref": "#/definitions/versionPackageFilter" },
+            "else": { "$ref": "#/definitions/versionPackageMerger" },
+            "description": "版本包。\n版本包可以使命令助手在一定条件下选择性地加载或卸载内容。"
+        }
+    },
+    "type": "object",
+    "title": "命令库",
+    "description": "命令助手通过加载命令库的形式来添加命令语法、ID表与教程文档。命令库是拓展包的一种，必须为JSON或者带有注释的JSON（JSONC）。",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "JSON Schema。"
+        },
+        "name": {
+            "type": "string",
+            "description": "名称。\n将显示在拓展包管理界面。"
+        },
+        "author": {
+            "type": "string",
+            "description": "作者。\n将显示在拓展包管理界面。"
+        },
+        "description": {
+            "type": "string",
+            "description": "描述。\n可以包含多行。将显示在拓展包管理界面。"
+        },
+        "uuid": {
+            "type": "string",
+            "description": "唯一ID。\n用于提示拓展包是否重复加载。\n不同的拓展包应使用不同的唯一ID，仅当是拓展包的不同版本时除外。唯一ID可以不遵守RFC 4122规范，但推荐直接使用生成的UUID。"
+        },
+        "version": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 1,
+            "description": "版本号。\n用于判断拓展包是否需要更新。\n比较版本号时会先从较前的项开始比较，如果共有的项均相等则比较项的数量。例如[1, 0, 0]大于[1, 0]。版本号的每一项都应当是数字，但更推荐使用正整数。"
+        },
+        "require": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "依赖包列表。\n所有依赖包的UUID组成的数组。\n只有所有的依赖包均已加载时才会将加载此命令库。"
+        },
+        "minCAVersion": {
+            "type": "string",
+            "description": "能加载此命令库的命令助手的最低版本。\n低于此版本的命令助手加载此命令库时会出错。"
+        },
+        "update": {
+            "type": "string",
+            "description": "更新URL。\n允许命令助手检查指定的更新链接并下载新版。\n只能为HTTP或HTTPS。JSON Schema详见https://ca.projectxero.top/clib/schema_update_v1.json"
+        },
+        "menu": {
+            "type": "array",
+            "items": false,
+            "description": "配置拓展包管理页面的菜单。\n命令库不支持此特性。"
+        },
+        "deprecated": {
+            "type": "boolean",
+            "description": "此命令库是否已被废弃。\n废弃的拓展包将在下一次启动时被自动停用。"
+        },
+        "versionPack": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#/definitions/versionPackage" },
+                    "description": "ID-版本包键值对。\n版本包可以使命令助手在一定条件下选择性地加载内容。\n虽然命令助手本身并不使用版本包的ID，但加入ID有助于错误定位。"
+                },
+                {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/versionPackage" },
+                    "description": "版本包列表。\n版本包可以使命令助手在一定条件下选择性地加载内容。\n推荐使用键值对形式。"
+                }
+            ]
+        }
+    },
+    "required": ["name", "author", "description", "uuid", "version", "require"],
+    "allOf": [{ "$ref": "#/definitions/versionPackage" }]
+}

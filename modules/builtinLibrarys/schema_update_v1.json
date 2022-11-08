@@ -1,0 +1,74 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://ca.projectxero.top/clib/schema_update_v1.json",
+    "type": "object",
+    "title": "拓展包更新描述文件",
+    "description": "命令助手在尝试更新拓展包时会请求对应的更新描述文件。",
+    "properties": {
+        "version": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 1,
+            "description": "版本号。\n用于判断拓展包是否需要更新。\n比较版本号时会先从较前的项开始比较，如果共有的项均相等则比较项的数量。例如[1, 0, 0]大于[1, 0]。版本号的每一项都应当是数字，但更推荐使用正整数。"
+        },
+        "message": {
+            "type": "string",
+            "description": "更新内容。"
+        }
+    },
+    "oneOf": [
+        {
+            "properties": {
+                "method": {
+                    "const": "intent",
+                    "description": "通过系统调用链接进行手动更新。"
+                },
+                "uri": {
+                    "type": "string",
+                    "description": "链接的URI。"
+                }
+            },
+            "required": ["method", "uri"],
+            "description": "手动更新。"
+        },
+        {
+            "properties": {
+                "method": {
+                    "const": "download",
+                    "description": "自动从链接进行下载。"
+                },
+                "url": {
+                    "type": "string",
+                    "description": "下载链接URL。"
+                },
+                "source": false
+            },
+            "required": ["url"],
+            "description": "自动更新。"
+        },
+        {
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "default": "https://ca.projectxero.top/clib/",
+                    "description": "自定义命令库仓库URL。\n暂时只能为官方仓库URL。"
+                },
+                "url": {
+                    "type": "string",
+                    "description": "仓库中的命令库文件URL。"
+                },
+                "sha1": {
+                    "type": "string",
+                    "description": "仓库中的命令库文件SHA-1。"
+                },
+                "uuid": {
+                    "type": "string",
+                    "description": "命令库的唯一ID。"
+                }
+            },
+            "required": ["source", "url", "sha1", "uuid"],
+            "description": "自动更新。"
+        }
+    ],
+    "required": ["version"]
+}

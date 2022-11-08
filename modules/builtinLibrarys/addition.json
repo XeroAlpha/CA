@@ -1,29 +1,19 @@
 {
+	"$schema": "https://ca.projectxero.top/clib/schema_v1.json",
 	"name": "补充命令库",
 	"author": "CA制作组",
-	"description": "该命令库是默认命令库的补充，包括了只能在多人游戏中使用的命令。",
+	"description": "该命令库是默认命令库的补充，包括了与核心玩法无关的命令。",
 	"uuid": "590cdcb5-3cdf-42fa-902c-b578779335ab",
-	"version": [0, 0, 1],
+	"version": [1, 0, 0],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"targetSupportVer": "1.16.0.57",
 	"commands": {},
 	"enums": {
-		"structure": {
-			"bastionremnant": "堡垒遗迹",
-			"buriedtreasure": "埋藏的宝藏",
-			"endcity": "末地城",
-			"fortress": "下界要塞",
-			"mansion": "林地府邸",
-			"mineshaft": "废弃矿井",
-			"monument": "海底遗迹",
-			"pillageroutpost": "掠夺者前哨站",
-			"ruinedportal": "废弃传送门",
-			"ruins": "水下遗迹",
-			"shipwreck": "沉船",
-			"stronghold": "要塞",
-			"temple": "沙漠神殿/丛林神庙/沼泽小屋/雪屋",
-			"village": "村庄"
+		"gametest_rotation": {
+			"0": "[默认]不旋转",
+			"1": "旋转90°",
+			"2": "旋转180°",
+			"3": "旋转270°"
 		}
 	},
 	"selectors": {},
@@ -50,8 +40,8 @@
 					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/deop"
 				},
 				"list": {
-					"description": "列出在服务器上的玩家",
-					"noparams": true,
+					"description": "列出服务器上在线的玩家",
+					"noparams": {},
 					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/list"
 				},
 				"op": {
@@ -85,24 +75,6 @@
 				}
 			},
 			"minSupportVer": "0.15.90.0"
-		},
-		"1.0": {
-			"commands": {
-				"locate": {
-					"description": "为执行此命令的玩家在聊天窗口里显示给定类型的最近结构的坐标",
-					"patterns": {
-						"default": {
-							"params": [{
-								"type": "enum",
-								"name": "结构ID",
-								"list": "structure"
-							}]
-						}
-					},
-					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/locate"
-				}
-			},
-			"minSupportVer": "0.17"
 		},
 		"transferserver": {
 			"commands": {
@@ -147,7 +119,7 @@
 			},
 			"minSupportVer": "1.1.0.55"
 		},
-		"1.2.5": {
+		"mixer": {
 			"commands": {
 				"mixer": {
 					"description": "Mixer交互性控制[需安装Mixer]",
@@ -199,7 +171,16 @@
 					"help": "https://blog.mixer.com/minecraft"
 				}
 			},
-			"minSupportVer": "1.2.5.12"
+			"supportVer": [
+				{
+					"min": "1.2.5.12",
+					"max": "1.16.210.52.*"
+				},
+				{
+					"min": "1.16.210.54",
+					"max": "1.16.210.57.*"
+				}
+			]
 		},
 		"1.10.0.3": {
 			"commands": {
@@ -272,6 +253,244 @@
 			},
 			"minSupportVer": "1.12.0.2",
 			"maxSupportVer": "1.16.0.55"
+		},
+		"1.19.40.22": {
+			"commands": {
+				"gametest": {
+					"description": "管理GameTest框架",
+					"patterns": {
+						"clearall": {
+							"description": "清除全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "clearall",
+									"prompt": "清除全部测试"
+								}
+							]
+						},
+						"create": {
+							"description": "创建一个测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "create",
+									"prompt": "创建测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "uint",
+									"name": "长",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "宽",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "高",
+									"optional": true
+								}
+							]
+						},
+						"pos": {
+							"description": "查看面向方块相对于测试原点的位置",
+							"params": [
+								{
+									"type": "plain",
+									"name": "pos",
+									"prompt": "查看面向方块的相对位置"
+								}
+							]
+						},
+						"run_default": {
+							"description": "运行指定的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "run",
+									"prompt": "运行测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "enum",
+									"name": "失败即停止",
+									"list": "bool"
+								},
+								{
+									"type": "uint",
+									"name": "重复次数"
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"run_short": {
+							"description": "运行指定的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "run",
+									"prompt": "运行测试"
+								},
+								{
+									"type": "string",
+									"name": "测试名"
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"runset": {
+							"description": "运行指定的测试集合",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runset",
+									"prompt": "运行测试集合"
+								},
+								{
+									"type": "string",
+									"name": "测试集合名",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"runthese": {
+							"description": "运行附近的全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runthese",
+									"prompt": "运行附近的全部测试"
+								}
+							]
+						},
+						"runthis": {
+							"description": "运行最近的测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runthese",
+									"prompt": "运行最近的测试"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/gametest"
+				},
+				"script": {
+					"description": "管理GameTest脚本",
+					"patterns": {
+						"debugger_close": {
+							"description": "与调试器断开连接",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger close",
+									"prompt": "与调试器断开连接"
+								}
+							]
+						},
+						"debugger_connect": {
+							"description": "连接调试器",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger connect",
+									"prompt": "连接调试器"
+								},
+								{
+									"type": "string",
+									"name": "服务器地址",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "端口号",
+									"optional": true
+								}
+							]
+						},
+						"debugger_listen": {
+							"description": "监听并等待调试器连接",
+							"params": [
+								{
+									"type": "plain",
+									"name": "debugger listen",
+									"prompt": "监听并等待调试器连接"
+								},
+								{
+									"type": "uint",
+									"name": "端口号"
+								}
+							]
+						},
+						"profiler_start": {
+							"description": "启动脚本性能分析",
+							"params": [
+								{
+									"type": "plain",
+									"name": "profiler start",
+									"prompt": "启动脚本性能分析"
+								}
+							]
+						},
+						"profiler_stop": {
+							"description": "停止脚本性能分析",
+							"params": [
+								{
+									"type": "plain",
+									"name": "profiler stop",
+									"prompt": "停止脚本性能分析"
+								}
+							]
+						},
+						"watchdog_exportstats": {
+							"description": "导出看门狗计时器统计数据",
+							"params": [
+								{
+									"type": "plain",
+									"name": "watchdog exportstats",
+									"prompt": "导出看门狗计时器统计数据"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/script"
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.40.02",
+					"max": "1.19.40.02"
+				},
+				{
+					"min": "1.19.40.22"
+				}
+			]
 		}
 	}
 }
