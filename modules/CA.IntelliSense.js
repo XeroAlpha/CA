@@ -1,10 +1,11 @@
-{
+({
 	UNINITIALIZED : 0,
 	ONLY_COMMAND_NAME : 1,
 	UNKNOWN_COMMAND : -1,
 	COMMAND_WITH_PATTERN : 2,
 	UNKNOWN_PATTERN : -2,
 
+	commandText: null,
 	input : [],
 	output : [],
 	cmdname : "",
@@ -29,6 +30,8 @@
 	},
 	proc : function(s) {try {
 		if (CA.settings.iiMode != 2 && CA.settings.iiMode != 3 || CA.Library.loadingStatus) return;
+		if (this.commandText == s) return;
+		this.commandText = s;
 		var r = this.procCmd(s);
 		this.source = r.source;
 		this.cmdname = r.cmdname;
@@ -378,7 +381,9 @@
 			break;
 
 			case "enum":
-			if (!(t = cp.list instanceof Object ? cp.list : this.library.enums[cp.list])) throw "无法找到指定枚举类型";
+			if (!(t = cp.list instanceof Object ? cp.list : this.library.enums[cp.list])) {
+				throw new Error("无法找到指定枚举类型");
+			}
 			r = {
 				output : {},
 				canFinish : false,
@@ -429,7 +434,7 @@
 			t2 = t.prompt[0];
 			t3 = t2.toString().indexOf("\n");
 			r = {
-				length : t.mode < 0 ? -1 :  t.source.length,
+				length : t.mode < 0 ? -1 : t.source.length,
 				input : t.input,
 				output : {},
 				menu : {},
@@ -442,6 +447,40 @@
 					r.menu[i] = t.output[i];
 				} else {
 					r.output[i] = t.output[i];
+				}
+			}
+			break;
+
+			case "subcommand":
+			t = {
+				source : cp.mainCommand + " " + ps,
+				cmdname : cp.mainCommand,
+				hasSlash: false,
+				strParam : ps,
+				input : [],
+				output : {},
+				prompt : [],
+				patterns : [],
+				help : null,
+				canFinish : false
+			};
+			this.procParams(t);
+			t2 = t.prompt[0];
+			t3 = t2.toString().indexOf("\n");
+			r = {
+				length : t.mode < 0 ? -1 : ps.length,
+				input : t.input,
+				output : {},
+				menu : {},
+				canFinish : t.canFinish,
+				description : String(t2.subSequence(t3 + 1, t2.length())),
+				tag : t2.subSequence(t.cmdname.length + 1, t3)
+			}
+			for (i in t.output) {
+				if (t.output[i] instanceof Function) {
+					r.menu[i] = t.output[i];
+				} else {
+					r.output[i] = t.output[i].slice(t.cmdname.length + 1);
 				}
 			}
 			break;
@@ -529,6 +568,13 @@
 					return md.tag;
 				}
 				z += ":命令";
+				break;
+
+				case "subcommand":
+				if (md) {
+					return md.tag;
+				}
+				z += ":子命令";
 				break;
 
 				case "text":
@@ -842,15 +888,6 @@
 					});
 				}
 			},
-			"加入我们..." : function() {
-				try {
-					AndroidBridge.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://jq.qq.com/?_wv=1027&k=46Yl84D"))
-						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-				} catch(e) {
-					Common.toast("QQ群号已复制至剪贴板");
-					Common.setClipboardText("207913610");
-				}
-			},
 			"意见反馈" : function() {
 				GiteeFeedback.showFeedbacks();
 			}
@@ -970,4 +1007,4 @@
 		}
 		Common.showTextDialog(pp);
 	}
-}
+})

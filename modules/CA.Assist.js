@@ -1,4 +1,4 @@
-{
+({
 	active : false,
 	show : function self() {G.ui(function() {try {
 		if (!self.head) {
@@ -177,6 +177,7 @@
 			case "relative":
 			case "custom":
 			case "command":
+			case "subcommand":
 			case "rawjson":
 			case "text":
 			default:
@@ -784,6 +785,9 @@
 			case "command":
 			return "命令";
 
+			case "subcommand":
+			return "子命令";
+
 			case "text":
 			default:
 			return "文本";
@@ -908,16 +912,15 @@
 					case "nbt":
 					case "json":
 					return e.jsonData;
-					break;
 					case "int":
 					case "uint":
 					case "float":
 					return Number(e.text);
-					break;
 					case "plain":
 					case "enum":
 					case "custom":
 					case "command":
+					case "subcommand":
 					case "rawjson":
 					case "text":
 					default:
@@ -1026,4 +1029,4 @@
 		self.refresh(e, adpt);
 		popup = PopupPage.showDialog("ca.assist.ParamEditor.Component", layout, -1, -2);
 	} catch(e) {erp(e)}})}
-}
+})
