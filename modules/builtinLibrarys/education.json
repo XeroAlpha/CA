@@ -2,11 +2,12 @@
 	"$schema": "https://ca.projectxero.top/clib/schema_v1.json",
 	"name": "教育版命令库",
 	"author": "CA制作组",
-	"description": "该命令库包含了需要打开教育版选项才能出现的命令",
+	"description": "该命令库包含了需要打开教育版选项才能出现的命令。",
 	"uuid": "f9216c72-76a6-4963-b4c8-7959e5c7487a",
 	"version": [1, 0, 0],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "1.2.20.1",
+	"minCAVersion": "2022-10-02",
 	"commands": {},
 	"enums": {
 		"block": {

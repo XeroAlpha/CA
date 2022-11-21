@@ -117,7 +117,7 @@ MapScript.loadModule("NeteaseAdapter", {
 		} else if (c >= 840035545) { // 1.0.0.35545
 			return "1.2.5.50";
 		} else {
-			return "1.1.3.52"; //未确认
+			return "1.1.3.52"; // 未确认
 		}
 	},
 	askPackage : function(callback, canCustomize) {

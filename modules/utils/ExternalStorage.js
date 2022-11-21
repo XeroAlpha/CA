@@ -1,5 +1,11 @@
 MapScript.loadModule("ExternalStorage", {
-	StorageRoot: android.os.Environment.getExternalStorageDirectory(),
+	onCreate() {
+		this.StorageRoot = this.getExternalStorageRoot();
+		this.AppFilesRoot = this.getAppSpecificDirectory(null);
+		this.ImportFilesRoot = this.getAppSpecificDirectory("import");
+		this.TempFilesRoot = this.getAppSpecificDirectory("temp");
+		this.AppFilesRoot.mkdirs();
+	},
 	initialize() {
 		this.cleanTempFiles();
 	},
@@ -26,12 +32,27 @@ MapScript.loadModule("ExternalStorage", {
 		], "", null, 3) == 0;
 		return canAccessStorage ? "storage" : "self";
 	},
+	getExternalStorageRoot() {
+		if (android.os.Build.VERSION.SDK_INT >= 30) {
+			const storageManager = ctx.getSystemService(ctx.STORAGE_SERVICE);
+			const primaryVolume = storageManager.getPrimaryStorageVolume();
+			return primaryVolume.getDirectory();
+		} else {
+			return android.os.Environment.getExternalStorageDirectory();
+		}
+	},
+	getAppSpecificDirectory(name) {
+		return ctx.getExternalFilesDir(name) || ctx.getDir(name, 0);
+	},
+	getAppSpecificCacheDirectory() {
+		return ctx.getExternalCacheDir() || ctx.getCacheDir();
+	},
 	getAccessibleRoot() {
 		const accessLevel = this.getStorageAccessLevel();
-		if (accessLevel == "storage") {
+		if (accessLevel == "storage" && this.StorageRoot) {
 			return this.StorageRoot;
 		}
-		return ctx.getExternalFilesDir(null);
+		return this.AppFilesRoot;
 	},
 	isParentOrSelf(file, parent) {
 		const filePath = file instanceof java.io.File ? file.getCanonicalPath() : file;
@@ -39,10 +60,22 @@ MapScript.loadModule("ExternalStorage", {
 		return parentPath == filePath || filePath.startsWith(parentPath + java.io.File.separator);
 	},
 	isInStorage(path) {
+		if (!this.StorageRoot) return false;
 		return this.isParentOrSelf(path, this.StorageRoot);
 	},
 	isAccessible(path) {
 		return this.isParentOrSelf(path, this.getAccessibleRoot());
+	},
+	releaseEmptyDirectory(file, root) {
+		const children = file.list();
+		if (children && children.length == 0) {
+			const parentFile = file.getParentFile();
+			if (this.isParentOrSelf(parentFile, root)) {
+				if (file.delete()) {
+					this.releaseEmptyDirectory(parentFile);
+				}
+			}
+		}
 	},
 	ensureExternalStorage(callback) {
 		Common.showConfirmDialog({
@@ -170,9 +203,8 @@ MapScript.loadModule("ExternalStorage", {
 			return this.uriToFile(uri).exists();
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			return this.queryForUri(uri, "COLUMN_DOCUMENT_ID", "string", null) != null;
-		} else {
-			return false;
 		}
+		return false;
 	},
 	isDirectory(uri) {
 		if (uri.getScheme() == "file") {
@@ -180,9 +212,8 @@ MapScript.loadModule("ExternalStorage", {
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			const mimeType = this.queryForUri(uri, "COLUMN_MIME_TYPE", "string", null);
 			return android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType);
-		} else {
-			return false;
 		}
+		return false;
 	},
 	isFile(uri) {
 		if (uri.getScheme() == "file") {
@@ -190,50 +221,54 @@ MapScript.loadModule("ExternalStorage", {
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			const mimeType = this.queryForUri(uri, "COLUMN_MIME_TYPE", "string", null);
 			return mimeType && !android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType);
-		} else {
-			return false;
 		}
+		return false;
 	},
 	canRead(uri) {
 		if (uri.getScheme() == "file") {
 			return this.uriToFile(uri).canRead();
-		} else {
-			return ctx.checkCallingOrSelfUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0;
 		}
+		return ctx.checkCallingOrSelfUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0;
 	},
 	canWrite(uri) {
 		if (uri.getScheme() == "file") {
 			return this.uriToFile(uri).canWrite();
-		} else {
-			return ctx.checkCallingOrSelfUriPermission(uri, android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0;
 		}
+		return ctx.checkCallingOrSelfUriPermission(uri, android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0;
 	},
 	getName(uri) {
 		if (uri.getScheme() == "file") {
 			return String(this.uriToFile(uri).getName());
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			return this.queryForUri(uri, "COLUMN_DISPLAY_NAME", "string", null);
-		} else {
-			return null;
 		}
+		return null;
+	},
+	getMimeType(uri) {
+		if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
+			const mimeType = this.queryForUri(uri, "COLUMN_MIME_TYPE", "string", null);
+			if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
+				return null;
+			}
+			return mimeType;
+		}
+		return this.getMimeTypeFromExtension(this.getExtensionFromName(this.uriToName(uri)));
 	},
 	getLastModified(uri) {
 		if (uri.getScheme() == "file") {
 			return this.uriToFile(uri).lastModified();
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			return this.queryForUri(uri, "COLUMN_LAST_MODIFIED", "integer", null);
-		} else {
-			return null;
 		}
+		return null;
 	},
 	getLength(uri) {
 		if (uri.getScheme() == "file") {
 			return this.uriToFile(uri).length();
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			return this.queryForUri(uri, "COLUMN_SIZE", "integer", null);
-		} else {
-			return null;
 		}
+		return null;
 	},
 	delete(uri) {
 		if (uri.getScheme() == "file") {
@@ -243,17 +278,17 @@ MapScript.loadModule("ExternalStorage", {
 				const resolver = ctx.getContentResolver();
 				return android.provider.DocumentsContract.deleteDocument(resolver, uri);
 			} catch(e) {Log.e(e)}
-			return false;
-		} else {
-			return false;
 		}
+		return false;
 	},
 	deleteTreeFile(file) {
 		if (file.isDirectory()) {
 			const childrens = file.listFiles();
-			childrens.forEach((child) => this.deleteTreeFile(child));
+			if (childrens) {
+				childrens.forEach((child) => this.deleteTreeFile(child));
+			}
 		}
-		file.delete();
+		return file.delete();
 	},
 	renameFile(uri, newName) {
 		if (uri.getScheme() == "file") {
@@ -262,26 +297,25 @@ MapScript.loadModule("ExternalStorage", {
 			if (source.renameTo(dest)) {
 				return this.toUri(dest);
 			}
-			return null;
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			try {
 				const resolver = ctx.getContentResolver();
 				return android.provider.DocumentsContract.renameDocument(resolver, uri, newName);
 			} catch(e) {Log.e(e)}
-			return null;
-		} else {
-			return null;
 		}
+		return null;
 	},
 	listFiles(uri) {
 		if (uri.getScheme() == "file") {
 			const files = this.uriToFile(uri).listFiles();
-			return files.map((e) => this.toUri(e));
+			if (files) {
+				return files.map((e) => this.toUri(e));
+			}
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			const resolver = ctx.getContentResolver();
 			const parentId = android.provider.DocumentsContract.getDocumentId(uri);
 			const childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(uri, parentId);
-			let cursor, r = [];
+			let cursor, r = [], success = false;
 			try {
 				cursor = resolver.query(childrenUri, [android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID], null, null, null);
 				if (!cursor) throw new Error("Uri is not available for query");
@@ -291,28 +325,32 @@ MapScript.loadModule("ExternalStorage", {
 					childUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, childId);
 					r.push(childUri);
 				}
+				success = true;
 			} catch(e) {Log.e(e)}
 			if (cursor) cursor.close();
-			return r;
-		} else {
-			return [];
+			if (success) {
+				return r;
+			}
 		}
+		return null;
 	},
 	listFilesWithDetails(uri) {
 		if (uri.getScheme() == "file") {
 			const files = this.uriToFile(uri).listFiles();
-			return files.map((file) => ({
-				uri: this.toUri(file),
-				name: file.getName(),
-				directory: file.isDirectory(),
-				lastModified: file.lastModified(),
-				length: file.length()
-			}));
+			if (files) {
+				return files.map((file) => ({
+					uri: this.toUri(file),
+					name: file.getName(),
+					directory: file.isDirectory(),
+					lastModified: file.lastModified(),
+					length: file.length()
+				}));
+			}
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			const resolver = ctx.getContentResolver();
 			const parentId = android.provider.DocumentsContract.getDocumentId(uri);
 			const childrenUri = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(uri, parentId);
-			let cursor, r = [];
+			let cursor, r = [], success = false;
 			try {
 				cursor = resolver.query(childrenUri, [
 					android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -340,20 +378,21 @@ MapScript.loadModule("ExternalStorage", {
 						length: cursor.getLong(sizeColumn)
 					});
 				}
+				success = true;
 			} catch(e) {Log.e(e)}
 			if (cursor) cursor.close();
-			return r;
-		} else {
-			return [];
+			if (success) {
+				return r;
+			}
 		}
+		return null;
 	},
 	getParentDirectory(uri) {
 		if (uri.getScheme() == "file") {
 			const parentFile = this.uriToFile(uri).getParentFile();
-			if (this.isParentOrSelf(parentFile, this.StorageRoot)) {
+			if (!this.StorageRoot || this.isParentOrSelf(parentFile, this.StorageRoot)) {
 				return this.toUri(parentFile);
 			}
-			return null;
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			if (android.os.Build.VERSION.SDK_INT >= 26) {
 				try {
@@ -366,11 +405,25 @@ MapScript.loadModule("ExternalStorage", {
 						}
 					}
 				} catch(e) {Log.e(e)}
-				return null;
+			}
+		}
+		return null;
+	},
+	getChildFile(uri, name) {
+		if (uri.getScheme() == "file") {
+			const parentFile = this.uriToFile(uri);
+			const childFile = new java.io.File(parentFile, name);
+			if (childFile.exists()) {
+				return this.toUri(childFile);
 			}
 		} else {
-			return null;
+			const children = this.listFilesWithDetails(uri);
+			if (children) {
+				const child = children.find((f) => f.name == name);
+				if (child) return child.uri;
+			}
 		}
+		return null;
 	},
 	createFile(uri, name, mimeType) {
 		if (uri.getScheme() == "file") {
@@ -379,15 +432,13 @@ MapScript.loadModule("ExternalStorage", {
 			if (newFile.createNewFile()) {
 				return this.toUri(newFile);
 			}
-			return null;
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			try {
 				const resolver = ctx.getContentResolver();
 				return android.provider.DocumentsContract.createDocument(resolver, uri, mimeType, name);
 			} catch(e) {Log.e(e)}
-		} else {
-			return null;
 		}
+		return null;
 	},
 	createDirectory(uri, name) {
 		if (uri.getScheme() == "file") {
@@ -396,21 +447,41 @@ MapScript.loadModule("ExternalStorage", {
 			if (newDirectory.mkdir()) {
 				return this.toUri(newDirectory);
 			}
-			return null;
 		} else if (android.provider.DocumentsContract.isDocumentUri(ctx, uri)) {
 			try {
 				const resolver = ctx.getContentResolver();
 				const mimeType = android.provider.DocumentsContract.Document.MIME_TYPE_DIR;
 				return android.provider.DocumentsContract.createDocument(resolver, uri, mimeType, name);
 			} catch(e) {Log.e(e)}
-		} else {
-			return null;
 		}
+		return null;
 	},
 	uriToName(uri) {
 		const name = this.getName(uri);
 		if (name != null) return name;
 		return String(uri.getLastPathSegment()) || String(uri);
+	},
+	uriToReadablePath(uri) {
+		const file = this.uriToFile(uri);
+		if (file) {
+			return String(file.getPath());
+		} else {
+			return decodeURIComponent(String(uri).replace(/%2(5|F)/g, encodeURIComponent));
+		}
+	},
+	getExtensionFromName(name) {
+		const dot = name.lastIndexOf(".");
+		if (dot >= 1) {
+			return name.slice(dot + 1);
+		} else {
+			return "";
+		}
+	},
+	getMimeTypeFromExtension(extension) {
+		const mimeTypeMap = android.webkit.MimeTypeMap.getSingleton();
+		const mimeType = mimeTypeMap.getMimeTypeFromExtension(extension);
+		if (mimeType) return String(mimeType);
+		return null;
 	},
 	getLengthString(uri, longer) {
 		const length = this.getLength(uri);
@@ -472,28 +543,24 @@ MapScript.loadModule("ExternalStorage", {
 		output.close();
 	},
 	createImportFile(hint) {
-		const importRoot = ctx.getExternalFilesDir("import");
-		importRoot.mkdirs();
 		let importFile;
+		this.ImportFilesRoot.mkdirs();
 		if (!hint) hint = "*";
 		if (hint.indexOf("*") >= 0) {
 			for (let index = 1; index < 10000; index++) {
-				importFile = new java.io.File(importRoot, hint.replace("*", index));
+				importFile = new java.io.File(this.ImportFilesRoot, hint.replace("*", index));
 				if (!importFile.exists()) break;
 			}
 		} else {
-			importFile = new java.io.File(importRoot, hint);
+			importFile = new java.io.File(this.ImportFilesRoot, hint);
 		}
 		return importFile;
 	},
-	tryReleaseImportFile(file) {
-		const importRoot = ctx.getExternalFilesDir("import");
-		if (this.isParentOrSelf(file, importRoot)) {
-			if (file instanceof java.io.File) {
-				file.delete();
-			} else {
-				new java.io.File(file).delete();
-			}
+	tryReleaseImportFile(fileOrPath) {
+		const file = new java.io.File(fileOrPath);
+		if (this.isParentOrSelf(file, this.ImportFilesRoot)) {
+			file.delete();
+			this.releaseEmptyDirectory(file.getParentFile(), this.ImportFilesRoot);
 			return true;
 		}
 		return false;
@@ -506,33 +573,30 @@ MapScript.loadModule("ExternalStorage", {
 		return false;
 	},
 	importFile(uri, hint) {
-		const importFile = this.createImportFile(hint);
+		const importFile = this.createImportFile(hint.replace("**", this.uriToName(uri)));
 		const input = this.openInputStream(uri);
+		importFile.getParentFile().mkdirs();
 		const output = new java.io.FileOutputStream(importFile);
 		this.pipe(input, output);
 		input.close();
 		return importFile;
 	},
 	createTempFile(hint) {
-		const tempRoot = ctx.getExternalFilesDir("temp");
-		tempRoot.mkdirs();
 		let tempFile;
+		this.TempFilesRoot.mkdirs();
 		if (!hint) hint = "*";
 		if (hint.indexOf("*") >= 0) {
 			for (let index = 1; index < 10000; index++) {
-				tempFile = new java.io.File(tempRoot, hint.replace("*", index));
+				tempFile = new java.io.File(this.TempFilesRoot, hint.replace("*", index));
 				if (!tempFile.exists()) break;
 			}
 		} else {
-			tempFile = new java.io.File(tempRoot, hint);
+			tempFile = new java.io.File(this.TempFilesRoot, hint);
 		}
 		return tempFile;
 	},
 	cleanTempFiles() {
-		const tempRoot = ctx.getExternalFilesDir("temp");
-		if (tempRoot.exists()) {
-			this.deleteTreeFile(tempRoot);
-		}
+		this.deleteTreeFile(this.TempFilesRoot);
 	},
 	selectContent(mimeType, callback) {
 		let intent = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
@@ -549,7 +613,9 @@ MapScript.loadModule("ExternalStorage", {
 		intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);
 		intent.addFlags(android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 		intent.setType(mimeType);
-		intent.putExtra(android.content.Intent.EXTRA_TITLE, new java.lang.String(defaultTitle));
+		if (defaultTitle) {
+			intent.putExtra(android.content.Intent.EXTRA_TITLE, new java.lang.String(defaultTitle));
+		}
 		if (initialUri) {
 			intent.putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, initialUri);
 		}
@@ -558,30 +624,41 @@ MapScript.loadModule("ExternalStorage", {
 			callback(data.getData());
 		});
 	},
-	openDocument(mimeType, callback, initialUri) {
+	openDocument(mimeType, callback, initialUri, allowMultiple) {
 		const intent = new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);
 		intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);
 		intent.addFlags(android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-		intent.setType(mimeType);
+		if (Array.isArray(mimeType)) {
+			const mimeTypeList = JavaReflect.array("string", mimeType.length);
+			mimeType.forEach((e, i) => mimeTypeList[i] = e);
+			intent.putExtra(android.content.Intent.EXTRA_MIME_TYPES, mimeTypeList);
+			intent.setType("*/*");
+		} else {
+			intent.setType(mimeType);
+		}
 		if (initialUri) {
 			intent.putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, initialUri);
 		}
-		AndroidBridge.startActivityForResult(intent, (resultCode, data) => {
-			if (resultCode != -1) return; // RESULT_OK
-			callback(data.getData());
-		});
-	},
-	openDocument(mimeType, callback, initialUri) {
-		const intent = new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);
-		intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);
-		intent.addFlags(android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-		intent.setType(mimeType);
-		if (initialUri) {
-			intent.putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, initialUri);
+		if (allowMultiple) {
+			intent.putExtra(android.content.Intent.EXTRA_ALLOW_MULTIPLE, true);
 		}
 		AndroidBridge.startActivityForResult(intent, (resultCode, data) => {
 			if (resultCode != -1) return; // RESULT_OK
-			callback(data.getData());
+			const uri = data.getData();
+			if (allowMultiple) {
+				const clipData = data.getClipData();
+				if (clipData) {
+					const uriList = [];
+					for (let i = 0; i < clipData.getItemCount(); i++) {
+						uriList.push(clipData.getItemAt(i).getUri());
+					}
+					callback(uriList);
+				} else {
+					callback(uri ? [uri] : []);
+				}
+			} else {
+				callback(uri);
+			}
 		});
 	},
 	openDocumentTree(callback, initialUri, showAdvanced) {
@@ -767,13 +844,30 @@ MapScript.loadModule("ExternalStorage", {
 	showImportActions(options) {
 		const importCallback = (uri) => {
 			if (options.uri) {
-				options.uri(uri);
+				if (options.allowMultiple) {
+					options.uri(Array.isArray(uri) ? uri : [uri]);
+				} else {
+					if (Array.isArray(uri)) {
+						uri.forEach((e) => options.uri(e));
+					} else {
+						options.uri(uri);
+					}
+				}
 			} else if (options.file) { 
 				Common.showProgressDialog((dialog) => {
 					dialog.setTextDelayed("正在导入文件……", 200);
-					const file = this.importFile(uri, options.hint);
+					let files;
+					if (Array.isArray(uri)) {
+						files = uri.map((e) => this.importFile(e, options.hint));
+					} else {
+						files = [this.importFile(uri, options.hint)];
+					}
 					dialog.close(() => {
-						options.file(file);
+						if (options.allowMultiple) {
+							options.file(files);
+						} else {
+							files.forEach((e) => options.file(e));
+						}
 					});
 				});
 			}
@@ -786,34 +880,45 @@ MapScript.loadModule("ExternalStorage", {
 		}, {
 			text: "从文件管理器导入",
 			onclick: () => {
-				this.openDocument(options.mimeType, importCallback);
+				this.openDocument(options.mimeType, importCallback, null, options.allowMultiple);
 			}
 		}, {
 			gap : 10 * G.dp
 		}, {
-			text: "使用内置文件浏览器导入（兼容模式）",
+			text: "使用内置文件浏览器导入",
 			onclick: () => {
 				this.showFileDialog({
-					type: 0,
+					type: options.allowMultiple ? 3 : 0,
 					callback: importCallback
 				});
 			}
 		}]);
 	},
 	showOpenActions(options) {
+		const openCallback = (uri) => {
+			if (options.allowMultiple) {
+				options.callback(Array.isArray(uri) ? uri : [uri]);
+			} else {
+				if (Array.isArray(uri)) {
+					uri.forEach((e) => options.callback(e));
+				} else {
+					options.callback(uri);
+				}
+			}
+		};
 		Common.showOperateDialog([{
 			text: "从文件管理器打开",
 			onclick: () => {
-				this.openDocument(options.mimeType, options.callback);
+				this.openDocument(options.mimeType, openCallback, null, options.allowMultiple);
 			}
 		}, {
 			gap : 10 * G.dp
 		}, {
-			text: "使用内置文件浏览器打开（兼容模式）",
+			text: "使用内置文件浏览器打开",
 			onclick: () => {
 				this.showFileDialog({
-					type: 0,
-					callback: options.callback
+					type: options.allowMultiple ? 3 : 0,
+					callback: openCallback
 				});
 			}
 		}]);
@@ -912,8 +1017,18 @@ MapScript.loadModule("ExternalStorage", {
 					holder.self.setText("\ud83d\udcc2 " + self.intl.parentDir); // Emoji: Expanded Folder
 					Common.applyStyle(holder.self, "item_default", 3);
 				} else {
-					holder.self.setText((e.directory ? "\ud83d\udcc1 " : "\ud83d\udcc4 ") + e.name); // Emoji: Collapsed Folder; Document
-					Common.applyStyle(holder.self, "item_default", 3);
+					let icon = "\ud83d\udcc4"; // Emoji: Document;
+					if (e.directory) {
+						icon = "\ud83d\udcc1"; // Emoji: Collapsed Folder
+					}
+					holder.self.setText(icon + " " + e.name);
+					if (e.selected) {
+						Common.applyStyle(holder.self, "item_highlight", 3);
+						holder.self.setBackgroundColor(Common.theme.go_bgcolor);
+					} else {
+						Common.applyStyle(holder.self, "item_default", 3);
+						holder.self.setBackgroundColor(G.Color.TRANSPARENT);
+					}
 				}
 			}
 			self.compare = (a, b) => {
@@ -941,7 +1056,7 @@ MapScript.loadModule("ExternalStorage", {
 			}
 			self.refresh = function() {
 				const o = self.sets;
-				const children = ExternalStorage.listFilesWithDetails(o.stack[0]);
+				const children = ExternalStorage.listFilesWithDetails(o.stack[0]) || [];
 				if (o.filter) {
 					for (let i = 0; i < children.length; i++){
 						if (!o.filter(children[i])) {
@@ -1073,7 +1188,7 @@ MapScript.loadModule("ExternalStorage", {
 			self.header.addView(self.newDir, new G.LinearLayout.LayoutParams(-2, -1));
 			self.linear.addView(self.header, new G.LinearLayout.LayoutParams(-1, -2));
 
-			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder));
+			self.adapter = SimpleListAdapter.getController(new SimpleListAdapter([], self.vmaker, self.vbinder, null, true));
 
 			self.list = new G.ListView(ctx);
 			self.list.setAdapter(self.adapter.self);
@@ -1099,6 +1214,9 @@ MapScript.loadModule("ExternalStorage", {
 					self.choose(e.uri);
 				} else if (o.type == 1) {
 					self.fname.setText(e.name);
+				} else if (o.type == 3) {
+					e.selected = !e.selected;
+					self.adapter.notifyChange();
 				}
 				return true;
 			} catch(e) {erp(e)}}}));
@@ -1147,6 +1265,9 @@ MapScript.loadModule("ExternalStorage", {
 					self.choose(newFile);
 				} else if (o.type == 2) {
 					self.choose(o.stack[0]);
+				} else if (o.type == 3) {
+					const selected = self.adapter.array.filter((e) => e.selected);
+					self.choose(selected.map((e) => e.uri));
 				}
 				return true;
 			} catch(e) {erp(e)}}}));
@@ -1180,6 +1301,7 @@ MapScript.loadModule("ExternalStorage", {
 			self.fname.setText(String(o.defaultFileName || ""));
 			break;
 			case 2: //选择目录（打开）
+			case 3: //选择多个文件（打开）
 			self.exit.setVisibility(G.View.VISIBLE);
 			self.fname.setVisibility(G.View.GONE);
 			break;

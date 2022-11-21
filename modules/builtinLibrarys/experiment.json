@@ -2,7 +2,7 @@
 	"$schema": "https://ca.projectxero.top/clib/schema_v1.json",
 	"name": "实验性玩法命令库",
 	"author": "CA制作组",
-	"description": "该命令库包含了需要打开实验性玩法才能出现的命令",
+	"description": "该命令库包含了需要打开实验性玩法才能出现的命令。",
 	"uuid": "9c190ced-8a85-4f65-a231-30d3349ab960",
 	"version": [1, 0, 0],
 	"require": [
@@ -10,6 +10,7 @@
 		"590cdcb5-3cdf-42fa-902c-b578779335ab"
 	],
 	"minSupportVer": "1.2.13.8",
+	"minCAVersion": "2022-10-02",
 	"commands": {},
 	"enums": {
 		"block": {

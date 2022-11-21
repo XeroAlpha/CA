@@ -1770,20 +1770,6 @@ MapScript.loadModule("CA", {
 				}
 				self.hUpdate = false;
 			}
-			self.initBrowser = function(wv) {
-				var ws = wv.getSettings();
-				ws.setJavaScriptEnabled(true);
-				ws.setAllowFileAccess(true);
-				ws.setAllowFileAccessFromFileURLs(true);
-				ws.setAllowUniversalAccessFromFileURLs(true);
-				ws.setSaveFormData(true);
-				ws.setLoadWithOverviewMode(true);
-				ws.setJavaScriptCanOpenWindowsAutomatically(true);
-				ws.setLoadsImagesAutomatically(!CA.settings.noWebImage);
-				ws.setAllowContentAccess(true);
-				ws.setAppCacheEnabled(true);
-				ws.setAppCachePath((new java.io.File(ctx.getCacheDir(), "com.xero.ca.webview")).getAbsolutePath());
-			}
 			self.initContent = function(v) {
 				if (!CA.settings.splitScreenMode) {
 					v.setOnTouchListener(self.scroller);
@@ -1793,10 +1779,9 @@ MapScript.loadModule("CA", {
 			self.linear.setOrientation(G.LinearLayout.HORIZONTAL);
 			self.con = new G.FrameLayout(ctx);
 			self.linear.addView(self.con);
-			self.help = Common.newWebView(function(wv) {
-				self.initBrowser(wv);
+			self.help = Common.createWebView(function(wv) {
 				self.wvAvailable = true;
-			});
+			}, self.help);
 			self.linear.addView(self.help);
 			CA.con.addOnLayoutChangeListener(self.layoutListener = new G.View.OnLayoutChangeListener({onLayoutChange : function(v, l, t, r, b, ol, ot, or, ob) {try {
 				if (r - l == or - ol) return;
@@ -1876,6 +1861,10 @@ MapScript.loadModule("CA", {
 			}
 			PWM.registerResetFlag(CA, "assist");
 			PWM.registerResetFlag(self, "con");
+			PWM.on("reset", function() {
+				Common.destroyWebView(self.help);
+				self.help = null;
+			});
 		}
 		self.linear.setTranslationX(self.tx = self.lx = 0);
 		CA.assist = self.linear;
@@ -3934,11 +3923,14 @@ MapScript.loadModule("CA", {
 				onclick : function(v, tag) {
 					ExternalStorage.showImportActions({
 						mimeType: "*/*",
-						hint: "caclib_*.json",
-						file(f) {
+						hint: "caclib/*/**",
+						allowMultiple: true,
+						file(files) {
 							self.postTask((cb) => {
-								const uriStr = String(ExternalStorage.toUri(f));
-								CA.Library.enableLibrary(uriStr);
+								files.forEach((f) => {
+									const uriStr = String(ExternalStorage.toUri(f));
+									CA.Library.enableLibrary(uriStr);
+								});
 								cb(true, function() {
 									Common.toast("导入成功！");
 								});
@@ -3955,11 +3947,14 @@ MapScript.loadModule("CA", {
 				onclick : function(v, tag) {
 					ExternalStorage.showOpenActions({
 						mimeType: "*/*",
-						callback(uri) {
-							ExternalStorage.tryTakeUriPermission(uri);
+						allowMultiple: true,
+						callback(uriList) {
+							uriList.forEach((uri) => ExternalStorage.tryTakeUriPermission(uri));
 							self.postTask((cb) => {
-								const uriStr = String(uri);
-								CA.Library.enableLibrary(uriStr);
+								uriList.forEach((uri) => {
+									const uriStr = String(uri);
+									CA.Library.enableLibrary(uriStr);
+								});
 								cb(true, function() {
 									Common.toast("加载成功！");
 								});
@@ -4187,9 +4182,7 @@ MapScript.loadModule("CA", {
 				},
 				onclick : function(v, tag) {
 					self.postTask(function(cb) {
-						var f = new java.io.File(tag.data.src);
 						CA.Library.removeLibrary(tag.data.src);
-						CA.Library.cleanLibrary();
 						cb(true, function() {
 							Common.toast("该拓展包已从列表中移除");
 						});
@@ -4202,7 +4195,7 @@ MapScript.loadModule("CA", {
 					var uri = ExternalStorage.toUri(tag.data.src);
 					var s = ["名称 : " + tag.data.name];
 					if (ExternalStorage.isFile(uri)) {
-						s.push("位置 : " + tag.data.src);
+						s.push("位置 : " + ExternalStorage.uriToReadablePath(uri));
 						s.push("大小 : " + ExternalStorage.getLengthString(uri));
 						s.push("时间 : " + ExternalStorage.getLastModifiedString(uri));
 					}

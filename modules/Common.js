@@ -1271,40 +1271,23 @@ MapScript.loadModule("Common", {
 	} catch(e) {erp(e)}})},
 
 	showWebViewDialog : function(s) {G.ui(function() {try {
-		var layout, wv, ws, exit, popup;
+		var layout, wv, exit, popup;
 		layout = new G.LinearLayout(ctx);
 		layout.setOrientation(G.LinearLayout.VERTICAL);
 		layout.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 0);
 		Common.applyStyle(layout, "message_bg");
-		try {
-			wv = new G.WebView(ctx);
-		} catch(e) {
-			Common.toast(Common.intl.resolve("webviewUnavailable", e));
-			return;
-		}
+		wv = Common.createWebView(function(wv) {
+			if (s.url && s.code) {
+				wv.loadDataWithBaseURL(String(s.url), String(s.code), s.mimeType ? String(s.mimeType) : null, null, null);
+			} else if (s.code) {
+				wv.loadData(String(s.code), s.mimeType ? String(s.mimeType) : null, null);
+			} else if (s.url) {
+				wv.loadUrl(String(s.url));
+			} else {
+				wv.loadUrl("about:blank");
+			}
+		});
 		wv.setLayoutParams(new G.LinearLayout.LayoutParams(-1, 0, 1.0));
-		if (s.url && s.code) {
-			wv.loadDataWithBaseURL(String(s.url), String(s.code), s.mimeType ? String(s.mimeType) : null, null, null);
-		} else if (s.code) {
-			wv.loadData(String(s.code), s.mimeType ? String(s.mimeType) : null, null);
-		} else if (s.url) {
-			wv.loadUrl(String(s.url));
-		} else {
-			wv.loadUrl("about:blank");
-		}
-		ws = wv.getSettings();
-		ws.setSupportZoom(true);
-		ws.setJavaScriptEnabled(true);
-		ws.setAllowFileAccess(true);
-		ws.setAllowFileAccessFromFileURLs(true);
-		ws.setAllowUniversalAccessFromFileURLs(true);
-		ws.setSaveFormData(true);
-		ws.setLoadWithOverviewMode(true);
-		ws.setJavaScriptCanOpenWindowsAutomatically(true);
-		ws.setLoadsImagesAutomatically(!CA.settings.noWebImage);
-		ws.setAllowContentAccess(true);
-		//ws.setBuiltInZoomControls(true);
-		//ws.setUseWideViewPort(true);
 		layout.addView(wv);
 		exit = new G.TextView(ctx);
 		exit.setLayoutParams(new G.LinearLayout.LayoutParams(-1, -2));
@@ -1319,7 +1302,7 @@ MapScript.loadModule("Common", {
 		layout.addView(exit);
 		popup = PopupPage.showDialog("common.WebDialog", layout, -1, -1);
 		popup.on("exit", function() {
-			wv.destroy();
+			Common.destroyWebView(wv);
 		});
 	} catch(e) {erp(e)}})},
 	
@@ -1580,11 +1563,91 @@ MapScript.loadModule("Common", {
 		self.toast(str);
 	} catch(e) {erp(e)}})},
 	
-	newWebView : function(callback) {
-		var result, error;
+	createWebView : function(callback, oldWebView) {
+		var result, ws, error;
 		try {
-			result = new G.WebView(ctx);
-			callback(result);
+			if (oldWebView instanceof G.WebView) {
+				Common.destroyWebView(oldWebView);
+			}
+			if (typeof ScriptInterface != "undefined") {
+				result = ScriptInterface.createWebView({
+					onConsoleMessage(wv, message) {try {
+						Log.d("[WebView]" + JSON.stringify({
+							message: message.message(),
+							lineNumber: message.lineNumber(),
+							sourceId: message.sourceId(),
+							messageLevel: String(message.messageLevel())
+						}, null, "\t"));
+						return true;
+					} catch(e) {return erp(e), false}},
+					onCreateWindow(wv, isDialog, isUserGesture, resultMsg) {try {
+						return false;
+					} catch(e) {return erp(e), false}},
+					onJsAlert(wv, url, message, result) {try {
+						Common.showTextDialog(message, () => {
+							result.confirm();
+						});
+						return true;
+					} catch(e) {return erp(e), false}},
+					onJsBeforeUnload(wv, url, message, result) {try {
+						return false;
+					} catch(e) {return erp(e), false}},
+					onJsConfirm(wv, url, message, result) {try {
+						let resumed = false;
+						Common.showConfirmDialog({
+							title: url,
+							description: message,
+							callback(id) {
+								if (id == 0) {
+									result.confirm();
+								} else {
+									result.cancel();
+								}
+								resumed = true;
+							},
+							onDismiss() {
+								if (!resumed) {
+									result.cancel();
+									resumed = true;
+								}
+							}
+						});
+						return true;
+					} catch(e) {return erp(e), false}},
+					onJsPrompt(wv, url, message, defaultValue, result) {try {
+						let resumed = false;
+						Common.showInputDialog({
+							title: url,
+							description: message,
+							defaultValue: defaultValue,
+							callback(s) {
+								result.confirm(s);
+								resumed = true;
+							},
+							onDismiss() {
+								if (!resumed) {
+									result.confirm("");
+									resumed = true;
+								}
+							}
+						});
+						return true;
+					} catch(e) {return erp(e), false}},
+					onShowFileChooser(wv, filePathCallback, fileChooserParams) {try {
+						return false;
+					} catch(e) {return erp(e), false}}
+				});
+			} else {
+				result = new G.WebView(ctx);
+			}
+			ws = result.getSettings();
+			ws.setLoadWithOverviewMode(true);
+			ws.setBlockNetworkImage(CA.settings.noWebImage);
+			ws.setDatabaseEnabled(true);
+			ws.setDomStorageEnabled(true);
+			ws.setJavaScriptEnabled(true);
+			ws.setJavaScriptCanOpenWindowsAutomatically(true);
+			callback(result, ws);
 			return result;
 		} catch(e) {
 			erp(e, true);
@@ -1597,6 +1660,15 @@ MapScript.loadModule("Common", {
 		result.setPadding(10 * G.dp, 10 * G.dp, 10 * G.dp, 10 * G.dp);
 		result.setText(Common.intl.resolve("webviewUnavailable", error));
 		return result;
+	},
+	destroyWebView : function(wv) {
+		if (wv instanceof G.WebView) {
+			wv.clearHistory();
+			wv.loadUrl("about:blank");
+			let parentView = wv.getParent()
+			if (parentView) parentView.removeView(wv);
+			wv.destroy();
+		}
 	},
 
 	fileCopy : function(src, dest) {

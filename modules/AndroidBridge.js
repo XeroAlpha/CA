@@ -145,7 +145,7 @@ MapScript.loadModule("AndroidBridge", {
 				title : "确定加载拓展包“" + ExternalStorage.uriToName(t) + "”？",
 				callback : function(id) {
 					if (id != 0) return onReturn();
-					const importFile = ExternalStorage.importFile(t, "caclib_*.json");
+					const importFile = ExternalStorage.importFile(t, "caclib/*/**");
 					try {
 						CA.Library.enableLibrary(String(ExternalStorage.toUri(importFile)));
 						CA.Library.initLibrary(function() {

@@ -7,6 +7,7 @@
 	"version": [1, 0, 0],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
+	"minCAVersion": "2022-10-02",
 	"commands": {},
 	"enums": {
 		"gametest_rotation": {

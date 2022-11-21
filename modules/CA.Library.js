@@ -70,8 +70,10 @@
 		return Common.addSet(CA.settings.disabledLibrarys, uriStr);
 	},
 	removeLibrary : function(uriStr) {
-		var fl = false;
-		ExternalStorage.tryReleaseImportUri(ExternalStorage.toUri(uriStr));
+		const uri = ExternalStorage.toUri(uriStr);
+		let fl = false;
+		ExternalStorage.tryReleaseImportUri(uri);
+		this.tryReleaseLibraryFile(uri);
 		fl = Common.removeSet(CA.settings.enabledLibrarys, uriStr) || fl;
 		fl = Common.removeSet(CA.settings.coreLibrarys, uriStr) || fl;
 		return Common.removeSet(CA.settings.disabledLibrarys, uriStr) || fl;
@@ -720,6 +722,12 @@
 	getVerify : function(source) {
 		return source.verifyObject ? source.verifyObject : (source.verifyObject = this.downloadAsArray(source.pubkey));
 	},
+	getLibraryRoot: function() {
+		return new java.io.File(MapScript.baseDir, "libs");
+	},
+	getLibraryExternalRoot: function() {
+		return ctx.getExternalFilesDir("libs");
+	},
 	arrayStartsWith : function(array, start) {
 		var i;
 		if (array.length < start.length) return false;
@@ -753,6 +761,8 @@
 		if (libinfo.sha1 != android.util.Base64.encodeToString(digest.digest(), android.util.Base64.NO_WRAP)) {
 			throw "文件校验失败";
 		}
+		var libraryRoot = this.getLibraryRoot();
+		var libraryFile = new java.io.File(libraryRoot, libinfo.uuid + "/" + libinfo.name);
 		if (this.arrayStartsWith(arr, [0x53, 0x49, 0x47, 0x4e, 0x4c, 0x49, 0x42, 0x30, 0x31])) { //SIGNLIB01
 			var verify = this.getVerify(source);
 			var signature = java.security.Signature.getInstance("SHA256withRSA");
@@ -763,8 +773,8 @@
 			var dataStart = 9 + signlen;
 			signature.update(arr, dataStart, arr.length - dataStart);
 			if (!signature.verify(arr, 9, signlen)) throw "库的签名不正确";
-			new java.io.File(MapScript.baseDir + "libs").mkdirs();
-			os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
+			libraryFile.getParentFile().mkdirs();
+			os = new java.io.FileOutputStream(libraryFile);
 			os.write(new java.lang.String("LIBSIGN01").getBytes("UTF-8"));
 			bytes = new java.lang.String(source.sourceId).getBytes("UTF-8");
 			var buf = java.nio.ByteBuffer.allocate(4);
@@ -780,16 +790,16 @@
 			digest.update(ScriptInterface.getVerifyKey());
 			digest.update(bytes);
 			bytes = digest.digest();
-			os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib.hash");
+			os = new java.io.FileOutputStream(new java.io.File(libraryFile.getParent(), libraryFile.getName() + ".hash"));
 			os.write(bytes);
 			os.close();
 		} else {
-			new java.io.File(MapScript.baseDir + "libs").mkdirs();
-			os = new java.io.FileOutputStream(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
+			libraryFile.getParentFile().mkdirs();
+			os = new java.io.FileOutputStream(libraryFile);
 			os.write(arr);
 			os.close();
 		}
-		return ExternalStorage.toUri(MapScript.baseDir + "libs/" + libinfo.uuid + ".lib");
+		return ExternalStorage.toUri(libraryFile);
 	},
 	shouldVerifySigned : function(uri) {
 		if (!ExternalStorage.isFile(uri)) return -1;
@@ -837,7 +847,30 @@
 			return defaultValue;
 		}
 	},
-	cleanLibrary : function() {
+	tryReleaseLibraryFile : function(uri) {
+		const file = ExternalStorage.uriToFile(uri);
+		if (file) {
+			const libraryRoot = this.getLibraryRoot();
+			const libraryExternalRoot = this.getLibraryExternalRoot();
+			const inLibraryRoot = ExternalStorage.isParentOrSelf(file, libraryRoot);
+			const inLibraryExternalRoot = ExternalStorage.isParentOrSelf(file, libraryExternalRoot);
+			if (inLibraryRoot || inLibraryExternalRoot) {
+				const parentFile = file.getParentFile();
+				const hashFile = new java.io.File(parentFile, file.getName() + ".hash");
+				file.delete();
+				if (hashFile.exists()) {
+					hashFile.delete();
+				}
+				if (inLibraryRoot) {
+					ExternalStorage.releaseEmptyDirectory(parentFile, libraryRoot);
+				}
+				if (inLibraryExternalRoot) {
+					ExternalStorage.releaseEmptyDirectory(parentFile, libraryExternalRoot);
+				}
+			}
+		}
+	},
+	cleanLibrary : function() { // Deprecated
 		var base = new java.io.File(MapScript.baseDir + "libs"), libs;
 		base.mkdirs();
 		libs = CA.settings.enabledLibrarys.concat(CA.settings.coreLibrarys, CA.settings.disabledLibrarys);
