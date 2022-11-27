@@ -159,7 +159,7 @@ MapScript.loadModule("AndroidBridge", {
 					}
 				},
 				onDismiss : function() {
-					ctx.revokeUriPermission(ctx.getPackageName(), t, 0x3); // Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION
+					ctx.revokeUriPermission(ctx.getPackageName(), t);
 				}
 			});
 			break;

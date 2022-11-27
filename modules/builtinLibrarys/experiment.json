@@ -15,6 +15,7 @@
 	"enums": {
 		"block": {
 			"acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"bamboo_block": "竹块",
 			"bamboo_button": "竹按钮",
 			"bamboo_door": "竹门",
 			"bamboo_double_slab": "双层竹台阶",
@@ -40,10 +41,12 @@
 			"mangrove_hanging_sign": "悬挂式红树木告示牌",
 			"oak_hanging_sign": "悬挂式橡木告示牌",
 			"spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"stripped_bamboo_block": "去皮竹块",
 			"warped_hanging_sign": "悬挂式诡异木告示牌"
 		},
 		"item": {
 			"acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"bamboo_block": "竹块",
 			"bamboo_button": "竹按钮",
 			"bamboo_chest_raft": "运输竹筏",
 			"bamboo_door": "竹门",
@@ -69,6 +72,7 @@
 			"mangrove_hanging_sign": "悬挂式红树木告示牌",
 			"oak_hanging_sign": "悬挂式橡木告示牌",
 			"spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"stripped_bamboo_block": "去皮竹块",
 			"warped_hanging_sign": "悬挂式诡异木告示牌"
 		},
 		"entity": {
@@ -101,6 +105,7 @@
 		},
 		"sound": {
 			"break.bamboo_wood": "",
+			"break.chiseled_bookshelf": "",
 			"break.hanging_sign": "",
 			"break.nether_wood": "",
 			"click_off.bamboo_wood_button": "",
@@ -131,7 +136,10 @@
 			"fall.bamboo_wood": "",
 			"fall.nether_wood": "",
 			"hit.bamboo_wood": "",
+			"hit.chiseled_bookshelf": "",
 			"hit.nether_wood": "",
+			"insert.chiseled_bookshelf": "",
+			"insert_enchanted.chiseled_bookshelf": "",
 			"mob.camel.ambient": "骆驼：呼噜",
 			"mob.camel.dash": "骆驼：冲刺",
 			"mob.camel.dash_ready": "骆驼：恢复体力",
@@ -153,10 +161,14 @@
 			"open.nether_wood_trapdoor": "",
 			"open.wooden_door": "",
 			"open.wooden_trapdoor": "",
+			"pickup.chiseled_bookshelf": "",
+			"pickup_enchanted.chiseled_bookshelf": "",
 			"place.bamboo_wood": "",
+			"place.chiseled_bookshelf": "",
 			"place.nether_wood": "",
 			"random.wood_click": "按钮：咔哒",
 			"step.bamboo_wood": "",
+			"step.chiseled_bookshelf": "",
 			"step.hanging_sign": "",
 			"step.nether_wood": ""
 		},
@@ -166,6 +178,7 @@
 		},
 		"loot_tool": {
 			"minecraft:acacia_hanging_sign": "悬挂式金合欢木告示牌",
+			"minecraft:bamboo_block": "竹块",
 			"minecraft:bamboo_button": "竹按钮",
 			"minecraft:bamboo_chest_raft": "运输竹筏",
 			"minecraft:bamboo_door": "竹门",
@@ -191,6 +204,7 @@
 			"minecraft:mangrove_hanging_sign": "悬挂式红树木告示牌",
 			"minecraft:oak_hanging_sign": "悬挂式橡木告示牌",
 			"minecraft:spruce_hanging_sign": "悬挂式云杉木告示牌",
+			"minecraft:stripped_bamboo_block": "去皮竹块",
 			"minecraft:warped_hanging_sign": "悬挂式诡异木告示牌"
 		}
 	},
