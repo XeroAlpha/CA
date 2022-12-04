@@ -150,6 +150,12 @@
 			"mob.camel.stand": "骆驼：站起",
 			"mob.camel.step": "骆驼：脚步声",
 			"mob.camel.step_sand": "骆驼：踏沙",
+			"note.creeper": "",
+			"note.enderdragon": "",
+			"note.piglin": "",
+			"note.skeleton": "",
+			"note.witherskeleton": "",
+			"note.zombie": "",
 			"open.bamboo_wood_door": "",
 			"open.bamboo_wood_fence_gate": "",
 			"open.bamboo_wood_trapdoor": "",
@@ -700,6 +706,10 @@
 				},
 				{
 					"min": "1.19.10.20",
+					"max": "1.19.41"
+				},
+				{
+					"min": "1.19.50.20",
 					"max": "1.19.50.22.*"
 				}
 			],
@@ -1056,6 +1066,10 @@
 				},
 				{
 					"min": "1.19.10.20",
+					"max": "1.19.41"
+				},
+				{
+					"min": "1.19.50.20",
 					"max": "1.19.50.22.*"
 				}
 			]
@@ -1150,6 +1164,10 @@
 				},
 				{
 					"min": "1.19.40.20",
+					"max": "1.19.41"
+				},
+				{
+					"min": "1.19.50.20",
 					"max": "1.19.50.22.*"
 				}
 			]
@@ -1239,6 +1257,10 @@
 				},
 				{
 					"min": "1.19.40.21",
+					"max": "1.19.41"
+				},
+				{
+					"min": "1.19.50.20",
 					"max": "1.19.50.22.*"
 				}
 			]
@@ -1297,7 +1319,38 @@
 				},
 				{
 					"min": "1.19.40.23",
+					"max": "1.19.41"
+				},
+				{
+					"min": "1.19.50.20",
 					"max": "1.19.50.22.*"
+				}
+			]
+		},
+		"1.19.60.22": {
+			"commands": {
+				"scriptevent": {
+					"description": "向脚本API模块广播消息事件",
+					"patterns": {
+						"default": {
+							"params": [
+								{
+									"type": "string",
+									"name": "消息ID"
+								},
+								{
+									"type": "text",
+									"name": "消息内容"
+								}
+							]
+						}
+					},
+					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/scriptevent"
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.60.22"
 				}
 			]
 		}

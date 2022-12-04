@@ -5855,6 +5855,7 @@
 			"minecraft:smooth_red_sandstone_stairs": "平滑红砂岩楼梯",
 			"minecraft:smooth_sandstone_stairs": "平滑砂岩楼梯",
 			"minecraft:smooth_stone": "平滑石头",
+			"minecraft:sniffer_spawn_egg": "",
 			"minecraft:snow": "雪块",
 			"minecraft:snow_golem_spawn_egg": "雪傀儡刷怪蛋",
 			"minecraft:snow_layer": "顶层雪",
@@ -9338,7 +9339,7 @@
 		"1.14.0.51": {
 			"enums": {
 				"gamerule_bool": {
-					"showtags": "是否显示命名标签"
+					"showtags": "是否显示物品组件标记"
 				}
 			},
 			"minSupportVer": "1.14.0.51"
@@ -11811,6 +11812,10 @@
 			},
 			"supportVer": [
 				{
+					"min": "1.19.50.02",
+					"max": "1.19.50.02"
+				},
+				{
 					"min": "1.19.50.23"
 				}
 			]
@@ -11825,6 +11830,10 @@
 				}
 			},
 			"supportVer": [
+				{
+					"min": "1.19.50.02",
+					"max": "1.19.50.02"
+				},
 				{
 					"min": "1.19.50.23"
 				}
@@ -12335,6 +12344,10 @@
 				}
 			},
 			"supportVer": [
+				{
+					"min": "1.19.50.02",
+					"max": "1.19.50.02"
+				},
 				{
 					"min": "1.19.50.23"
 				}

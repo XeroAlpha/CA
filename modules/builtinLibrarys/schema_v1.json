@@ -12,16 +12,17 @@
             "pattern": "^((\\+|-)?\\d+|\\*)(\\.((\\+|-)?\\d+|\\*))*$",
             "description": "版本区间所能包括的最高版本（包含）。\n只有当版本介于版本区间时才会进行加载。\n星号（*）表示匹配任意数字。\n例如某个功能在1.0.0加入，在1.0.1移除，那么区间就是['1.0.0', '1.0.0.*']。"
         },
+        "versionRange": {
+            "type": "object",
+            "properties": {
+                "min": { "$ref": "#/definitions/minimumVersion" },
+                "max": { "$ref": "#/definitions/maximumVersion" }
+            },
+            "minProperties": 1
+        },
         "versionRanges": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "min": { "$ref": "#/definitions/minimumVersion" },
-                    "max": { "$ref": "#/definitions/maximumVersion" }
-                },
-                "minProperties": 1
-            },
+            "items": { "$ref": "#/definitions/versionRange" },
             "minItems": 1,
             "description": "复合版本区间。\n由多个版本区间组成，表示它们的并集。\n只有当版本介于其中至少一个版本区间时才会进行加载。\n可与minSupportVer或maxSupportVer同时使用，命令助手会优先测试这两者是否满足条件。"
         },
@@ -208,11 +209,11 @@
             "properties": {
                 "type": {
                     "const": "subcommand",
-                    "description": "子命令类型。\n后续内容应当是一条子命令。"
+                    "description": "子命令类型。\n后续内容应当是一条子命令。\n\n需要命令助手至少为 1.2.14-Beta-10 (2022-10-02) 版本。"
                 },
                 "mainCommand": {
                     "type": "string",
-                    "description": "子命令所属命令的名称。"
+                    "description": "子命令所属命令的名称。\n\n需要命令助手至少为 1.2.14-Beta-10 (2022-10-02) 版本。"
                 }
             }
         },
@@ -996,9 +997,23 @@
             "description": "版本号。\n用于判断拓展包是否需要更新。\n比较版本号时会先从较前的项开始比较，如果共有的项均相等则比较项的数量。例如[1, 0, 0]大于[1, 0]。版本号的每一项都应当是数字，但更推荐使用正整数。"
         },
         "require": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "依赖包列表。\n所有依赖包的UUID组成的数组。\n只有所有的依赖包均已加载时才会将加载此命令库。"
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "依赖包列表。\n所有依赖包的UUID组成的数组。\n只有所有的依赖包均已加载时才会将加载此命令库。"
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": {
+                        "oneOf": [
+                            { "$ref": "#/definitions/versionRange" },
+                            { "$ref": "#/definitions/versionRanges" }
+                        ]
+                    },
+                    "description": "依赖包列表。\n所有依赖包的UUID与版本要求组成的键值对。\n只有所有的依赖包均已加载且满足要求时才会将加载此命令库。\n\n需要命令助手至少为 1.2.14-Beta-13 版本。"
+                }
+            ]
         },
         "minCAVersion": {
             "type": "string",
