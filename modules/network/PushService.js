@@ -37,7 +37,8 @@ MapScript.loadModule("PushService", {
 		return intent;
 	},
 	showNotification : function(o) {
-		var builder, nof;
+		var builder, nof, id;
+		id = parseInt(o.id);
 		if (android.os.Build.VERSION.SDK_INT >= 26) {
 			builder = new android.app.Notification.Builder(ctx, this.channel.id);
 		} else {
@@ -49,13 +50,13 @@ MapScript.loadModule("PushService", {
 		builder.setSmallIcon(com.xero.ca.R.mipmap.icon_small);
 		builder.setLargeIcon(G.BitmapFactory.decodeResource(ctx.getResources(), com.xero.ca.R.mipmap.icon_small));
 		intent = this.getIntent(o);
-		if (intent) builder.setContentIntent(android.app.PendingIntent.getActivity(ctx, parseInt(o.id) + 2008, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT));
+		if (intent) builder.setContentIntent(AndroidBridge.createPendingIntent("activity", intent, ["updateCurrent"], id));
 		if (android.os.Build.VERSION.SDK_INT >= 16) {
 			nof = builder.build();
 		} else {
 			nof = builder.getNotification();
 		}
-		this.nms.notify("capush", parseInt(o.id), nof);
+		this.nms.notify("capush", id, nof);
 		return true;
 	},
 	cancelNotification : function(o) {

@@ -714,8 +714,45 @@ MapScript.loadModule("AndroidBridge", {
 			activity.requestPermissionsCompat(code, data.permissions);
 		}
 	},
+	createPendingIntent : function(type, intent, flagList, requestCode) {
+		let flags = 0;
+		if (!Array.isArray(flagList)) flagList = [];
+		if (isNaN(requestCode)) requestCode = 0;
+		if (android.os.Build.VERSION.SDK_INT >= 23) {
+			if (flagList.includes("mutable")) {
+				if (android.os.Build.VERSION.SDK_INT >= 31) {
+					flags |= android.app.PendingIntent.FLAG_MUTABLE;
+				}
+			} else {
+				flags |= android.app.PendingIntent.FLAG_IMMUTABLE;
+			}
+		}
+		if (flagList.includes("updateCurrent")) {
+			flags |= android.app.PendingIntent.FLAG_UPDATE_CURRENT;
+		} else if (flagList.includes("cancelCurrent")) {
+			flags |= android.app.PendingIntent.FLAG_CANCEL_CURRENT;
+		} else if (flagList.includes("noCreate")) {
+			flags |= android.app.PendingIntent.FLAG_NO_CREATE;
+		}
+		if (flagList.includes("oneShot")) {
+			flags |= android.app.PendingIntent.FLAG_ONE_SHOT;
+		}
+		if (type == "service" || type == "foregroundService") {
+			if (android.os.Build.VERSION.SDK_INT > 26 && type == "foregroundService") {
+				return android.app.PendingIntent.getForegroundService(ctx, requestCode, intent, flags);
+			}
+			return android.app.PendingIntent.getService(ctx, requestCode, intent, flags);
+		}
+		if (type == "broadcast") {
+			return android.app.PendingIntent.getBroadcast(ctx, requestCode, intent, flags);
+		}
+		if (Array.isArray(intent)) {
+			return android.app.PendingIntent.getActivities(ctx, requestCode, intent, flags);
+		}
+		return android.app.PendingIntent.getActivity(ctx, requestCode, intent, flags);
+	},
 	getABIs : function() {
-		if (android.os.Build.VERSION.SDK_INT > 21) {
+		if (android.os.Build.VERSION.SDK_INT >= 21) {
 			return android.os.Build.SUPPORTED_ABIS.map(function(e) {
 				return String(e);
 			});
@@ -840,8 +877,7 @@ MapScript.loadModule("AndroidBridge", {
 			.setIcon(isNaN(icon) ? icon : android.graphics.drawable.Icon.createWithResource(context, icon))
 			.setIntent(intent)
 			.build();
-		var callback = android.app.PendingIntent.getBroadcast(context, 0,
-			manager.createShortcutResultIntent(shortcut), android.app.PendingIntent.FLAG_ONE_SHOT);
+		var callback = this.createPendingIntent("broadcast", manager.createShortcutResultIntent(shortcut), ["oneShot"]);
 		manager.requestPinShortcut(shortcut, callback.getIntentSender());
 	},
 	scanMedia : function(files, statusListener) {
