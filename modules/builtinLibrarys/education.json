@@ -387,11 +387,6 @@
 			"minecraft:element_97": "锫",
 			"minecraft:element_98": "锎",
 			"minecraft:element_99": "锿"
-		},
-		"ability": {
-			"mayfly": "可以飞行",
-			"mute": "禁言",
-			"worldbuilder": "世界建造者"
 		}
 	},
 	"selectors": {},

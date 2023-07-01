@@ -492,6 +492,54 @@
 					"min": "1.19.40.22"
 				}
 			]
+		},
+		"1.19.80.22": {
+			"commands": {
+				"gametest": {
+					"patterns": {
+						"runsetuntilfail": {
+							"description": "运行指定的测试集合，直至失败",
+							"params": [
+								{
+									"type": "plain",
+									"name": "runsetuntilfail",
+									"prompt": "运行测试集合，直至失败"
+								},
+								{
+									"type": "string",
+									"name": "测试集合名",
+									"optional": true
+								},
+								{
+									"type": "uint",
+									"name": "旋转方向",
+									"suggestion": "gametest_rotation",
+									"optional": true
+								}
+							]
+						},
+						"stopall": {
+							"description": "停止全部测试",
+							"params": [
+								{
+									"type": "plain",
+									"name": "stopall",
+									"prompt": "停止全部测试"
+								}
+							]
+						}
+					}
+				}
+			},
+			"supportVer": [
+				{
+					"min": "1.19.80.02",
+					"max": "1.19.80.02"
+				},
+				{
+					"min": "1.19.80.22"
+				}
+			]
 		}
 	}
 }
