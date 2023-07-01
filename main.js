@@ -703,4 +703,6 @@ Loader.fromFile("intl/index.js")
 Loader.fromFile("modules/builtinData.js")
 
 Loader.fromFile("modules/LockClasses.js")
+
+Loader.fromFile("modules/utils/DBSettings.js")
 });

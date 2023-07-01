@@ -573,7 +573,8 @@ MapScript.loadModule("ExternalStorage", {
 		return false;
 	},
 	importFile(uri, hint) {
-		const importFile = this.createImportFile(hint.replace("**", this.uriToName(uri)));
+		if (hint) hint = hint.replace("**", this.uriToName(uri));
+		const importFile = this.createImportFile(hint);
 		const input = this.openInputStream(uri);
 		importFile.getParentFile().mkdirs();
 		const output = new java.io.FileOutputStream(importFile);
