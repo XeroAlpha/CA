@@ -12,11 +12,17 @@
             "pattern": "^((\\+|-)?\\d+|\\*)(\\.((\\+|-)?\\d+|\\*))*$",
             "description": "版本区间所能包括的最高版本（包含）。\n只有当版本介于版本区间时才会进行加载。\n星号（*）表示匹配任意数字。\n例如某个功能在1.0.0加入，在1.0.1移除，那么区间就是['1.0.0', '1.0.0.*']。"
         },
+        "exclusiveMaximumVersion": {
+            "type": "string",
+            "pattern": "^((\\+|-)?\\d+)(\\.(\\+|-)?\\d+)*$",
+            "description": "版本区间所能包括的最高版本（不包含）。\n只有当版本介于版本区间时才会进行加载。\n\n需要命令助手至少为 1.2.14-Beta-13-Preview-3 (2023-07-23) 版本。"
+        },
         "versionRange": {
             "type": "object",
             "properties": {
                 "min": { "$ref": "#/definitions/minimumVersion" },
-                "max": { "$ref": "#/definitions/maximumVersion" }
+                "max": { "$ref": "#/definitions/maximumVersion" },
+                "exclusiveMax": { "$ref": "#/definitions/exclusiveMaximumVersion" }
             },
             "minProperties": 1
         },
@@ -25,6 +31,12 @@
             "items": { "$ref": "#/definitions/versionRange" },
             "minItems": 1,
             "description": "复合版本区间。\n由多个版本区间组成，表示它们的并集。\n只有当版本介于其中至少一个版本区间时才会进行加载。\n可与minSupportVer或maxSupportVer同时使用，命令助手会优先测试这两者是否满足条件。"
+        },
+        "packVersion": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 1,
+            "description": "版本号。\n用于判断拓展包是否需要更新。\n比较版本号时会先从较前的项开始比较，如果共有的项均相等则比较项的数量。例如[1, 0, 0]大于[1, 0]。版本号的每一项都应当是数字，但更推荐使用正整数。"
         },
         "filterFlag": {
             "const": null,
@@ -991,9 +1003,7 @@
             "description": "唯一ID。\n用于提示拓展包是否重复加载。\n不同的拓展包应使用不同的唯一ID，仅当是拓展包的不同版本时除外。唯一ID可以不遵守RFC 4122规范，但推荐直接使用生成的UUID。"
         },
         "version": {
-            "type": "array",
-            "items": { "type": "number" },
-            "minItems": 1,
+            "$ref": "#/definitions/packVersion",
             "description": "版本号。\n用于判断拓展包是否需要更新。\n比较版本号时会先从较前的项开始比较，如果共有的项均相等则比较项的数量。例如[1, 0, 0]大于[1, 0]。版本号的每一项都应当是数字，但更推荐使用正整数。"
         },
         "require": {
@@ -1011,7 +1021,7 @@
                             { "$ref": "#/definitions/versionRanges" }
                         ]
                     },
-                    "description": "依赖包列表。\n所有依赖包的UUID与版本要求组成的键值对。\n只有所有的依赖包均已加载且满足要求时才会将加载此命令库。\n\n需要命令助手至少为 1.2.14-Beta-13 版本。"
+                    "description": "依赖包列表。\n所有依赖包的UUID与版本要求组成的键值对。\n只有所有的依赖包均已加载且满足要求时才会将加载此命令库。\n\n需要命令助手至少为 1.2.14-Beta-14 版本。"
                 }
             ]
         },

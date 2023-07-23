@@ -4,10 +4,10 @@
 	"author": "CA制作组",
 	"description": "该命令库是默认命令库的补充，包括了与核心玩法无关的命令。",
 	"uuid": "590cdcb5-3cdf-42fa-902c-b578779335ab",
-	"version": [1, 0, 0],
+	"version": [1, 20, 20, 22],
 	"require": ["acf728c5-dd5d-4a38-b43d-7c4f18149fbd"],
 	"minSupportVer": "0.16.0",
-	"minCAVersion": "2022-10-02",
+	"minCAVersion": "2023-07-23",
 	"commands": {},
 	"enums": {
 		"gametest_rotation": {
@@ -98,8 +98,12 @@
 					"help": "https://wiki.biligame.com/mc/%E5%91%BD%E4%BB%A4/transferserver"
 				}
 			},
-			"minSupportVer": "1.0.3.0",
-			"maxSupportVer": "1.3.*"
+			"supportVer": [
+				{
+					"min": "1.0.3.0",
+					"exclusiveMax": "1.2.0.2"
+				}
+			]
 		},
 		"1.1": {
 			"commands": {
@@ -175,11 +179,11 @@
 			"supportVer": [
 				{
 					"min": "1.2.5.12",
-					"max": "1.16.210.52.*"
+					"exclusiveMax": "1.16.210.53"
 				},
 				{
 					"min": "1.16.210.54",
-					"max": "1.16.210.57.*"
+					"exclusiveMax": "1.16.210.58"
 				}
 			]
 		},

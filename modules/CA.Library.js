@@ -351,6 +351,17 @@
 			}
 			stack.length = l;
 		}
+		var iterateObject = function(o, keyIter, valueIter) {
+			var l = stack.length, k;
+			checkObject(o);
+			stack.length = l + 1;
+			for (k in o) {
+				stack[l] = k;
+				keyIter(k);
+				valueIter(v)
+			}
+			stack.length = l;
+		}
 		return function(a) {
 			var i;
 			stack = ["根"]; last = a;
@@ -366,7 +377,11 @@
 			stack[1] = "版本(version)";
 			iterateArray(a.version, checkUnsignedInt);
 			stack[1] = "前提包(require)";
-			iterateArray(a.require, checkNotEmptyString);
+			try {
+				iterateArray(a.require, checkNotEmptyString);
+			} catch(err) {
+				iterateObject(a.require, checkNotEmptyString, checkObject);
+			}
 		}
 	})(),
 	checkPackVer : (function() {
@@ -388,9 +403,10 @@
 			}
 			return 0;
 		}
-		var inRange = function(min, max) {
+		var inRange = function(min, max, exclusiveMax) {
 			if (min && compare(min) < 0) return -1;
 			if (max && compare(max) > 0) return 1;
+			if (exclusiveMax && compare(exclusiveMax) >= 0) return 1;
 			return 0;
 		}
 		return function(o) {
@@ -398,7 +414,7 @@
 			if (this.ignoreVersion) return 0;
 			a = getMinecraftVersion().split(".");
 			if (o.minSupportVer || o.maxSupportVer) {
-				r = inRange(o.minSupportVer, o.maxSupportVer);
+				r = inRange(o.minSupportVer, o.maxSupportVer, null);
 				if (r != 0) return r; //这两个参数是总范围
 			}
 			if (Array.isArray(o.supportVer)) {
@@ -406,7 +422,7 @@
 				r = 1;
 				for (i = 0; i < n; i++) {
 					e = o.supportVer[i];
-					r = Math.min(r, inRange(e.min, e.max)); //趋向返回游戏版本过低
+					r = Math.min(r, inRange(e.min, e.max, e.exclusiveMax)); //趋向返回游戏版本过低
 					if (r == 0) return 0; //这段只要存在一个范围符合条件就返回0
 				}
 			}
